@@ -1,6 +1,6 @@
 // Variables used by Scriptable.
 // These must be at the very top of the file. Do not edit.
-// icon-color: deep-orange; icon-glyph: calendar-alt;
+// icon-color: deep-blue; icon-glyph: calendar-alt;
 
 /*
  * 月历 · iOS 桌面小组件（Scriptable）
@@ -16,9 +16,9 @@ const CONFIG = {
 };
 
 const FILE = "mcal-calendar.json";
-const PHEX = { 3: "#E5484D", 2: "#F2A33A", 1: "#4F7BF0", 0: "#8E8E93" };
+const PHEX = { 3: "#E05A55", 2: "#E3A040", 1: "#4B82E8", 0: "#8D929B" };
 const WD = ["日", "一", "二", "三", "四", "五", "六"];
-const ACCENT = new Color("#FF7A2F");
+const ACCENT_HEX = ["#56789A", "#6A8AAB"]; // 浅色 / 深色
 
 // ---------- 参数 ----------
 let gistId = CONFIG.GIST_ID;
@@ -35,6 +35,7 @@ function dyn(light, dark) {
   return Color.dynamic(light, dark);
 }
 const hex = (h, a) => (a == null ? new Color(h) : new Color(h, a));
+const ACCENT = dyn(hex(ACCENT_HEX[0]), hex(ACCENT_HEX[1]));
 const C = {
   bg: dyn(hex("#FFFFFF"), hex("#1C1C1E")),
   text: dyn(hex("#1C1C1E"), hex("#F2F2F5")),

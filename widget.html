@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>月历小组件</title>
 <style>
-  :root { --accent:#FF7A2F; --p3:#E5484D; --p2:#F2A33A; --p1:#4F7BF0; --p0:#8E8E93; }
+  :root { --accent:#56789A; --p3:#E05A55; --p2:#E3A040; --p1:#4B82E8; --p0:#8D929B; }
+  :root[data-theme="dark"] { --accent:#6A8AAB; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#6A8AAB; } }
   :root, :root[data-theme="light"] { color-scheme:light; --bg:#FFFFFF; --line:#EDEDF0; --text:#1C1C1E; --text2:#86868C; --text3:#C3C3C8; --mix:20%; }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) { color-scheme:dark; --bg:#1C1C1E; --line:#2A2A2D; --text:#F2F2F5; --text2:#8E8E93; --text3:#4A4A4F; --mix:30%; }

@@ -14,13 +14,23 @@
   }
   mq.addEventListener ? mq.addEventListener('change', applyTheme) : mq.addListener(applyTheme);
 
-  // ---------- 页面 ----------
+  // ---------- 页面 & 底部菜单栏（点击，或长按拖动切换） ----------
   let page = 'cal';
+  const tabbar = $('#tabbar'), ind = $('#tabInd');
+  const tabs = () => [...tabbar.querySelectorAll('button[data-page]')];
+  const tabOf = p => tabs().find(b => b.dataset.page === p);
+  function placeInd(animate = true) {
+    const btn = tabOf(page); if (!btn) return;
+    if (!animate) ind.style.transition = 'none';
+    ind.style.width = btn.offsetWidth + 'px';
+    ind.style.transform = `translateX(${btn.offsetLeft - 5}px)`;
+    if (!animate) { void ind.offsetWidth; ind.style.transition = ''; }
+  }
   function showPage(p) {
     page = p;
     document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.id === 'page-' + p));
-    document.querySelectorAll('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.page === p));
-    $('#dock').classList.toggle('no-fab', p === 'set');
+    tabs().forEach(b => b.classList.toggle('on', b.dataset.page === p));
+    placeInd();
     renderPage();
   }
   function renderPage() {
@@ -29,7 +39,58 @@
     else if (page === 'quad') renderQuad();
     else renderSettings();
   }
-  $('#tabbar').addEventListener('click', e => { const b = e.target.closest('button'); if (b) showPage(b.dataset.page); });
+  let pd = null;
+  const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+  function tabAt(x) {
+    const list = tabs();
+    for (const b of list) { const r = b.getBoundingClientRect(); if (x >= r.left && x <= r.right) return b; }
+    return x < list[0].getBoundingClientRect().left ? list[0] : list[list.length - 1];
+  }
+  function moveDrag(x) {
+    const r = tabbar.getBoundingClientRect(), w = tabs()[0].offsetWidth;
+    const left = Math.max(5, Math.min(r.width - 5 - w, x - r.left - w / 2));
+    ind.style.width = w + 'px';
+    ind.style.transform = `translateX(${left - 5}px) scale(1.06, 1.1)`;
+    const h = tabAt(x);
+    tabs().forEach(b => b.classList.toggle('hover', b === h));
+    if (h !== pd.hover) { if (pd.hover) buzz(4); pd.hover = h; }
+  }
+  function startDrag(x) {
+    if (!pd || pd.dragging) return;
+    pd.dragging = true;
+    tabbar.classList.add('dragging');
+    buzz(10);
+    moveDrag(x);
+  }
+  function endDrag(x, commit) {
+    if (!pd) return;
+    clearTimeout(pd.timer);
+    const wasDrag = pd.dragging, btn = pd.btn;
+    pd = null;
+    tabbar.classList.remove('dragging');
+    tabs().forEach(b => b.classList.remove('hover'));
+    if (!commit) { placeInd(); return; }
+    const target = wasDrag ? tabAt(x) : btn;
+    if (target) showPage(target.dataset.page); else placeInd();
+  }
+  tabbar.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    pd = { x0: e.clientX, dragging: false, btn: e.target.closest('button[data-page]'), hover: null };
+    pd.timer = setTimeout(() => pd && startDrag(pd.lastX ?? pd.x0), 280);
+    try { tabbar.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  tabbar.addEventListener('pointermove', e => {
+    if (!pd) return;
+    pd.lastX = e.clientX;
+    if (!pd.dragging) { if (Math.abs(e.clientX - pd.x0) > 10) { clearTimeout(pd.timer); startDrag(e.clientX); } return; }
+    moveDrag(e.clientX);
+  });
+  tabbar.addEventListener('pointerup', e => endDrag(e.clientX, true));
+  tabbar.addEventListener('pointercancel', e => endDrag(e.clientX, false));
+  tabbar.addEventListener('click', e => { if (e.detail === 0) { const b = e.target.closest('button[data-page]'); if (b) showPage(b.dataset.page); } });
+  tabbar.addEventListener('contextmenu', e => e.preventDefault());
+  window.addEventListener('resize', () => placeInd(false));
+
   $('#fab').onclick = () => MC.Editor.openNew(page === 'today' ? MC.todayStr() : MC.Cal.selected());
 
   MC.onChange = () => {
@@ -48,8 +109,10 @@
     if (overdue.length) h += `<section class="sec"><h3 class="over"><span>已逾期</span><span>${overdue.length}</span></h3><ul class="card glass-panel">${overdue.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
     if (open.length) h += `<section class="sec"><h3><span>待完成</span><span>${open.length}</span></h3><ul class="card glass-panel">${open.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
     if (done.length) h += `<section class="sec"><h3><span>已完成</span><span>${done.length}</span></h3><ul class="card glass-panel">${done.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
-    if (!today.length && !overdue.length) h = `<div class="big-empty"><b>☀️</b>今天没有安排<br>点左下角 ＋ 添加</div>`;
-    else if (!open.length && !overdue.length) h = `<div class="big-empty" style="padding:28px 20px 10px"><b>🎉</b>今天的事都完成了</div>` + h;
+    const sun = '<span class="em-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></svg></span>';
+    const tick = '<span class="em-ico"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
+    if (!today.length && !overdue.length) h = `<div class="big-empty">${sun}今天没有安排<br><small style="color:var(--text3)">点右下角 ＋ 添加</small></div>`;
+    else if (!open.length && !overdue.length) h = `<div class="big-empty" style="padding:30px 20px 6px">${tick}今天的事都完成了</div>` + h;
     $('#todayBody').innerHTML = h;
   }
   UI.bindList($('#todayBody'));
@@ -114,70 +177,139 @@
 
   // ---------- 设置 ----------
   let iosScript = '', workflowYml = '';
-  function segSet(sel, val) { document.querySelectorAll(sel + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === String(val))); }
+  const IC = {
+    theme: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M12 4.5a7.5 7.5 0 0 1 0 15z" fill="currentColor"/></svg>',
+    week: '<svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="3.5"/><path d="M4 10h16M8.5 3.5v3.5M15.5 3.5v3.5"/></svg>',
+    link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24"><path d="M7.5 18.5a4.5 4.5 0 0 1-.5-8.97 5.5 5.5 0 0 1 10.6 1.47A3.75 3.75 0 0 1 17.25 18.5z"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.05-4.95"/><path d="M19 4.5V9h-4.5"/></svg>',
+    lock: '<svg viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>',
+    lockNow: '<svg viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.2v2"/></svg>',
+    key: '<svg viewBox="0 0 24 24"><circle cx="8.5" cy="12" r="3.5"/><path d="M12 12h8.5M17.5 12v3M20.5 12v2.2"/></svg>',
+    unlink: '<svg viewBox="0 0 24 24"><path d="M10 14l-1 1a3 3 0 0 1-4.2-4.2l2-2M14 10l1-1a3 3 0 0 1 4.2 4.2l-2 2M5 5l14 14"/></svg>',
+    bell: '<svg viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>',
+    send: '<svg viewBox="0 0 24 24"><path d="M4.5 11.5l15-6.5-5.5 15-2.6-6z"/><path d="M11.4 14l3.1-3.1"/></svg>',
+    phone: '<svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.8"/><path d="M11 18h2"/></svg>',
+    android: '<svg viewBox="0 0 24 24"><rect x="5.5" y="9" width="13" height="10" rx="2.5"/><path d="M8.5 9a3.5 3.5 0 0 1 7 0M8 4.5l1.5 2M16 4.5l-1.5 2"/><circle cx="10" cy="13" r=".6" fill="currentColor"/><circle cx="14" cy="13" r=".6" fill="currentColor"/></svg>',
+    export: '<svg viewBox="0 0 24 24"><path d="M12 14.5V4M8 8l4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
+    import: '<svg viewBox="0 0 24 24"><path d="M12 4v10.5M8 10.5l4 4 4-4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
+  };
+  const COL = { slate: '#5D7895', sage: '#5F9479', amber: '#C38F45', rose: '#BE6662', plum: '#86769F', graphite: '#7A7F88', teal: '#4E8C92', indigo: '#6170A3' };
+  const CHEV = '<span class="chev"><svg viewBox="0 0 8 13"><path d="M1.5 1.5l5 5-5 5"/></svg></span>';
+  function srow(o) {
+    const sub = o.sub ? `<small>${esc(o.sub)}</small>` : '';
+    const val = o.val ? `<span class="sval">${esc(o.val)}</span>` : '';
+    const help = o.help ? `<button class="help" data-help="${o.help}" aria-label="查看步骤">?</button>` : '';
+    const right = o.sw !== undefined
+      ? `<input type="checkbox" class="switch" id="${o.sw}" ${o.swOn ? 'checked' : ''}>${help}`
+      : `${val}${help}${o.chev === false ? '' : CHEV}`;
+    const inner = `<span class="sicon" style="--ic:${o.color}">${IC[o.icon]}</span><span class="slabel">${esc(o.label)}${sub}</span>${right}`;
+    return o.sw !== undefined
+      ? `<label class="srow">${inner}</label>`
+      : `<div class="srow tap${o.danger ? ' danger' : ''}" role="button" tabindex="0" data-act="${o.act}">${inner}</div>`;
+  }
+  const group = (title, rows, hint) =>
+    `<div class="sgroup-title">${title}</div><div class="sgroup">${rows.join('')}</div>${hint ? `<p class="hint">${esc(hint)}</p>` : ''}`;
   function syncText() {
-    if (!MC.vault.connected()) return '未连接同步';
-    if (MC.vault.locked()) return '已锁定';
-    if (MC.syncState.busy) return '同步中…';
-    if (MC.syncState.error) return '⚠ ' + MC.syncState.error;
+    if (!MC.vault.connected()) return ['未连接同步', ''];
+    if (MC.vault.locked()) return ['已锁定', ''];
+    if (MC.syncState.busy) return ['同步中…', 'busy'];
+    if (MC.syncState.error) return [MC.syncState.error, 'err'];
     return MC.settings.lastSync
-      ? '已同步 ' + new Date(MC.settings.lastSync).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-      : '尚未同步';
+      ? ['已同步 · ' + new Date(MC.settings.lastSync).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }), 'ok']
+      : ['尚未同步', ''];
+  }
+  function paintStatus() {
+    const [t, cls] = syncText();
+    $('#profileSub').textContent = t;
+    $('#statusPill').className = 'status-pill' + (cls ? ' ' + cls : '');
+  }
+  function notifyHint() {
+    const on = Push.enabled();
+    if (!Push.supported()) return '这个浏览器不支持通知。';
+    if (Push.isIOS && !Push.standalone()) return 'iPhone 需要从主屏幕图标打开月历才能开启通知（iOS 16.4 及以上）。';
+    if (!on) return MC.settings.notify && Push.permission() === 'denied' ? '通知权限被系统拒绝，请到系统设置中允许。' : '设置了提醒的事件会到点通知你。';
+    if (Push.remoteReady()) return 'App 关闭时由你仓库里的 GitHub Actions 每 5 分钟推送，需按「?」完成一次设置。';
+    return '目前只在 App 打开时提醒。连接 GitHub 后，App 关闭时也能收到推送。';
   }
   function renderSettings() {
     const pf = MC.data.profile;
-    const ab = $('#avatarBtn');
     $('#avatarImg').hidden = !pf.avatar;
     if (pf.avatar) $('#avatarImg').src = pf.avatar;
     $('#avatarInitial').textContent = pf.avatar ? '' : initial();
-    ab.querySelector('.avatar-edit').textContent = pf.avatar ? '更换' : '添加';
+    $('#avatarBtn').querySelector('.avatar-edit').textContent = pf.avatar ? '更换' : '添加';
     if (document.activeElement !== $('#nickInput')) $('#nickInput').value = pf.name;
-    $('#profileSub').textContent = syncText();
-    segSet('#sTheme', MC.settings.theme);
-    segSet('#sWeek', MC.settings.weekStart);
-    renderSyncGroup();
-    renderNotifyGroup();
+    paintStatus();
+
+    const S = MC.settings;
+    let h = group('通用', [
+      srow({ act: 'theme', icon: 'theme', color: COL.slate, label: '外观', val: { auto: '跟随系统', light: '浅色', dark: '深色' }[S.theme] }),
+      srow({ act: 'week', icon: 'week', color: COL.indigo, label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
+    ]);
+    if (!MC.vault.connected()) {
+      h += group('账户与同步', [
+        srow({ act: 'connect', icon: 'link', color: COL.slate, label: '连接 GitHub', sub: '用自己的令牌在多台设备间同步', help: 'sync' }),
+      ], '令牌会用你设置的密码加密，只保存在这台设备上。');
+    } else {
+      const rows = [
+        srow({ act: 'sync', icon: 'refresh', color: COL.teal, label: '立即同步', sub: syncText()[0], help: 'sync', chev: false }),
+        srow({ act: 'password', icon: 'lock', color: COL.amber, label: MC.vault.has() ? '修改密码' : '设置密码', val: MC.vault.has() ? '已开启' : '未设置' }),
+      ];
+      if (MC.vault.has()) rows.push(srow({ act: 'lock', icon: 'lockNow', color: COL.graphite, label: '立即锁定', chev: false }));
+      rows.push(srow({ act: 'retoken', icon: 'key', color: COL.plum, label: '更换令牌' }));
+      rows.push(srow({ act: 'disconnect', icon: 'unlink', color: COL.rose, label: '断开连接', danger: true, chev: false }));
+      h += group('账户与同步', rows, MC.vault.has() ? '打开 App 或离开超过 5 分钟后需要输入密码。' : '令牌目前以明文保存在本机，建议设置密码。');
+    }
+    const nrows = [srow({ icon: 'bell', color: COL.rose, label: '提醒通知', sw: 'nSwitch', swOn: Push.enabled(), help: 'notify' })];
+    if (Push.enabled()) nrows.push(srow({ act: 'ntest', icon: 'send', color: COL.teal, label: '发送测试通知', chev: false }));
+    if (Push.enabled() && S.vapidPrivate) nrows.push(srow({ act: 'nkey', icon: 'key', color: COL.amber, label: '复制通知密钥', sub: '填到 GitHub 仓库的 Secrets', chev: false }));
+    h += group('提醒', nrows, notifyHint());
+    h += group('桌面小组件', [
+      srow({ act: 'ios', icon: 'phone', color: COL.slate, label: 'iOS 小组件', sub: '复制 Scriptable 脚本', help: 'ios', chev: false }),
+      srow({ act: 'android', icon: 'android', color: COL.sage, label: '安卓小组件', sub: '复制小组件链接', help: 'android', chev: false }),
+    ]);
+    h += group('数据', [
+      srow({ act: 'export', icon: 'export', color: COL.indigo, label: '导出备份', chev: false }),
+      srow({ act: 'import', icon: 'import', color: COL.graphite, label: '导入备份', sub: '与现有数据合并', chev: false }),
+    ]);
+    $('#setGroups').innerHTML = h;
     const total = MC.data.events.length, done = MC.data.events.filter(e => e.done).length;
-    $('#statLine').textContent = `共 ${total} 个事件，已完成 ${done} 个 · 版本 ${MC.VERSION}`;
+    $('#statLine').textContent = `版本 ${MC.VERSION} · 共 ${total} 个事件，已完成 ${done} 个`;
     if (!iosScript) fetch('widget-ios-scriptable.js', { cache: 'no-cache' }).then(r => r.text()).then(t => (iosScript = t)).catch(() => {});
     if (!workflowYml) fetch('scripts/reminders.yml', { cache: 'no-cache' }).then(r => r.text()).then(t => (workflowYml = t)).catch(() => {});
   }
-  const growBtn = (act, label, cls = '', val = '') =>
-    `<div class="grow"><button class="grow-main ${cls}" data-act="${act}">${label}</button>${val ? `<span class="grow-val">${esc(val)}</span>` : ''}</div>`;
-  function renderSyncGroup() {
-    const g = $('#syncGroup');
-    if (!MC.vault.connected()) {
-      g.innerHTML = `<div class="grow"><button class="grow-main accent" data-act="connect">连接 GitHub 开启同步</button><button class="help glass" data-help="sync" aria-label="如何获取令牌">?</button></div>`;
-      $('#syncHint').textContent = '每个人用自己的 GitHub 令牌。令牌会用你设置的密码加密，只保存在这台设备上。';
-      return;
+
+  $('#setGroups').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.srow.tap')) { e.preventDefault(); e.target.click(); } });
+  $('#setGroups').addEventListener('click', async e => {
+    if (e.target.closest('[data-help]')) return;
+    const row = e.target.closest('[data-act]'); if (!row) return;
+    const act = row.dataset.act;
+    if (act === 'theme') UI.menu(row.querySelector('.sval'), [
+      { label: '跟随系统', value: 'auto', on: MC.settings.theme === 'auto' },
+      { label: '浅色', value: 'light', on: MC.settings.theme === 'light' },
+      { label: '深色', value: 'dark', on: MC.settings.theme === 'dark' },
+    ], v => { MC.settings.theme = v; MC.saveSettings(); applyTheme(); renderSettings(); });
+    else if (act === 'week') UI.menu(row.querySelector('.sval'), [
+      { label: '周日', value: 0, on: MC.settings.weekStart === 0 },
+      { label: '周一', value: 1, on: MC.settings.weekStart === 1 },
+    ], v => { MC.settings.weekStart = v; MC.saveSettings(); MC.Cal.realign(); renderSettings(); });
+    else if (act === 'connect' || act === 'retoken') connectForm(act === 'retoken');
+    else if (act === 'sync') { const ok = await MC.sync(); UI.toast(ok ? '已同步' : (MC.syncState.error || '同步失败')); renderSettings(); }
+    else if (act === 'password') passwordForm();
+    else if (act === 'lock') { MC.vault.lock(); showLock(); }
+    else if (act === 'disconnect') {
+      if (!confirm('断开后这台设备不再同步，日历数据仍保留在本机。确定断开？')) return;
+      if (Push.enabled()) await Push.disable();
+      MC.vault.disconnect(); renderSettings(); UI.toast('已断开连接');
     }
-    let h = `<div class="grow"><span>状态</span><span class="grow-val">${esc(syncText())}</span><button class="help glass" data-help="sync" aria-label="同步说明">?</button></div>`;
-    h += growBtn('sync', '立即同步');
-    h += growBtn('password', MC.vault.has() ? '修改密码' : '设置密码', '', MC.vault.has() ? '已开启' : '未设置');
-    if (MC.vault.has()) h += growBtn('lock', '立即锁定');
-    h += growBtn('retoken', '更换令牌');
-    h += growBtn('disconnect', '断开连接', 'danger');
-    g.innerHTML = h;
-    $('#syncHint').textContent = MC.vault.has()
-      ? '令牌已用密码加密。打开 App 或离开超过 5 分钟后需要输入密码。'
-      : '令牌目前以明文保存在本机，建议设置密码。';
-  }
-  function renderNotifyGroup() {
-    const g = $('#notifyGroup');
-    const on = Push.enabled();
-    let h = `<label class="grow"><span>提醒通知</span><input type="checkbox" class="switch" id="nSwitch" ${on ? 'checked' : ''}><button class="help glass" data-help="notify" aria-label="提醒设置步骤">?</button></label>`;
-    if (on) h += growBtn('ntest', '发送测试通知');
-    if (on && MC.settings.vapidPrivate) h += growBtn('nkey', '复制通知密钥（填到 GitHub）');
-    g.innerHTML = h;
-    let hint;
-    if (!Push.supported()) hint = '这个浏览器不支持通知。';
-    else if (Push.isIOS && !Push.standalone()) hint = 'iPhone 需要从主屏幕图标打开月历才能开启通知（iOS 16.4 及以上）。';
-    else if (!on) hint = MC.settings.notify && Push.permission() === 'denied' ? '通知权限被系统拒绝，请到系统设置中允许。' : '开启后，设置了提醒的事件会到点通知你。';
-    else if (Push.remoteReady()) hint = 'App 打开时直接提醒；App 关闭时由你仓库里的 GitHub Actions 每 5 分钟推送一次，需按「?」完成一次设置。';
-    else hint = '目前只在 App 打开时提醒。连接 GitHub 后可以在 App 关闭时也收到推送。';
-    $('#notifyHint').textContent = hint;
-  }
-  $('#notifyGroup').addEventListener('change', async e => {
+    else if (act === 'ntest') { try { await Push.test(); } catch (err) { UI.toast('发送失败：' + err.message); } }
+    else if (act === 'nkey') copy(MC.settings.vapidPrivate, '已复制通知密钥');
+    else if (act === 'ios') copyIOS();
+    else if (act === 'android') copyAndroid();
+    else if (act === 'export') exportData();
+    else if (act === 'import') $('#importFile').click();
+  });
+  $('#setGroups').addEventListener('change', async e => {
     if (e.target.id !== 'nSwitch') return;
     const sw = e.target;
     sw.disabled = true;
@@ -191,36 +323,9 @@
       UI.toast(err.message);
       if (!Push.enabled()) { MC.settings.notify = false; MC.saveSettings(); }
     }
-    sw.disabled = false;
     renderSettings();
   });
-  $('#notifyGroup').addEventListener('click', async e => {
-    const a = e.target.closest('[data-act]'); if (!a) return;
-    if (a.dataset.act === 'ntest') { try { await Push.test(); } catch (err) { UI.toast('发送失败：' + err.message); } }
-    if (a.dataset.act === 'nkey') copy(MC.settings.vapidPrivate, '已复制通知密钥');
-  });
-
-  $('#sTheme').onclick = e => { const b = e.target.closest('button'); if (!b) return; MC.settings.theme = b.dataset.v; MC.saveSettings(); applyTheme(); segSet('#sTheme', MC.settings.theme); };
-  $('#sWeek').onclick = e => {
-    const b = e.target.closest('button'); if (!b) return;
-    MC.settings.weekStart = Number(b.dataset.v); MC.saveSettings(); segSet('#sWeek', MC.settings.weekStart);
-    MC.Cal.realign();
-  };
-  $('#syncGroup').addEventListener('click', async e => {
-    const a = e.target.closest('[data-act]'); if (!a) return;
-    const act = a.dataset.act;
-    if (act === 'connect' || act === 'retoken') connectForm(act === 'retoken');
-    else if (act === 'sync') { const ok = await MC.sync(); UI.toast(ok ? '已同步' : (MC.syncState.error || '同步失败')); renderSettings(); }
-    else if (act === 'password') passwordForm();
-    else if (act === 'lock') { MC.vault.lock(); showLock(); }
-    else if (act === 'disconnect') {
-      if (!confirm('断开后这台设备不再同步，日历数据仍保留在本机。确定断开？')) return;
-      if (Push.enabled()) await Push.disable();
-      MC.vault.disconnect();
-      renderSettings(); UI.toast('已断开连接');
-    }
-  });
-  MC.onSyncStatus = () => { if (page === 'set') { $('#profileSub').textContent = syncText(); renderSyncGroup(); } };
+  MC.onSyncStatus = () => { if (page === 'set') { paintStatus(); const r = $('#setGroups [data-act="sync"] small'); if (r) r.textContent = syncText()[0]; } };
 
   // ---------- 表单 ----------
   let formHandler = null;
@@ -360,8 +465,6 @@
     if (!MC.settings.gistId) { UI.toast('请先连接 GitHub 并完成一次同步'); return; }
     copy(androidLink(), '已复制安卓小组件链接');
   }
-  $('#btnCopyIOS').onclick = copyIOS;
-  $('#btnCopyAndroid').onclick = copyAndroid;
 
   // ---------- 帮助 ----------
   const HELP = {
@@ -441,7 +544,7 @@
   });
 
   // ---------- 备份 ----------
-  $('#btnExport').onclick = async () => {
+  async function exportData() {
     const json = JSON.stringify(MC.data, null, 2);
     const name = `月历备份-${MC.todayStr()}.json`;
     try {
@@ -452,8 +555,7 @@
     a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
     a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  };
-  $('#btnImport').onclick = () => $('#importFile').click();
+  }
   $('#importFile').onchange = async e => {
     const f = e.target.files[0]; e.target.value = '';
     if (!f) return;
@@ -470,6 +572,7 @@
   $('#tabCalNum').textContent = new Date().getDate();
   if (MC.vault.locked()) showLock(); else document.documentElement.classList.remove('locked');
   showPage('cal');
+  requestAnimationFrame(() => placeInd(false));
   if (MC.session.token) MC.sync();
   window.addEventListener('online', () => MC.session.token && MC.sync());
   setInterval(() => { if (document.visibilityState === 'visible' && MC.session.token) MC.sync(); }, 3 * 60 * 1000);
