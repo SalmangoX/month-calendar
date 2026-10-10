@@ -1,8 +1,9 @@
 // 修改了任何文件后，把版本号加一，用户下次打开会自动更新
-const CACHE = 'mcal-v1';
+const CACHE = 'mcal-v0.2';
 const ASSETS = [
-  './', './index.html', './styles.css', './app.js', './manifest.webmanifest',
-  './widget.html', './widget-ios-scriptable.js',
+  './', './index.html', './styles.css', './manifest.webmanifest',
+  './js/store.js', './js/ui.js', './js/calendar.js', './js/editor.js', './js/push.js', './js/app.js',
+  './widget.html', './widget-ios-scriptable.js', './scripts/reminders.yml',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'
 ];
 
@@ -18,7 +19,6 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return; // GitHub API 直接走网络
-  // 先用缓存秒开，同时后台更新
   e.respondWith(
     caches.open(CACHE).then(async cache => {
       const cached = await cache.match(e.request, { ignoreSearch: true });
@@ -29,4 +29,28 @@ self.addEventListener('fetch', e => {
       return cached || net;
     })
   );
+});
+
+// ---------- 推送提醒 ----------
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: '月历', body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || '月历', {
+    body: d.body || '',
+    tag: d.tag || undefined,
+    icon: 'icons/icon-192.png',
+    badge: 'icons/icon-192.png',
+    data: { url: d.url || './' },
+  }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const target = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
+  e.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of all) {
+      if (c.url.startsWith(self.registration.scope)) { c.postMessage({ type: 'open' }); return c.focus(); }
+    }
+    return self.clients.openWindow(target);
+  })());
 });

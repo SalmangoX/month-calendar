@@ -125,7 +125,7 @@ function addChip(parent, e, width, h, fs, out) {
   const ch = parent.addStack();
   ch.size = new Size(width, h);
   ch.backgroundColor = bg;
-  ch.cornerRadius = 2;
+  ch.cornerRadius = 3;
   ch.setPadding(0, 2, 0, 1);
   ch.centerAlignContent();
   addText(ch, e.title, Font.semiboldSystemFont(fs), fg, { lines: 1 });
