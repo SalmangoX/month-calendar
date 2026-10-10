@@ -32,10 +32,26 @@
     btn.style.setProperty('--pc', p ? c : 'var(--text2)');
     btn.style.setProperty('--pf', p ? c : 'none');
   }
+  function quickDates() {
+    const t = new Date(), out = [];
+    const add = (d, label) => { const ds = MC.ymd(d); if (!out.some(o => o.ds === ds)) out.push({ ds, label, sub: label === '今天' || label === '明天' || label === '后天' ? '' : '' }); };
+    add(t, '今天'); add(MC.addDays(t, 1), '明天'); add(MC.addDays(t, 2), '后天');
+    add(MC.addDays(t, ((8 - t.getDay()) % 7) || 7), '下周一');
+    return out;
+  }
   function paintComposer() {
-    $('#cmpDateLabel').textContent = chipLabel(draft);
-    paintFlag($('#cmpFlag'), draft.priority);
-    $('#cmpSend').classList.toggle('disabled', !$('#cmpTitle').value.trim());
+    const qd = quickDates();
+    let qh = qd.map(o => `<button class="qchip${o.ds === draft.date ? ' on' : ''}" data-ds="${o.ds}">${o.label}<small>${MC.parse(o.ds).getMonth() + 1}/${MC.parse(o.ds).getDate()}</small></button>`).join('');
+    if (!qd.some(o => o.ds === draft.date)) qh = `<button class="qchip on" data-ds="${draft.date}">${MC.dateLabel(draft.date)}<small>周${MC.WD[MC.parse(draft.date).getDay()]}</small></button>` + qh;
+    qh += `<button class="qchip" data-act="pick">其他日期…</button>`;
+    $('#cmpQuick').innerHTML = qh;
+    $('#cmpPri').innerHTML = MC.PRI.map(p => `<button class="qchip pri${p.v === draft.priority ? ' on' : ''}" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span>${p.name}</button>`).join('');
+    const extra = [];
+    if (draft.time) extra.push(MC.timeLabel(draft));
+    if (draft.repeat && draft.repeat !== 'none') extra.push(MC.repeatLabel(draft.repeat));
+    if (draft.remind !== null && draft.remind !== undefined) extra.push('提醒');
+    $('#cmpDateLabel').textContent = extra.length ? extra.join(' · ') : '时间 · 提醒 · 重复';
+    $('#cmpSave').classList.toggle('disabled', !$('#cmpTitle').value.trim());
     $('#cmpDone').setAttribute('aria-pressed', String(!!draft.done));
   }
   function growTitle() {
@@ -44,33 +60,83 @@
     t.style.height = Math.min(120, t.scrollHeight) + 'px';
   }
 
+  // ---- 草稿与自动保存：没点「添加」就关掉时，新建的内容存为草稿，编辑的修改直接保存 ----
+  const DRAFT_KEY = 'mcal.draft';
+  let skipCloseSave = false;
+  const readDraft = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) { return null; } };
+  function onComposerClosed() {
+    if (skipCloseSave) { skipCloseSave = false; return; }
+    const title = $('#cmpTitle').value.trim(), note = $('#cmpNote').value.trim();
+    if (mode === 'new') {
+      if (title || note) {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...draft, title, note }));
+        UI.toast('已存为草稿，下次点 ＋ 接着写');
+      } else localStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+    if (!editing || !MC.data.events.includes(editing)) return;
+    const fields = { title, note, priority: draft.priority, date: draft.date, time: draft.time, endTime: draft.endTime, remind: draft.remind, done: draft.done };
+    const changed = Object.keys(fields).some(k => (fields[k] ?? null) !== (editing[k] ?? null));
+    if (!changed) return;
+    if (!title) { UI.toast('名称为空，修改没有保存'); return; }
+    MC.updateEvent(editing, fields);
+    UI.toast('修改已自动保存');
+  }
+  function closeComposer(save) { skipCloseSave = !save; UI.close('composer'); }
+  Editor.closeComposerSilently = () => closeComposer(false);
+
   Editor.openNew = date => {
     mode = 'new'; editing = null;
     resetDraft(date || MC.Cal.selected() || MC.todayStr());
-    $('#cmpTitle').value = ''; $('#cmpNote').value = '';
+    const saved = readDraft();
+    if (saved) {
+      Object.assign(draft, saved);
+      $('#cmpTitle').value = saved.title || ''; $('#cmpNote').value = saved.note || '';
+    } else { $('#cmpTitle').value = ''; $('#cmpNote').value = ''; }
+    $('#cmpHeading').textContent = saved ? '继续编辑草稿' : '新建事件';
+    $('#cmpClear').hidden = !saved;
+    $('#cmpSave').textContent = '添加';
     $('#cmpEditBar').hidden = true;
     $('#cmpBatch').hidden = false;
     $('#cmpTitle').classList.remove('err');
     growTitle(); paintComposer();
-    UI.open('composer');
+    UI.open('composer', onComposerClosed);
     $('#cmpTitle').focus();
   };
   Editor.openEdit = e => {
     mode = 'edit'; editing = e;
     Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, date: e.date, time: e.time, endTime: e.endTime, remind: e.remind, repeat: 'none', until: '', done: e.done });
     $('#cmpTitle').value = e.title; $('#cmpNote').value = e.note;
+    $('#cmpHeading').textContent = '编辑事件';
+    $('#cmpClear').hidden = true;
+    $('#cmpSave').textContent = '保存';
     $('#cmpEditBar').hidden = false;
     $('#cmpBatch').hidden = true;
     $('#cmpTitle').classList.remove('err');
     paintComposer();
-    UI.open('composer');
+    UI.open('composer', onComposerClosed);
     requestAnimationFrame(growTitle);
+  };
+  $('#cmpClear').onclick = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    const d = draft.date;
+    resetDraft(d);
+    $('#cmpTitle').value = ''; $('#cmpNote').value = '';
+    $('#cmpHeading').textContent = '新建事件'; $('#cmpClear').hidden = true;
+    growTitle(); paintComposer(); $('#cmpTitle').focus();
   };
 
   $('#cmpTitle').addEventListener('input', () => { growTitle(); $('#cmpTitle').classList.remove('err'); paintComposer(); });
   $('#cmpTitle').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); } });
-  $('#cmpNote').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); } });
-  $('#cmpFlag').onclick = () => UI.menu($('#cmpFlag'), UI.priMenuItems(draft.priority), v => { draft.priority = v; paintComposer(); });
+  $('#cmpQuick').addEventListener('click', e => {
+    const b = e.target.closest('.qchip'); if (!b) return;
+    if (b.dataset.act === 'pick') { $('#cmpDate').click(); return; }
+    draft.date = b.dataset.ds; paintComposer();
+  });
+  $('#cmpPri').addEventListener('click', e => {
+    const b = e.target.closest('.qchip'); if (!b) return;
+    draft.priority = Number(b.dataset.v); paintComposer();
+  });
   $('#cmpDone').onclick = () => { draft.done = !draft.done; paintComposer(); };
   $('#cmpDate').onclick = () => {
     $('#cmpTitle').blur(); $('#cmpNote').blur();
@@ -79,7 +145,7 @@
       paintComposer();
     });
   };
-  $('#cmpSend').onclick = submit;
+  $('#cmpSave').onclick = submit;
   $('#cmpBatch').onclick = () => openBatch();
   $('#cmpDelete').onclick = () => {
     if (!editing) return;
@@ -94,7 +160,7 @@
         MC.commit();
         UI.toast(`已删除 ${ids.size} 个事件`);
       } else { MC.deleteEvent(ev); UI.toast('已删除'); }
-      UI.close('composer');
+      closeComposer(false);
     };
     if (later.length > 1) {
       UI.menu($('#cmpDelete'), [
@@ -118,7 +184,7 @@
     const fields = { title, note, priority: draft.priority, date: draft.date, time: draft.time, endTime: draft.endTime, remind: draft.remind };
     if (mode === 'edit') {
       MC.updateEvent(editing, { ...fields, done: draft.done });
-      UI.close('composer');
+      closeComposer(false);
       UI.toast('已保存');
       return;
     }
@@ -128,6 +194,8 @@
     UI.toast(dates.length > 1 ? `已添加 ${dates.length} 个重复事件` : `已添加到${MC.dayDiff(draft.date) === 0 ? '今天' : ' ' + MC.dateLabel(draft.date)}`);
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';
     draft.repeat = 'none'; draft.until = '';
+    localStorage.removeItem(DRAFT_KEY);
+    $('#cmpHeading').textContent = '新建事件'; $('#cmpClear').hidden = true;
     growTitle(); paintComposer();
     MC.onNotifyCheck && MC.onNotifyCheck();
   }
@@ -386,7 +454,9 @@
     if (!valid.length) { UI.toast('至少填写一个名称'); $('#batchList').querySelector('.b-title').focus(); return; }
     MC.addEvents(valid.map(r => MC.newEvent({ title: r.title.trim(), note: r.note.trim(), priority: r.priority, date: r.date })));
     UI.close('batchSheet');
-    if (UI.isOpen('composer')) UI.close('composer');
+    localStorage.removeItem(DRAFT_KEY);
+    $('#cmpTitle').value = ''; $('#cmpNote').value = '';
+    if (UI.isOpen('composer')) closeComposer(false);
     UI.toast(`已添加 ${valid.length} 个事件`);
   };
 })();

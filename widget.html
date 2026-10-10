@@ -16,7 +16,7 @@
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden;
     font-family:-apple-system, "Noto Sans SC", "PingFang SC", Roboto, sans-serif; }
-  a.wrap { display:flex; flex-direction:column; height:100%; padding:8px 6px 6px; color:inherit; text-decoration:none; }
+  a.wrap { display:flex; flex-direction:column; height:100%; padding:8px 3px 6px; color:inherit; text-decoration:none; }
   .head { display:flex; align-items:baseline; justify-content:space-between; padding:0 4px 4px; }
   .head b { font-size:15px; }
   .head span { font-size:11px; color:var(--text2); }
@@ -26,7 +26,7 @@
   .n { width:18px; height:18px; margin:0 auto 1px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-variant-numeric:tabular-nums; }
   .out .n { color:var(--text3); } .out .chip { opacity:.55; }
   .today .n { background:var(--accent); color:#fff; font-weight:700; }
-  .chip { height:12px; line-height:12px; font-size:8.5px; font-weight:600; margin:0 1px 1px; padding:0 3px; border-radius:4px;
+  .chip { height:12px; line-height:12px; font-size:8.5px; font-weight:600; margin:0 1px 1px; padding:0 1.5px; border-radius:3.5px; letter-spacing:-.02em;
     white-space:nowrap; overflow:hidden; background:var(--c); color:#fff; }
   .chip.done { background:color-mix(in srgb, var(--c) var(--mix), transparent); color:color-mix(in srgb, var(--c) 72%, var(--text2)); text-decoration:line-through; }
   .more { font-size:8px; color:var(--text2); padding-left:2px; }
@@ -58,8 +58,14 @@
       throw new Error('链接里缺少 gist 参数。请在月历 App 的设置中「复制安卓小组件链接」。');
     }
     try {
-      const r = await fetch('https://api.github.com/gists/' + encodeURIComponent(GIST), { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+      const headers = { Accept: 'application/vnd.github+json' };
+      const etag = localStorage.getItem(CACHE_KEY + '.etag');
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (etag && cached) headers['If-None-Match'] = etag; // 没变化时只返回 304，不占用频率额度
+      const r = await fetch('https://api.github.com/gists/' + encodeURIComponent(GIST), { headers, cache: 'no-store' });
+      if (r.status === 304 && cached) return JSON.parse(cached);
       if (!r.ok) throw new Error('GitHub 返回 ' + r.status);
+      try { localStorage.setItem(CACHE_KEY + '.etag', r.headers.get('ETag') || ''); } catch (e) {}
       const g = await r.json();
       const f = g.files && g.files['mcal-calendar.json'];
       if (!f) throw new Error('Gist 中没有月历数据');
@@ -108,7 +114,7 @@
     catch (e) { root.innerHTML = `<div class="msg">${esc(e.message)}</div>`; }
   }
   refresh();
-  setInterval(refresh, 10 * 60 * 1000);
+  setInterval(refresh, 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(refresh, 200); });
 })();

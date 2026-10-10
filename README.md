@@ -1,4 +1,4 @@
-# 月历 0.3
+# 月历 0.4
 
 带优先级颜色的日历网页 App（PWA）。年 / 月 / 周三种视图（双指捏合切换），月视图逐周滚动、始终 6 行；底部菜单栏可点击也可长按拖动切换；今日列表、四象限总览；单个或批量添加事件，支持时间段、重复和提醒；浅色 / 深色；用自己的 GitHub 令牌多设备同步，令牌用密码加密；iOS / 安卓桌面小组件。
 
@@ -21,13 +21,15 @@
 2. 仓库 Settings → Pages → Deploy from a branch → `main` / `(root)` → Save。
 3. iPhone 用 Safari 打开网址 → 分享 → 添加到主屏幕；安卓用 Chrome → 安装应用。
 
-更新代码后，把 `sw.js` 第一行的版本号改一下，手机上打开两次即可更新。
+自己改代码后发布新版本：把 `version.json`、`sw.js` 的 `VERSION`、`js/store.js` 的 `MC.VERSION`、`index.html` 里的 `?v=` 改成同一个新版本号。App 打开时会在后台发现新版本并自动刷新；也可以在设置 → 检查更新 手动更新。
 
-## 2. 同步（每人用自己的令牌）
+## 2. 同步（每人用自己的账号和数据）
 
-GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token，在 Account permissions 里把 **Gists** 设为 **Read and write**。
+GitHub → Settings → Developer settings → Personal access tokens → **Tokens (classic)** → Generate new token (classic)。Expiration 可选 No expiration，权限**只勾 `gist`**，生成后复制 `ghp_` 开头的令牌。
 
-App → 设置 → 连接 GitHub 开启同步 → 粘贴令牌并设置密码。令牌用密码加密后只保存在本机，打开 App 或离开超过 5 分钟后需输入密码。忘记密码只能清除令牌后重新连接，日历数据不受影响。
+App → 设置 → 连接 GitHub → 粘贴令牌并设置密码。数据存在各自账号下的私密 Gist，互不相通；令牌用密码加密后只保存在本机。把设备交给别人前，可在「断开连接」里选择清除本机数据。
+
+别人用你部署的网址时，同步和小组件都用他自己的账号；App 关闭时的后台提醒只推送给仓库主人，其他人需要 Fork 一份仓库自己设置。
 
 ## 3. 提醒通知
 

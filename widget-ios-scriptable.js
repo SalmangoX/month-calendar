@@ -127,9 +127,10 @@ function addChip(parent, e, width, h, fs, out) {
   ch.size = new Size(width, h);
   ch.backgroundColor = bg;
   ch.cornerRadius = 3;
-  ch.setPadding(0, 2, 0, 1);
+  ch.setPadding(0, 1.5, 0, 1);
   ch.centerAlignContent();
-  addText(ch, e.title, Font.semiboldSystemFont(fs), fg, { lines: 1 });
+  const tx = addText(ch, e.title, Font.semiboldSystemFont(fs), fg, { lines: 1 });
+  tx.minimumScaleFactor = 0.72; // 宁可略缩小，也要把课程编号（如 ABC 1010）显示完整
   ch.addSpacer();
 }
 function addLine(w, width) {
@@ -151,7 +152,7 @@ function dayBadge(parent, d, size, fs, isToday, out) {
 // ---------- 大号：整月 ----------
 function largeLayout(w, idx, offline) {
   const S = wsize();
-  const padH = 6, padV = 8;
+  const padH = 4, padV = 8;
   w.setPadding(padV, padH, padV, padH);
   const innerW = S.mw - padH * 2;
   const cw = Math.floor(innerW / 7);
@@ -204,7 +205,7 @@ function largeLayout(w, idx, offline) {
       const evs = idx[ds] || [];
       const fit = evs.length <= maxChips ? evs.length : maxChips - 1;
       for (let k = 0; k < fit; k++) {
-        addChip(cell, evs[k], cw - 2, chipH, 7, out);
+        addChip(cell, evs[k], cw - 1, chipH, 7.5, out);
         cell.addSpacer(gap);
       }
       if (fit < evs.length) {
@@ -381,10 +382,14 @@ try {
 } catch (e) {
   widget = errorWidget(String(e.message || e));
 }
-if (CONFIG.APP_URL && !CONFIG.APP_URL.startsWith("__")) widget.url = CONFIG.APP_URL;
-widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
+// 点小组件：在 Scriptable 里先拉取最新数据，再打开月历；回到桌面时小组件通常会随之刷新
+widget.url = `scriptable:///run/${encodeURIComponent(Script.name())}?tap=1`;
+widget.refreshAfterDate = new Date(Date.now() + 5 * 60 * 1000);
 
-if (config.runsInWidget) {
+if (args.queryParameters && args.queryParameters.tap === "1") {
+  try { await loadData(); } catch (e) {}
+  if (CONFIG.APP_URL && !CONFIG.APP_URL.startsWith("__")) Safari.open(CONFIG.APP_URL);
+} else if (config.runsInWidget) {
   Script.setWidget(widget);
 } else {
   // 在 Scriptable 里直接运行时预览

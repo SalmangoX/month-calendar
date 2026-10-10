@@ -24,7 +24,7 @@
     } catch (e) { document.documentElement.dataset.theme = 'light'; }
   })();
 </script>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=0.4.0">
 </head>
 <body>
 
@@ -95,7 +95,7 @@
       <span>今日</span>
     </button>
     <button data-page="cal" class="on" aria-label="日历">
-      <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="4"/><path d="M8 3v4M16 3v4"/><text id="tabCalNum" x="12" y="17.4" text-anchor="middle" font-size="7.6" font-weight="700" fill="currentColor" stroke="none">1</text></svg>
+      <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.2h17M8 2.8v3.4M16 2.8v3.4"/><text id="tabCalNum" x="12" y="17.9" text-anchor="middle" font-size="8.6" font-weight="700" fill="currentColor" stroke="none" style="font-variant-numeric:tabular-nums;letter-spacing:-.2px">1</text></svg>
       <span>日历</span>
     </button>
     <button data-page="quad" aria-label="四象限">
@@ -104,7 +104,7 @@
     </button>
     <button data-page="set" aria-label="设置">
       <span class="tab-avatar" id="tabAvatar" hidden></span>
-      <svg viewBox="0 0 24 24" id="tabGear"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5l1.6 1.2-1.8 3.1-1.9-.7a7.6 7.6 0 0 1-1.7 1l-.3 2h-3.6l-.3-2a7.6 7.6 0 0 1-1.7-1l-1.9.7L5 14.7l1.6-1.2a7.4 7.4 0 0 1 0-2L5 10.3l1.8-3.1 1.9.7a7.6 7.6 0 0 1 1.7-1l.3-2h3.6l.3 2a7.6 7.6 0 0 1 1.7 1l1.9-.7 1.8 3.1-1.6 1.2a7.4 7.4 0 0 1 0 2z"/></svg>
+      <svg viewBox="0 0 24 24" id="tabGear"><path d="M10.40 5.08L10.75 2.48 L13.25 2.48 L13.60 5.08A7.1 7.1 0 0 1 15.76 5.98L17.84 4.38 L19.62 6.16 L18.02 8.24A7.1 7.1 0 0 1 18.92 10.40L21.52 10.75 L21.52 13.25 L18.92 13.60A7.1 7.1 0 0 1 18.02 15.76L19.62 17.84 L17.84 19.62 L15.76 18.02A7.1 7.1 0 0 1 13.60 18.92L13.25 21.52 L10.75 21.52 L10.40 18.92A7.1 7.1 0 0 1 8.24 18.02L6.16 19.62 L4.38 17.84 L5.98 15.76A7.1 7.1 0 0 1 5.08 13.60L2.48 13.25 L2.48 10.75 L5.08 10.40A7.1 7.1 0 0 1 5.98 8.24L4.38 6.16 L6.16 4.38 L8.24 5.98A7.1 7.1 0 0 1 10.40 5.08Z"/><circle cx="12" cy="12" r="3"/></svg>
       <span>设置</span>
     </button>
   </nav>
@@ -119,26 +119,36 @@
 
 <!-- 添加 / 编辑 -->
 <section class="sheet composer" id="composer" aria-label="添加事件">
-  <div class="cmp-edit" id="cmpEditBar">
-    <button class="cmp-check" id="cmpDone" aria-pressed="false"><i></i><span>已完成</span></button>
+  <div class="handle"></div>
+  <div class="cmp-head">
+    <h2 id="cmpHeading">新建事件</h2>
     <span class="spacer"></span>
-    <button class="text-btn danger" id="cmpDelete">删除</button>
+    <div class="cmp-edit" id="cmpEditBar">
+      <button class="cmp-check" id="cmpDone" aria-pressed="false"><i></i><span>已完成</span></button>
+      <button class="text-btn danger" id="cmpDelete">删除</button>
+    </div>
+    <button class="text-btn muted" id="cmpClear" hidden>清空</button>
+    <button class="cmp-save" id="cmpSave">添加</button>
   </div>
-  <textarea id="cmpTitle" rows="1" placeholder="准备做什么？" enterkeyhint="done"></textarea>
-  <input id="cmpNote" type="text" placeholder="备注（选填）" autocomplete="off">
+  <div class="cmp-card">
+    <textarea id="cmpTitle" rows="1" placeholder="准备做什么？" enterkeyhint="done"></textarea>
+    <textarea id="cmpNote" rows="2" placeholder="备注（选填）"></textarea>
+  </div>
+  <div class="cmp-sec">
+    <span class="cmp-label">日期</span>
+    <div class="cmp-chips" id="cmpQuick"></div>
+  </div>
+  <div class="cmp-sec">
+    <span class="cmp-label">优先级</span>
+    <div class="cmp-chips" id="cmpPri"></div>
+  </div>
   <div class="cmp-tools">
     <button class="tool date-tool glass" id="cmpDate">
-      <svg viewBox="0 0 24 24" width="17" height="17"><rect x="3.5" y="5" width="17" height="15.5" rx="4"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+      <svg viewBox="0 0 24 24" width="17" height="17"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
       <span id="cmpDateLabel"></span>
-    </button>
-    <button class="tool icon-tool glass" id="cmpFlag" aria-label="优先级">
-      <svg viewBox="0 0 24 24" width="19" height="19"><path d="M6 21V4h11l-2.2 4.2L17 12.5H6"/></svg>
     </button>
     <button class="tool glass" id="cmpBatch">批量</button>
     <span class="spacer"></span>
-    <button class="send glass accent" id="cmpSend" aria-label="添加">
-      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 19V6M6 11.5L12 5.5l6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
   </div>
 </section>
 
@@ -212,11 +222,11 @@
 <input type="file" id="avatarFile" accept="image/*" hidden>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
-<script src="js/store.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/calendar.js"></script>
-<script src="js/editor.js"></script>
-<script src="js/push.js"></script>
-<script src="js/app.js"></script>
+<script src="js/store.js?v=0.4.0"></script>
+<script src="js/ui.js?v=0.4.0"></script>
+<script src="js/calendar.js?v=0.4.0"></script>
+<script src="js/editor.js?v=0.4.0"></script>
+<script src="js/push.js?v=0.4.0"></script>
+<script src="js/app.js?v=0.4.0"></script>
 </body>
 </html>

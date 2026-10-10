@@ -49,15 +49,46 @@
     if (UI.menuOpen()) UI.closeMenu(); else if (stack.length) UI.close();
   });
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => UI.close(b.closest('.sheet').id)));
-  // 拖动把手 / 标题栏向下关闭
+  // 面板手势：向下拖动跟手、超过距离或快速下滑即收起；向上拖动有阻尼的橡皮筋效果，松手回弹
+  const rubber = (x, dim = 140, c = .55) => (1 - 1 / (x * c / dim + 1)) * dim;
   document.querySelectorAll('.sheet').forEach(sh => {
-    const zones = [sh.querySelector('.handle'), sh.querySelector('.sheet-head')].filter(Boolean);
-    let y0 = 0, d = 0, on = false;
-    zones.forEach(z => {
-      z.addEventListener('touchstart', e => { if (e.target.closest('button')) return; on = true; y0 = e.touches[0].clientY; d = 0; sh.style.transition = 'none'; }, { passive: true });
-      z.addEventListener('touchmove', e => { if (!on) return; d = Math.max(0, e.touches[0].clientY - y0); sh.style.transform = `translateY(${d}px)`; }, { passive: true });
-      z.addEventListener('touchend', () => { if (!on) return; on = false; sh.style.transition = ''; sh.style.transform = ''; if (d > 90) UI.close(sh.id); });
-    });
+    let y0 = 0, t0 = 0, last = 0, lastT = 0, v = 0, on = false, d = 0;
+    const isZone = el => {
+      if (el.closest('.handle, .sheet-head, .cmp-head h2')) return true;
+      if (el.closest('input, textarea, button, select, label, .wheel, .batch-list, .list, .pk-body, .help-body, .form, .cmp-chips')) return false;
+      return sh.classList.contains('composer'); // 添加面板的空白处也可以拖
+    };
+    sh.addEventListener('touchstart', e => {
+      if (e.touches.length > 1 || !isZone(e.target)) return;
+      on = true; d = 0; v = 0;
+      y0 = last = e.touches[0].clientY; t0 = lastT = performance.now();
+      sh.style.transition = 'none';
+    }, { passive: true });
+    sh.addEventListener('touchmove', e => {
+      if (!on) return;
+      const y = e.touches[0].clientY, now = performance.now();
+      v = (y - last) / Math.max(1, now - lastT); last = y; lastT = now;
+      d = y - y0;
+      const off = d >= 0 ? d : -rubber(-d);
+      sh.style.transform = `translateY(${off}px)`;
+      if (Math.abs(d) > 4 && e.cancelable) e.preventDefault();
+    }, { passive: false });
+    const end = () => {
+      if (!on) return; on = false;
+      const close = d > 110 || (d > 24 && v > .55);
+      if (close) {
+        sh.style.transition = 'transform .26s cubic-bezier(.3,.7,.4,1)';
+        sh.style.transform = `translateY(${sh.offsetHeight + 40}px)`;
+        setTimeout(() => { sh.style.transition = ''; sh.style.transform = ''; UI.close(sh.id); }, 250);
+      } else {
+        // 回弹：带一点过冲
+        sh.style.transition = 'transform .5s cubic-bezier(.25,1.6,.45,1)';
+        sh.style.transform = '';
+        setTimeout(() => { sh.style.transition = ''; }, 500);
+      }
+    };
+    sh.addEventListener('touchend', end);
+    sh.addEventListener('touchcancel', end);
   });
 
   // 键盘弹出时把面板顶起（iOS）

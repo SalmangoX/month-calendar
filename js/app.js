@@ -254,6 +254,7 @@
       ], '令牌会用你设置的密码加密，只保存在这台设备上。');
     } else {
       const rows = [
+        srow({ act: 'account', icon: 'link', color: COL.slate, label: 'GitHub 账号', val: MC.settings.account ? '@' + MC.settings.account : '已连接', chev: false }),
         srow({ act: 'sync', icon: 'refresh', color: COL.teal, label: '立即同步', sub: syncText()[0], help: 'sync', chev: false }),
         srow({ act: 'password', icon: 'lock', color: COL.amber, label: MC.vault.has() ? '修改密码' : '设置密码', val: MC.vault.has() ? '已开启' : '未设置' }),
       ];
@@ -273,6 +274,7 @@
     h += group('数据', [
       srow({ act: 'export', icon: 'export', color: COL.indigo, label: '导出备份', chev: false }),
       srow({ act: 'import', icon: 'import', color: COL.graphite, label: '导入备份', sub: '与现有数据合并', chev: false }),
+      srow({ act: 'update', icon: 'refresh', color: COL.slate, label: '检查更新', sub: `当前版本 ${MC.VERSION}`, chev: false }),
     ]);
     $('#setGroups').innerHTML = h;
     const total = MC.data.events.length, done = MC.data.events.filter(e => e.done).length;
@@ -300,9 +302,18 @@
     else if (act === 'password') passwordForm();
     else if (act === 'lock') { MC.vault.lock(); showLock(); }
     else if (act === 'disconnect') {
-      if (!confirm('断开后这台设备不再同步，日历数据仍保留在本机。确定断开？')) return;
-      if (Push.enabled()) await Push.disable();
-      MC.vault.disconnect(); renderSettings(); UI.toast('已断开连接');
+      UI.menu(row.querySelector('.slabel'), [
+        { label: '断开，保留本机数据', value: 'keep' },
+        { label: '断开并清除本机数据', value: 'wipe' },
+      ], async v => {
+        if (v === 'wipe' && !confirm('本机的事件、头像和昵称会被清除（你的 GitHub 账号里的数据不受影响），适合把设备交给别人用。继续？')) return;
+        if (Push.enabled()) await Push.disable();
+        MC.vault.disconnect();
+        MC.settings.account = '';
+        if (v === 'wipe') { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); MC.onChange(); }
+        MC.saveSettings();
+        renderSettings(); UI.toast(v === 'wipe' ? '已断开并清除本机数据' : '已断开连接');
+      });
     }
     else if (act === 'ntest') { try { await Push.test(); } catch (err) { UI.toast('发送失败：' + err.message); } }
     else if (act === 'nkey') copy(MC.settings.vapidPrivate, '已复制通知密钥');
@@ -310,6 +321,20 @@
     else if (act === 'android') copyAndroid();
     else if (act === 'export') exportData();
     else if (act === 'import') $('#importFile').click();
+    else if (act === 'update') {
+      // 清掉旧缓存并重新下载最新版本；日历数据和令牌都保存在别处，不受影响
+      if (!navigator.onLine) { UI.toast('检查更新需要联网'); return; }
+      try { const r = await fetch('sw.js', { cache: 'no-store' }); if (!r.ok) throw 0; }
+      catch (err) { UI.toast('连不上网站，请联网后再试'); return; }
+      UI.toast('正在获取最新版本…');
+      try {
+        if (MC.session.token) await MC.sync();
+        const regs = navigator.serviceWorker ? await navigator.serviceWorker.getRegistrations() : [];
+        await Promise.all(regs.map(r => r.unregister()));
+        if (window.caches) await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+      } catch (err) {}
+      location.replace(location.pathname + '?u=' + Date.now());
+    }
   });
   $('#setGroups').addEventListener('change', async e => {
     if (e.target.id !== 'nSwitch') return;
@@ -364,7 +389,7 @@
       title: isRetoken ? '更换令牌' : '连接 GitHub',
       submit: '连接',
       fields: [
-        { id: 'token', label: 'GitHub 令牌（需要 Gists 读写权限）', type: 'password', ph: 'github_pat_… 或 ghp_…' },
+        { id: 'token', label: 'GitHub 令牌（classic，勾选 gist）', type: 'password', ph: 'ghp_…' },
         { id: 'pw', label: '设置密码（用于加密令牌、打开 App 时解锁）', type: 'password', ph: '至少 4 位', ac: 'new-password' },
         { id: 'pw2', label: '再输入一次密码', type: 'password', ac: 'new-password' },
       ],
@@ -374,8 +399,18 @@
         if (!token) throw new Error('请粘贴 GitHub 令牌');
         checkPw(v.pw, v.pw2);
         const id = await MC.findGist(token); // 同时校验令牌
-        if (isRetoken && MC.settings.gistId && id && id !== MC.settings.gistId) MC.settings.gistId = id;
-        if (!isRetoken) MC.settings.gistId = id;
+        let login = '';
+        try { login = (await MC.gh('/user', {}, token)).login || ''; } catch (e) {}
+        const switching = !!MC.settings.account && login && login !== MC.settings.account;
+        const localCount = MC.data.events.length;
+        // 每个人用自己的数据：换了账号，或本机已有数据而云端也有数据时，让用户决定
+        if (localCount && id && (switching || !isRetoken)) {
+          const keep = confirm(`这台设备上已有 ${localCount} 个事件。\n\n点「确定」：把它们合并到 ${login ? '@' + login : '你'} 的账号。\n点「取消」：只使用该账号自己的数据，本机这些事件会被清除。`);
+          if (!keep) { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); }
+        }
+        if (switching && !id) { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); }
+        MC.settings.gistId = id;
+        MC.settings.account = login;
         await MC.vault.save(token, v.pw);
         const ok = await MC.sync();
         if (Push.enabled()) await Push.resubscribe();
@@ -478,10 +513,10 @@
         <li>点下方 <b>复制 iOS 小组件脚本</b>（已自动填好你的数据地址）。</li>
         <li>打开 Scriptable → 右上角 <b>＋</b> → 长按空白处粘贴 → 点顶部标题改名为「月历」→ <b>Done</b>。可以点 ▶ 预览大、中、小三种尺寸。</li>
         <li>回到桌面，长按空白处 → 左上角 <b>编辑</b> → <b>添加小组件</b> → 搜索 Scriptable → 选<b>大号</b>（整月日历），也可以选中号或小号 → 添加。</li>
-        <li>长按这个小组件 → <b>编辑小组件</b>：Script 选「月历」；When Interacting 选 <b>Open URL</b>，填 <code>${esc(appUrl())}</code>，这样点小组件就会打开月历。</li>
+        <li>长按这个小组件 → <b>编辑小组件</b>：Script 选「月历」，When Interacting 保持默认的 <b>Open App</b>。之后点小组件会先拉取最新数据，再打开月历。</li>
       </ol>
       <div class="help-copy"><button class="chip-btn glass" data-copy="ios">复制 iOS 小组件脚本</button><button class="chip-btn glass" data-copy="url">复制 App 网址</button></div>
-      <div class="help-tip">小组件多久刷新一次由 iOS 决定，一般 15–30 分钟。小组件参数（Parameter）填 <code>dark</code> 或 <code>light</code> 可固定深浅色，不填就跟随系统。</div>`,
+      <div class="help-tip">小组件会请求每 5 分钟刷新，但实际时间由 iOS 决定；想立刻看到最新内容，点一下小组件再回到桌面即可。小组件参数（Parameter）填 <code>dark</code> 或 <code>light</code> 可固定深浅色，不填就跟随系统。</div>`,
     }),
     android: () => ({
       title: '安卓桌面小组件',
@@ -517,12 +552,15 @@
     sync: () => ({
       title: '多设备同步',
       html: `<ol class="steps">
-        <li>登录 GitHub → 右上角头像 → <b>Settings</b> → 左侧最下面 <b>Developer settings</b> → <b>Personal access tokens</b> → <b>Fine-grained tokens</b> → <b>Generate new token</b>。</li>
-        <li>名字随意，有效期自选。在 Permissions 里找到 <b>Gists</b>（属于 Account permissions），设为 <b>Read and write</b>，其他都不用动 → <b>Generate token</b>，立刻复制保存（只显示一次）。</li>
-        <li>回到月历：设置 → <b>连接 GitHub 开启同步</b>，粘贴令牌，设置一个密码。</li>
-        <li>你的其他设备：同样粘贴<b>你自己的</b>令牌，密码可以和这台不同，日历会自动同步。</li>
+        <li>登录 GitHub → 右上角头像 → <b>Settings</b> → 左侧最下面 <b>Developer settings</b>。</li>
+        <li><b>Personal access tokens</b> → <b>Tokens (classic)</b> → <b>Generate new token</b> → <b>Generate new token (classic)</b>。</li>
+        <li>Note 随便填（比如「月历」）；Expiration 可以选 <b>No expiration</b>；权限只勾 <b>gist</b> 一项，其他都不要勾。</li>
+        <li>拉到最下面点 <b>Generate token</b>，立刻复制以 <code>ghp_</code> 开头的令牌（只显示一次）。</li>
+        <li>回到月历：设置 → <b>连接 GitHub</b>，粘贴令牌并设置一个密码。</li>
+        <li>你的其他设备：粘贴<b>同一个</b>令牌即可同步，密码可以不同。</li>
       </ol>
-      <div class="help-tip">每个人用自己的 GitHub 账号和令牌，数据各自独立。令牌用密码加密后只保存在本机，打开 App 时输入密码解锁。忘记密码只能清除令牌后重新连接，日历数据不受影响。</div>`,
+      <div class="help-tip">每个人用<b>自己的</b> GitHub 账号和令牌，日历数据存在各自账号下的私密 Gist 里，互不相通。令牌只勾 gist 权限，碰不到你的代码仓库。令牌用密码加密后只保存在本机；忘记密码只能清除令牌后重新连接，日历数据不受影响。把设备交给别人前，可以在「断开连接」里选择清除本机数据。</div>
+      <div class="help-tip" style="margin-top:10px">别人用你部署的网址时，同步和小组件都用他自己的账号，没有问题；但 App 关闭时的后台提醒只会推送给仓库主人。其他人想要后台提醒，需要 Fork 一份这个仓库，按「提醒通知」里的步骤设置自己的。</div>`,
     }),
   };
   function openHelp(k) {
@@ -577,14 +615,58 @@
   requestAnimationFrame(() => placeInd(false));
   if (MC.session.token) MC.sync();
   window.addEventListener('online', () => MC.session.token && MC.sync());
-  setInterval(() => { if (document.visibilityState === 'visible' && MC.session.token) MC.sync(); }, 3 * 60 * 1000);
+  // App 开着时每 15 秒检查一次云端（没变化时只是一个很小的 304 请求）
+  setInterval(() => { if (document.visibilityState === 'visible' && MC.session.token && !UI.anyOpen()) MC.sync(); }, 15000);
+  window.addEventListener('focus', () => MC.session.token && MC.sync());
+  window.addEventListener('pageshow', () => MC.session.token && MC.sync());
+
+  // 修正 iPhone 网页 App 底部安全区被重复计算导致的「大下巴」
+  function fixSafeArea() {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none';
+    document.body.appendChild(probe);
+    const sb = probe.offsetHeight;
+    probe.remove();
+    const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    const portrait = window.innerHeight >= window.innerWidth;
+    const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+    const excluded = standalone && sb > 0 && window.innerHeight <= screenH - sb + 1;
+    document.documentElement.style.setProperty('--safe-b', excluded ? '0px' : sb + 'px');
+  }
+  fixSafeArea();
+  window.addEventListener('resize', () => setTimeout(fixSafeArea, 100));
+
+  // 后台检查新版本：发现新版本就自动刷新一次
+  async function checkVersion() {
+    try {
+      const r = await fetch('version.json?_=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      const { version } = await r.json();
+      if (version && version !== MC.VERSION && sessionStorage.getItem('mcal.vreload') !== version) {
+        sessionStorage.setItem('mcal.vreload', version);
+        const regs = navigator.serviceWorker ? await navigator.serviceWorker.getRegistrations() : [];
+        await Promise.all(regs.map(x => x.update().catch(() => {})));
+        location.reload();
+      }
+    } catch (e) {}
+  }
+  setTimeout(checkVersion, 800);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkVersion(); });
   setInterval(() => { // 跨过午夜
     const d = new Date().getDate();
     if ($('#tabCalNum').textContent !== String(d)) { $('#tabCalNum').textContent = d; renderPage(); }
   }, 60000);
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+    // 新版本接管后自动刷新一次，立即显示最新界面
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || sessionStorage.getItem('mcal.reloaded')) return;
+      sessionStorage.setItem('mcal.reloaded', '1');
+      location.reload();
+    });
+    setTimeout(() => sessionStorage.removeItem('mcal.reloaded'), 10000);
     navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'open') showPage('today'); });
   }
   setTimeout(() => MC.onNotifyCheck(), 1500);

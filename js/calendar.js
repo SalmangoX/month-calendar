@@ -23,8 +23,9 @@
   function measure() {
     W = vp.clientWidth; H = vp.clientHeight;
     rowH = H / 6;
-    maxChips = Math.max(1, Math.floor((rowH - 30 + 2) / 17));
-    withMore = Math.floor((rowH - 30 - 12 + 2) / 17);
+    const head = body.classList.contains('previewing') ? 34 + 3 : 39 + 3; // 数字区 + 底部留白
+    maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
+    withMore = Math.floor((rowH - head - 12 + 2) / 17);
   }
   function setT(x, y) { track.style.transform = `translate3d(${x}px,${y}px,0)`; }
 
@@ -65,7 +66,7 @@
         if (ds === t) cls.push('today');
         if (ds === selected) cls.push('sel');
         if (d.getDate() === 1) cls.push('first');
-        h += `<div class="${cls.join(' ')}" data-date="${ds}"><div class="num" data-m="${d.getMonth() + 1}月">${d.getDate()}</div><div class="chips">${chipsHTML(MC.eventsOn(ds))}</div></div>`;
+        h += `<div class="${cls.join(' ')}" data-date="${ds}">${d.getDate() === 1 ? `<span class="mlabel">${d.getMonth() + 1}月</span>` : ''}<div class="num">${d.getDate()}</div><div class="chips">${chipsHTML(MC.eventsOn(ds))}</div></div>`;
       }
       h += '</div>';
     }

@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.3.1';
+  MC.VERSION = '0.4.0';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -109,7 +109,7 @@
   MC.newEvent = fields => normEvent({ ...fields, id: MC.uid(), createdAt: Date.now(), updatedAt: Date.now() });
 
   MC.settings = Object.assign(
-    { theme: 'auto', weekStart: 0, view: 'month', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '' },
+    { theme: 'auto', weekStart: 0, view: 'month', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '', account: '' },
     JSON.parse(localStorage.getItem(SET_KEY) || '{}')
   );
   // 从 0.1 版迁移：旧版本明文保存在 token 字段
@@ -135,7 +135,9 @@
   MC.eventsOn = ds => MC.byDate.get(ds) || [];
 
   MC.onChange = () => {};
+  MC.dirty = false;
   MC.commit = () => {
+    MC.dirty = true;
     MC.data.updatedAt = Date.now();
     MC.saveData(); MC.reindex();
     MC.onChange();
@@ -226,7 +228,7 @@
     const r = await fetch('https://api.github.com' + path, { ...opts, headers, cache: 'no-store' });
     if (!r.ok) {
       throw new Error(r.status === 401 ? '令牌无效或已过期'
-        : r.status === 403 ? '令牌缺少 Gists 读写权限，或请求过于频繁'
+        : r.status === 403 ? '令牌没有勾选 gist 权限，或请求过于频繁'
         : r.status === 404 ? '找不到同步数据（Gist 已被删除，或令牌属于另一个账号）'
         : `GitHub 返回 ${r.status}`);
     }
@@ -241,12 +243,23 @@
     }
     return '';
   };
+  // 带 ETag 的条件请求：云端没变化时只返回 304，又快又不占额度
+  let etag = '', lastRemote = null;
   async function readGist(id) {
-    const g = await gh('/gists/' + id);
+    const headers = { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + MC.session.token };
+    if (etag && lastRemote) headers['If-None-Match'] = etag;
+    const r = await fetch('https://api.github.com/gists/' + id, { headers, cache: 'no-store' });
+    if (r.status === 304 && lastRemote) return { remote: lastRemote, unchanged: true };
+    if (!r.ok) {
+      throw new Error(r.status === 401 ? '令牌无效或已过期' : r.status === 404 ? '找不到同步数据（Gist 已被删除，或令牌属于另一个账号）' : r.status === 403 ? '令牌没有勾选 gist 权限，或请求过于频繁' : `GitHub 返回 ${r.status}`);
+    }
+    const g = await r.json();
     const f = g.files && g.files[GIST_FILE];
     if (!f) throw new Error('这个 Gist 里没有月历数据');
     const text = f.truncated ? await (await fetch(f.raw_url, { cache: 'no-store' })).text() : f.content;
-    return MC.normalize(JSON.parse(text));
+    etag = r.headers.get('ETag') || '';
+    lastRemote = MC.normalize(JSON.parse(text));
+    return { remote: lastRemote, unchanged: false };
   }
   async function writeGist(d) {
     const body = { files: { [GIST_FILE]: { content: JSON.stringify(d) } } };
@@ -264,7 +277,7 @@
   MC.scheduleSync = () => {
     if (!MC.session.token) return;
     clearTimeout(timer);
-    timer = setTimeout(() => MC.sync(), 1500);
+    timer = setTimeout(() => MC.sync(), 500);
   };
   MC.sync = async () => {
     if (!MC.session.token) return false;
@@ -274,12 +287,25 @@
     let ok = false;
     try {
       if (!MC.settings.gistId) { MC.settings.gistId = await MC.findGist(); MC.saveSettings(); }
-      const remote = MC.settings.gistId ? await readGist(MC.settings.gistId) : null;
+      let remote = null;
+      if (MC.settings.gistId) {
+        const res = await readGist(MC.settings.gistId);
+        remote = res.remote;
+        if (res.unchanged && !MC.dirty) { // 两边都没变化，直接结束
+          MC.settings.lastSync = Date.now(); MC.saveSettings(); MC.syncState.error = ''; ok = true;
+          return ok;
+        }
+      }
       const merged = remote ? MC.merge(MC.data, remote) : MC.data;
       if (signature(merged) !== signature(MC.data)) {
         MC.data = merged; MC.saveData(); MC.reindex(); MC.onChange();
       }
-      if (!remote || signature(merged) !== signature(remote)) await writeGist({ ...merged, updatedAt: Date.now() });
+      if (!remote || signature(merged) !== signature(remote)) {
+        const out = { ...merged, updatedAt: Date.now() };
+        MC.dirty = false;
+        await writeGist(out);
+        lastRemote = MC.normalize(out); etag = ''; // 下次重新取一次新的 ETag
+      } else MC.dirty = false;
       MC.settings.lastSync = Date.now(); MC.saveSettings();
       MC.syncState.error = ''; ok = true;
     } catch (e) {
