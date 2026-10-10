@@ -23,7 +23,7 @@
     const btn = tabOf(page); if (!btn) return;
     if (!animate) ind.style.transition = 'none';
     ind.style.width = btn.offsetWidth + 'px';
-    ind.style.transform = `translateX(${btn.offsetLeft - 5}px)`;
+    ind.style.transform = `translateX(${btn.offsetLeft}px)`;
     if (!animate) { void ind.offsetWidth; ind.style.transition = ''; }
   }
   function showPage(p) {
@@ -47,10 +47,10 @@
     return x < list[0].getBoundingClientRect().left ? list[0] : list[list.length - 1];
   }
   function moveDrag(x) {
-    const r = tabbar.getBoundingClientRect(), w = tabs()[0].offsetWidth;
-    const left = Math.max(5, Math.min(r.width - 5 - w, x - r.left - w / 2));
+    const r = tabbar.getBoundingClientRect(), w = tabs()[0].offsetWidth, pad = tabs()[0].offsetLeft;
+    const left = Math.max(pad, Math.min(tabbar.offsetWidth - pad - w, x - r.left - w / 2));
     ind.style.width = w + 'px';
-    ind.style.transform = `translateX(${left - 5}px) scale(1.06, 1.1)`;
+    ind.style.transform = `translateX(${left}px) scale(1.06, 1.1)`;
     const h = tabAt(x);
     tabs().forEach(b => b.classList.toggle('hover', b === h));
     if (h !== pd.hover) { if (pd.hover) buzz(4); pd.hover = h; }
@@ -90,6 +90,8 @@
   tabbar.addEventListener('click', e => { if (e.detail === 0) { const b = e.target.closest('button[data-page]'); if (b) showPage(b.dataset.page); } });
   tabbar.addEventListener('contextmenu', e => e.preventDefault());
   window.addEventListener('resize', () => placeInd(false));
+  if (window.ResizeObserver) new ResizeObserver(() => { if (!pd) placeInd(false); }).observe(tabbar);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeInd(false));
 
   $('#fab').onclick = () => MC.Editor.openNew(page === 'today' ? MC.todayStr() : MC.Cal.selected());
 

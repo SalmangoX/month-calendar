@@ -1,5 +1,5 @@
 // 修改了任何文件后，把版本号加一，用户下次打开会自动更新
-const CACHE = 'mcal-v0.3';
+const CACHE = 'mcal-v0.3.1';
 const ASSETS = [
   './', './index.html', './styles.css', './manifest.webmanifest',
   './js/store.js', './js/ui.js', './js/calendar.js', './js/editor.js', './js/push.js', './js/app.js',

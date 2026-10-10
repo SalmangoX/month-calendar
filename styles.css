@@ -25,7 +25,7 @@
   --text: #15171C;
   --text2: #777D87;
   --text3: #C1C5CC;
-  --sel: #EDF1F5;
+  --sel: rgba(86, 120, 154, .05);
   --field: rgba(116, 126, 142, .10);
   --group-line: rgba(18, 28, 46, .07);
   --accent: #56789A;
@@ -49,7 +49,7 @@
   --text: #EFF1F4;
   --text2: #8A9099;
   --text3: #444850;
-  --sel: #13161B;
+  --sel: rgba(122, 154, 188, .055);
   --field: rgba(255, 255, 255, .075);
   --group-line: rgba(255, 255, 255, .065);
   --accent: #6A8AAB;
@@ -154,8 +154,10 @@ svg.filled { fill: currentColor; stroke: none; }
 
 .wrow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 0 4px; }
 .cell { position: relative; overflow: hidden; min-width: 0; padding-top: 3px; cursor: pointer; border-top: .5px solid var(--line); }
-.cell::before { content: ""; position: absolute; inset: 2px 1.5px; border-radius: 12px; background: transparent; transition: background .18s; }
+.cell::before { content: ""; position: absolute; inset: 3px 2px; border-radius: 14px; background: transparent; transition: background .18s; }
 .cell.sel::before { background: var(--sel); }
+.cell.sel:not(.today) .num, .wcol.sel:not(.today) .wnum { background: var(--accent-soft); color: var(--accent-text); font-weight: 650; }
+.cell.sel.today .num, .wcol.sel.today .wnum { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--accent); }
 .cell > * { position: relative; }
 .num {
   position: relative; display: flex; align-items: center; justify-content: center;
@@ -195,7 +197,7 @@ svg.filled { fill: currentColor; stroke: none; }
 /* 年视图 */
 .ypanel { position: absolute; left: 0; right: 0; height: 100%; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); gap: 2px 10px; padding: 4px 12px; }
 .mini { min-width: 0; display: flex; flex-direction: column; padding: 6px 4px; border-radius: var(--r-m); cursor: pointer; transition: background .15s; }
-.mini:active { background: var(--sel); }
+.mini:active { background: var(--field); }
 .mini h4 { margin: 0 0 4px 3px; font-size: 14px; font-weight: 680; }
 .mini.cur h4 { color: var(--accent-text); }
 .mini-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); }
@@ -311,9 +313,11 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 .tabbar {
   pointer-events: auto; position: relative; width: 100%; max-width: 520px; height: var(--dock-h);
   border-radius: 30px; display: flex; align-items: stretch; padding: 5px; touch-action: none;
+  box-shadow: inset 0 0 0 .5px var(--frost-edge), var(--frost-shadow);
 }
+.tabbar.glass:active { transform: none; opacity: 1; }
 .tab-ind {
-  position: absolute; top: 5px; bottom: 5px; left: 5px; border-radius: 25px;
+  position: absolute; top: 5px; bottom: 5px; left: 0; border-radius: 25px;
   background: var(--accent-soft); pointer-events: none;
   transition: transform .38s var(--ease-spring), width .3s var(--ease), background .2s, box-shadow .2s;
 }
