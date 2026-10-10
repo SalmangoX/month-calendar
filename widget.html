@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>月历小组件</title>
+<style>
+  :root { --accent:#FF7A2F; --p3:#E5484D; --p2:#F2A33A; --p1:#4F7BF0; --p0:#8E8E93; }
+  :root, :root[data-theme="light"] { color-scheme:light; --bg:#FFFFFF; --line:#EDEDF0; --text:#1C1C1E; --text2:#86868C; --text3:#C3C3C8; --mix:20%; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { color-scheme:dark; --bg:#1C1C1E; --line:#2A2A2D; --text:#F2F2F5; --text2:#8E8E93; --text3:#4A4A4F; --mix:30%; }
+  }
+  :root[data-theme="dark"] { color-scheme:dark; --bg:#1C1C1E; --line:#2A2A2D; --text:#F2F2F5; --text2:#8E8E93; --text3:#4A4A4F; --mix:30%; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden;
+    font-family:-apple-system, "Noto Sans SC", "PingFang SC", Roboto, sans-serif; }
+  a.wrap { display:flex; flex-direction:column; height:100%; padding:8px 6px 6px; color:inherit; text-decoration:none; }
+  .head { display:flex; align-items:baseline; justify-content:space-between; padding:0 4px 4px; }
+  .head b { font-size:15px; }
+  .head span { font-size:11px; color:var(--text2); }
+  .wd { display:grid; grid-template-columns:repeat(7,1fr); font-size:10px; color:var(--text2); text-align:center; padding-bottom:3px; }
+  .grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); grid-template-rows:repeat(6,minmax(0,1fr)); }
+  .c { border-top:1px solid var(--line); overflow:hidden; padding-top:2px; min-width:0; }
+  .n { width:18px; height:18px; margin:0 auto 1px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-variant-numeric:tabular-nums; }
+  .out .n { color:var(--text3); } .out .chip { opacity:.55; }
+  .today .n { background:var(--accent); color:#fff; font-weight:700; }
+  .chip { height:12px; line-height:12px; font-size:8.5px; font-weight:600; margin:0 1px 1px; padding:0 2px; border-radius:2px;
+    white-space:nowrap; overflow:hidden; background:var(--c); color:#fff; }
+  .chip.done { background:color-mix(in srgb, var(--c) var(--mix), transparent); color:color-mix(in srgb, var(--c) 72%, var(--text2)); text-decoration:line-through; }
+  .more { font-size:8px; color:var(--text2); padding-left:2px; }
+  .msg { margin:auto; text-align:center; font-size:13px; color:var(--text2); padding:16px; line-height:1.6; }
+</style>
+</head>
+<body>
+<a class="wrap" id="root" href="./"><div class="msg">加载中…</div></a>
+<script>
+(() => {
+  const q = new URLSearchParams(location.search);
+  const GIST = q.get('gist') || '';
+  const WS = Number(q.get('ws') || 0) === 1 ? 1 : 0;
+  const theme = q.get('theme');
+  if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+  const COLORS = { 3:'var(--p3)', 2:'var(--p2)', 1:'var(--p1)', 0:'var(--p0)' };
+  const WD = ['日','一','二','三','四','五','六'];
+  const pad = n => String(n).padStart(2,'0');
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const CACHE_KEY = 'mcal.widget.cache';
+  const root = document.getElementById('root');
+
+  async function load() {
+    if (!GIST) {
+      // 与 App 同源时可直接读取本机数据（便于在浏览器里预览）
+      const local = localStorage.getItem('mcal.data.v1');
+      if (local) return JSON.parse(local);
+      throw new Error('链接里缺少 gist 参数。请在月历 App 的设置中「复制安卓小组件链接」。');
+    }
+    try {
+      const r = await fetch('https://api.github.com/gists/' + encodeURIComponent(GIST), { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+      if (!r.ok) throw new Error('GitHub 返回 ' + r.status);
+      const g = await r.json();
+      const f = g.files && g.files['mcal-calendar.json'];
+      if (!f) throw new Error('Gist 中没有月历数据');
+      const text = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
+      try { localStorage.setItem(CACHE_KEY, text); } catch (e) {}
+      return JSON.parse(text);
+    } catch (e) {
+      const c = localStorage.getItem(CACHE_KEY);
+      if (c) return JSON.parse(c);
+      throw e;
+    }
+  }
+
+  function render(data) {
+    const now = new Date(), y = now.getFullYear(), m = now.getMonth(), t = ymd(now);
+    const by = {};
+    for (const e of data.events || []) (by[e.date] = by[e.date] || []).push(e);
+    for (const k in by) by[k].sort((a,b) => (a.done-b.done) || (b.priority-a.priority) || (a.createdAt-b.createdAt));
+    const prefix = `${y}-${pad(m+1)}-`;
+    let total = 0, done = 0;
+    for (const k in by) if (k.startsWith(prefix)) { total += by[k].length; done += by[k].filter(e => e.done).length; }
+
+    const first = new Date(y, m, 1);
+    const off = (first.getDay() - WS + 7) % 7;
+    const gridH = window.innerHeight - 48;
+    const rowH = gridH / 6;
+    const max = Math.max(1, Math.floor((rowH - 21) / 13));
+    let cells = '';
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(y, m, 1 - off + i), ds = ymd(d);
+      const evs = by[ds] || [];
+      const fit = evs.length <= max ? evs.length : max - 1;
+      let chips = '';
+      for (let k = 0; k < fit; k++) chips += `<div class="chip${evs[k].done ? ' done' : ''}" style="--c:${COLORS[evs[k].priority] || COLORS[0]}">${esc(evs[k].title)}</div>`;
+      if (fit < evs.length) chips += `<div class="more">+${evs.length - fit}</div>`;
+      cells += `<div class="c${d.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}"><div class="n">${d.getDate()}</div>${chips}</div>`;
+    }
+    let wd = '';
+    for (let i = 0; i < 7; i++) wd += `<div>${WD[(i + WS) % 7]}</div>`;
+    root.innerHTML = `<div class="head"><b>${y}年${m+1}月</b><span>${total ? `完成 ${done}/${total}` : '本月暂无事件'}</span></div>
+      <div class="wd">${wd}</div><div class="grid">${cells}</div>`;
+  }
+
+  async function refresh() {
+    try { render(await load()); }
+    catch (e) { root.innerHTML = `<div class="msg">${esc(e.message)}</div>`; }
+  }
+  refresh();
+  setInterval(refresh, 10 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(refresh, 200); });
+})();
+</script>
+</body>
+</html>
