@@ -10,7 +10,10 @@
     const t = MC.settings.theme;
     const dark = t === 'dark' || (t === 'auto' && mq.matches);
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    $('#themeColor').setAttribute('content', dark ? '#000000' : '#FFFFFF');
+    // 和月账本一样：两个 theme-color 分别对应浅色 / 深色；手动指定外观时两者都用该颜色
+    const forced = t === 'auto' ? null : (dark ? '#000000' : '#FFFFFF');
+    $('#themeLight').setAttribute('content', forced || '#FFFFFF');
+    $('#themeDark').setAttribute('content', forced || '#000000');
   }
   mq.addEventListener ? mq.addEventListener('change', applyTheme) : mq.addListener(applyTheme);
 
@@ -195,6 +198,8 @@
     android: '<svg viewBox="0 0 24 24"><rect x="5.5" y="9" width="13" height="10" rx="2.5"/><path d="M8.5 9a3.5 3.5 0 0 1 7 0M8 4.5l1.5 2M16 4.5l-1.5 2"/><circle cx="10" cy="13" r=".6" fill="currentColor"/><circle cx="14" cy="13" r=".6" fill="currentColor"/></svg>',
     export: '<svg viewBox="0 0 24 24"><path d="M12 14.5V4M8 8l4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
     import: '<svg viewBox="0 0 24 24"><path d="M12 4v10.5M8 10.5l4 4 4-4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
+    sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.6"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M6 18l1.4-1.4M16.6 7.4L18 6"/></svg>',
+    clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>',
   };
   const COL = { slate: '#5D7895', sage: '#5F9479', amber: '#C38F45', rose: '#BE6662', plum: '#86769F', graphite: '#7A7F88', teal: '#4E8C92', indigo: '#6170A3' };
   const CHEV = '<span class="chev"><svg viewBox="0 0 8 13"><path d="M1.5 1.5l5 5-5 5"/></svg></span>';
@@ -231,7 +236,7 @@
     if (!Push.supported()) return '这个浏览器不支持通知。';
     if (Push.isIOS && !Push.standalone()) return 'iPhone 需要从主屏幕图标打开月历才能开启通知（iOS 16.4 及以上）。';
     if (!on) return MC.settings.notify && Push.permission() === 'denied' ? '通知权限被系统拒绝，请到系统设置中允许。' : '设置了提醒的事件会到点通知你。';
-    if (Push.remoteReady()) return 'App 关闭时由你仓库里的 GitHub Actions 每 5 分钟推送，需按「?」完成一次设置。';
+    if (MC.settings.remoteSetup) return 'App 关闭时由你仓库里的 GitHub 定时任务每 5 分钟检查并推送，高峰时可能晚几分钟。';
     return '目前只在 App 打开时提醒。连接 GitHub 后，App 关闭时也能收到推送。';
   }
   function renderSettings() {
@@ -251,21 +256,25 @@
     if (!MC.vault.connected()) {
       h += group('账户与同步', [
         srow({ act: 'connect', icon: 'link', color: COL.slate, label: '连接 GitHub', sub: '用自己的令牌在多台设备间同步', help: 'sync' }),
-      ], '令牌会用你设置的密码加密，只保存在这台设备上。');
+      ], '每个人用自己的 GitHub 令牌，令牌只保存在这台设备上。');
     } else {
       const rows = [
         srow({ act: 'account', icon: 'link', color: COL.slate, label: 'GitHub 账号', val: MC.settings.account ? '@' + MC.settings.account : '已连接', chev: false }),
         srow({ act: 'sync', icon: 'refresh', color: COL.teal, label: '立即同步', sub: syncText()[0], help: 'sync', chev: false }),
-        srow({ act: 'password', icon: 'lock', color: COL.amber, label: MC.vault.has() ? '修改密码' : '设置密码', val: MC.vault.has() ? '已开启' : '未设置' }),
       ];
-      if (MC.vault.has()) rows.push(srow({ act: 'lock', icon: 'lockNow', color: COL.graphite, label: '立即锁定', chev: false }));
       rows.push(srow({ act: 'retoken', icon: 'key', color: COL.plum, label: '更换令牌' }));
       rows.push(srow({ act: 'disconnect', icon: 'unlink', color: COL.rose, label: '断开连接', danger: true, chev: false }));
-      h += group('账户与同步', rows, MC.vault.has() ? '打开 App 或离开超过 5 分钟后需要输入密码。' : '令牌目前以明文保存在本机，建议设置密码。');
+      h += group('账户与同步', rows, '令牌只保存在这台设备上。');
     }
     const nrows = [srow({ icon: 'bell', color: COL.rose, label: '提醒通知', sw: 'nSwitch', swOn: Push.enabled(), help: 'notify' })];
     if (Push.enabled()) nrows.push(srow({ act: 'ntest', icon: 'send', color: COL.teal, label: '发送测试通知', chev: false }));
-    if (Push.enabled() && S.vapidPrivate) nrows.push(srow({ act: 'nkey', icon: 'key', color: COL.amber, label: '复制通知密钥', sub: '填到 GitHub 仓库的 Secrets', chev: false }));
+    const dl = MC.data.daily;
+    const city = (dl.tz || MC.currentTz()).split('/').pop().replace(/_/g, ' ');
+    nrows.push(srow({ icon: 'sun', color: COL.amber, label: '每日未完成提醒', sub: dl.on ? `每天 ${dl.time} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
+    if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', color: COL.indigo, label: '每日提醒时间', val: dl.time }));
+    if (Push.enabled() && MC.vault.connected()) nrows.push(S.remoteSetup
+      ? srow({ act: 'nsetup', icon: 'cloud', color: COL.sage, label: 'App 关闭时也提醒', val: '已设置' })
+      : srow({ act: 'nsetup', icon: 'cloud', color: COL.slate, label: '一键设置：App 关闭时也提醒', sub: '只需粘贴一个临时令牌' }));
     h += group('提醒', nrows, notifyHint());
     h += group('桌面小组件', [
       srow({ act: 'ios', icon: 'phone', color: COL.slate, label: 'iOS 小组件', sub: '复制 Scriptable 脚本', help: 'ios', chev: false }),
@@ -299,8 +308,6 @@
     ], v => { MC.settings.weekStart = v; MC.saveSettings(); MC.Cal.realign(); renderSettings(); });
     else if (act === 'connect' || act === 'retoken') connectForm(act === 'retoken');
     else if (act === 'sync') { const ok = await MC.sync(); UI.toast(ok ? '已同步' : (MC.syncState.error || '同步失败')); renderSettings(); }
-    else if (act === 'password') passwordForm();
-    else if (act === 'lock') { MC.vault.lock(); showLock(); }
     else if (act === 'disconnect') {
       UI.menu(row.querySelector('.slabel'), [
         { label: '断开，保留本机数据', value: 'keep' },
@@ -316,7 +323,8 @@
       });
     }
     else if (act === 'ntest') { try { await Push.test(); } catch (err) { UI.toast('发送失败：' + err.message); } }
-    else if (act === 'nkey') copy(MC.settings.vapidPrivate, '已复制通知密钥');
+    else if (act === 'nsetup') setupForm();
+    else if (act === 'dtime') dailyTimeForm();
     else if (act === 'ios') copyIOS();
     else if (act === 'android') copyAndroid();
     else if (act === 'export') exportData();
@@ -337,6 +345,18 @@
     }
   });
   $('#setGroups').addEventListener('change', async e => {
+    if (e.target.id === 'dSwitch') {
+      const sw = e.target; sw.disabled = true;
+      try {
+        if (sw.checked) {
+          if (!Push.enabled()) await Push.enable();
+          MC.setDaily({ on: true, tz: MC.currentTz() });
+          UI.toast(`每天 ${MC.data.daily.time} 提醒你查看当天未完成的事件`);
+        } else { MC.setDaily({ on: false }); UI.toast('已关闭每日提醒'); }
+      } catch (err) { UI.toast(err.message); }
+      renderSettings();
+      return;
+    }
     if (e.target.id !== 'nSwitch') return;
     const sw = e.target;
     sw.disabled = true;
@@ -344,7 +364,7 @@
       if (sw.checked) {
         const remote = await Push.enable();
         UI.toast(remote ? '提醒已开启' : '提醒已开启（App 打开时）');
-        if (remote && MC.settings.vapidPrivate) setTimeout(() => openHelp('notify'), 400);
+        if (remote && !MC.settings.remoteSetup) setTimeout(() => setupForm(), 400);
       } else { await Push.disable(); UI.toast('提醒已关闭'); }
     } catch (err) {
       UI.toast(err.message);
@@ -364,7 +384,6 @@
       + (note ? `<p class="form-note">${note}</p>` : '') + '<p class="form-err" id="formErr"></p>';
     formHandler = { onSubmit, fields };
     UI.open('formSheet');
-    setTimeout(() => { const i = $('#formBody input'); i && i.focus(); }, 350);
   }
   async function submitForm(e) {
     e && e.preventDefault();
@@ -374,7 +393,7 @@
     const btn = $('#formSubmit'), label = btn.textContent;
     btn.disabled = true; btn.textContent = '处理中…'; $('#formErr').textContent = '';
     try { await formHandler.onSubmit(vals); UI.close('formSheet'); }
-    catch (err) { $('#formErr').textContent = err.message; }
+    catch (err) { $('#formErr').style.color = ''; $('#formErr').textContent = err.message; }
     finally { btn.disabled = false; btn.textContent = label; }
   }
   $('#formSubmit').onclick = submitForm;
@@ -384,26 +403,21 @@
     if (pw !== pw2) throw new Error('两次输入的密码不一致');
     if (pw && pw.length < 4) throw new Error('密码至少 4 位');
   }
+  const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=' + encodeURIComponent('月历同步');
   function connectForm(isRetoken) {
     openForm({
       title: isRetoken ? '更换令牌' : '连接 GitHub',
       submit: '连接',
-      fields: [
-        { id: 'token', label: 'GitHub 令牌（classic，勾选 gist）', type: 'password', ph: 'ghp_…' },
-        { id: 'pw', label: '设置密码（用于加密令牌、打开 App 时解锁）', type: 'password', ph: '至少 4 位', ac: 'new-password' },
-        { id: 'pw2', label: '再输入一次密码', type: 'password', ac: 'new-password' },
-      ],
-      note: '每个人填自己的令牌。令牌只保存在这台设备上，不会上传到任何地方。忘记密码只能清除令牌后重新连接，日历数据不受影响。不填密码也可以，但令牌会以明文保存在本机。',
+      fields: [{ id: 'token', label: 'GitHub 令牌', type: 'password', ph: 'ghp_…' }],
+      note: `还没有令牌？<a href="${TOKEN_URL}" target="_blank" rel="noopener">点这里去 GitHub 生成</a>（已自动勾好 gist 权限，有效期可选 No expiration），拉到底点 Generate token，复制回来粘贴即可。<br>每个人用自己的令牌，数据存在各自账号里；令牌只保存在这台设备上。`,
       onSubmit: async v => {
         const token = v.token.trim();
         if (!token) throw new Error('请粘贴 GitHub 令牌');
-        checkPw(v.pw, v.pw2);
         const id = await MC.findGist(token); // 同时校验令牌
         let login = '';
         try { login = (await MC.gh('/user', {}, token)).login || ''; } catch (e) {}
         const switching = !!MC.settings.account && login && login !== MC.settings.account;
         const localCount = MC.data.events.length;
-        // 每个人用自己的数据：换了账号，或本机已有数据而云端也有数据时，让用户决定
         if (localCount && id && (switching || !isRetoken)) {
           const keep = confirm(`这台设备上已有 ${localCount} 个事件。\n\n点「确定」：把它们合并到 ${login ? '@' + login : '你'} 的账号。\n点「取消」：只使用该账号自己的数据，本机这些事件会被清除。`);
           if (!keep) { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); }
@@ -411,7 +425,7 @@
         if (switching && !id) { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); }
         MC.settings.gistId = id;
         MC.settings.account = login;
-        await MC.vault.save(token, v.pw);
+        await MC.vault.save(token, '');
         const ok = await MC.sync();
         if (Push.enabled()) await Push.resubscribe();
         renderSettings();
@@ -419,23 +433,35 @@
       },
     });
   }
-  function passwordForm() {
-    const has = MC.vault.has();
-    const fields = [];
-    if (has) fields.push({ id: 'old', label: '当前密码', type: 'password', ac: 'current-password' });
-    fields.push({ id: 'pw', label: has ? '新密码（留空则取消密码）' : '新密码', type: 'password', ac: 'new-password', ph: '至少 4 位' },
-      { id: 'pw2', label: '再输入一次', type: 'password', ac: 'new-password' });
+  function dailyTimeForm() {
+    let val = MC.data.daily.time;
+    $('#formTitle').textContent = '每日提醒时间';
+    $('#formSubmit').textContent = '保存';
+    $('#formBody').innerHTML = `<div class="group"><div class="wheel-wrap" id="dWheel"></div></div><p class="form-note">按你当前所在的时区（${esc(MC.currentTz())}）每天这个时间提醒你查看当天未完成的事件；都完成了会告诉你「今日事件已完成」。</p><p class="form-err" id="formErr"></p>`;
+    formHandler = { fields: [], onSubmit: async () => { MC.setDaily({ time: val, tz: MC.currentTz() }); renderSettings(); UI.toast(`每日提醒改为 ${val}`); } };
+    UI.open('formSheet');
+    requestAnimationFrame(() => UI.timeWheel($('#dWheel'), val, '', t => { val = t; }));
+  }
+  function setupForm() {
     openForm({
-      title: has ? '修改密码' : '设置密码', submit: '保存', fields,
+      title: '后台提醒', submit: '开始设置',
+      fields: [
+        { id: 'tmp', label: '临时令牌', type: 'password', ph: 'ghp_…' },
+        { id: 'repo', label: '月历所在的仓库（一般不用改）', ph: '用户名/仓库名' },
+      ],
+      note: `<a href="${Push.SETUP_TOKEN_URL}" target="_blank" rel="noopener">点这里去 GitHub 生成临时令牌</a>（已自动勾好所需权限），拉到底点 Generate token，复制回来粘贴。<br>App 会自动上传提醒程序、写入密钥并启动定时任务。完成后这个临时令牌就可以在 GitHub 上删除。`,
       onSubmit: async v => {
-        checkPw(v.pw, v.pw2);
-        if (!has && !v.pw) throw new Error('请输入新密码');
-        const token = has ? await MC.vault.unlock(v.old) : MC.session.token;
-        await MC.vault.save(token, v.pw);
+        const tmp = v.tmp.trim(), repo = v.repo.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+        if (!tmp) throw new Error('请粘贴临时令牌');
+        if (!/^[^/\s]+\/[^/\s]+$/.test(repo)) throw new Error('仓库格式应为：用户名/仓库名');
+        const status = $('#formErr');
+        const ok = await Push.setupRemote(tmp, repo, t => { status.style.color = 'var(--text2)'; status.textContent = t; });
+        status.style.color = '';
         renderSettings();
-        UI.toast(v.pw ? '密码已保存' : '已取消密码');
+        UI.toast(ok ? '后台提醒已设置好' : '已设置，定时任务几分钟后开始运行');
       },
     });
+    const r = $('#ff_repo'); if (r) r.value = MC.settings.remoteSetup ? MC.settings.remoteSetup.repo : Push.guessRepo();
   }
 
   // ---------- 锁屏 ----------
@@ -445,14 +471,15 @@
     $('#lockName').textContent = MC.data.profile.name || '月历';
     $('#lockErr').textContent = '';
     $('#lockPw').value = '';
-    setTimeout(() => $('#lockPw').focus(), 200);
   }
   function hideLock() { document.documentElement.classList.remove('locked'); $('#lockPw').blur(); }
   $('#lockForm').addEventListener('submit', async e => {
     e.preventDefault();
     try {
-      await MC.vault.unlock($('#lockPw').value);
+      const tok = await MC.vault.unlock($('#lockPw').value);
+      await MC.vault.save(tok, ''); // 不再使用开屏密码
       hideLock();
+      UI.toast('已取消开屏密码，以后打开不再需要输入');
       MC.sync().then(() => Push.resubscribe());
       renderPage();
     } catch (err) {
@@ -471,7 +498,6 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
     $('#tabCalNum').textContent = new Date().getDate();
-    if (MC.vault.has() && MC.session.token && hiddenAt && Date.now() - hiddenAt > 5 * 60000) { MC.vault.lock(); showLock(); return; }
     if (MC.session.token) MC.sync();
     MC.onNotifyCheck();
     renderPage();
@@ -531,36 +557,25 @@
       <div class="help-tip">小组件显示本月的彩色事件和完成情况，点击会打开月历。刷新频率取决于你装的小组件 App。</div>`,
     }),
     notify: () => ({
-      title: '提醒通知设置',
-      html: `<p class="hint" style="margin:0 2px 14px">App 打开时到点会直接提醒。想在 App 关闭时也收到通知，需要让你 GitHub 仓库里的定时任务帮忙推送，设置一次即可：</p>
-      <ol class="steps">
-        <li>先在「账户与同步」连接 GitHub。iPhone 需要 iOS 16.4 以上，并且从主屏幕图标打开月历。</li>
-        <li>打开 <b>提醒通知</b> 开关，在弹窗中点 <b>允许</b>。</li>
-        <li>点下方 <b>复制通知密钥</b>。</li>
-        <li>打开 GitHub 上这个 App 的仓库 → <b>Settings</b> → 左侧 <b>Secrets and variables</b> → <b>Actions</b> → <b>New repository secret</b>：Name 填 <code>VAPID_PRIVATE_KEY</code>，Secret 粘贴刚复制的密钥 → <b>Add secret</b>。</li>
-        <li>再点一次 New repository secret：Name 填 <code>GIST_TOKEN</code>，Secret 粘贴你的 GitHub 令牌 → Add secret。</li>
-        <li>回到仓库首页，看有没有 <code>.github/workflows/reminders.yml</code> 这个文件。没有的话：<b>Add file</b> → <b>Create new file</b>，文件名填 <code>.github/workflows/reminders.yml</code>，内容点下方「复制工作流文件」粘贴 → <b>Commit changes</b>。</li>
-        <li>打开仓库的 <b>Actions</b> 页，如果提示启用就点启用 → 左侧选 <b>月历提醒</b> → <b>Run workflow</b>。出现绿色对勾就成功了。</li>
+      title: '提醒通知',
+      html: `<ol class="steps">
+        <li>打开 <b>提醒通知</b> 开关并允许通知。iPhone 需要 iOS 16.4 以上，并且从主屏幕图标打开月历。</li>
+        <li>到这一步，App 开着时已经会准时提醒。</li>
+        <li>想在 App 关闭时也收到：点 <b>一键设置：App 关闭时也提醒</b>，按提示去 GitHub 生成一个临时令牌（权限已自动勾好），粘贴回来点「开始设置」。</li>
+        <li>看到「后台提醒已设置好」就完成了，临时令牌可以在 GitHub 上删除。</li>
       </ol>
-      <div class="help-copy">
-        ${MC.settings.vapidPrivate ? '<button class="chip-btn glass" data-copy="vapid">复制通知密钥</button>' : ''}
-        <button class="chip-btn glass" data-copy="yml">复制工作流文件</button>
-      </div>
-      ${MC.settings.vapidPrivate ? '' : '<div class="help-tip" style="margin-bottom:10px">通知密钥只在第一次开启通知的那台设备上显示。如果找不到了，可以点「重新生成通知密钥」，之后每台设备都要重新打开一次提醒开关。<br><button class="chip-btn glass" data-copy="regen" style="margin-top:8px">重新生成通知密钥</button></div>'}
-      <div class="help-tip">之后每 5 分钟检查一次。GitHub 的定时任务在高峰时可能晚几分钟到十几分钟，精确到分钟的提醒请以 App 打开时为准。仓库 60 天没有改动时 GitHub 会暂停定时任务并发邮件提醒，点邮件里的按钮即可恢复。令牌过期换新后，也要更新 <code>GIST_TOKEN</code>。</div>`,
+      <div class="help-tip">后台提醒由你仓库里的 GitHub 定时任务每 5 分钟检查一次，高峰时可能晚几分钟。仓库 60 天没有改动时 GitHub 会暂停定时任务并发邮件提醒，点邮件里的按钮即可恢复。</div>`,
     }),
     sync: () => ({
       title: '多设备同步',
       html: `<ol class="steps">
-        <li>登录 GitHub → 右上角头像 → <b>Settings</b> → 左侧最下面 <b>Developer settings</b>。</li>
-        <li><b>Personal access tokens</b> → <b>Tokens (classic)</b> → <b>Generate new token</b> → <b>Generate new token (classic)</b>。</li>
-        <li>Note 随便填（比如「月历」）；Expiration 可以选 <b>No expiration</b>；权限只勾 <b>gist</b> 一项，其他都不要勾。</li>
-        <li>拉到最下面点 <b>Generate token</b>，立刻复制以 <code>ghp_</code> 开头的令牌（只显示一次）。</li>
-        <li>回到月历：设置 → <b>连接 GitHub</b>，粘贴令牌并设置一个密码。</li>
-        <li>你的其他设备：粘贴<b>同一个</b>令牌即可同步，密码可以不同。</li>
+        <li>点下方 <b>去 GitHub 生成令牌</b>（权限已自动勾好 gist），登录后 Expiration 可选 <b>No expiration</b>。</li>
+        <li>拉到最下面点 <b>Generate token</b>，复制以 <code>ghp_</code> 开头的令牌。</li>
+        <li>回到月历：设置 → <b>连接 GitHub</b>，粘贴令牌。</li>
+        <li>其他设备粘贴<b>同一个</b>令牌即可同步。</li>
       </ol>
-      <div class="help-tip">每个人用<b>自己的</b> GitHub 账号和令牌，日历数据存在各自账号下的私密 Gist 里，互不相通。令牌只勾 gist 权限，碰不到你的代码仓库。令牌用密码加密后只保存在本机；忘记密码只能清除令牌后重新连接，日历数据不受影响。把设备交给别人前，可以在「断开连接」里选择清除本机数据。</div>
-      <div class="help-tip" style="margin-top:10px">别人用你部署的网址时，同步和小组件都用他自己的账号，没有问题；但 App 关闭时的后台提醒只会推送给仓库主人。其他人想要后台提醒，需要 Fork 一份这个仓库，按「提醒通知」里的步骤设置自己的。</div>`,
+      <div class="help-copy"><a class="chip-btn glass" href="${TOKEN_URL}" target="_blank" rel="noopener" style="text-decoration:none">去 GitHub 生成令牌</a></div>
+      <div class="help-tip">每个人用<b>自己的</b> GitHub 账号和令牌，日历数据存在各自账号下的私密 Gist 里，互不相通。令牌只有 gist 权限，碰不到你的代码仓库，只保存在这台设备上。把设备交给别人前，可以在「断开连接」里选择清除本机数据。</div>`,
     }),
   };
   function openHelp(k) {
@@ -620,8 +635,7 @@
   window.addEventListener('focus', () => MC.session.token && MC.sync());
   window.addEventListener('pageshow', () => MC.session.token && MC.sync());
 
-  // 修正 iPhone 主屏幕 App 的「下巴」：状态栏透明时，系统报告的可用高度会少掉顶部状态栏那一截，
-  // 但网页实际铺满整块屏幕。这里把界面高度设成真实的屏幕高度，所有浮层都贴着这块界面定位。
+  // 界面高度与安全区（状态栏不再用透明样式，避开 iOS 底部被吃掉一截的 bug）
   const probeH = css => {
     const el = document.createElement('div');
     el.style.cssText = `position:fixed;left:0;top:0;width:1px;height:${css};visibility:hidden;pointer-events:none`;
@@ -633,9 +647,7 @@
     const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
     const portrait = window.innerHeight >= window.innerWidth;
     const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-    let h = Math.max(window.innerHeight, vh);
-    const gap = screenH - h;
-    if (standalone && Push.isIOS && gap >= 16 && gap <= 80) h = screenH; // 网页其实铺满了整块屏幕
+    const h = window.innerHeight;
     MC.appH = h;
     document.documentElement.style.setProperty('--app-h', h + 'px');
     document.documentElement.style.setProperty('--safe-b', sb + 'px');
@@ -679,4 +691,9 @@
     navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'open') showPage('today'); });
   }
   setTimeout(() => MC.onNotifyCheck(), 1500);
+  // 每日提醒跟随当前所在时区
+  const syncTz = () => { const d = MC.data.daily; if (d.on && d.tz !== MC.currentTz()) MC.setDaily({ tz: MC.currentTz() }); };
+  syncTz();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncTz(); });
+  if (location.hash === '#today') { showPage('today'); history.replaceState(null, '', location.pathname); }
 })();

@@ -106,6 +106,37 @@ for (const sub of info.subs) {
     sent[key] = now; changed = true;
   }
 }
+// 每日提醒：按用户当前所在时区，在设定时间提示查看当天未完成的事件（不列出具体事件）
+const daily = data.daily || {};
+if (daily.on) {
+  const tz = daily.tz || 'UTC';
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .formatToParts(new Date(now)).map(x => [x.type, x.value]));
+  const ds = `${p.year}-${p.month}-${p.day}`;
+  const [h, mi] = (daily.time || '13:00').split(':').map(Number);
+  const ft = localToUtc(+p.year, +p.month, +p.day, h, mi, tz);
+  if (ft <= now && ft > now - LOOKBACK) {
+    const open = (data.events || []).filter(e => e.date === ds && !e.done);
+    const msg = open.length
+      ? { title: '查看今日未完成事件', body: `今天还有 ${open.length} 件事未完成，点开查看。` }
+      : { title: '今日事件已完成', body: '今天的事件都完成了。' };
+    const tag = `daily@${ds}`;
+    for (const sub of info.subs) {
+      if (dead.has(sub.endpoint) || ft < (sub.addedAt || 0)) continue;
+      const key = `${tag}|${sub.device || sub.endpoint.slice(-24)}`;
+      if (sent[key]) continue;
+      try {
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys },
+          JSON.stringify({ ...msg, tag, url: (info.subject || './') + '#today' }), { TTL: 3600, urgency: 'high' });
+        count++; sent[key] = now; changed = true;
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) dead.add(sub.endpoint);
+        else console.log(`每日提醒发送失败 ${err.statusCode || ''}: ${err.body || err.message}`);
+      }
+    }
+  }
+}
+
 for (const k of Object.keys(sent)) if (sent[k] < now - 3 * 864e5) { delete sent[k]; changed = true; }
 
 const files = {};

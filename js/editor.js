@@ -101,7 +101,6 @@
     $('#cmpTitle').classList.remove('err');
     growTitle(); paintComposer();
     UI.open('composer', onComposerClosed);
-    $('#cmpTitle').focus();
   };
   Editor.openEdit = e => {
     mode = 'edit'; editing = e;
@@ -123,7 +122,7 @@
     resetDraft(d);
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';
     $('#cmpHeading').textContent = '新建事件'; $('#cmpClear').hidden = true;
-    growTitle(); paintComposer(); $('#cmpTitle').focus();
+    growTitle(); paintComposer();
   };
 
   $('#cmpTitle').addEventListener('input', () => { growTitle(); $('#cmpTitle').classList.remove('err'); paintComposer(); });
@@ -178,7 +177,6 @@
       t.classList.add('err'); t.placeholder = '请先填写名称';
       t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake');
       setTimeout(() => (t.placeholder = '准备做什么？'), 1800);
-      t.focus();
       return;
     }
     const fields = { title, note, priority: draft.priority, date: draft.date, time: draft.time, endTime: draft.endTime, remind: draft.remind };
@@ -436,8 +434,6 @@
     const last = rows[rows.length - 1];
     rows.push(blankRow(last ? last.date : draft.date));
     renderBatch();
-    const inputs = $('#batchList').querySelectorAll('.b-title');
-    inputs[inputs.length - 1].focus();
     $('#batchList').scrollTop = $('#batchList').scrollHeight;
   }
   $('#batchAddRow').onclick = addRow;
@@ -449,9 +445,9 @@
       el.classList.toggle('err', !!missing);
       if (missing && bad < 0) bad = i;
     });
-    if (bad >= 0) { UI.toast(`第 ${bad + 1} 行缺少名称`); $('#batchList').querySelectorAll('.b-title')[bad].focus(); return; }
+    if (bad >= 0) { UI.toast(`第 ${bad + 1} 行缺少名称`); return; }
     const valid = rows.filter(r => r.title.trim());
-    if (!valid.length) { UI.toast('至少填写一个名称'); $('#batchList').querySelector('.b-title').focus(); return; }
+    if (!valid.length) { UI.toast('至少填写一个名称'); return; }
     MC.addEvents(valid.map(r => MC.newEvent({ title: r.title.trim(), note: r.note.trim(), priority: r.priority, date: r.date })));
     UI.close('batchSheet');
     localStorage.removeItem(DRAFT_KEY);

@@ -101,8 +101,91 @@
     await reg.showNotification('月历 · 测试通知', { body: '通知可以正常显示了', tag: 'mcal-test', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
   };
 
+  // ---------- 一键设置后台提醒（用一个临时令牌自动完成 GitHub 那几步） ----------
+  Push.SETUP_TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=repo,workflow&description=' + encodeURIComponent('月历提醒设置（用完可删除）');
+  Push.guessRepo = () => {
+    const host = location.hostname;
+    if (!host.endsWith('.github.io')) return '';
+    const owner = host.split('.')[0];
+    const seg = location.pathname.split('/').filter(Boolean)[0];
+    return seg && !seg.includes('.') ? `${owner}/${seg}` : `${owner}/${host}`;
+  };
+  async function api(path, opts, token) {
+    const headers = { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + token };
+    if (opts && opts.body) headers['Content-Type'] = 'application/json';
+    const r = await fetch('https://api.github.com' + path, { ...(opts || {}), headers, cache: 'no-store' });
+    const t = await r.text();
+    let data = {}; try { data = t ? JSON.parse(t) : {}; } catch (e) {}
+    return { status: r.status, data };
+  }
+  const b64utf8 = str => btoa(unescape(encodeURIComponent(str)));
+  let naclLib = null;
+  async function seal(value, keyB64) {
+    // 与 libsodium crypto_box_seal 相同（GitHub Secrets 要求的加密方式）
+    if (!naclLib) {
+      const [n, b] = await Promise.all([
+        import('https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/+esm'),
+        import('https://cdn.jsdelivr.net/npm/blakejs@1.2.1/+esm'),
+      ]);
+      naclLib = { nacl: n.default || n, blake2b: b.blake2b || (b.default && b.default.blake2b) };
+    }
+    const { nacl, blake2b } = naclLib;
+    const pk = Uint8Array.from(atob(keyB64), c => c.charCodeAt(0));
+    const eph = nacl.box.keyPair();
+    const both = new Uint8Array(64); both.set(eph.publicKey); both.set(pk, 32);
+    const nonce = blake2b(both, undefined, 24);
+    const box = nacl.box(new TextEncoder().encode(value), nonce, pk, eph.secretKey);
+    const out = new Uint8Array(32 + box.length); out.set(eph.publicKey); out.set(box, 32);
+    return btoa(String.fromCharCode(...out));
+  }
+  async function ensureFile(repo, path, srcUrl, branch, token) {
+    const cur = await api(`/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`, {}, token);
+    if (cur.status === 200) return;
+    const text = await (await fetch(srcUrl + '?_=' + Date.now(), { cache: 'no-store' })).text();
+    const r = await api(`/repos/${repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify({ message: '添加月历提醒', content: b64utf8(text), branch }) }, token);
+    if (r.status >= 300) throw new Error(r.status === 403 || r.status === 404 ? '临时令牌缺少 repo 或 workflow 权限' : `上传 ${path} 失败（${r.status}）`);
+  }
+  Push.setupRemote = async (token, repo, step) => {
+    if (!Push.enabled()) throw new Error('请先打开「提醒通知」开关');
+    if (!MC.session.token) throw new Error('请先连接 GitHub 同步');
+    step('检查仓库…');
+    const info = await api(`/repos/${repo}`, {}, token);
+    if (info.status === 401) throw new Error('临时令牌无效');
+    if (info.status === 404) throw new Error(`找不到仓库 ${repo}，请检查仓库名，或令牌没有勾选 repo`);
+    if (info.status >= 300) throw new Error(`GitHub 返回 ${info.status}`);
+    const branch = info.data.default_branch || 'main';
+    step('准备通知密钥…');
+    if (!MC.settings.vapidPrivate) await subscribe(true); else await subscribe(false);
+    step('上传提醒程序…');
+    await ensureFile(repo, 'scripts/send-reminders.mjs', 'scripts/send-reminders.mjs', branch, token);
+    await ensureFile(repo, '.github/workflows/reminders.yml', 'scripts/reminders.yml', branch, token);
+    step('写入密钥…');
+    const pk = await api(`/repos/${repo}/actions/secrets/public-key`, {}, token);
+    if (pk.status >= 300) throw new Error('无法读取仓库的密钥配置，请确认令牌勾选了 repo');
+    for (const [name, value] of [['VAPID_PRIVATE_KEY', MC.settings.vapidPrivate], ['GIST_TOKEN', MC.session.token], ['GIST_ID', MC.settings.gistId]]) {
+      const r = await api(`/repos/${repo}/actions/secrets/${name}`, { method: 'PUT', body: JSON.stringify({ encrypted_value: await seal(value, pk.data.key), key_id: pk.data.key_id }) }, token);
+      if (r.status >= 300) throw new Error(`写入 ${name} 失败（${r.status}）`);
+    }
+    step('启动定时任务…');
+    await api(`/repos/${repo}/actions/workflows/reminders.yml/enable`, { method: 'PUT' }, token);
+    let ok = false;
+    for (let i = 0; i < 6 && !ok; i++) { // 新建的工作流需要几秒才能被 GitHub 识别
+      const r = await api(`/repos/${repo}/actions/workflows/reminders.yml/dispatches`, { method: 'POST', body: JSON.stringify({ ref: branch }) }, token);
+      ok = r.status === 204;
+      if (!ok) await new Promise(res => setTimeout(res, 3000));
+    }
+    MC.settings.remoteSetup = { repo, at: Date.now() }; MC.saveSettings();
+    return ok;
+  };
+
   // ---------- App 打开时的本地提醒 ----------
   const LKEY = 'mcal.localSent';
+  // 每日未完成提醒的内容
+  Push.digest = ds => {
+    const n = MC.eventsOn(ds).filter(e => !e.done).length;
+    return n ? { title: '查看今日未完成事件', body: `今天还有 ${n} 件事未完成，点开查看。` }
+             : { title: '今日事件已完成', body: '今天的事件都完成了。' };
+  };
   Push.bodyFor = e => `${MC.dateLabel(e.date)} ${MC.timeLabel(e) || '全天'}${e.note ? ' · ' + e.note : ''}`;
   async function checkLocal() {
     if (!Push.enabled() || !('serviceWorker' in navigator)) return;
@@ -118,10 +201,22 @@
       if (sent[key]) continue;
       sent[key] = now; due.push([e, key]);
     }
+    let daily = null;
+    const dl = MC.data.daily;
+    if (dl && dl.on) {
+      const d = new Date(), [h, m] = dl.time.split(':').map(Number);
+      const ft = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).getTime();
+      const key = 'daily@' + MC.todayStr();
+      if (ft <= now && ft > now - 3 * 60000 && !sent[key]) { sent[key] = now; daily = key; }
+    }
     for (const k of Object.keys(sent)) if (sent[k] < now - 3 * 864e5) delete sent[k];
     localStorage.setItem(LKEY, JSON.stringify(sent));
-    if (!due.length) return;
+    if (!due.length && !daily) return;
     const reg = await navigator.serviceWorker.ready;
+    if (daily) {
+      const dg = Push.digest(MC.todayStr());
+      reg.showNotification(dg.title, { body: dg.body, tag: daily, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: './#today' } });
+    }
     for (const [e, key] of due) {
       reg.showNotification(e.title, { body: Push.bodyFor(e), tag: key, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: './' } });
     }
