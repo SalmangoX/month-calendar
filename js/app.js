@@ -278,7 +278,7 @@
     ]);
     $('#setGroups').innerHTML = h;
     const total = MC.data.events.length, done = MC.data.events.filter(e => e.done).length;
-    $('#statLine').textContent = `版本 ${MC.VERSION} · 共 ${total} 个事件，已完成 ${done} 个`;
+    $('#statLine').innerHTML = `版本 ${MC.VERSION} · 共 ${total} 个事件，已完成 ${done} 个<br><small style="opacity:.6">${esc(MC.screenInfo || '')}</small>`;
     if (!iosScript) fetch('widget-ios-scriptable.js', { cache: 'no-cache' }).then(r => r.text()).then(t => (iosScript = t)).catch(() => {});
     if (!workflowYml) fetch('scripts/reminders.yml', { cache: 'no-cache' }).then(r => r.text()).then(t => (workflowYml = t)).catch(() => {});
   }
@@ -620,21 +620,30 @@
   window.addEventListener('focus', () => MC.session.token && MC.sync());
   window.addEventListener('pageshow', () => MC.session.token && MC.sync());
 
-  // 修正 iPhone 网页 App 底部安全区被重复计算导致的「大下巴」
+  // 修正 iPhone 主屏幕 App 的「下巴」：状态栏透明时，系统报告的可用高度会少掉顶部状态栏那一截，
+  // 但网页实际铺满整块屏幕。这里把界面高度设成真实的屏幕高度，所有浮层都贴着这块界面定位。
+  const probeH = css => {
+    const el = document.createElement('div');
+    el.style.cssText = `position:fixed;left:0;top:0;width:1px;height:${css};visibility:hidden;pointer-events:none`;
+    document.body.appendChild(el); const h = el.offsetHeight; el.remove(); return h;
+  };
   function fixSafeArea() {
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none';
-    document.body.appendChild(probe);
-    const sb = probe.offsetHeight;
-    probe.remove();
+    const sb = probeH('env(safe-area-inset-bottom,0px)'), st = probeH('env(safe-area-inset-top,0px)');
+    const vh = probeH('100vh');
     const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
     const portrait = window.innerHeight >= window.innerWidth;
     const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-    const excluded = standalone && sb > 0 && window.innerHeight <= screenH - sb + 1;
-    document.documentElement.style.setProperty('--safe-b', excluded ? '0px' : sb + 'px');
+    let h = Math.max(window.innerHeight, vh);
+    const gap = screenH - h;
+    if (standalone && Push.isIOS && gap >= 16 && gap <= 80) h = screenH; // 网页其实铺满了整块屏幕
+    MC.appH = h;
+    document.documentElement.style.setProperty('--app-h', h + 'px');
+    document.documentElement.style.setProperty('--safe-b', sb + 'px');
+    MC.screenInfo = `屏幕 ${screenH} · 视口 ${window.innerHeight} · 100vh ${vh} · 界面 ${h} · 安全区 ${st}/${sb}${standalone ? ' · 主屏幕模式' : ''}`;
   }
   fixSafeArea();
-  window.addEventListener('resize', () => setTimeout(fixSafeArea, 100));
+  requestAnimationFrame(() => { renderPage(); placeInd(false); });
+  window.addEventListener('resize', () => setTimeout(() => { fixSafeArea(); renderPage(); placeInd(false); }, 100));
 
   // 后台检查新版本：发现新版本就自动刷新一次
   async function checkVersion() {

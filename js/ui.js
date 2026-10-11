@@ -95,7 +95,7 @@
   if (window.visualViewport) {
     const vv = window.visualViewport;
     const onVV = () => {
-      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      const kb = Math.max(0, (MC.appH || window.innerHeight) - vv.height - vv.offsetTop);
       const on = kb > 60;
       document.documentElement.style.setProperty('--kb', on ? kb + 'px' : '0px');
       document.documentElement.classList.toggle('kb-open', on);
