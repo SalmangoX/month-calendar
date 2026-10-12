@@ -89,7 +89,7 @@ html, body {
   overscroll-behavior: none;
   letter-spacing: .005em;
 }
-body { position: fixed; top: 0; left: 0; right: 0; height: var(--app-h, 100%); overflow: hidden; user-select: none; -webkit-user-select: none; }
+body { position: fixed; inset: 0; overflow: hidden; user-select: none; -webkit-user-select: none; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 input, textarea, select { font: inherit; color: var(--text); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -356,9 +356,10 @@ button.srow:active, .srow.tap:active { background: var(--field); }
   position: absolute; top: 5px; bottom: 5px; left: 0; border-radius: 25px;
   background: var(--accent-soft); pointer-events: none;
   transition: transform .38s var(--ease-spring), width .3s var(--ease), background .2s, box-shadow .2s;
+  will-change: transform;
 }
 .tabbar.dragging .tab-ind {
-  transition: transform .08s linear, background .2s, box-shadow .2s;
+  transition: background .2s, box-shadow .2s; /* 拖动时不加过渡，直接跟手 */
   background: var(--frost-strong);
   box-shadow: inset 0 0 0 .5px var(--frost-edge), 0 6px 20px rgba(20, 32, 52, .18);
   transform-origin: center;
@@ -369,7 +370,7 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 }
 .tabbar button svg { width: 24px; height: 24px; }
 .tabbar button.on { color: var(--accent-text); }
-.tabbar.dragging button.hover { color: var(--accent-text); transform: scale(1.08); }
+.tabbar.dragging button.hover { color: var(--accent-text); }
 .tab-avatar { width: 24px; height: 24px; border-radius: 50%; background-size: cover; background-position: center; box-shadow: 0 0 0 1.5px currentColor; }
 .fab {
   position: absolute; right: 18px; bottom: var(--fab-b); z-index: 16;

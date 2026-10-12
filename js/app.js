@@ -26,7 +26,7 @@
     const btn = tabOf(page); if (!btn) return;
     if (!animate) ind.style.transition = 'none';
     ind.style.width = btn.offsetWidth + 'px';
-    ind.style.transform = `translateX(${btn.offsetLeft}px)`;
+    ind.style.transform = `translate3d(${btn.offsetLeft}px,0,0)`;
     if (!animate) { void ind.offsetWidth; ind.style.transition = ''; }
   }
   function showPage(p) {
@@ -44,22 +44,38 @@
   }
   let pd = null;
   const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
-  function tabAt(x) {
+  let geo = null, rafId = 0, pendingX = null;
+  function measureTabs() {
+    const r = tabbar.getBoundingClientRect();
     const list = tabs();
-    for (const b of list) { const r = b.getBoundingClientRect(); if (x >= r.left && x <= r.right) return b; }
-    return x < list[0].getBoundingClientRect().left ? list[0] : list[list.length - 1];
+    geo = { left: r.left, width: tabbar.offsetWidth, w: list[0].offsetWidth, pad: list[0].offsetLeft,
+      rects: list.map(b => { const br = b.getBoundingClientRect(); return [br.left, br.right, b]; }) };
   }
-  function moveDrag(x) {
-    const r = tabbar.getBoundingClientRect(), w = tabs()[0].offsetWidth, pad = tabs()[0].offsetLeft;
-    const left = Math.max(pad, Math.min(tabbar.offsetWidth - pad - w, x - r.left - w / 2));
-    ind.style.width = w + 'px';
-    ind.style.transform = `translateX(${left}px) scale(1.06, 1.1)`;
-    const h = tabAt(x);
-    tabs().forEach(b => b.classList.toggle('hover', b === h));
-    if (h !== pd.hover) { if (pd.hover) buzz(4); pd.hover = h; }
+  function tabAt(x) {
+    if (!geo) measureTabs();
+    for (const [l, r, b] of geo.rects) if (x >= l && x <= r) return b;
+    return x < geo.rects[0][0] ? geo.rects[0][2] : geo.rects[geo.rects.length - 1][2];
+  }
+  function moveDrag(x) { // 每帧最多更新一次
+    pendingX = x;
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = 0;
+      if (!pd || pendingX == null) return;
+      const { left: L, width, w, pad } = geo;
+      const left = Math.max(pad, Math.min(width - pad - w, pendingX - L - w / 2));
+      ind.style.width = w + 'px';
+      ind.style.transform = `translate3d(${left}px,0,0) scale(1.06, 1.1)`;
+      const h = tabAt(pendingX);
+      if (h !== pd.hover) {
+        if (pd.hover) { pd.hover.classList.remove('hover'); buzz(4); }
+        h.classList.add('hover'); pd.hover = h;
+      }
+    });
   }
   function startDrag(x) {
     if (!pd || pd.dragging) return;
+    measureTabs();
     pd.dragging = true;
     tabbar.classList.add('dragging');
     buzz(10);
@@ -68,12 +84,14 @@
   function endDrag(x, commit) {
     if (!pd) return;
     clearTimeout(pd.timer);
+    if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
     const wasDrag = pd.dragging, btn = pd.btn;
     pd = null;
     tabbar.classList.remove('dragging');
     tabs().forEach(b => b.classList.remove('hover'));
     if (!commit) { placeInd(); return; }
     const target = wasDrag ? tabAt(x) : btn;
+    geo = null;
     if (target) showPage(target.dataset.page); else placeInd();
   }
   tabbar.addEventListener('pointerdown', e => {
@@ -656,9 +674,7 @@
     const portrait = window.innerHeight >= window.innerWidth;
     const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
     const h = window.innerHeight;
-    MC.appH = h;
-    document.documentElement.style.setProperty('--app-h', h + 'px');
-    document.documentElement.style.setProperty('--safe-b', sb + 'px');
+    MC.appH = h; // 只做记录；安全区与高度完全交给 CSS 的 env() 自动计算，避免启动瞬间读到错误值后被固定住
     MC.screenInfo = `屏幕 ${screenH} · 视口 ${window.innerHeight} · 100vh ${vh} · 界面 ${h} · 安全区 ${st}/${sb}${standalone ? ' · 主屏幕模式' : ''}`;
   }
   fixSafeArea();
