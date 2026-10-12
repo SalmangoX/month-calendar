@@ -191,15 +191,15 @@ function largeLayout(w, idx, offline) {
   const maxChips = Math.max(1, Math.floor((rowH - numH - 2) / (chipH + gap)));
   const grid = w.addStack();
   grid.layoutVertically();
-  grid.size = new Size(gridW, rowH * rows);
+  // 不固定总高度：每一行都可伸缩，桌面上小组件实际多高就铺多高
   // 不画外框，交给小组件自身的圆角
   for (let r = 0; r < rows; r++) {
     const row = grid.addStack();
-    row.size = new Size(gridW, rowH);
+    row.size = new Size(gridW, 0);
     for (let c = 0; c < 7; c++) {
       const d = days[r * 7 + c], ds = ymd(d), out = d.getMonth() !== m, isToday = ds === t;
       const cell = row.addStack();
-      cell.size = new Size(cw, rowH);
+      cell.size = new Size(cw, 0);
       cell.layoutVertically();
       cell.borderColor = C.line; cell.borderWidth = 0.25;
       cell.setPadding(1, 1, 0, 1);
@@ -272,7 +272,7 @@ function mediumLayout(w, idx, offline) {
     for (let c = 0; c < 7; c++) {
       const d = days[r * 7 + c], ds = ymd(d), out = d.getMonth() !== m;
       const cell = row.addStack();
-      cell.size = new Size(cw, rowH);
+      cell.size = new Size(cw, 0);
       cell.layoutVertically();
       const nr = cell.addStack(); nr.size = new Size(cw, rowH - 4);
       nr.addSpacer(); dayBadge(nr, d, Math.min(rowH - 4, 14), 8.5, ds === t, out); nr.addSpacer();
