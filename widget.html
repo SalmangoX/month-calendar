@@ -8,7 +8,7 @@
   :root { --accent:#56789A; --p3:#E05A55; --p2:#E3A040; --p1:#4B82E8; --p0:#8D929B; }
   :root[data-theme="dark"] { --accent:#6A8AAB; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#6A8AAB; } }
-  :root, :root[data-theme="light"] { color-scheme:light; --bg:#FFFFFF; --line:#EDEDF0; --text:#1C1C1E; --text2:#86868C; --text3:#C3C3C8; --mix:20%; }
+  :root, :root[data-theme="light"] { color-scheme:light; --bg:#F1F2F5; --line:#DEE0E6; --text:#1C1C1E; --text2:#86868C; --text3:#C3C3C8; --mix:20%; }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) { color-scheme:dark; --bg:#1C1C1E; --line:#2A2A2D; --text:#F2F2F5; --text2:#8E8E93; --text3:#4A4A4F; --mix:30%; }
   }
@@ -28,7 +28,7 @@
   .n { min-width:16px; height:16px; padding:0 3px; margin:0 0 2px 1px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:500; }
   .out .n { color:var(--text3); } .out .chip { opacity:.55; }
   .today .n { background:var(--accent); color:#fff; font-weight:700; }
-  .chip { height:13px; line-height:13px; font-size:9px; font-weight:600; margin:0 1px 1px; padding:0 1.5px; border-radius:3.5px; letter-spacing:-.02em;
+  .chip { height:14px; line-height:14px; font-size:9.5px; font-weight:600; margin:0 1px 1px; padding:0 1.5px; border-radius:3.5px; letter-spacing:-.02em;
     white-space:nowrap; overflow:hidden; background:var(--c); color:#fff; }
   .chip.done { background:color-mix(in srgb, var(--c) var(--mix), transparent); color:color-mix(in srgb, var(--c) 72%, var(--text2)); text-decoration:line-through; }
   .more { font-size:8px; color:var(--text2); padding-left:2px; }
@@ -95,14 +95,15 @@
     const rows = Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7); // 只显示本月所在的几周
     const gridH = window.innerHeight - 30;
     const rowH = gridH / rows;
-    const max = Math.max(1, Math.floor((rowH - 20) / 14));
+    const max = Math.max(1, Math.floor((rowH - 20) / 15));
     let cells = '';
     for (let i = 0; i < rows * 7; i++) {
       const d = new Date(y, m, 1 - off + i), ds = ymd(d);
       const evs = by[ds] || [];
       const fit = evs.length <= max ? evs.length : max - 1;
       let chips = '';
-      for (let k = 0; k < fit; k++) chips += `<div class="chip${evs[k].done ? ' done' : ''}" style="--c:${COLORS[evs[k].priority] || COLORS[0]}">${esc(evs[k].title)}</div>`;
+      for (let k = 0; k < fit; k++) { const mm = String(evs[k].title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/); const lb = mm ? `${mm[1].toUpperCase()} ${mm[2]}` : evs[k].title;
+        chips += `<div class="chip${evs[k].done ? ' done' : ''}" style="--c:${COLORS[evs[k].priority] || COLORS[0]}">${esc(lb)}</div>`; }
       if (fit < evs.length) chips += `<div class="more">+${evs.length - fit}</div>`;
       cells += `<div class="c${d.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}"><div class="n">${d.getDate()}</div>${chips}</div>`;
     }

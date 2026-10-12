@@ -37,11 +37,11 @@ function dyn(light, dark) {
 const hex = (h, a) => (a == null ? new Color(h) : new Color(h, a));
 const ACCENT = dyn(hex(ACCENT_HEX[0]), hex(ACCENT_HEX[1]));
 const C = {
-  bg: dyn(hex("#FFFFFF"), hex("#1C1C1E")),
+  bg: dyn(hex("#F1F2F5"), hex("#1C1C1E")), // 浅色用柔和的灰白，不刺眼
   text: dyn(hex("#1C1C1E"), hex("#F2F2F5")),
   text2: dyn(hex("#86868C"), hex("#8E8E93")),
   text3: dyn(hex("#C3C3C8"), hex("#4A4A4F")),
-  line: dyn(hex("#E6E7EB"), hex("#2E3035")),
+  line: dyn(hex("#DEE0E6"), hex("#2E3035")),
 };
 function chipColors(p, done, out) {
   const h = PHEX[p] || PHEX[0];
@@ -127,10 +127,13 @@ function addChip(parent, e, width, h, fs, out) {
   ch.size = new Size(width, h);
   ch.backgroundColor = bg;
   ch.cornerRadius = 3;
-  ch.setPadding(0, 1.5, 0, 1);
+  ch.setPadding(0, 1.5, 0, 0.5);
   ch.centerAlignContent();
-  const tx = addText(ch, e.title, Font.semiboldSystemFont(fs), fg, { lines: 1 });
-  tx.minimumScaleFactor = 0.72; // 宁可略缩小，也要把课程编号（如 ABC 1010）显示完整
+  // 课程类标题（如「MAT 2348 Mid」）在小组件里只显示课程编号，避免省略号和多余空白
+  const m = String(e.title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/);
+  const label = m ? `${m[1].toUpperCase()} ${m[2]}` : e.title;
+  const tx = addText(ch, label, Font.semiboldSystemFont(fs), fg, { lines: 1 });
+  tx.minimumScaleFactor = 0.85;
   ch.addSpacer();
 }
 function addLine(w, width) {
@@ -165,29 +168,29 @@ function largeLayout(w, idx, offline) {
 
   // 标题：居中月份
   const head = w.addStack();
-  head.size = new Size(gridW, 15);
+  head.size = new Size(0, 15);
   head.centerAlignContent();
   const st = monthStats(idx, y, m);
-  const left = head.addStack(); left.size = new Size(gridW / 3, 15);
+  const left = head.addStack(); left.size = new Size(0, 15);
   left.addSpacer(10); addText(left, String(y), Font.mediumSystemFont(9), C.text2); left.addSpacer();
-  const mid = head.addStack(); mid.size = new Size(gridW / 3, 15); mid.addSpacer();
+  const mid = head.addStack(); mid.size = new Size(0, 15); mid.addSpacer();
   addText(mid, `${m + 1}月`, Font.boldSystemFont(12.5), ACCENT); mid.addSpacer();
-  const right = head.addStack(); right.size = new Size(gridW / 3, 15); right.addSpacer();
+  const right = head.addStack(); right.size = new Size(0, 15); right.addSpacer();
   addText(right, (st.total ? `${st.done}/${st.total}` : '') + (offline ? ' 离线' : ''), Font.mediumSystemFont(9), C.text2); right.addSpacer(10);
   w.addSpacer(1);
 
   // 星期
   const wr = w.addStack();
-  wr.size = new Size(gridW, 11);
+  wr.size = new Size(0, 11);
   for (let i = 0; i < 7; i++) {
-    const c = wr.addStack(); c.size = new Size(cw, 11); c.centerAlignContent();
-    addText(c, WD[(i + CONFIG.WEEK_START) % 7], Font.mediumSystemFont(8), C.text2);
+    const c = wr.addStack(); c.size = new Size(0, 11); c.centerAlignContent(); c.addSpacer();
+    addText(c, WD[(i + CONFIG.WEEK_START) % 7], Font.mediumSystemFont(8), C.text2); c.addSpacer();
   }
   w.addSpacer(1);
 
   const gridH = S.lh - padT - padB - 15 - 1 - 11 - 1;
   const rowH = Math.floor(gridH / rows);
-  const numH = 13, chipH = 12, gap = 1;
+  const numH = 13, chipH = 13, gap = 1;
   const maxChips = Math.max(1, Math.floor((rowH - numH - 2) / (chipH + gap)));
   const grid = w.addStack();
   grid.layoutVertically();
@@ -195,17 +198,17 @@ function largeLayout(w, idx, offline) {
   // 不画外框，交给小组件自身的圆角
   for (let r = 0; r < rows; r++) {
     const row = grid.addStack();
-    row.size = new Size(gridW, 0);
+    row.size = new Size(0, 0);
     for (let c = 0; c < 7; c++) {
       const d = days[r * 7 + c], ds = ymd(d), out = d.getMonth() !== m, isToday = ds === t;
       const cell = row.addStack();
-      cell.size = new Size(cw, 0);
+      cell.size = new Size(0, 0); // 宽高都可伸缩：桌面上小组件多大就铺多大
       cell.layoutVertically();
       cell.borderColor = C.line; cell.borderWidth = 0.25;
       cell.setPadding(1, 1, 0, 1);
       // 日期：靠左上；今天用主色实心圆
       const nr = cell.addStack();
-      nr.size = new Size(cw - 2, numH);
+      nr.size = new Size(0, numH);
       nr.centerAlignContent();
       if (isToday) {
         const badge = nr.addStack();
@@ -220,9 +223,9 @@ function largeLayout(w, idx, offline) {
       cell.addSpacer(1);
       const evs = idx[ds] || [];
       const fit = evs.length <= maxChips ? evs.length : maxChips - 1;
-      for (let k = 0; k < fit; k++) { addChip(cell, evs[k], cw - 2, chipH, 8, out); cell.addSpacer(gap); }
+      for (let k = 0; k < fit; k++) { addChip(cell, evs[k], 0, chipH, 9, out); cell.addSpacer(gap); }
       if (fit < evs.length) {
-        const mr = cell.addStack(); mr.size = new Size(cw - 2, chipH - 2);
+        const mr = cell.addStack(); mr.size = new Size(0, chipH - 2);
         addText(mr, `+${evs.length - fit}`, Font.mediumSystemFont(7.5), C.text2); mr.addSpacer();
       }
       cell.addSpacer();
