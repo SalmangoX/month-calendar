@@ -1,5 +1,5 @@
 // 发布新版本时：改这里的 VERSION、index.html 里的 ?v=、js/store.js 的 MC.VERSION 和 version.json
-const VERSION = '0.5.4';
+const VERSION = '0.5.5';
 const CACHE = 'mcal-' + VERSION;
 const V = '?v=' + VERSION;
 const ASSETS = [

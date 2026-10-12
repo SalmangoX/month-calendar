@@ -207,6 +207,13 @@
   // 周 / 年：三屏翻页（弹簧）
   let pagePos = 0;
   function setPage(p) { pagePos = p; if (view === 'week') setT(-W + p, 0); else setT(0, -H + p); }
+  // 按当前位置 + 惯性预估落点：往回拉就回到原来那一周，往前过了约三分之一（或快速一甩）才翻页
+  function pageTarget(pos, v, size) {
+    const proj = pos + v * 230;
+    if (proj <= -size * 0.35) return 1;
+    if (proj >= size * 0.35) return -1;
+    return 0;
+  }
   function page(delta, v = 0) {
     const size = view === 'week' ? W : H;
     spring(pagePos, -delta * size, v, setPage, () => {
@@ -422,7 +429,7 @@
     tracking = false;
     if (!dragging) {
       if (caught && view === 'month') { suppress = true; setTimeout(() => (suppress = false), 80); snapMonth(0); }
-      else if (caught) { suppress = true; setTimeout(() => (suppress = false), 80); page(0); }
+      else if (caught) { suppress = true; setTimeout(() => (suppress = false), 80); page(pageTarget(pagePos, 0, view === 'week' ? W : H)); }
       return;
     }
     suppress = true; setTimeout(() => (suppress = false), 80);
@@ -430,9 +437,7 @@
     if (view === 'month') snapMonth(-v);
     else {
       const size = view === 'week' ? W : H;
-      if (pagePos < -size * 0.2 || v < -0.35) page(1, v);
-      else if (pagePos > size * 0.2 || v > 0.35) page(-1, v);
-      else page(0, v);
+      page(pageTarget(pagePos, v, size), v);
     }
   };
   ['gesturestart', 'gesturechange'].forEach(t => vp.addEventListener(t, e => e.preventDefault()));
