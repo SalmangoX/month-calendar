@@ -33,6 +33,7 @@
   --accent-text: #4B6D8F;
   --accent-soft: rgba(86, 120, 154, .12);
   --sel-line: rgba(86, 120, 154, .5);
+  --today-dim: rgba(86, 120, 154, .2);
   --sel-bg: rgba(86, 120, 154, .09);
   --sel-veil: rgba(86, 120, 154, .10);
   --sel-veil-top: rgba(255, 255, 255, .0);
@@ -62,6 +63,7 @@
   --accent-text: #A0B8D1;
   --accent-soft: rgba(122, 154, 188, .17);
   --sel-line: rgba(150, 180, 212, .62);
+  --today-dim: rgba(122, 154, 188, .28);
   --sel-bg: rgba(122, 154, 188, .14);
   --sel-veil: rgba(130, 160, 192, .16);
   --sel-veil-top: rgba(130, 160, 192, .04);
@@ -189,6 +191,15 @@ svg.filled { fill: currentColor; stroke: none; }
 .mlabel { position: absolute; top: 3px; left: 5px; font-size: 8.5px; color: var(--accent-text); font-weight: 650; white-space: nowrap; z-index: 3; }
 .cell.sel .num, .wcol.sel .wnum { background: var(--accent); color: #fff; font-weight: 650; animation: pop .32s var(--ease-spring); }
 @keyframes pop { 0% { transform: scale(.82); } 100% { transform: scale(1); } }
+/* 选中的不是今天：选中日期用空心圈；今天改为稍小、颜色更淡的实心圈 */
+.cell.sel:not(.today) .num, .wcol.sel:not(.today) .wnum {
+  background: transparent; color: var(--accent-text);
+  box-shadow: inset 0 0 0 1.6px var(--accent);
+}
+.cell.today:not(.sel) .num, .wcol.today:not(.sel) .wnum {
+  background: var(--today-dim); color: var(--accent-text); font-weight: 650;
+  transform: scale(.86);
+}
 .cell.out .num { color: var(--text3); }
 .cell.out .chips { opacity: .45; }
 .chips { display: flex; flex-direction: column; gap: 2px; padding: 0 3px; }
