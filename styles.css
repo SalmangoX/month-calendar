@@ -8,7 +8,7 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
   --kb: 0px;
   --dock-h: 60px;
-  --dock-b: max(14px, calc(var(--safe-b) - 4px));
+  --dock-b: max(18px, calc(var(--safe-b) + 2px));
   --bar-space: calc(var(--dock-h) + var(--dock-b) + 8px);
   --fab-b: calc(var(--dock-b) + var(--dock-h) + 14px);
   --chip-h: 15px;
