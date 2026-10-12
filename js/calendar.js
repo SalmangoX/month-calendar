@@ -5,7 +5,7 @@
   const Cal = (MC.Cal = {});
 
   const vp = $('#calViewport'), track = $('#calTrack'), body = $('#calBody'), preview = $('#preview');
-  const BUF = 6; // 月视图上下各预渲染 6 周
+  const BUF = 12; // 月视图上下各预渲染 12 周，快速甩动也不会滑到尽头
   const now0 = new Date();
   let view = ['year', 'month', 'week'].includes(MC.settings.view) ? MC.settings.view : 'month';
   let anchor = MC.weekStartOf(new Date(now0.getFullYear(), now0.getMonth(), 1)); // 月视图最上面一行的周起始日
@@ -30,10 +30,12 @@
   function setT(x, y) { track.style.transform = `translate3d(${x}px,${y}px,0)`; }
 
   // ---------- 月视图 ----------
+  let scrollY = 0; // 相对 anchor 的滚动量（像素，正数 = 往后的周）
   function computeFocus() {
     const counts = new Map();
+    const top = MC.addDays(anchor, 7 * Math.round(scrollY / (rowH || 1)));
     for (let i = 0; i < 42; i++) {
-      const d = MC.addDays(anchor, i), k = d.getFullYear() * 12 + d.getMonth();
+      const d = MC.addDays(top, i), k = d.getFullYear() * 12 + d.getMonth();
       counts.set(k, (counts.get(k) || 0) + 1);
     }
     let best = null, bc = -1;
@@ -72,33 +74,74 @@
     }
     track.style.cssText = '';
     track.innerHTML = h;
-    setT(0, -BUF * rowH);
-    // 标题
+    setT(0, -(BUF * rowH + scrollY));
+    monthTitle();
+  }
+  function monthTitle() {
     $('#calTitle').textContent = `${focus.m + 1}月`;
     const prefix = `${focus.y}-${MC.pad(focus.m + 1)}-`;
     let total = 0, done = 0;
     for (const [k, arr] of MC.byDate) if (k.startsWith(prefix)) { total += arr.length; done += arr.filter(e => e.done).length; }
     $('#calSub').textContent = total ? `${focus.y} · 完成 ${done}/${total}` : String(focus.y);
   }
-  function shiftRows(n) {
-    n = Math.max(-BUF, Math.min(BUF, n));
-    if (!n) { track.style.transition = 'transform .25s ease-out'; setT(0, -BUF * rowH); return; }
+  // ---------- 物理滚动：弹簧动画，接住手指松开时的速度 ----------
+  let raf = null;
+  function stopAnim() { if (raf) cancelAnimationFrame(raf); raf = null; animating = false; }
+  function spring(from, to, v0, onUpdate, onDone) {
+    stopAnim();
     animating = true;
-    const dur = 230 + 35 * Math.abs(n);
-    track.style.transition = `transform ${dur}ms cubic-bezier(.2,.85,.25,1)`;
-    setT(0, -(BUF + n) * rowH);
-    setTimeout(() => {
-      anchor = MC.addDays(anchor, 7 * n);
-      track.style.transition = 'none';
-      renderMonth();
-      animating = false;
-    }, dur + 15);
+    const w = 0.0165;                // 固有频率（rad/ms），临界阻尼：不回弹、不拖沓
+    const x0 = from - to, t0 = performance.now();
+    const step = now => {
+      const t = now - t0;
+      const x = (x0 + (v0 + w * x0) * t) * Math.exp(-w * t);
+      if (Math.abs(x) < 0.35 && t > 40) { onUpdate(to); raf = null; animating = false; onDone && onDone(); return; }
+      onUpdate(to + x);
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+  }
+  let lastFocusKey = '';
+  function applyMonth() {
+    setT(0, -(BUF * rowH + scrollY));
+    const before = focus.y * 12 + focus.m;
+    computeFocus();
+    if (focus.y * 12 + focus.m !== before || lastFocusKey === '') { lastFocusKey = 'x'; monthTitle(); }
+  }
+  // 滚得太远时把 anchor 往前/后挪，画面不动，保证两侧始终有足够的预渲染行
+  function recenter(margin = 4) {
+    const k = Math.trunc(scrollY / rowH);
+    if (Math.abs(k) < BUF - margin) return 0;
+    anchor = MC.addDays(anchor, 7 * k);
+    scrollY -= k * rowH;
+    renderMonth();
+    return k * rowH;
+  }
+  function settle() {
+    const k = Math.round(scrollY / rowH);
+    anchor = MC.addDays(anchor, 7 * k);
+    scrollY = 0;
+    renderMonth();
+  }
+  function snapMonth(v) { // v：滚动速度（px/ms）
+    recenter(1);
+    const proj = scrollY + v * 230;                      // 按速度预估惯性距离
+    let n = Math.round(proj / rowH);
+    const cur = scrollY / rowH;
+    if (n === Math.round(cur) && Math.abs(v) > 0.25) n = v > 0 ? Math.floor(cur) + 1 : Math.ceil(cur) - 1;
+    n = Math.max(-(BUF - 1), Math.min(BUF - 1, n));
+    spring(scrollY, n * rowH, v, y => { scrollY = y; applyMonth(); }, settle);
+  }
+  function shiftRows(n) {
+    recenter(1);
+    const target = Math.max(-(BUF - 1), Math.min(BUF - 1, Math.round(scrollY / rowH) + n));
+    spring(scrollY, target * rowH, 0, y => { scrollY = y; applyMonth(); }, settle);
   }
   function jumpToMonth(y, m) {
     const target = MC.weekStartOf(new Date(y, m, 1));
-    const n = Math.round((target - anchor) / (7 * 864e5));
-    if (n && Math.abs(n) <= BUF) shiftRows(n);
-    else { anchor = target; renderMonth(); }
+    const n = Math.round((target - MC.addDays(anchor, 7 * Math.round(scrollY / rowH))) / (7 * 864e5));
+    if (n && Math.abs(n) < BUF - 1) shiftRows(n);
+    else { stopAnim(); anchor = target; scrollY = 0; renderMonth(); }
   }
 
   // ---------- 周视图 ----------
@@ -161,18 +204,17 @@
     $('#calSub').textContent = total ? `完成 ${done}/${total}` : '全年';
   }
 
-  // 周 / 年：三屏翻页
-  function page(delta) {
-    animating = true;
-    const horiz = view === 'week';
-    track.style.transition = 'transform .36s cubic-bezier(.2,.85,.25,1)';
-    if (horiz) setT(-W - delta * W, 0); else setT(0, -H - delta * H);
-    setTimeout(() => {
-      if (horiz) weekAnchor = MC.addDays(weekAnchor, 7 * delta); else year += delta;
+  // 周 / 年：三屏翻页（弹簧）
+  let pagePos = 0;
+  function setPage(p) { pagePos = p; if (view === 'week') setT(-W + p, 0); else setT(0, -H + p); }
+  function page(delta, v = 0) {
+    const size = view === 'week' ? W : H;
+    spring(pagePos, -delta * size, v, setPage, () => {
+      if (delta) { if (view === 'week') weekAnchor = MC.addDays(weekAnchor, 7 * delta); else year += delta; }
+      pagePos = 0;
       track.style.transition = 'none';
       render();
-      animating = false;
-    }, 375);
+    });
   }
 
   // ---------- 渲染入口 ----------
@@ -246,10 +288,11 @@
       let ref;
       if (view === 'year') ref = target && target.m != null ? new Date(target.y, target.m, 1) : new Date(year, sd.getFullYear() === year ? sd.getMonth() : 0, 1);
       else { const mid = MC.addDays(weekAnchor, 3); ref = new Date(mid.getFullYear(), mid.getMonth(), 1); }
-      anchor = MC.weekStartOf(ref);
+      anchor = MC.weekStartOf(ref); scrollY = 0;
     }
     if (v === 'week') weekAnchor = MC.weekStartOf(target && target.date ? MC.parse(target.date) : sd);
     if (v === 'year') year = view === 'month' ? focus.y : MC.addDays(weekAnchor, 3).getFullYear();
+    stopAnim(); pagePos = 0;
     view = v;
     MC.settings.view = v; MC.saveSettings();
     resetZoomStyle();
@@ -258,6 +301,7 @@
   }
   Cal.setView = setView;
   Cal.realign = () => {
+    stopAnim(); scrollY = 0; pagePos = 0;
     anchor = MC.weekStartOf(new Date(focus.y, focus.m, 1));
     weekAnchor = MC.weekStartOf(MC.parse(selected));
     render();
@@ -293,6 +337,7 @@
   $('#btnToday').onclick = () => {
     const n = new Date();
     selected = MC.todayStr();
+    stopAnim(); scrollY = 0; pagePos = 0;
     anchor = MC.weekStartOf(new Date(n.getFullYear(), n.getMonth(), 1));
     weekAnchor = MC.weekStartOf(n);
     year = n.getFullYear();
@@ -300,12 +345,22 @@
   };
 
   // ---------- 手势 ----------
-  let sx = 0, sy = 0, st = 0, dx = 0, dy = 0, tracking = false, dragging = false, suppress = false;
+  let sx = 0, sy = 0, dx = 0, dy = 0, tracking = false, dragging = false, suppress = false, base = 0, caught = false;
+  let samples = [];
   let pinch = null;
   const tdist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const velocity = () => { // 只看松手前 100ms 的速度
+    const now = performance.now();
+    const rec = samples.filter(p => now - p[0] < 100);
+    if (rec.length < 2) return 0;
+    const a = rec[0], b = rec[rec.length - 1];
+    const v = (b[1] - a[1]) / Math.max(8, b[0] - a[0]);
+    return Math.max(-6, Math.min(6, v));
+  };
   vp.addEventListener('touchstart', e => {
-    if (e.touches.length === 2 && !animating) {
-      if (dragging) { track.style.transition = 'transform .2s ease-out'; render(); }
+    if (e.touches.length === 2) {
+      stopAnim();
+      if (view === 'month') settle(); else { pagePos = 0; render(); }
       tracking = false; dragging = false;
       const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2, cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const r = vp.getBoundingClientRect();
@@ -314,9 +369,13 @@
       zoomEl.style.transformOrigin = `${cx - r.left}px ${cy - r.top}px`;
       return;
     }
-    if (animating || e.touches.length > 1 || pinch) return;
+    if (e.touches.length > 1 || pinch) return;
+    caught = animating;            // 滚动中按住 = 停下，不算点击
+    stopAnim();
     tracking = true; dragging = false; dx = dy = 0;
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    base = view === 'month' ? scrollY : pagePos;
+    samples = [[performance.now(), view === 'week' ? sx : sy]];
   }, { passive: true });
   vp.addEventListener('touchmove', e => {
     if (pinch && e.touches.length === 2) {
@@ -327,17 +386,26 @@
       return;
     }
     if (!tracking) return;
-    dx = e.touches[0].clientX - sx; dy = e.touches[0].clientY - sy;
+    const x = e.touches[0].clientX, y = e.touches[0].clientY;
+    dx = x - sx; dy = y - sy;
     const horiz = view === 'week';
+    samples.push([performance.now(), horiz ? x : y]);
+    if (samples.length > 12) samples.shift();
     if (!dragging) {
       const main = horiz ? dx : dy, cross = horiz ? dy : dx;
-      if (Math.abs(main) > 8 && Math.abs(main) > Math.abs(cross)) { dragging = true; track.style.transition = 'none'; }
+      if ((Math.abs(main) > 6 && Math.abs(main) > Math.abs(cross)) || caught) { dragging = true; track.style.transition = 'none'; }
       else return;
     }
     e.preventDefault();
-    if (view === 'month') setT(0, -BUF * rowH + Math.max(-BUF * rowH, Math.min(BUF * rowH, dy)));
-    else if (view === 'week') setT(-W + dx, 0);
-    else setT(0, -H + dy);
+    if (view === 'month') {
+      scrollY = base - dy;
+      const shift = recenter(4);
+      if (shift) base -= shift;
+      applyMonth();
+    } else {
+      const size = horiz ? W : H, d = horiz ? dx : dy;
+      setPage(Math.max(-size, Math.min(size, base + d)));
+    }
   }, { passive: false });
   const end = e => {
     if (pinch) {
@@ -352,25 +420,27 @@
     }
     if (!tracking) return;
     tracking = false;
-    if (!dragging) return;
+    if (!dragging) {
+      if (caught && view === 'month') { suppress = true; setTimeout(() => (suppress = false), 80); snapMonth(0); }
+      else if (caught) { suppress = true; setTimeout(() => (suppress = false), 80); page(0); }
+      return;
+    }
     suppress = true; setTimeout(() => (suppress = false), 80);
-    const dt = Math.max(1, Date.now() - st);
-    if (view === 'month') {
-      let n = Math.round(-dy / rowH);
-      if (!n && Math.abs(dy / dt) > 0.3) n = dy < 0 ? 1 : -1;
-      shiftRows(n);
-    } else {
-      const d = view === 'week' ? dx : dy, size = view === 'week' ? W : H;
-      if (d < -size * 0.2 || d / dt < -0.4) page(1);
-      else if (d > size * 0.2 || d / dt > 0.4) page(-1);
-      else { track.style.transition = 'transform .25s ease-out'; view === 'week' ? setT(-W, 0) : setT(0, -H); }
+    const v = velocity(); // 手指速度（px/ms）
+    if (view === 'month') snapMonth(-v);
+    else {
+      const size = view === 'week' ? W : H;
+      if (pagePos < -size * 0.2 || v < -0.35) page(1, v);
+      else if (pagePos > size * 0.2 || v > 0.35) page(-1, v);
+      else page(0, v);
     }
   };
   ['gesturestart', 'gesturechange'].forEach(t => vp.addEventListener(t, e => e.preventDefault()));
   vp.addEventListener('touchend', end);
   vp.addEventListener('touchcancel', end);
 
-  let wAcc = 0, wLock = false;
+  // 触控板 / 鼠标滚轮：月视图跟手滚动，停下后对齐整行
+  let wAcc = 0, wLock = false, wTimer = null;
   let zAcc = 0, zLock = false;
   vp.addEventListener('wheel', e => {
     e.preventDefault();
@@ -384,14 +454,23 @@
       }
       return;
     }
+    if (view === 'month') {
+      stopAnim();
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? rowH * 6 : 1;
+      scrollY += (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * unit;
+      recenter(4);
+      applyMonth();
+      clearTimeout(wTimer);
+      wTimer = setTimeout(() => snapMonth(0), 120);
+      return;
+    }
     if (animating || wLock) return;
     wAcc += Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    const th = view === 'month' ? 30 : 50;
-    if (Math.abs(wAcc) < th) return;
+    if (Math.abs(wAcc) < 50) return;
     const dir = wAcc > 0 ? 1 : -1;
     wAcc = 0; wLock = true;
-    setTimeout(() => (wLock = false), view === 'month' ? 300 : 480);
-    if (view === 'month') shiftRows(dir); else page(dir);
+    setTimeout(() => (wLock = false), 480);
+    page(dir);
   }, { passive: false });
 
   document.addEventListener('keydown', e => {
