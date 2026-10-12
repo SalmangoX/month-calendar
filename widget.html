@@ -18,12 +18,13 @@
     font-family:-apple-system, "Noto Sans SC", "PingFang SC", Roboto, sans-serif; }
   a.wrap { display:flex; flex-direction:column; height:100%; padding:8px 3px 6px; color:inherit; text-decoration:none; }
   .head { display:flex; align-items:baseline; justify-content:space-between; padding:0 4px 4px; }
-  .head b { font-size:15px; }
+  .head b { font-size:15px; color:var(--accent); }
   .head span { font-size:11px; color:var(--text2); }
   .wd { display:grid; grid-template-columns:repeat(7,1fr); font-size:10px; color:var(--text2); text-align:center; padding-bottom:3px; }
-  .grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); grid-template-rows:repeat(6,minmax(0,1fr)); }
-  .c { border-top:1px solid var(--line); overflow:hidden; padding-top:2px; min-width:0; }
-  .n { width:18px; height:18px; margin:0 auto 1px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-variant-numeric:tabular-nums; }
+  .grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border:.5px solid var(--line); border-radius:8px; overflow:hidden; }
+  .c { border-right:.5px solid var(--line); border-bottom:.5px solid var(--line); overflow:hidden; padding:2px 1px 0; min-width:0; }
+  .c:nth-child(7n) { border-right:0; }
+  .n { min-width:16px; height:16px; padding:0 3px; margin:0 0 2px 1px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:500; }
   .out .n { color:var(--text3); } .out .chip { opacity:.55; }
   .today .n { background:var(--accent); color:#fff; font-weight:700; }
   .chip { height:12px; line-height:12px; font-size:8.5px; font-weight:600; margin:0 1px 1px; padding:0 1.5px; border-radius:3.5px; letter-spacing:-.02em;
@@ -90,11 +91,12 @@
 
     const first = new Date(y, m, 1);
     const off = (first.getDay() - WS + 7) % 7;
+    const rows = Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7); // 只显示本月所在的几周
     const gridH = window.innerHeight - 48;
-    const rowH = gridH / 6;
+    const rowH = gridH / rows;
     const max = Math.max(1, Math.floor((rowH - 21) / 13));
     let cells = '';
-    for (let i = 0; i < 42; i++) {
+    for (let i = 0; i < rows * 7; i++) {
       const d = new Date(y, m, 1 - off + i), ds = ymd(d);
       const evs = by[ds] || [];
       const fit = evs.length <= max ? evs.length : max - 1;
@@ -105,8 +107,8 @@
     }
     let wd = '';
     for (let i = 0; i < 7; i++) wd += `<div>${WD[(i + WS) % 7]}</div>`;
-    root.innerHTML = `<div class="head"><b>${y}年${m+1}月</b><span>${total ? `完成 ${done}/${total}` : '本月暂无事件'}</span></div>
-      <div class="wd">${wd}</div><div class="grid">${cells}</div>`;
+    root.innerHTML = `<div class="head"><b>${m+1}月</b><span>${total ? `完成 ${done}/${total}` : '本月暂无事件'}</span></div>
+      <div class="wd">${wd}</div><div class="grid" style="grid-template-rows:repeat(${rows},minmax(0,1fr))">${cells}</div>`;
   }
 
   async function refresh() {

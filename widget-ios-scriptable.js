@@ -41,11 +41,11 @@ const C = {
   text: dyn(hex("#1C1C1E"), hex("#F2F2F5")),
   text2: dyn(hex("#86868C"), hex("#8E8E93")),
   text3: dyn(hex("#C3C3C8"), hex("#4A4A4F")),
-  line: dyn(hex("#EDEDF0"), hex("#2C2C2F")),
+  line: dyn(hex("#E6E7EB"), hex("#2E3035")),
 };
 function chipColors(p, done, out) {
   const h = PHEX[p] || PHEX[0];
-  if (done) return { bg: dyn(hex(h, 0.18), hex(h, 0.3)), fg: dyn(hex(h, out ? 0.5 : 0.85), hex(h, out ? 0.45 : 0.8)) };
+  if (done) return { bg: dyn(hex(h, 0.16), hex(h, 0.26)), fg: dyn(hex(h, out ? 0.45 : 0.75), hex(h, out ? 0.45 : 0.75)) };
   return { bg: hex(h, out ? 0.5 : 1), fg: Color.white() };
 }
 
@@ -151,68 +151,79 @@ function dayBadge(parent, d, size, fs, isToday, out) {
 
 // ---------- 大号：整月 ----------
 function largeLayout(w, idx, offline) {
+  // 仿 TickTick 月历小组件：只显示本月所在的几周，网格线分隔，日期靠左上，事件条铺满格宽
   const S = wsize();
-  const padH = 4, padV = 8;
-  w.setPadding(padV, padH, padV, padH);
+  const padH = 6, padT = 8, padB = 6;
+  w.setPadding(padT, padH, padB, padH);
   const innerW = S.mw - padH * 2;
   const cw = Math.floor(innerW / 7);
+  const gridW = cw * 7;
   const now = new Date(), y = now.getFullYear(), m = now.getMonth(), t = ymd(now);
+  const off = (new Date(y, m, 1).getDay() - CONFIG.WEEK_START + 7) % 7;
+  const rows = Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7); // 本月占几周就显示几行
+  const days = monthDays(y, m).slice(0, rows * 7);
 
+  // 标题：居中月份
   const head = w.addStack();
-  head.size = new Size(innerW, 18);
+  head.size = new Size(gridW, 20);
   head.centerAlignContent();
-  head.addSpacer(3);
-  addText(head, `${m + 1}月`, Font.boldSystemFont(15), C.text);
-  head.addSpacer(5);
-  addText(head, String(y), Font.mediumSystemFont(11), C.text2);
-  head.addSpacer();
   const st = monthStats(idx, y, m);
-  addText(head, (st.total ? `完成 ${st.done}/${st.total}` : "本月暂无事件") + (offline ? " · 离线" : ""), Font.mediumSystemFont(10), C.text2);
-  head.addSpacer(3);
-  w.addSpacer(3);
+  const left = head.addStack(); left.size = new Size(gridW / 3, 20);
+  addText(left, String(y), Font.mediumSystemFont(10), C.text2); left.addSpacer();
+  const mid = head.addStack(); mid.size = new Size(gridW / 3, 20); mid.addSpacer();
+  addText(mid, `${m + 1}月`, Font.boldSystemFont(15), ACCENT); mid.addSpacer();
+  const right = head.addStack(); right.size = new Size(gridW / 3, 20); right.addSpacer();
+  addText(right, (st.total ? `${st.done}/${st.total}` : '') + (offline ? ' 离线' : ''), Font.mediumSystemFont(10), C.text2);
+  w.addSpacer(4);
 
+  // 星期
   const wr = w.addStack();
-  wr.size = new Size(innerW, 12);
+  wr.size = new Size(gridW, 13);
   for (let i = 0; i < 7; i++) {
-    const c = wr.addStack();
-    c.size = new Size(cw, 12);
-    c.centerAlignContent();
-    addText(c, WD[(i + CONFIG.WEEK_START) % 7], Font.systemFont(9), C.text2);
+    const c = wr.addStack(); c.size = new Size(cw, 13); c.centerAlignContent();
+    addText(c, WD[(i + CONFIG.WEEK_START) % 7], Font.mediumSystemFont(9), C.text2);
   }
   w.addSpacer(2);
 
-  const gridH = S.lh - padV * 2 - 18 - 3 - 12 - 2;
-  const rowH = Math.floor(gridH / 6 - 0.5);
-  const numH = 15, chipH = 10, gap = 1;
-  const maxChips = Math.max(1, Math.floor((rowH - numH - 1 + gap) / (chipH + gap)));
-  const days = monthDays(y, m);
-
-  for (let r = 0; r < 6; r++) {
-    addLine(w, innerW);
-    const row = w.addStack();
-    row.size = new Size(innerW, rowH);
+  const gridH = S.lh - padT - padB - 20 - 4 - 13 - 2;
+  const rowH = Math.floor(gridH / rows);
+  const numH = 14, chipH = 11, gap = 1.5;
+  const maxChips = Math.max(1, Math.floor((rowH - numH - 3) / (chipH + gap)));
+  const grid = w.addStack();
+  grid.layoutVertically();
+  grid.size = new Size(gridW, rowH * rows);
+  grid.borderColor = C.line; grid.borderWidth = 0.5; grid.cornerRadius = 6;
+  for (let r = 0; r < rows; r++) {
+    const row = grid.addStack();
+    row.size = new Size(gridW, rowH);
     for (let c = 0; c < 7; c++) {
-      const d = days[r * 7 + c], ds = ymd(d), out = d.getMonth() !== m;
+      const d = days[r * 7 + c], ds = ymd(d), out = d.getMonth() !== m, isToday = ds === t;
       const cell = row.addStack();
       cell.size = new Size(cw, rowH);
       cell.layoutVertically();
+      cell.borderColor = C.line; cell.borderWidth = 0.25;
+      cell.setPadding(2, 1.5, 1, 1.5);
+      // 日期：靠左上；今天用主色实心圆
       const nr = cell.addStack();
-      nr.size = new Size(cw, numH);
+      nr.size = new Size(cw - 3, numH);
+      nr.centerAlignContent();
+      if (isToday) {
+        const badge = nr.addStack();
+        badge.size = new Size(numH + 2, numH);
+        badge.backgroundColor = ACCENT; badge.cornerRadius = numH / 2; badge.centerAlignContent();
+        addText(badge, String(d.getDate()), Font.boldSystemFont(9.5), Color.white());
+      } else {
+        nr.addSpacer(2);
+        addText(nr, String(d.getDate()), Font.mediumSystemFont(10), out ? C.text3 : C.text);
+      }
       nr.addSpacer();
-      dayBadge(nr, d, numH - 1, 9.5, ds === t, out);
-      nr.addSpacer();
-      cell.addSpacer(1);
+      cell.addSpacer(2);
       const evs = idx[ds] || [];
       const fit = evs.length <= maxChips ? evs.length : maxChips - 1;
-      for (let k = 0; k < fit; k++) {
-        addChip(cell, evs[k], cw - 1, chipH, 7.5, out);
-        cell.addSpacer(gap);
-      }
+      for (let k = 0; k < fit; k++) { addChip(cell, evs[k], cw - 3, chipH, 7.5, out); cell.addSpacer(gap); }
       if (fit < evs.length) {
-        const mr = cell.addStack();
-        mr.size = new Size(cw - 2, chipH);
-        addText(mr, `+${evs.length - fit}`, Font.mediumSystemFont(7.5), C.text2);
-        mr.addSpacer();
+        const mr = cell.addStack(); mr.size = new Size(cw - 3, chipH - 1);
+        addText(mr, `+${evs.length - fit}`, Font.mediumSystemFont(7.5), C.text2); mr.addSpacer();
       }
       cell.addSpacer();
     }
