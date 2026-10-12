@@ -25,7 +25,7 @@
   .c { border-right:.5px solid var(--line); border-bottom:.5px solid var(--line); overflow:hidden; padding:2px 1px 0; min-width:0; }
   .c:nth-child(7n) { border-right:0; }
   .c:nth-last-child(-n+7) { border-bottom:0; }
-  .n { min-width:16px; height:16px; padding:0 3px; margin:0 0 2px 1px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:500; }
+  .n { min-width:18px; height:18px; padding:0 3px; margin:2px 0 2px 3px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; }
   .out .n { color:var(--text3); } .out .chip { opacity:.55; }
   .today .n { background:var(--accent); color:#fff; font-weight:700; }
   .chip { height:14px; line-height:14px; font-size:9.5px; font-weight:600; margin:0 1px 1px; padding:0 1.5px; border-radius:3.5px; letter-spacing:-.02em;
@@ -95,7 +95,7 @@
     const rows = Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7); // 只显示本月所在的几周
     const gridH = window.innerHeight - 30;
     const rowH = gridH / rows;
-    const max = Math.max(1, Math.floor((rowH - 20) / 15));
+    const max = Math.max(1, Math.floor((rowH - 24) / 15));
     let cells = '';
     for (let i = 0; i < rows * 7; i++) {
       const d = new Date(y, m, 1 - off + i), ds = ymd(d);

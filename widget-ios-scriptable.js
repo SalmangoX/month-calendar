@@ -190,7 +190,7 @@ function largeLayout(w, idx, offline) {
 
   const gridH = S.lh - padT - padB - 15 - 1 - 11 - 1;
   const rowH = Math.floor(gridH / rows);
-  const numH = 13, chipH = 13, gap = 1;
+  const numH = 15, chipH = 13, gap = 1;
   const maxChips = Math.max(1, Math.floor((rowH - numH - 2) / (chipH + gap)));
   const grid = w.addStack();
   grid.layoutVertically();
@@ -205,19 +205,20 @@ function largeLayout(w, idx, offline) {
       cell.size = new Size(0, 0); // 宽高都可伸缩：桌面上小组件多大就铺多大
       cell.layoutVertically();
       cell.borderColor = C.line; cell.borderWidth = 0.25;
-      cell.setPadding(1, 1, 0, 1);
+      cell.setPadding(2.5, 1, 0, 1);
       // 日期：靠左上；今天用主色实心圆
       const nr = cell.addStack();
       nr.size = new Size(0, numH);
       nr.centerAlignContent();
       if (isToday) {
+        nr.addSpacer(1.5);
         const badge = nr.addStack();
-        badge.size = new Size(numH + 2, numH);
+        badge.size = new Size(numH + 3, numH);
         badge.backgroundColor = ACCENT; badge.cornerRadius = numH / 2; badge.centerAlignContent();
-        addText(badge, String(d.getDate()), Font.boldSystemFont(9), Color.white());
+        addText(badge, String(d.getDate()), Font.boldSystemFont(10.5), Color.white());
       } else {
-        nr.addSpacer(2);
-        addText(nr, String(d.getDate()), Font.mediumSystemFont(9.5), out ? C.text3 : C.text);
+        nr.addSpacer(3.5);
+        addText(nr, String(d.getDate()), Font.mediumSystemFont(11), out ? C.text3 : C.text);
       }
       nr.addSpacer();
       cell.addSpacer(1);
