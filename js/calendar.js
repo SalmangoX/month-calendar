@@ -103,25 +103,54 @@
     $('#calSub').textContent = total ? `${focus.y} · 完成 ${done}/${total}` : String(focus.y);
   }
   // ---------- 物理滚动：弹簧动画，接住手指松开时的速度 ----------
-  let raf = null;
-  function stopAnim() { if (raf) cancelAnimationFrame(raf); raf = null; animating = false; }
-  function spring(from, to, v0, onUpdate, onDone) {
-    stopAnim();
-    animating = true;
-    const w = 0.0165;                // 固有频率（rad/ms），临界阻尼：不回弹、不拖沓
-    const x0 = from - to, t0 = performance.now();
-    const step = now => {
-      const t = now - t0;
-      const x = (x0 + (v0 + w * x0) * t) * Math.exp(-w * t);
-      if (Math.abs(x) < 0.35 && t > 40) { onUpdate(to); raf = null; animating = false; onDone && onDone(); return; }
-      onUpdate(to + x);
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
+  // 松手后的弹簧轨迹预先算好，交给系统合成器播放（可跑满 120Hz，不受脚本限帧影响）
+  const SPRING_W = 0.0165; // 固有频率（rad/ms），临界阻尼：不回弹、不拖沓
+  let wa = null, raf = null;
+  function stopAnim() {
+    if (wa) {
+      const { anim, valueAt, apply } = wa;
+      const t = anim.currentTime == null ? 0 : anim.currentTime;
+      wa = null;
+      apply(valueAt(t));          // 停在动画当前的精确位置
+      anim.cancel();
+    }
+    if (raf) cancelAnimationFrame(raf);
+    raf = null; animating = false;
   }
+  // h: { apply(v) 设置状态并写入 transform, css(v) 返回该值对应的 transform, tick(v) 动画中更新标题等轻量状态 }
+  function spring(from, to, v0, h, onDone) {
+    stopAnim();
+    const x0 = from - to, w = SPRING_W;
+    const valueAt = t => (t <= 0 ? from : to + (x0 + (v0 + w * x0) * t) * Math.exp(-w * t));
+    let T = 0;
+    while (T < 1500) { const x = valueAt(T) - to; if (Math.abs(x) < 0.3 && T > 40) break; T += 8; }
+    if (Math.abs(x0) < 0.5 && Math.abs(v0) < 0.02) { h.apply(to); onDone && onDone(); return; }
+    const frames = [];
+    for (let t = 0; t < T; t += 12) frames.push({ transform: h.css(valueAt(t)) });
+    frames.push({ transform: h.css(to) });
+    animating = true;
+    const anim = track.animate(frames, { duration: T, easing: 'linear', fill: 'forwards' });
+    wa = { anim, valueAt, apply: h.apply };
+    const t0 = performance.now();
+    const loop = () => { if (!wa || wa.anim !== anim) return; h.tick && h.tick(valueAt(anim.currentTime ?? (performance.now() - t0))); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    anim.onfinish = () => {
+      if (!wa || wa.anim !== anim) return;
+      wa = null;
+      if (raf) cancelAnimationFrame(raf); raf = null;
+      h.apply(to); anim.cancel();
+      animating = false;
+      onDone && onDone();
+    };
+  }
+  const monthCss = y => `translate3d(0,${-(BUF * rowH + y)}px,0)`;
+  const monthH = { apply: y => { scrollY = y; track.style.transform = monthCss(y); }, css: monthCss, tick: y => { scrollY = y; refreshFocus(); } };
   let lastFocusKey = '';
   function applyMonth() {
     setT(0, -(BUF * rowH + scrollY));
+    refreshFocus();
+  }
+  function refreshFocus() {
     const before = focus.y * 12 + focus.m;
     computeFocus();
     if (focus.y * 12 + focus.m !== before || lastFocusKey === '') { lastFocusKey = 'x'; monthTitle(); drawFrame(); }
@@ -147,13 +176,25 @@
     let n = Math.round(proj / rowH);
     const cur = scrollY / rowH;
     if (n === Math.round(cur) && Math.abs(v) > 0.25) n = v > 0 ? Math.floor(cur) + 1 : Math.ceil(cur) - 1;
+    // 磁吸：快速滑动时，落点附近若有某个月的首行（含 1 号的那一周），就吸到那一行
+    const speed = Math.abs(v);
+    if (speed > 0.55) {
+      const reach = speed > 1.2 ? 2 : 1;
+      const mid = MC.addDays(anchor, 7 * n + 3);
+      let best = null;
+      for (const dm of [-1, 0, 1]) {
+        const k = Math.round((MC.weekStartOf(new Date(mid.getFullYear(), mid.getMonth() + dm, 1)) - anchor) / (7 * 864e5));
+        if ((v > 0 ? k > cur : k < cur) && (best === null || Math.abs(k - n) < Math.abs(best - n))) best = k;
+      }
+      if (best !== null && Math.abs(best - n) <= reach) n = best;
+    }
     n = Math.max(-(BUF - 1), Math.min(BUF - 1, n));
-    spring(scrollY, n * rowH, v, y => { scrollY = y; applyMonth(); }, settle);
+    spring(scrollY, n * rowH, v, monthH, settle);
   }
   function shiftRows(n) {
     recenter(1);
     const target = Math.max(-(BUF - 1), Math.min(BUF - 1, Math.round(scrollY / rowH) + n));
-    spring(scrollY, target * rowH, 0, y => { scrollY = y; applyMonth(); }, settle);
+    spring(scrollY, target * rowH, 0, monthH, settle);
   }
   function jumpToMonth(y, m) {
     const target = MC.weekStartOf(new Date(y, m, 1));
@@ -234,7 +275,8 @@
   }
   function page(delta, v = 0) {
     const size = view === 'week' ? W : H;
-    spring(pagePos, -delta * size, v, setPage, () => {
+    const css = p => view === 'week' ? `translate3d(${-W + p}px,0,0)` : `translate3d(0,${-H + p}px,0)`;
+    spring(pagePos, -delta * size, v, { apply: setPage, css, tick: p => { pagePos = p; } }, () => {
       if (delta) { if (view === 'week') weekAnchor = MC.addDays(weekAnchor, 7 * delta); else year += delta; }
       pagePos = 0;
       track.style.transition = 'none';
