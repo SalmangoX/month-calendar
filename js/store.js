@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.6.0';
+  MC.VERSION = '0.6.1';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -323,13 +323,12 @@
     return L.join('\r\n') + '\r\n';
   };
   const hashStr = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h); };
-  async function ensureICS(d) {
-    if (!MC.settings.gistId) return;
-    const ics = MC.buildICS(d), body = ics.replace(/DTSTAMP:\d+T\d+Z/g, '');
-    const hsh = hashStr(body);
-    if (hsh === MC.settings.icsHash) return;
-    await gh('/gists/' + MC.settings.gistId, { method: 'PATCH', body: JSON.stringify({ files: { [ICS_FILE]: { content: ics } } }) });
-    MC.settings.icsHash = hsh; MC.saveSettings();
+  // iOS 日历订阅已停用：只把订阅文件清空一次，让已订阅的设备里那些条目消失，之后不再写入
+  async function ensureICS() {
+    if (!MC.settings.gistId || MC.settings.icsCleared) return;
+    const empty = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Month Calendar//CN\r\nX-WR-CALNAME:月历提醒\r\nEND:VCALENDAR\r\n';
+    await gh('/gists/' + MC.settings.gistId, { method: 'PATCH', body: JSON.stringify({ files: { [ICS_FILE]: { content: empty } } }) });
+    MC.settings.icsCleared = true; MC.saveSettings();
   }
   MC.icsURL = () => MC.settings.account && MC.settings.gistId
     ? `https://gist.githubusercontent.com/${MC.settings.account}/${MC.settings.gistId}/raw/${ICS_FILE}` : '';

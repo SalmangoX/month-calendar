@@ -290,7 +290,6 @@
     const city = (dl.tz || MC.currentTz()).split('/').pop().replace(/_/g, ' ');
     nrows.push(srow({ icon: 'sun', color: COL.amber, label: '每日未完成提醒', sub: dl.on ? `每天 ${dl.time} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
     if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', color: COL.indigo, label: '每日提醒时间', val: dl.time }));
-    nrows.unshift(srow({ act: 'ics', icon: 'week', color: COL.indigo, label: '订阅到 iPhone 日历', sub: S.icsSubscribed ? '已订阅 · 到点由系统准时提醒' : '推荐：最简单、最准时，断网也会响', val: S.icsSubscribed ? '已订阅' : '' }));
     // 始终显示，点进去会自动补齐前置条件（连接 GitHub、通知权限）
     nrows.splice(1, 0, S.remoteSetup
       ? srow({ act: 'nsetup', icon: 'cloud', color: COL.sage, label: 'App 关闭时也提醒', val: '已设置' })
