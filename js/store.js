@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.5.8';
+  MC.VERSION = '0.6.0';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -277,6 +277,64 @@
     }
   }
 
+  // ---------- iPhone 日历订阅（ICS） ----------
+  const ICS_FILE = 'mcal-calendar.ics';
+  MC.ICS_FILE = ICS_FILE;
+  const icsEsc = t => String(t).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  const icsDate = ds => ds.replace(/-/g, '');
+  const dur = min => { const neg = min < 0; min = Math.abs(min); const h = Math.floor(min / 60), m = min % 60; return `${neg ? '-' : ''}PT${h ? h + 'H' : ''}${m || !h ? m + 'M' : ''}`; };
+  const stampOf = ts => new Date(ts).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  MC.buildICS = d => {
+    const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Month Calendar//CN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+      'X-WR-CALNAME:月历提醒', 'X-PUBLISHED-TTL:PT15M', 'REFRESH-INTERVAL;VALUE=DURATION:PT15M'];
+    const from = ymd(MC.addDays(new Date(), -2)), to = ymd(MC.addDays(new Date(), 400));
+    const stamp = stampOf(Date.now());
+    const alarm = (trigger, text) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(text), 'TRIGGER:' + trigger, 'END:VALARM'];
+    for (const e of d.events) {
+      if (e.done || e.remind === null || e.remind === undefined || e.date < from || e.date > to) continue;
+      L.push('BEGIN:VEVENT', `UID:${e.id}@mcal`, 'DTSTAMP:' + stamp, 'SUMMARY:' + icsEsc(e.title));
+      if (e.note) L.push('DESCRIPTION:' + icsEsc(e.note));
+      if (e.time) {
+        const st = icsDate(e.date) + 'T' + e.time.replace(':', '') + '00';
+        let en = e.endTime;
+        if (!en) { const [h, m] = e.time.split(':').map(Number); const t = h * 60 + m + 30; en = t >= 1440 ? '23:59' : `${pad(Math.floor(t / 60))}:${pad(t % 60)}`; }
+        L.push('DTSTART:' + st, 'DTEND:' + icsDate(e.date) + 'T' + en.replace(':', '') + '00'); // 浮动时间 = 手机当前所在时区
+        L.push(...alarm(dur(-e.remind), e.title));
+      } else {
+        L.push('DTSTART;VALUE=DATE:' + icsDate(e.date), 'DTEND;VALUE=DATE:' + icsDate(ymd(MC.addDays(parse(e.date), 1))));
+        L.push(...alarm(dur(9 * 60 - e.remind), e.title)); // 全天事件：以当天 9:00 为准
+      }
+      L.push('END:VEVENT');
+    }
+    const dl = d.daily || {};
+    if (dl.on) {
+      const day = ymd(MC.addDays(new Date(), -1));
+      L.push('BEGIN:VEVENT', 'UID:daily@mcal', 'DTSTAMP:' + stamp, 'SUMMARY:查看今日未完成事件',
+        'DTSTART:' + icsDate(day) + 'T' + dl.time.replace(':', '') + '00', 'DURATION:PT5M', 'RRULE:FREQ=DAILY',
+        ...alarm('PT0M', '查看今日未完成事件'), 'END:VEVENT');
+    }
+    const t = MC.settings.icsTestAt;
+    if (t && t > Date.now()) {
+      const dt = new Date(t), st = icsDate(ymd(dt)) + 'T' + pad(dt.getHours()) + pad(dt.getMinutes()) + '00';
+      L.push('BEGIN:VEVENT', `UID:test-${t}@mcal`, 'DTSTAMP:' + stamp, 'SUMMARY:月历订阅提醒测试', 'DTSTART:' + st, 'DURATION:PT5M',
+        ...alarm('PT0M', '订阅成功，提醒可以正常弹出'), 'END:VEVENT');
+    }
+    L.push('END:VCALENDAR');
+    return L.join('\r\n') + '\r\n';
+  };
+  const hashStr = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h); };
+  async function ensureICS(d) {
+    if (!MC.settings.gistId) return;
+    const ics = MC.buildICS(d), body = ics.replace(/DTSTAMP:\d+T\d+Z/g, '');
+    const hsh = hashStr(body);
+    if (hsh === MC.settings.icsHash) return;
+    await gh('/gists/' + MC.settings.gistId, { method: 'PATCH', body: JSON.stringify({ files: { [ICS_FILE]: { content: ics } } }) });
+    MC.settings.icsHash = hsh; MC.saveSettings();
+  }
+  MC.icsURL = () => MC.settings.account && MC.settings.gistId
+    ? `https://gist.githubusercontent.com/${MC.settings.account}/${MC.settings.gistId}/raw/${ICS_FILE}` : '';
+  MC.pushICS = async () => { MC.settings.icsHash = ''; await ensureICS(MC.data); };
+
   MC.syncState = { busy: false, error: '' };
   MC.onSyncStatus = () => {};
   let again = false, timer = null;
@@ -298,6 +356,7 @@
         const res = await readGist(MC.settings.gistId);
         remote = res.remote;
         if (res.unchanged && !MC.dirty) { // 两边都没变化，直接结束
+          await ensureICS(MC.data);
           MC.settings.lastSync = Date.now(); MC.saveSettings(); MC.syncState.error = ''; ok = true;
           return ok;
         }
@@ -312,6 +371,7 @@
         await writeGist(out);
         lastRemote = MC.normalize(out); etag = ''; // 下次重新取一次新的 ETag
       } else MC.dirty = false;
+      await ensureICS(merged);
       MC.settings.lastSync = Date.now(); MC.saveSettings();
       MC.syncState.error = ''; ok = true;
     } catch (e) {

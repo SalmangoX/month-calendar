@@ -290,10 +290,12 @@
     const city = (dl.tz || MC.currentTz()).split('/').pop().replace(/_/g, ' ');
     nrows.push(srow({ icon: 'sun', color: COL.amber, label: '每日未完成提醒', sub: dl.on ? `每天 ${dl.time} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
     if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', color: COL.indigo, label: '每日提醒时间', val: dl.time }));
+    nrows.unshift(srow({ act: 'ics', icon: 'week', color: COL.indigo, label: '订阅到 iPhone 日历', sub: S.icsSubscribed ? '已订阅 · 到点由系统准时提醒' : '推荐：最简单、最准时，断网也会响', val: S.icsSubscribed ? '已订阅' : '' }));
     // 始终显示，点进去会自动补齐前置条件（连接 GitHub、通知权限）
     nrows.splice(1, 0, S.remoteSetup
       ? srow({ act: 'nsetup', icon: 'cloud', color: COL.sage, label: 'App 关闭时也提醒', val: '已设置' })
       : srow({ act: 'nsetup', icon: 'cloud', color: COL.slate, label: 'App 关闭时也提醒', sub: '点这里一键设置', val: '未设置' }));
+    if (S.remoteSetup) nrows.splice(2, 0, srow({ act: 'boost', icon: 'clock', color: COL.teal, label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
     h += group('提醒', nrows, notifyHint());
     h += group('桌面小组件', [
       srow({ act: 'ios', icon: 'phone', color: COL.slate, label: 'iOS 小组件', sub: '复制 Scriptable 脚本', help: 'ios', chev: false }),
@@ -351,6 +353,13 @@
       setupForm();
     }
     else if (act === 'dtime') dailyTimeForm();
+    else if (act === 'boost') openHelp('boost');
+    else if (act === 'ics') {
+      if (!MC.vault.connected()) { UI.toast('先连接 GitHub，连接后再点一次这里'); connectForm(false); return; }
+      if (!MC.settings.account) { try { MC.settings.account = (await MC.gh('/user')).login || ''; MC.saveSettings(); } catch (e) {} }
+      try { await MC.sync(); await MC.pushICS(); } catch (e) {}
+      openHelp('ics');
+    }
     else if (act === 'ios') copyIOS();
     else if (act === 'android') copyAndroid();
     else if (act === 'export') exportData();
@@ -592,6 +601,49 @@
       </ol>
       <div class="help-tip">后台提醒由你仓库里的 GitHub 定时任务每 5 分钟检查一次，高峰时可能晚几分钟。仓库 60 天没有改动时 GitHub 会暂停定时任务并发邮件提醒，点邮件里的按钮即可恢复。</div>`,
     }),
+    ics: () => {
+      const url = MC.icsURL();
+      const web = url.replace(/^https:/, 'webcal:');
+      return {
+        title: '订阅到 iPhone 日历',
+        html: url ? `<p class="hint" style="margin:0 2px 14px">设置了提醒的事件和每日提醒会同步到 iPhone 自带的日历，到点由系统准时弹出，月历关着、断网也会响。只需订阅一次。</p>
+        <ol class="steps">
+          <li>先点 <b>生成 3 分钟后的测试提醒</b>。</li>
+          <li>再点 <b>订阅</b>，系统询问时点「订阅」，然后点「添加」或「完成」。</li>
+          <li>等 3 分钟，收到「月历订阅提醒测试」就说明你的 iPhone 支持，以后不用再管。</li>
+        </ol>
+        <div class="help-copy">
+          <button class="chip-btn glass" data-copy="icsTest">生成 3 分钟后的测试提醒</button>
+          <a class="chip-btn glass" href="${esc(web)}" data-copy="icsSub" style="text-decoration:none;color:var(--accent-text)">订阅</a>
+          <button class="chip-btn glass" data-copy="icsCopy">复制订阅链接</button>
+        </div>
+        <div class="help-tip">新增或修改的事件，要等 iPhone 刷新订阅后才生效（一般 15 分钟到 1 小时，可在 设置 → 日历 → 账户 → 获取新数据 里调快）。已完成的事件会自动从提醒里去掉。订阅日历里只放有提醒的事件，不会把整个月历都塞进系统日历。<br>如果测试提醒没有响：打开 设置 → 日历 → 账户 → 「月历提醒」，确认没有打开「移除提醒」；仍然不响的话，改用「让提醒准时」那个方案。</div>`
+        : `<p class="hint">请先连接 GitHub 并同步成功一次。</p>`,
+      };
+    },
+    boost: () => {
+      const repo = (MC.settings.remoteSetup && MC.settings.remoteSetup.repo) || Push.guessRepo() || '用户名/仓库名';
+      const url = `https://api.github.com/repos/${repo}/actions/workflows/reminders.yml/dispatches`;
+      return {
+        title: '让提醒准时',
+        html: `<p class="hint" style="margin:0 2px 14px">GitHub 自带的定时任务对不活跃的仓库会推迟几个小时。用免费的 cron-job.org 每 5 分钟叫醒一次提醒程序，就能准时（一般延迟 1～2 分钟）。只需设置一次。</p>
+        <ol class="steps">
+          <li><b>生成一个只能触发提醒的令牌</b>：GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token。Expiration 可选 No expiration；Repository access 选 <b>Only select repositories</b> → 选 <code>${esc(repo.split('/')[1] || repo)}</code>；Permissions → Repository permissions → <b>Actions</b> 设为 <b>Read and write</b>，其他不动 → Generate token，复制。</li>
+          <li>打开 <a href="https://cron-job.org" target="_blank" rel="noopener">cron-job.org</a>，免费注册并登录 → <b>CREATE CRONJOB</b>。</li>
+          <li><b>URL</b> 填：<br><code>${esc(url)}</code></li>
+          <li><b>Execution schedule</b> 选 <b>Every 5 minutes</b>。</li>
+          <li>切到 <b>ADVANCED</b>：Request method 选 <b>POST</b>；Headers 添加两条：<br><code>Authorization</code> = <code>Bearer 你的令牌</code><br><code>Accept</code> = <code>application/vnd.github+json</code><br>Request body 填：<code>{"ref":"main"}</code></li>
+          <li>点 <b>CREATE</b>（可先点 TEST RUN，返回 204 就是成功）。</li>
+        </ol>
+        <div class="help-copy">
+          <button class="chip-btn glass" data-copy="boostUrl">复制 URL</button>
+          <button class="chip-btn glass" data-copy="boostAccept">复制 Accept 值</button>
+          <button class="chip-btn glass" data-copy="boostBody">复制 Request body</button>
+        </div>
+        <div class="help-tip">这个令牌只能触发这个仓库的提醒程序，碰不到其他内容，放在 cron-job.org 上也比较安全。设置好后，GitHub 仓库的 Actions 页面会看到每隔约 5 分钟就有一次「月历提醒」的运行记录。</div>`,
+        _url: url,
+      };
+    },
     sync: () => ({
       title: '多设备同步',
       html: `<ol class="steps">
@@ -615,6 +667,15 @@
     if (k === 'ios') copyIOS();
     else if (k === 'android') copyAndroid();
     else if (k === 'url') copy(appUrl(), '已复制 App 网址');
+    else if (k === 'icsTest') {
+      MC.settings.icsTestAt = Date.now() + 3 * 60000; MC.saveSettings();
+      try { await MC.pushICS(); UI.toast('测试提醒已生成，现在点「订阅」'); } catch (err) { UI.toast('生成失败：' + err.message); }
+    }
+    else if (k === 'icsSub') { MC.settings.icsSubscribed = true; MC.saveSettings(); setTimeout(renderSettings, 500); return; }
+    else if (k === 'icsCopy') copy(MC.icsURL(), '已复制订阅链接');
+    else if (k === 'boostUrl') copy(HELP.boost()._url, '已复制 URL');
+    else if (k === 'boostAccept') copy('application/vnd.github+json', '已复制');
+    else if (k === 'boostBody') copy('{"ref":"main"}', '已复制');
     else if (k === 'vapid') copy(MC.settings.vapidPrivate, '已复制通知密钥');
     else if (k === 'yml') workflowYml ? copy(workflowYml, '已复制工作流文件') : UI.toast('文件还在加载，请稍后再点一次');
     else if (k === 'regen') {
