@@ -49,39 +49,46 @@
     if (UI.menuOpen()) UI.closeMenu(); else if (stack.length) UI.close();
   });
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => UI.close(b.closest('.sheet').id)));
-  // 面板手势：向下拖动跟手、超过距离或快速下滑即收起；向上拖动有阻尼的橡皮筋效果，松手回弹
+  // 面板手势：除了可编辑区域（输入框、文本框、滚轮），面板任何位置往下拉都能收起；
+  // 可滚动的内容在最顶部时下拉 = 收起，否则正常滚动。向上拉有阻尼的橡皮筋效果，松手回弹。
   const rubber = (x, dim = 140, c = .55) => (1 - 1 / (x * c / dim + 1)) * dim;
+  const EDITABLE = 'input:not([type=checkbox]), textarea, select, [contenteditable], .wheel';
+  const SCROLLERS = '.batch-list, .pk-body, .help-body, .form, .list, .pv-list';
   document.querySelectorAll('.sheet').forEach(sh => {
-    let y0 = 0, t0 = 0, last = 0, lastT = 0, v = 0, on = false, d = 0;
-    const isZone = el => {
-      if (el.closest('.handle, .sheet-head, .cmp-head h2')) return true;
-      if (el.closest('input, textarea, button, select, label, .wheel, .batch-list, .list, .pk-body, .help-body, .form, .cmp-chips')) return false;
-      return sh.classList.contains('composer'); // 添加面板的空白处也可以拖
-    };
+    let x0 = 0, y0 = 0, last = 0, lastT = 0, v = 0, d = 0, state = 0, sc = null, swallow = false; // state: 0 无 1 待定 2 拖动中
     sh.addEventListener('touchstart', e => {
-      if (e.touches.length > 1 || !isZone(e.target)) return;
-      on = true; d = 0; v = 0;
-      y0 = last = e.touches[0].clientY; t0 = lastT = performance.now();
-      sh.style.transition = 'none';
+      if (e.touches.length > 1 || e.target.closest(EDITABLE)) { state = 0; return; }
+      sc = e.target.closest(SCROLLERS);
+      if (sc && !sh.contains(sc)) sc = null;
+      state = 1; d = 0; v = 0;
+      x0 = e.touches[0].clientX; y0 = last = e.touches[0].clientY; lastT = performance.now();
     }, { passive: true });
     sh.addEventListener('touchmove', e => {
-      if (!on) return;
-      const y = e.touches[0].clientY, now = performance.now();
+      if (!state) return;
+      const x = e.touches[0].clientX, y = e.touches[0].clientY, now = performance.now();
+      const dy = y - y0, dx = x - x0;
+      if (state === 1) {
+        if (Math.abs(dy) < 6 || Math.abs(dy) < Math.abs(dx)) return;
+        const atTop = !sc || sc.scrollTop <= 0;
+        if ((dy > 0 && atTop) || (dy < 0 && !sc)) { state = 2; y0 = y; sh.style.transition = 'none'; }
+        else { state = 0; return; }   // 交给内容自己滚动
+      }
       v = (y - last) / Math.max(1, now - lastT); last = y; lastT = now;
       d = y - y0;
-      const off = d >= 0 ? d : -rubber(-d);
-      sh.style.transform = `translateY(${off}px)`;
-      if (Math.abs(d) > 4 && e.cancelable) e.preventDefault();
+      sh.style.transform = `translateY(${d >= 0 ? d : -rubber(-d)}px)`;
+      if (e.cancelable) e.preventDefault();
     }, { passive: false });
     const end = () => {
-      if (!on) return; on = false;
+      if (state !== 2) { state = 0; return; }
+      state = 0;
+      swallow = Math.abs(d) > 4;      // 拖动过就不再触发点击
+      setTimeout(() => (swallow = false), 350);
       const close = d > 110 || (d > 24 && v > .55);
       if (close) {
         sh.style.transition = 'transform .26s cubic-bezier(.3,.7,.4,1)';
         sh.style.transform = `translateY(${sh.offsetHeight + 40}px)`;
         setTimeout(() => { sh.style.transition = ''; sh.style.transform = ''; UI.close(sh.id); }, 250);
       } else {
-        // 回弹：带一点过冲
         sh.style.transition = 'transform .5s cubic-bezier(.25,1.6,.45,1)';
         sh.style.transform = '';
         setTimeout(() => { sh.style.transition = ''; }, 500);
@@ -89,6 +96,7 @@
     };
     sh.addEventListener('touchend', end);
     sh.addEventListener('touchcancel', end);
+    sh.addEventListener('click', e => { if (swallow) { swallow = false; e.stopPropagation(); e.preventDefault(); } }, true);
   });
 
   // 键盘弹出时把面板顶起（iOS）
