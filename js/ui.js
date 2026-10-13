@@ -53,7 +53,7 @@
   // 可滚动的内容在最顶部时下拉 = 收起，否则正常滚动。向上拉有阻尼的橡皮筋效果，松手回弹。
   const rubber = (x, dim = 140, c = .55) => (1 - 1 / (x * c / dim + 1)) * dim;
   const EDITABLE = 'input:not([type=checkbox]), textarea, select, [contenteditable], .wheel';
-  const SCROLLERS = '.batch-list, .pk-body, .help-body, .form, .list, .pv-list';
+  const SCROLLERS = '.batch-list, .pk-body, .help-body, .form, .list, .pv-list, .composer';
   document.querySelectorAll('.sheet').forEach(sh => {
     let x0 = 0, y0 = 0, last = 0, lastT = 0, v = 0, d = 0, state = 0, sc = null, swallow = false; // state: 0 无 1 待定 2 拖动中
     sh.addEventListener('touchstart', e => {
@@ -155,11 +155,11 @@
   UI.itemHTML = (e, opts = {}) => {
     const p = MC.priOf(e.priority);
     const bits = [];
+    const multi = e.days > 1;
     if (opts.showDate) {
-      const diff = MC.dayDiff(e.date);
-      const cls = e.done ? '' : diff < 0 ? 'over' : 'due';
-      bits.push(`<span class="${cls}">${MC.dateLabel(e.date)}</span>`);
-    }
+      const cls = e.done ? '' : MC.dayDiff(MC.endDate(e)) < 0 ? 'over' : 'due';
+      bits.push(`<span class="${cls}">${MC.dateLabel(e.date)}${multi ? '–' + MC.dateLabel(MC.endDate(e)) : ''}</span>`);
+    } else if (multi) bits.push(`${MC.dateLabel(e.date)}–${MC.dateLabel(MC.endDate(e))} · 共 ${e.days} 天`);
     const tl = MC.timeLabel(e);
     if (tl) bits.push(esc(tl));
     if (e.note) bits.push(esc(e.note));
@@ -184,13 +184,14 @@
   };
 
   // ---------- 滚轮选择器 ----------
-  const ITEM = 36;
-  // cols: [{ items:[{label,value}], value, flex }]，onChange(colIndex, value)
-  UI.wheel = (host, cols, onChange) => {
+  // cols: [{ items:[{label,value}], value, flex }]，onChange(colIndex, value)；ITEM 为每行高度
+  UI.wheel = (host, cols, onChange, ITEM = 36) => {
     host.innerHTML = '';
     const wrap = document.createElement('div');
     wrap.className = 'wheel';
-    wrap.innerHTML = '<div class="wheel-band glass"></div>';
+    wrap.innerHTML = `<div class="wheel-band glass" style="top:${ITEM * 2}px;height:${ITEM}px"></div>`;
+    wrap.style.height = ITEM * 5 + 'px';
+    if (ITEM > 36) wrap.classList.add('big');
     host.appendChild(wrap);
     const api = { cols: [] };
     cols.forEach((c, ci) => {
@@ -203,7 +204,8 @@
         sc, items: [], idx: 0,
         set(items, value) {
           this.items = items;
-          sc.innerHTML = '<div class="wpad"></div>' + items.map((it, i) => `<div class="witem" data-i="${i}">${esc(it.label)}</div>`).join('') + '<div class="wpad"></div>';
+          const pad = `<div class="wpad" style="height:${ITEM * 2}px"></div>`;
+          sc.innerHTML = pad + items.map((it, i) => `<div class="witem" data-i="${i}" style="height:${ITEM}px;line-height:${ITEM}px">${esc(it.label)}</div>`).join('') + pad;
           let i = items.findIndex(it => it.value === value);
           if (i < 0) i = 0;
           this.idx = i;
@@ -232,7 +234,7 @@
   };
 
   // 日期滚轮：年 / 月 / 日
-  UI.dateWheel = (host, ds, onChange) => {
+  UI.dateWheel = (host, ds, onChange, itemH = 36) => {
     const d = MC.parse(ds);
     const now = new Date().getFullYear();
     const years = []; for (let y = now - 5; y <= now + 10; y++) years.push({ label: y + '年', value: y });
@@ -255,7 +257,7 @@
         w.cols[2].set(daysOf(y, m), day);
       }
       onChange(`${y}-${MC.pad(m)}-${MC.pad(day)}`);
-    });
+    }, itemH);
     return w;
   };
 

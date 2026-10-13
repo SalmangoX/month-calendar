@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.6.6';
+  MC.VERSION = '0.6.8';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -76,6 +76,7 @@
     const [h, mi] = (e.time || '09:00').split(':').map(Number);
     return new Date(y, m - 1, d, h, mi).getTime() - e.remind * 60000;
   };
+  MC.endDate = e => (e.days > 1 ? ymd(MC.addDays(parse(e.date), e.days - 1)) : e.date);
   MC.timeLabel = e => e.time ? (e.endTime ? `${e.time}–${e.endTime}` : e.time) : '';
 
   // ---------- 数据 ----------
@@ -89,6 +90,7 @@
       time: /^\d{2}:\d{2}$/.test(e.time || '') ? e.time : '',
       endTime: /^\d{2}:\d{2}$/.test(e.endTime || '') && e.time ? e.endTime : '',
       remind: e.remind === null || e.remind === undefined || e.remind === '' ? null : Number(e.remind),
+      days: /^\d{2}:\d{2}$/.test(e.time || '') ? 1 : Math.max(1, Math.min(60, parseInt(e.days, 10) || 1)),
       series: e.series || '',
       createdAt: e.createdAt || t, updatedAt: e.updatedAt || e.createdAt || t,
     };
@@ -127,8 +129,12 @@
   MC.reindex = () => {
     MC.byDate = new Map();
     for (const e of MC.data.events) {
-      if (!MC.byDate.has(e.date)) MC.byDate.set(e.date, []);
-      MC.byDate.get(e.date).push(e);
+      const n = e.days > 1 ? e.days : 1, d0 = parse(e.date);
+      for (let k = 0; k < n; k++) { // 多天的全天事件出现在跨越的每一天
+        const ds = k ? ymd(MC.addDays(d0, k)) : e.date;
+        if (!MC.byDate.has(ds)) MC.byDate.set(ds, []);
+        MC.byDate.get(ds).push(e);
+      }
     }
     for (const arr of MC.byDate.values()) arr.sort(cmp);
   };
@@ -175,7 +181,7 @@
   };
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
-      .map(e => [e.id, e.date, e.title, e.priority, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
+      .map(e => [e.id, e.date, e.days, e.title, e.priority, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
     return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0]);
   }
 

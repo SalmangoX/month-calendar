@@ -16,7 +16,7 @@
   let mode = 'new', editing = null;
   const draft = {};
   function resetDraft(date) {
-    Object.assign(draft, { title: '', note: '', priority: 0, date, time: '', endTime: '', remind: null, repeat: 'none', until: '', done: false });
+    Object.assign(draft, { title: '', note: '', priority: 0, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', done: false });
   }
   function chipLabel(d) {
     const n = MC.dayDiff(d.date);
@@ -39,18 +39,61 @@
     add(MC.addDays(t, ((8 - t.getDay()) % 7) || 7), '下周一');
     return out;
   }
-  function paintComposer() {
+  let otherOpen = false, otherMode = 'wheel', otherCal = null;
+  function paintQuick() {
     const qd = quickDates();
-    let qh = qd.map(o => `<button class="qchip${o.ds === draft.date ? ' on' : ''}" data-ds="${o.ds}">${o.label}<small>${MC.parse(o.ds).getMonth() + 1}/${MC.parse(o.ds).getDate()}</small></button>`).join('');
-    if (!qd.some(o => o.ds === draft.date)) qh = `<button class="qchip on" data-ds="${draft.date}">${MC.dateLabel(draft.date)}<small>周${MC.WD[MC.parse(draft.date).getDay()]}</small></button>` + qh;
-    qh += `<button class="qchip" data-act="pick">其他日期…</button>`;
-    $('#cmpQuick').innerHTML = qh;
-    $('#cmpPri').innerHTML = MC.PRI.map(p => `<button class="qchip pri${p.v === draft.priority ? ' on' : ''}" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span>${p.name}</button>`).join('');
+    // 具体日期集中在左边，「其他日期」单独放在右侧、上下居中
+    const chips = qd.map(o => `<button class="qchip${o.ds === draft.date && !otherOpen ? ' on' : ''}" data-ds="${o.ds}">${o.label}<small>${MC.parse(o.ds).getMonth() + 1}/${MC.parse(o.ds).getDate()}</small></button>`).join('');
+    const custom = !qd.some(o => o.ds === draft.date);
+    const other = `<button class="qchip qother${otherOpen || custom ? ' on' : ''}" data-act="other">${custom ? `${MC.dateLabel(draft.date)}<small>周${MC.WD[MC.parse(draft.date).getDay()]}</small>` : '其他日期'}</button>`;
+    $('#cmpQuick').innerHTML = `<div class="qgroup">${chips}</div>${other}`;
+  }
+  // 「其他日期」：在面板里直接展开大号滚轮，可切换成日历
+  function renderOther() {
+    $('#cmpOther').hidden = !otherOpen;
+    if (!otherOpen) return;
+    $('#cmpOtherMode').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === otherMode));
+    const host = $('#cmpOtherBody');
+    if (otherMode === 'wheel') {
+      $('#cmpOtherTitle').textContent = '滚动选择日期';
+      host.innerHTML = '<div class="wheel-wrap" style="padding:0"></div>';
+      requestAnimationFrame(() => UI.dateWheel(host.firstChild, draft.date, ds => { draft.date = ds; paintQuick(); paintTools(); }, 44));
+    } else {
+      const d = MC.parse(draft.date);
+      if (!otherCal) otherCal = { y: d.getFullYear(), m: d.getMonth() };
+      const { y, m } = otherCal, off = (new Date(y, m, 1).getDay() - MC.settings.weekStart + 7) % 7, t = MC.todayStr();
+      $('#cmpOtherTitle').textContent = `${y}年${m + 1}月`;
+      let wk = '', g = '';
+      for (let i = 0; i < 7; i++) wk += `<div>${MC.WD[(i + MC.settings.weekStart) % 7]}</div>`;
+      for (let i = 0; i < 42; i++) {
+        const dd = new Date(y, m, 1 - off + i), ds = MC.ymd(dd);
+        g += `<button class="pk-d${dd.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}${ds === draft.date ? ' on' : ''}" data-ds="${ds}"><span>${dd.getDate()}</span></button>`;
+      }
+      host.innerHTML = `<div class="pk-cal-head"><button class="nav-btn" data-nav="-1" aria-label="上个月">‹</button><span></span><button class="nav-btn" data-nav="1" aria-label="下个月">›</button></div><div class="pk-week">${wk}</div><div class="pk-grid">${g}</div>`;
+    }
+  }
+  $('#cmpOtherMode').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    otherMode = b.dataset.v; otherCal = null; renderOther();
+  });
+  $('#cmpOtherBody').addEventListener('click', e => {
+    const nav = e.target.closest('[data-nav]');
+    if (nav) { const t = new Date(otherCal.y, otherCal.m + Number(nav.dataset.nav), 1); otherCal = { y: t.getFullYear(), m: t.getMonth() }; renderOther(); return; }
+    const d = e.target.closest('.pk-d'); if (!d) return;
+    draft.date = d.dataset.ds; paintQuick(); paintTools(); renderOther();
+  });
+  function paintTools() {
     const extra = [];
     if (draft.time) extra.push(MC.timeLabel(draft));
+    else if (draft.days > 1) extra.push(`持续 ${draft.days} 天`);
     if (draft.repeat && draft.repeat !== 'none') extra.push(MC.repeatLabel(draft.repeat));
     if (draft.remind !== null && draft.remind !== undefined) extra.push('提醒');
-    $('#cmpDateLabel').textContent = extra.length ? extra.join(' · ') : '时间 · 提醒 · 重复';
+    $('#cmpDateLabel').textContent = extra.length ? extra.join(' · ') : '时间 · 持续 · 提醒 · 重复';
+  }
+  function paintComposer() {
+    paintQuick();
+    paintTools();
+    $('#cmpPri').innerHTML = MC.PRI.map(p => `<button class="qchip pri${p.v === draft.priority ? ' on' : ''}" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span>${p.name}</button>`).join('');
     $('#cmpSave').classList.toggle('disabled', !$('#cmpTitle').value.trim());
     $('#cmpDone').setAttribute('aria-pressed', String(!!draft.done));
   }
@@ -75,7 +118,7 @@
       return;
     }
     if (!editing || !MC.data.events.includes(editing)) return;
-    const fields = { title, note, priority: draft.priority, date: draft.date, time: draft.time, endTime: draft.endTime, remind: draft.remind, done: draft.done };
+    const fields = { title, note, priority: draft.priority, date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, done: draft.done };
     const changed = Object.keys(fields).some(k => (fields[k] ?? null) !== (editing[k] ?? null));
     if (!changed) return;
     if (!title) { UI.toast('名称为空，修改没有保存'); return; }
@@ -99,12 +142,13 @@
     $('#cmpEditBar').hidden = true;
     $('#cmpBatch').hidden = false;
     $('#cmpTitle').classList.remove('err');
+    otherOpen = false; renderOther();
     growTitle(); paintComposer();
     UI.open('composer', onComposerClosed);
   };
   Editor.openEdit = e => {
     mode = 'edit'; editing = e;
-    Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, date: e.date, time: e.time, endTime: e.endTime, remind: e.remind, repeat: 'none', until: '', done: e.done });
+    Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, date: e.date, days: e.days || 1, time: e.time, endTime: e.endTime, remind: e.remind, repeat: 'none', until: '', done: e.done });
     $('#cmpTitle').value = e.title; $('#cmpNote').value = e.note;
     $('#cmpHeading').textContent = '编辑事件';
     $('#cmpClear').hidden = true;
@@ -112,6 +156,7 @@
     $('#cmpEditBar').hidden = false;
     $('#cmpBatch').hidden = true;
     $('#cmpTitle').classList.remove('err');
+    otherOpen = false; renderOther();
     paintComposer();
     UI.open('composer', onComposerClosed);
     requestAnimationFrame(growTitle);
@@ -129,8 +174,8 @@
   $('#cmpTitle').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); } });
   $('#cmpQuick').addEventListener('click', e => {
     const b = e.target.closest('.qchip'); if (!b) return;
-    if (b.dataset.act === 'pick') { $('#cmpDate').click(); return; }
-    draft.date = b.dataset.ds; paintComposer();
+    if (b.dataset.act === 'other') { otherOpen = !otherOpen; otherCal = null; paintQuick(); renderOther(); return; }
+    draft.date = b.dataset.ds; otherOpen = false; paintComposer(); renderOther();
   });
   $('#cmpPri').addEventListener('click', e => {
     const b = e.target.closest('.qchip'); if (!b) return;
@@ -179,7 +224,7 @@
       setTimeout(() => (t.placeholder = '准备做什么？'), 1800);
       return;
     }
-    const fields = { title, note, priority: draft.priority, date: draft.date, time: draft.time, endTime: draft.endTime, remind: draft.remind };
+    const fields = { title, note, priority: draft.priority, date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind };
     if (mode === 'edit') {
       MC.updateEvent(editing, { ...fields, done: draft.done });
       closeComposer(false);
@@ -204,7 +249,7 @@
   Editor.openPicker = (opts, cb) => {
     const d = MC.parse(opts.date);
     pk = {
-      date: opts.date, time: opts.time || '', endTime: opts.endTime || '',
+      date: opts.date, days: opts.days || 1, time: opts.time || '', endTime: opts.endTime || '',
       remind: opts.remind === undefined ? null : opts.remind,
       repeat: opts.repeat || 'none', until: opts.until || '',
       allowRepeat: !!opts.allowRepeat, dateOnly: !!opts.dateOnly,
@@ -229,7 +274,7 @@
   $('#pkCancel').onclick = () => UI.close('datePicker');
   $('#pkOk').onclick = () => {
     if (pk.repeat !== 'none' && (!pk.until || pk.until < pk.date)) pk.until = MC.defaultUntil(pk.date, pk.repeat);
-    const out = { date: pk.date, time: pk.time, endTime: pk.tab === 'range' ? pk.endTime : '', remind: pk.remind, repeat: pk.repeat, until: pk.until };
+    const out = { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime: pk.tab === 'range' ? pk.endTime : '', remind: pk.remind, repeat: pk.repeat, until: pk.until };
     if (out.endTime && out.endTime <= out.time) out.endTime = '';
     UI.close('datePicker');
     pkCb && pkCb(out);
@@ -264,7 +309,9 @@
     `<button class="pk-row" data-act="${act}">${icon}<span>${label}</span><span class="grow-val${on ? ' on' : ''}" data-bind="${act}">${esc(val)}</span></button>`;
   function extraRows() {
     const hasTime = !!pk.time;
-    let h = row('remind', SVG_BELL, '提醒', MC.remindLabel(pk.remind, hasTime), pk.remind !== null);
+    let h = '';
+    if (!hasTime && !pk.dateOnly) h += row('days', SVG_CAL, '持续', pk.days > 1 ? `${pk.days} 天（到 ${MC.dateLabel(MC.ymd(MC.addDays(MC.parse(pk.date), pk.days - 1)))}）` : '1 天', pk.days > 1);
+    h += row('remind', SVG_BELL, '提醒', MC.remindLabel(pk.remind, hasTime), pk.remind !== null);
     if (pk.allowRepeat) {
       h += row('repeat', SVG_REPEAT, '重复', MC.repeatLabel(pk.repeat), pk.repeat !== 'none');
       if (pk.repeat !== 'none') {
@@ -299,7 +346,7 @@
       h += `<p class="tz">${esc(Intl.DateTimeFormat().resolvedOptions().timeZone || '')}</p>`;
       h += `<div class="group pk-rows">${extraRows()}</div>`;
     }
-    if (!pk.dateOnly) h += '<button class="pk-clear" data-act="clear">清除时间、提醒与重复</button>';
+    if (!pk.dateOnly) h += '<button class="pk-clear" data-act="clear">清除时间、持续、提醒与重复</button>';
     $('#pkBody').innerHTML = h;
     mountWheels();
   }
@@ -360,6 +407,10 @@
       if (!pk.time) { pk.time = nextHour(); pk.endTime = plusHour(pk.time); }
       pk.expanded = pk.expanded === 'range' ? null : 'range'; renderPicker();
     }
+    else if (act === 'days') {
+      const opts = [1, 2, 3, 4, 5, 6, 7, 10, 14, 21, 30];
+      UI.menu(a, opts.map(n => ({ label: n === 1 ? '1 天（当天）' : `${n} 天`, value: n, on: n === pk.days })), v => { pk.days = v; renderPicker(); });
+    }
     else if (act === 'remind') {
       UI.menu(a, MC.remindOptions(!!pk.time).map(o => ({ label: o.label, value: o.v, on: o.v === pk.remind })), v => {
         pk.remind = v; refreshLabels();
@@ -372,7 +423,7 @@
         pk.repeat = v; pk.until = v === 'none' ? '' : MC.defaultUntil(pk.date, v); pk.expanded = null; renderPicker();
       });
     }
-    else if (act === 'clear') { pk.time = ''; pk.endTime = ''; pk.remind = null; pk.repeat = 'none'; pk.until = ''; pk.expanded = null; renderPicker(); }
+    else if (act === 'clear') { pk.time = ''; pk.endTime = ''; pk.days = 1; pk.remind = null; pk.repeat = 'none'; pk.until = ''; pk.expanded = null; renderPicker(); }
   });
 
   // ======================= 批量添加 =======================

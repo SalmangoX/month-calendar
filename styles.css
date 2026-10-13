@@ -412,9 +412,11 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 .text-btn.small { font-size: 13px; }
 
 /* 添加面板 */
-.composer { padding: 0 18px calc(var(--safe-b) + 14px); }
+.composer { padding: 0 18px calc(var(--safe-b) + 14px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.composer .cmp-head { position: sticky; top: 0; z-index: 2; background: var(--frost-strong); margin: 0 -18px; padding-left: 20px; padding-right: 20px; }
 .composer.keyboard { min-height: 0; padding-bottom: 12px; }
 .cmp-head { display: flex; align-items: center; gap: 14px; padding: 10px 2px 12px; }
+.cmp-batch { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--field); font-size: 14px; font-weight: 600; color: var(--text); }
 .cmp-save { height: 34px; padding: 0 18px; border-radius: 17px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 650; transition: opacity .2s, transform .2s var(--ease); }
 .cmp-save:active { transform: scale(.95); }
 .cmp-save.disabled { opacity: .38; }
@@ -433,6 +435,9 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 .cmp-sec { margin-top: 16px; }
 .cmp-label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin: 0 4px 8px; letter-spacing: .02em; }
 .cmp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+#cmpQuick { flex-wrap: nowrap; align-items: center; gap: 10px; }
+#cmpQuick .qgroup { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+#cmpQuick .qother { flex: none; }
 .cmp-chips::-webkit-scrollbar { display: none; }
 .qchip {
   flex: none; height: 36px; padding: 0 14px; border-radius: 18px; font-size: 14px; font-weight: 550;
@@ -445,6 +450,10 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 .qchip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
 .qchip.pri.on { background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--c); }
 .cmp-tools { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
+.cmp-other { margin-top: 10px; border-radius: var(--r-l); padding: 6px 10px 8px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); animation: rise .25s var(--ease); }
+.cmp-other-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 6px; font-size: 13px; font-weight: 600; color: var(--text2); }
+.wheel.big .witem { font-size: 20px; }
+.wheel.big .witem.on { font-weight: 650; color: var(--text); }
 .composer:not(.keyboard) .cmp-tools { margin-top: 22px; }
 .tool { height: 38px; border-radius: 19px; padding: 0 14px; display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; white-space: nowrap; }
 .date-tool { color: var(--accent-text); max-width: 62%; overflow: hidden; }

@@ -125,7 +125,7 @@
   function renderToday() {
     const d = new Date(), t = MC.todayStr();
     $('#todayDate').textContent = `${d.getMonth() + 1}月${d.getDate()}日 周${MC.WD[d.getDay()]}`;
-    const overdue = MC.data.events.filter(e => !e.done && e.date < t).sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b));
+    const overdue = MC.data.events.filter(e => !e.done && MC.endDate(e) < t).sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b));
     const today = MC.eventsOn(t);
     const open = today.filter(e => !e.done), done = today.filter(e => e.done);
     let h = '';
