@@ -65,7 +65,9 @@
       ua: navigator.userAgent.slice(0, 120), addedAt: Date.now(),
     });
     await writeSubs(info);
-    MC.settings.pushReady = true; MC.saveSettings();
+    MC.settings.pushReady = true;
+    MC.settings.subTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; // 记录推送用的时区
+    MC.saveSettings();
     return true;
   }
 

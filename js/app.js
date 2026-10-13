@@ -776,7 +776,12 @@
   }
   setTimeout(() => MC.onNotifyCheck(), 1500);
   // 每日提醒跟随当前所在时区
-  const syncTz = () => { const d = MC.data.daily; if (d.on && d.tz !== MC.currentTz()) MC.setDaily({ tz: MC.currentTz() }); };
+  const syncTz = () => {
+    const tz = MC.currentTz(), d = MC.data.daily;
+    if (d.on && d.tz !== tz) MC.setDaily({ tz });
+    // 换了时区：更新这台设备的推送时区，事件提醒按新时区计算
+    if (Push.enabled() && MC.settings.pushReady && MC.session.token && MC.settings.subTz !== tz) Push.resubscribe();
+  };
   syncTz();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncTz(); });
   if (location.hash === '#today') { showPage('today'); history.replaceState(null, '', location.pathname); }
