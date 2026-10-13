@@ -73,9 +73,27 @@
       h += '</div>';
     }
     track.style.cssText = '';
-    track.innerHTML = h;
+    track.innerHTML = h + `<svg class="mframe" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
     setT(0, -(BUF * rowH + scrollY));
     monthTitle();
+    drawFrame();
+  }
+  // 当前主要月份：用一圈虚线把这个月的所有日期框起来（交界处自然呈阶梯形）
+  function drawFrame() {
+    const path = document.getElementById('mframePath');
+    if (!path || view !== 'month') return;
+    const start = MC.addDays(anchor, -BUF * 7);
+    const idx = d => Math.round((d - start) / 864e5);
+    const a = idx(new Date(focus.y, focus.m, 1)), b = idx(new Date(focus.y, focus.m + 1, 0));
+    const r1 = Math.floor(a / 7), c1 = a % 7, r2 = Math.floor(b / 7), c2 = b % 7;
+    const cw = (W - 4) / 7, X = c => 2 + c * cw, Y = r => r * rowH, i = 1.5; // 向内收 1.5px，避开格子线
+    const pts = [[X(c1) + i, Y(r1) + i], [X(7) - i, Y(r1) + i]];
+    if (c2 === 6) pts.push([X(7) - i, Y(r2 + 1) - i]);
+    else pts.push([X(7) - i, Y(r2) - i], [X(c2 + 1) - i, Y(r2) - i], [X(c2 + 1) - i, Y(r2 + 1) - i]);
+    pts.push([X(0) + i, Y(r2 + 1) - i]);
+    if (c1 === 0) pts.push([X(0) + i, Y(r1) + i]);
+    else pts.push([X(0) + i, Y(r1 + 1) + i], [X(c1) + i, Y(r1 + 1) + i]);
+    path.setAttribute('d', 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L') + ' Z');
   }
   function monthTitle() {
     $('#calTitle').textContent = `${focus.m + 1}月`;
@@ -106,7 +124,7 @@
     setT(0, -(BUF * rowH + scrollY));
     const before = focus.y * 12 + focus.m;
     computeFocus();
-    if (focus.y * 12 + focus.m !== before || lastFocusKey === '') { lastFocusKey = 'x'; monthTitle(); }
+    if (focus.y * 12 + focus.m !== before || lastFocusKey === '') { lastFocusKey = 'x'; monthTitle(); drawFrame(); }
   }
   // 滚得太远时把 anchor 往前/后挪，画面不动，保证两侧始终有足够的预渲染行
   function recenter(margin = 4) {
