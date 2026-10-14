@@ -634,7 +634,9 @@ html.locked .lock { display: grid; }
 
 /* ---------- 启动动画 ---------- */
 #splash { position: absolute; inset: 0; z-index: 200; pointer-events: auto; --S: min(46vmin, 220px); --ly: calc(50% - var(--S) * .03); /* 第一条彩条的中线（图标居中，彩条在图标 94/200 处） */ }
-.sp-layer { position: absolute; inset: 0; background: #000; display: grid; place-items: center; will-change: transform; }
+.sp-layer { position: absolute; inset: 0; display: grid; place-items: center; will-change: transform;
+  background: linear-gradient(165deg, #8DA7C1 0%, #5E7F9F 52%, #46647F 100%); } /* 与 App 图标同一套灰蓝 */
+:root[data-theme="dark"] .sp-layer { background: linear-gradient(165deg, #2B3B4C 0%, #1B2531 55%, #11171E 100%); }
 .sp-top { clip-path: inset(0 0 calc(50% + var(--S) * .03) 0); animation: spUp .36s cubic-bezier(.7, 0, .3, 1) .86s forwards; }
 .sp-bot { clip-path: inset(calc(50% - var(--S) * .03) 0 0 0); animation: spDown .36s cubic-bezier(.7, 0, .3, 1) .86s forwards; }
 .sp-icon { stroke: none; stroke-width: 0; width: var(--S); height: auto; overflow: visible; animation: spIn .24s cubic-bezier(.2, .8, .2, 1) both; }
@@ -642,7 +644,7 @@ html.locked .lock { display: grid; }
 .sp-bar.b1 { animation: spGrow .28s cubic-bezier(.22, .9, .24, 1) .08s forwards, spDim .2s ease .52s forwards; }
 .sp-strike { stroke-dasharray: 1; stroke-dashoffset: 1; animation: spDraw .2s cubic-bezier(.4, 0, .2, 1) .46s forwards; }
 .sp-line { position: absolute; left: 0; width: 100%; top: calc(50% - var(--S) * .03 - var(--S) * .0065); height: calc(var(--S) * .013); transform-origin: 50% 50%;
-  background: #8FA9C4; border-radius: 99px; opacity: 0; transform: scaleX(var(--s0, .3));
+  background: rgba(255, 255, 255, .92); border-radius: 99px; opacity: 0; transform: scaleX(var(--s0, .3));
   animation: spLine .22s cubic-bezier(.5, 0, .2, 1) .66s forwards, spLineOut .18s ease .88s forwards; }
 @keyframes spIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
 @keyframes spGrow { to { transform: scaleX(1); } }
@@ -652,3 +654,6 @@ html.locked .lock { display: grid; }
 @keyframes spLineOut { from { opacity: 1; transform: scaleX(1); } to { opacity: 0; transform: scaleX(1); } }
 @keyframes spUp { to { transform: translateY(-100%); } }
 @keyframes spDown { to { transform: translateY(100%); } }
+
+:root[data-theme="dark"] #splash .sp-line { background: #9DB5CE; }
+.sp-icon { filter: drop-shadow(0 10px 24px rgba(20, 34, 52, .28)); }
