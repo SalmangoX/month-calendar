@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.6.9';
+  MC.VERSION = '0.7.0';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';

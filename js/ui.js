@@ -54,6 +54,8 @@
   const rubber = (x, dim = 140, c = .55) => (1 - 1 / (x * c / dim + 1)) * dim;
   const EDITABLE = 'input:not([type=checkbox]), textarea, select, [contenteditable], .wheel';
   const SCROLLERS = '.batch-list, .pk-body, .help-body, .form, .list, .pv-list, .composer';
+  // 面板本身永远不滚动（防止浏览器为了显示输入框把整个面板顶走）
+  document.querySelectorAll('.sheet').forEach(sh => sh.addEventListener('scroll', () => { if (!sh.classList.contains('composer') && sh.scrollTop) sh.scrollTop = 0; }));
   document.querySelectorAll('.sheet').forEach(sh => {
     let x0 = 0, y0 = 0, last = 0, lastT = 0, v = 0, d = 0, state = 0, sc = null, swallow = false; // state: 0 无 1 待定 2 拖动中
     sh.addEventListener('touchstart', e => {

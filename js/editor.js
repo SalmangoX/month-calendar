@@ -526,7 +526,13 @@
     if (e.target.classList.contains('b-note')) r.note = e.target.value;
   });
   $('#batchList').addEventListener('focusin', e => {
-    if (e.target.matches('input')) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320);
+    // 只滚动列表本身，不能用 scrollIntoView（它会连带滚动整个面板和页面，导致面板“缩没了”）
+    if (!e.target.matches('input')) return;
+    const list = $('#batchList'), el = e.target;
+    setTimeout(() => {
+      const r = el.getBoundingClientRect(), lr = list.getBoundingClientRect();
+      list.scrollTo({ top: Math.max(0, list.scrollTop + (r.top - lr.top) - 60), behavior: 'smooth' });
+    }, 320);
   });
   $('#batchList').addEventListener('keydown', e => {
     if (e.key !== 'Enter' || e.isComposing || !e.target.classList.contains('b-title')) return;
