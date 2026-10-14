@@ -326,6 +326,49 @@
   }
   UI.bindList(preview);
 
+  // 当天预览：往下拖动收起（列表在最顶部时），往上拖有阻尼回弹
+  (() => {
+    const rubber = x => (1 - 1 / (x * .55 / 120 + 1)) * 120;
+    let x0 = 0, y0 = 0, d = 0, v = 0, last = 0, lastT = 0, state = 0, sc = null, swallow = false;
+    preview.addEventListener('touchstart', e => {
+      if (e.touches.length > 1) { state = 0; return; }
+      sc = e.target.closest('.pv-list');
+      state = 1; d = 0; v = 0;
+      x0 = e.touches[0].clientX; y0 = last = e.touches[0].clientY; lastT = performance.now();
+    }, { passive: true });
+    preview.addEventListener('touchmove', e => {
+      if (!state) return;
+      const x = e.touches[0].clientX, y = e.touches[0].clientY, now = performance.now();
+      if (state === 1) {
+        const dy = y - y0;
+        if (Math.abs(dy) < 6 || Math.abs(dy) < Math.abs(x - x0)) return;
+        if ((dy > 0 && (!sc || sc.scrollTop <= 0)) || (dy < 0 && !sc)) { state = 2; y0 = y; preview.style.transition = 'none'; }
+        else { state = 0; return; }
+      }
+      v = (y - last) / Math.max(1, now - lastT); last = y; lastT = now;
+      d = y - y0;
+      preview.style.transform = `translateY(${d >= 0 ? d : -rubber(-d)}px)`;
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+    const end = () => {
+      if (state !== 2) { state = 0; return; }
+      state = 0;
+      swallow = Math.abs(d) > 4; setTimeout(() => (swallow = false), 350);
+      if (d > 90 || (d > 24 && v > .5)) {
+        preview.style.transition = 'transform .22s cubic-bezier(.3,.7,.4,1), opacity .22s';
+        preview.style.transform = `translateY(${preview.offsetHeight}px)`; preview.style.opacity = '0';
+        setTimeout(() => { preview.style.transition = ''; preview.style.transform = ''; preview.style.opacity = ''; previewOpen = false; render(); }, 220);
+      } else {
+        preview.style.transition = 'transform .45s cubic-bezier(.25,1.5,.45,1)';
+        preview.style.transform = '';
+        setTimeout(() => { preview.style.transition = ''; }, 450);
+      }
+    };
+    preview.addEventListener('touchend', end);
+    preview.addEventListener('touchcancel', end);
+    preview.addEventListener('click', e => { if (swallow) { swallow = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  })();
+
   function select(ds) {
     if (ds === selected && previewOpen) { previewOpen = false; render(); return; }
     selected = ds;
