@@ -25,7 +25,7 @@
     } catch (e) { document.documentElement.dataset.theme = 'light'; }
   })();
 </script>
-<link rel="stylesheet" href="styles.css?v=0.7.9">
+<link rel="stylesheet" href="styles.css?v=0.8.0">
 </head>
 <body>
 
@@ -137,6 +137,10 @@
     <textarea id="cmpNote" rows="2" placeholder="备注（选填）"></textarea>
   </div>
   <div class="cmp-sec">
+    <span class="cmp-label">优先级</span>
+    <div class="cmp-chips" id="cmpPri"></div>
+  </div>
+  <div class="cmp-sec">
     <span class="cmp-label">日期</span>
     <div class="cmp-chips" id="cmpQuick"></div>
     <div class="cmp-other" id="cmpOther" hidden>
@@ -145,10 +149,6 @@
       </div>
       <div id="cmpOtherBody"></div>
     </div>
-  </div>
-  <div class="cmp-sec">
-    <span class="cmp-label">优先级</span>
-    <div class="cmp-chips" id="cmpPri"></div>
   </div>
   <div class="cmp-tools">
     <button class="tool date-tool glass" id="cmpDate">
@@ -229,11 +229,11 @@
 <input type="file" id="avatarFile" accept="image/*" hidden>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
-<script src="js/store.js?v=0.7.9"></script>
-<script src="js/ui.js?v=0.7.9"></script>
-<script src="js/calendar.js?v=0.7.9"></script>
-<script src="js/editor.js?v=0.7.9"></script>
-<script src="js/push.js?v=0.7.9"></script>
-<script src="js/app.js?v=0.7.9"></script>
+<script src="js/store.js?v=0.8.0"></script>
+<script src="js/ui.js?v=0.8.0"></script>
+<script src="js/calendar.js?v=0.8.0"></script>
+<script src="js/editor.js?v=0.8.0"></script>
+<script src="js/push.js?v=0.8.0"></script>
+<script src="js/app.js?v=0.8.0"></script>
 </body>
 </html>
