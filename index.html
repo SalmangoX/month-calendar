@@ -25,7 +25,7 @@
     } catch (e) { document.documentElement.dataset.theme = 'light'; }
   })();
 </script>
-<link rel="stylesheet" href="styles.css?v=0.7.4">
+<link rel="stylesheet" href="styles.css?v=0.7.5">
 </head>
 <body>
 <!-- 启动动画：彩条从左往右长出 → 第一条被划掉 → 横线延伸到全屏 → 上下分开进入月历 -->
@@ -62,7 +62,7 @@
     line.style.setProperty('--s0', ((x2 - x1) / W).toFixed(4));
     var done = function () { if (sp.parentNode) sp.remove(); };
     sp.addEventListener('click', done);
-    setTimeout(done, 1850);
+    setTimeout(done, 1300);
   })();
 </script>
 
@@ -266,11 +266,11 @@
 <input type="file" id="avatarFile" accept="image/*" hidden>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
-<script src="js/store.js?v=0.7.4"></script>
-<script src="js/ui.js?v=0.7.4"></script>
-<script src="js/calendar.js?v=0.7.4"></script>
-<script src="js/editor.js?v=0.7.4"></script>
-<script src="js/push.js?v=0.7.4"></script>
-<script src="js/app.js?v=0.7.4"></script>
+<script src="js/store.js?v=0.7.5"></script>
+<script src="js/ui.js?v=0.7.5"></script>
+<script src="js/calendar.js?v=0.7.5"></script>
+<script src="js/editor.js?v=0.7.5"></script>
+<script src="js/push.js?v=0.7.5"></script>
+<script src="js/app.js?v=0.7.5"></script>
 </body>
 </html>
