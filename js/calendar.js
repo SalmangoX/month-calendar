@@ -437,6 +437,8 @@
       return;
     }
     if (e.touches.length > 1 || pinch) return;
+    // 从屏幕最底部（Home 横条区域）开始的滑动属于系统手势，日历不响应
+    if (e.touches[0].clientY > window.innerHeight - 44) { tracking = false; return; }
     caught = animating;            // 滚动中按住 = 停下，不算点击
     stopAnim();
     tracking = true; dragging = false; dx = dy = 0;
@@ -502,7 +504,18 @@
   };
   ['gesturestart', 'gesturechange'].forEach(t => vp.addEventListener(t, e => e.preventDefault()));
   vp.addEventListener('touchend', end);
-  vp.addEventListener('touchcancel', end);
+  // 触摸被系统取消（比如上滑回到桌面）：回到按下前的位置，不按惯性滚动
+  vp.addEventListener('touchcancel', () => {
+    if (pinch) { pinch = null; resetZoomStyle(); return; }
+    if (!tracking) return;
+    tracking = false;
+    if (!dragging) return;
+    dragging = false;
+    if (view === 'month') {
+      const back = Math.round(base / rowH) * rowH;
+      spring(scrollY, back, 0, monthH, settle);
+    } else page(0);
+  });
 
   // 触控板 / 鼠标滚轮：月视图跟手滚动，停下后对齐整行
   let wAcc = 0, wLock = false, wTimer = null;
