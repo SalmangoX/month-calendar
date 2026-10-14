@@ -39,7 +39,7 @@
     add(MC.addDays(t, ((8 - t.getDay()) % 7) || 7), '下周一');
     return out;
   }
-  let otherOpen = false, otherMode = 'wheel', otherCal = null;
+  let otherOpen = false, otherMode = 'cal', otherCal = null;
   function paintQuick() {
     const qd = quickDates();
     // 具体日期集中在左边，「其他日期」单独放在右侧、上下居中
@@ -85,10 +85,10 @@
   function paintTools() {
     const extra = [];
     if (draft.time) extra.push(MC.timeLabel(draft));
-    else if (draft.days > 1) extra.push(`持续 ${draft.days} 天`);
+    else if (draft.days > 1) extra.push(`${MC.dateLabel(draft.date)}–${MC.dateLabel(MC.ymd(MC.addDays(MC.parse(draft.date), draft.days - 1)))}`);
     if (draft.repeat && draft.repeat !== 'none') extra.push(MC.repeatLabel(draft.repeat));
     if (draft.remind !== null && draft.remind !== undefined) extra.push('提醒');
-    $('#cmpDateLabel').textContent = extra.length ? extra.join(' · ') : '时间 · 持续 · 提醒 · 重复';
+    $('#cmpDateLabel').textContent = extra.length ? extra.join(' · ') : '时间 · 提醒 · 重复';
   }
   function paintComposer() {
     paintQuick();
@@ -201,6 +201,7 @@
         const t = Date.now();
         MC.data.events = MC.data.events.filter(x => !ids.has(x.id));
         ids.forEach(id => (MC.data.deleted[id] = t));
+        for (const x of MC.data.events) if (x.series === ev.series && x.rep && x.rep.forever) { x.rep = { ...x.rep, forever: false }; x.updatedAt = t; } // 停止续生成
         MC.commit();
         UI.toast(`已删除 ${ids.size} 个事件`);
       } else { MC.deleteEvent(ev); UI.toast('已删除'); }
@@ -231,10 +232,15 @@
       UI.toast('已保存');
       return;
     }
-    const dates = MC.repeatDates(draft.date, draft.repeat, draft.until);
-    const series = dates.length > 1 ? MC.uid() : '';
-    MC.addEvents(dates.map(ds => MC.newEvent({ ...fields, date: ds, series })));
-    UI.toast(dates.length > 1 ? `已添加 ${dates.length} 个重复事件` : `已添加到${MC.dayDiff(draft.date) === 0 ? '今天' : ' ' + MC.dateLabel(draft.date)}`);
+    let dates = [draft.date], rep = null;
+    if (draft.repeat && draft.repeat !== 'none') {
+      const forever = !draft.until; // 不设「直到」= 一直重复（先生成一段，之后自动续上）
+      dates = MC.repeatDates(draft.date, draft.repeat, draft.until || MC.ymd(MC.addDays(new Date(), MC.HORIZON[draft.repeat] || 730)));
+      rep = { freq: draft.repeat, forever };
+    }
+    const series = rep ? MC.uid() : '';
+    MC.addEvents(dates.map(ds => MC.makeEvent({ ...fields, date: ds, series, rep, id: series ? `${series}-${ds}` : MC.uid() })));
+    UI.toast(rep ? (rep.forever ? `已添加，${MC.repeatLabel(rep.freq)}重复` : `已添加 ${dates.length} 个重复事件`) : `已添加到${MC.dayDiff(draft.date) === 0 ? '今天' : ' ' + MC.dateLabel(draft.date)}`);
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';
     draft.repeat = 'none'; draft.until = '';
     localStorage.removeItem(DRAFT_KEY);
@@ -255,7 +261,7 @@
       allowRepeat: !!opts.allowRepeat, dateOnly: !!opts.dateOnly,
       tab: opts.endTime ? 'range' : 'date',
       cal: { y: d.getFullYear(), m: d.getMonth() },
-      wheelMode: !!opts.dateOnly, expanded: null,
+      wheelMode: false, expanded: null, chooser: null,
     };
     pkCb = cb;
     $('#pkTabs').hidden = pk.dateOnly;
@@ -273,7 +279,7 @@
   };
   $('#pkCancel').onclick = () => UI.close('datePicker');
   $('#pkOk').onclick = () => {
-    if (pk.repeat !== 'none' && (!pk.until || pk.until < pk.date)) pk.until = MC.defaultUntil(pk.date, pk.repeat);
+    if (pk.until && pk.until < pk.date) pk.until = '';
     const out = { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime: pk.tab === 'range' ? pk.endTime : '', remind: pk.remind, repeat: pk.repeat, until: pk.until };
     if (out.endTime && out.endTime <= out.time) out.endTime = '';
     UI.close('datePicker');
@@ -305,19 +311,50 @@
       <button class="pk-mode glass" data-act="mode">${pk.wheelMode ? '日历' : '滚轮'}</button>
     </div>`;
   }
+  const endOf = () => MC.ymd(MC.addDays(MC.parse(pk.date), Math.max(1, pk.days) - 1));
+  // 内嵌选择器：默认日历，可切换滚轮
+  function chooserHTML(key) {
+    const c = pk.chooser;
+    const val = key === 'until' ? (pk.until || pk.date) : key === 'end' ? endOf() : pk.date;
+    if (!c.cal) { const d = MC.parse(val); c.cal = { y: d.getFullYear(), m: d.getMonth() }; }
+    const head = `<div class="pk-cal-head">${c.mode === 'cal' ? '<button class="nav-btn" data-cnav="-1" aria-label="上个月">‹</button>' : '<span></span>'}
+      <h4>${c.mode === 'cal' ? `${c.cal.y}年${c.cal.m + 1}月` : '滚动选择'}</h4>
+      ${c.mode === 'cal' ? '<button class="nav-btn" data-cnav="1" aria-label="下个月">›</button>' : ''}
+      <button class="pk-mode glass" data-cmode="1">${c.mode === 'cal' ? '滚轮' : '日历'}</button></div>`;
+    let body;
+    if (c.mode === 'cal') {
+      const { y, m } = c.cal, off = (new Date(y, m, 1).getDay() - MC.settings.weekStart + 7) % 7, t = MC.todayStr();
+      let wk = '', g = '';
+      for (let i = 0; i < 7; i++) wk += `<div>${MC.WD[(i + MC.settings.weekStart) % 7]}</div>`;
+      for (let i = 0; i < 42; i++) {
+        const d = new Date(y, m, 1 - off + i), ds = MC.ymd(d);
+        const dis = (key === 'end' || key === 'until') && ds < pk.date;
+        g += `<button class="pk-d${d.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}${ds === val ? ' on' : ''}${dis ? ' dis' : ''}" data-cds="${ds}"><span>${d.getDate()}</span></button>`;
+      }
+      body = `<div class="pk-week">${wk}</div><div class="pk-grid">${g}</div>`;
+    } else body = '<div class="wheel-wrap" id="chooserWheel" style="padding:0"></div>';
+    const foot = key === 'until' ? `<div class="chooser-foot"><button class="chip-btn glass" data-cnone="1">不设截止，一直重复</button></div>` : '';
+    return `<div class="chooser" data-key="${key}">${head}${body}${foot}</div>`;
+  }
+  function chooserPick(key, ds) {
+    if (key === 'date') pk.date = ds;
+    else if (key === 'end') pk.days = Math.max(1, Math.round((MC.parse(ds) - MC.parse(pk.date)) / 864e5) + 1);
+    else if (key === 'until') pk.until = ds;
+  }
+  function openChooser(key) {
+    pk.chooser = pk.chooser && pk.chooser.key === key ? null : { key, mode: 'cal', cal: null };
+    renderPicker();
+  }
   const row = (act, icon, label, val, on) =>
     `<button class="pk-row" data-act="${act}">${icon}<span>${label}</span><span class="grow-val${on ? ' on' : ''}" data-bind="${act}">${esc(val)}</span></button>`;
   function extraRows() {
     const hasTime = !!pk.time;
-    let h = '';
-    if (!hasTime && !pk.dateOnly) h += row('days', SVG_CAL, '持续', pk.days > 1 ? `${pk.days} 天（到 ${MC.dateLabel(MC.ymd(MC.addDays(MC.parse(pk.date), pk.days - 1)))}）` : '1 天', pk.days > 1);
-    h += row('remind', SVG_BELL, '提醒', MC.remindLabel(pk.remind, hasTime), pk.remind !== null);
+    let h = row('remind', SVG_BELL, '提醒', MC.remindLabel(pk.remind, hasTime), pk.remind !== null);
     if (pk.allowRepeat) {
       h += row('repeat', SVG_REPEAT, '重复', MC.repeatLabel(pk.repeat), pk.repeat !== 'none');
       if (pk.repeat !== 'none') {
-        if (!pk.until) pk.until = MC.defaultUntil(pk.date, pk.repeat);
-        h += row('until', SVG_END, '直到', MC.dateLabel(pk.until) + ' ' + MC.parse(pk.until).getFullYear(), true);
-        if (pk.expanded === 'until') h += '<div class="wheel-wrap" id="pkWheelUntil"></div>';
+        h += row('until', SVG_END, '直到（可选）', pk.until ? MC.dateLabel(pk.until) + ' ' + MC.parse(pk.until).getFullYear() : '不设，一直重复', !!pk.until);
+        if (pk.chooser && pk.chooser.key === 'until') h += chooserHTML('until');
       }
     }
     return h;
@@ -336,17 +373,21 @@
       }
     } else {
       const dur = pk.time && pk.endTime ? durLabel(pk.time, pk.endTime) : '';
+      const allDay = !pk.time, end = endOf();
+      // 全天：两张卡分别是「开始」「结束」日期；非全天：日期 + 时间段
       h += `<div class="pk-cards">
-        <button class="pk-card${pk.expanded === 'date' ? ' active' : ''}" data-act="cardDate"><small>日期</small><b data-bind="cardDate">${MC.dateLabel(pk.date)}，周${MC.WD[MC.parse(pk.date).getDay()]}</b><small data-bind="cardRel">${MC.relLabel(pk.date)}</small></button>
-        <button class="pk-card${pk.time ? '' : ' dim'}${pk.expanded === 'range' ? ' active' : ''}" data-act="cardTime"><small>时间</small><b data-bind="cardTime">${pk.time ? `${pk.time} - ${pk.endTime}` : '全天'}</b><small data-bind="cardDur">${dur ? '持续时间：' + dur : '　'}</small></button>
+        <button class="pk-card${pk.chooser && pk.chooser.key === 'date' ? ' active' : ''}" data-act="cardDate"><small>${allDay ? '开始' : '日期'}</small><b data-bind="cardDate">${MC.dateLabel(pk.date)}，周${MC.WD[MC.parse(pk.date).getDay()]}</b><small data-bind="cardRel">${MC.relLabel(pk.date)}</small></button>
+        ${allDay
+          ? `<button class="pk-card${pk.chooser && pk.chooser.key === 'end' ? ' active' : ''}" data-act="cardEnd"><small>结束</small><b>${MC.dateLabel(end)}，周${MC.WD[MC.parse(end).getDay()]}</b><small>${pk.days > 1 ? `共 ${pk.days} 天` : '当天'}</small></button>`
+          : `<button class="pk-card${pk.expanded === 'range' ? ' active' : ''}" data-act="cardTime"><small>时间</small><b data-bind="cardTime">${pk.time} - ${pk.endTime}</b><small data-bind="cardDur">${dur ? '持续时间：' + dur : '　'}</small></button>`}
       </div>`;
-      if (pk.expanded === 'date') h += '<div class="group pk-rows"><div class="wheel-wrap" id="pkWheelDate"></div></div>';
-      if (pk.expanded === 'range') h += '<div class="group pk-rows"><div class="wheel-wrap" id="pkWheelRange"></div></div>';
-      h += `<div class="group pk-rows"><label class="pk-row"><span>全天</span><input type="checkbox" class="switch" id="pkAllDay" ${pk.time ? '' : 'checked'}></label></div>`;
+      if (pk.chooser && (pk.chooser.key === 'date' || pk.chooser.key === 'end')) h += `<div class="group pk-rows">${chooserHTML(pk.chooser.key)}</div>`;
+      if (pk.expanded === 'range' && !allDay) h += '<div class="group pk-rows"><div class="wheel-wrap" id="pkWheelRange"></div></div>';
+      h += `<div class="group pk-rows"><label class="pk-row"><span>全天</span><input type="checkbox" class="switch" id="pkAllDay" ${allDay ? 'checked' : ''}></label></div>`;
       h += `<p class="tz">${esc(Intl.DateTimeFormat().resolvedOptions().timeZone || '')}</p>`;
       h += `<div class="group pk-rows">${extraRows()}</div>`;
     }
-    if (!pk.dateOnly) h += '<button class="pk-clear" data-act="clear">清除时间、持续、提醒与重复</button>';
+    if (!pk.dateOnly) h += '<button class="pk-clear" data-act="clear">清除时间、提醒与重复</button>';
     $('#pkBody').innerHTML = h;
     mountWheels();
   }
@@ -361,12 +402,20 @@
     const set = (k, v) => { const el = $('#pkBody').querySelector(`[data-bind="${k}"]`); if (el) el.textContent = v; };
     set('time', pk.time ? MC.timeLabel(pk) : '无');
     set('remind', MC.remindLabel(pk.remind, !!pk.time));
-    if (pk.until) set('until', MC.dateLabel(pk.until) + ' ' + MC.parse(pk.until).getFullYear());
+    set('until', pk.until ? MC.dateLabel(pk.until) + ' ' + MC.parse(pk.until).getFullYear() : '不设，一直重复');
     set('cardDate', `${MC.dateLabel(pk.date)}，周${MC.WD[MC.parse(pk.date).getDay()]}`);
     set('cardRel', MC.relLabel(pk.date));
     if (pk.time) { set('cardTime', `${pk.time} - ${pk.endTime}`); const d = durLabel(pk.time, pk.endTime); set('cardDur', d ? '持续时间：' + d : '结束时间需晚于开始时间'); }
   }
   function mountWheels() {
+    const cw = $('#chooserWheel');
+    if (cw && pk.chooser) {
+      const key = pk.chooser.key, val = key === 'until' ? (pk.until || pk.date) : key === 'end' ? endOf() : pk.date;
+      UI.dateWheel(cw, val, ds => {
+        if ((key === 'end' || key === 'until') && ds < pk.date) return;
+        chooserPick(key, ds); refreshLabels();
+      }, 40);
+    }
     const wd = $('#pkWheelDate');
     if (wd) UI.dateWheel(wd, pk.date, ds => { pk.date = ds; const d = MC.parse(ds); pk.cal = { y: d.getFullYear(), m: d.getMonth() }; refreshLabels(); });
     const wt = $('#pkWheelTime');
@@ -379,11 +428,26 @@
   $('#pkBody').addEventListener('change', e => {
     if (e.target.id === 'pkAllDay') {
       if (e.target.checked) { pk.time = ''; pk.endTime = ''; }
-      else { pk.time = nextHour(); pk.endTime = plusHour(pk.time); }
-      pk.expanded = null; renderPicker();
+      else { pk.time = nextHour(); pk.endTime = plusHour(pk.time); pk.days = 1; }
+      pk.expanded = null; pk.chooser = null; renderPicker();
     }
   });
   $('#pkBody').addEventListener('click', e => {
+    const ch = e.target.closest('.chooser');
+    if (ch && pk.chooser) {
+      const key = ch.dataset.key;
+      const nav = e.target.closest('[data-cnav]');
+      if (nav) { const c = pk.chooser.cal, t = new Date(c.y, c.m + Number(nav.dataset.cnav), 1); pk.chooser.cal = { y: t.getFullYear(), m: t.getMonth() }; renderPicker(); return; }
+      if (e.target.closest('[data-cmode]')) { pk.chooser.mode = pk.chooser.mode === 'cal' ? 'wheel' : 'cal'; renderPicker(); return; }
+      if (e.target.closest('[data-cnone]')) { pk.until = ''; pk.chooser = null; renderPicker(); return; }
+      const d = e.target.closest('[data-cds]');
+      if (d) {
+        chooserPick(key, d.dataset.cds);
+        if (key === 'date' && pk.days > 1) { /* 保持天数，结束日期随开始日期移动 */ }
+        pk.chooser = null; renderPicker();
+      }
+      return;
+    }
     const day = e.target.closest('.pk-d');
     if (day) {
       pk.date = day.dataset.ds;
@@ -401,15 +465,12 @@
       renderPicker();
     }
     else if (act === 'notime') { pk.time = ''; pk.endTime = ''; pk.expanded = null; renderPicker(); }
-    else if (act === 'until') { pk.expanded = pk.expanded === 'until' ? null : 'until'; renderPicker(); }
-    else if (act === 'cardDate') { pk.expanded = pk.expanded === 'date' ? null : 'date'; renderPicker(); }
+    else if (act === 'until') openChooser('until');
+    else if (act === 'cardDate') { pk.expanded = null; openChooser('date'); }
+    else if (act === 'cardEnd') { pk.expanded = null; openChooser('end'); }
     else if (act === 'cardTime') {
       if (!pk.time) { pk.time = nextHour(); pk.endTime = plusHour(pk.time); }
-      pk.expanded = pk.expanded === 'range' ? null : 'range'; renderPicker();
-    }
-    else if (act === 'days') {
-      const opts = [1, 2, 3, 4, 5, 6, 7, 10, 14, 21, 30];
-      UI.menu(a, opts.map(n => ({ label: n === 1 ? '1 天（当天）' : `${n} 天`, value: n, on: n === pk.days })), v => { pk.days = v; renderPicker(); });
+      pk.chooser = null; pk.expanded = pk.expanded === 'range' ? null : 'range'; renderPicker();
     }
     else if (act === 'remind') {
       UI.menu(a, MC.remindOptions(!!pk.time).map(o => ({ label: o.label, value: o.v, on: o.v === pk.remind })), v => {
@@ -420,7 +481,7 @@
     }
     else if (act === 'repeat') {
       UI.menu(a, MC.REPEATS.map(r => ({ label: r.label, value: r.v, on: r.v === pk.repeat })), v => {
-        pk.repeat = v; pk.until = v === 'none' ? '' : MC.defaultUntil(pk.date, v); pk.expanded = null; renderPicker();
+        pk.repeat = v; pk.until = ''; pk.expanded = null; pk.chooser = null; renderPicker();
       });
     }
     else if (act === 'clear') { pk.time = ''; pk.endTime = ''; pk.days = 1; pk.remind = null; pk.repeat = 'none'; pk.until = ''; pk.expanded = null; renderPicker(); }
@@ -463,6 +524,9 @@
     const r = rows[Number(el.dataset.i)];
     if (e.target.classList.contains('b-title')) { r.title = e.target.value; el.classList.remove('err'); updateBatchCount(); }
     if (e.target.classList.contains('b-note')) r.note = e.target.value;
+  });
+  $('#batchList').addEventListener('focusin', e => {
+    if (e.target.matches('input')) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320);
   });
   $('#batchList').addEventListener('keydown', e => {
     if (e.key !== 'Enter' || e.isComposing || !e.target.classList.contains('b-title')) return;

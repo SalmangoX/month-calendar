@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.6.8';
+  MC.VERSION = '0.6.9';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -92,6 +92,7 @@
       remind: e.remind === null || e.remind === undefined || e.remind === '' ? null : Number(e.remind),
       days: /^\d{2}:\d{2}$/.test(e.time || '') ? 1 : Math.max(1, Math.min(60, parseInt(e.days, 10) || 1)),
       series: e.series || '',
+      rep: e.rep && e.rep.freq ? { freq: e.rep.freq, forever: !!e.rep.forever } : null,
       createdAt: e.createdAt || t, updatedAt: e.updatedAt || e.createdAt || t,
     };
   }
@@ -110,6 +111,24 @@
   }
   MC.data = loadData();
   MC.newEvent = fields => normEvent({ ...fields, id: MC.uid(), createdAt: Date.now(), updatedAt: Date.now() });
+  MC.makeEvent = fields => normEvent({ ...fields, createdAt: Date.now(), updatedAt: Date.now() }); // 保留传入的 id
+  // 「一直重复」的事件：提前生成一段时间的副本，快用完时自动续上（id 固定，多台设备不会重复生成）
+  MC.HORIZON = { day: 400, week: 730, '2week': 730, month: 1825, year: 7300 };
+  MC.extendSeries = () => {
+    const last = new Map();
+    for (const e of MC.data.events) if (e.series && e.rep && e.rep.forever) { const g = last.get(e.series); if (!g || e.date > g.date) last.set(e.series, e); }
+    const have = new Set(MC.data.events.map(e => e.id)), add = [], today = new Date();
+    for (const [sid, e] of last) {
+      const h = MC.HORIZON[e.rep.freq] || 730;
+      if (e.date >= ymd(MC.addDays(today, h / 2))) continue;
+      for (const ds of MC.repeatDates(e.date, e.rep.freq, ymd(MC.addDays(today, h))).slice(1)) {
+        const id = `${sid}-${ds}`;
+        if (have.has(id) || MC.data.deleted[id]) continue;
+        add.push(MC.makeEvent({ id, date: ds, title: e.title, note: e.note, priority: e.priority, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, series: sid, rep: e.rep, done: false }));
+      }
+    }
+    if (add.length) MC.addEvents(add);
+  };
 
   MC.settings = Object.assign(
     { theme: 'auto', weekStart: 0, view: 'month', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '', account: '' },
@@ -181,7 +200,7 @@
   };
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
-      .map(e => [e.id, e.date, e.days, e.title, e.priority, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
+      .map(e => [e.id, e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
     return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0]);
   }
 

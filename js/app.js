@@ -714,7 +714,8 @@
   if (MC.vault.locked()) showLock(); else document.documentElement.classList.remove('locked');
   showPage('cal');
   requestAnimationFrame(() => placeInd(false));
-  if (MC.session.token) MC.sync();
+  MC.extendSeries();
+  if (MC.session.token) MC.sync().then(() => MC.extendSeries());
   window.addEventListener('online', () => MC.session.token && MC.sync());
   // App 开着时每 15 秒检查一次云端（没变化时只是一个很小的 304 请求）
   setInterval(() => { if (document.visibilityState === 'visible' && MC.session.token && !UI.anyOpen()) MC.sync(); }, 15000);

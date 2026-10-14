@@ -134,7 +134,8 @@ function addChip(parent, e, width, h, fs, out) {
   ch.centerAlignContent();
   // 课程类标题（如「MAT 2348 Mid」）在小组件里只显示课程编号，避免省略号和多余空白
   const m = String(e.title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/);
-  const label = m ? `${m[1].toUpperCase()} ${m[2]}` : e.title;
+  let label = m ? `${m[1].toUpperCase()} ${m[2]}` : e.title;
+  if (e.done) label = Array.from(label).map(c => c + "\u0336").join(""); // 已完成：删除线
   const tx = addText(ch, label, Font.semiboldSystemFont(fs), fg, { lines: 1 });
   tx.minimumScaleFactor = 0.85;
   ch.addSpacer();

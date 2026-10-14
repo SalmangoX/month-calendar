@@ -163,10 +163,10 @@
     const tl = MC.timeLabel(e);
     if (tl) bits.push(esc(tl));
     if (e.note) bits.push(esc(e.note));
-    return `<li class="item${e.done ? ' done' : ''}" data-id="${e.id}" style="--c:${p.color}">
+    return `<li class="item${e.done ? ' done' : ''}${e.done && UI.justDone === e.id ? ' just-done' : ''}" data-id="${e.id}" style="--c:${p.color}">
       <button class="check" data-act="toggle" aria-label="${e.done ? '标为未完成' : '标为完成'}">${checkSVG}</button>
       <div class="item-main" data-act="open">
-        <div class="item-title">${esc(e.title)}</div>
+        <div class="item-title"><span class="ttxt">${esc(e.title)}</span></div>
         ${bits.length ? `<div class="item-sub">${bits.join(' · ')}</div>` : ''}
       </div>
       ${e.priority && !opts.noFlag ? UI.flagSVG(e.priority) : ''}
@@ -178,7 +178,11 @@
       const li = ev.target.closest('.item'); if (!li) return;
       const e = MC.data.events.find(x => x.id === li.dataset.id); if (!e) return;
       const act = ev.target.closest('[data-act]')?.dataset.act;
-      if (act === 'toggle') MC.updateEvent(e, { done: !e.done });
+      if (act === 'toggle') {
+        UI.justDone = e.done ? null : e.id;  // 刚勾选完成的那一条播放划线动画
+        MC.updateEvent(e, { done: !e.done });
+        setTimeout(() => { if (UI.justDone === e.id) UI.justDone = null; }, 700);
+      }
       else if (act === 'open') MC.Editor.openEdit(e);
     });
   };
