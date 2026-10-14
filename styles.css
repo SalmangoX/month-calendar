@@ -406,7 +406,13 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 .sheet.show { transform: none; visibility: visible; transition: transform .34s var(--ease), visibility 0s; }
 .sheet.tall { height: 90%; bottom: 0; transition: transform .34s var(--ease), visibility 0s .34s; }
 .sheet.tall.show { transition: transform .34s var(--ease), visibility 0s; }
-.sheet.tall .batch-list { padding-bottom: calc(var(--kb) + 16px); }
+.sheet.tall .batch-list { padding-bottom: 16px; }
+/* 键盘弹出时：高面板正好摆在键盘上方的可见区域内，不跟随动画，避免闪动 */
+html.kb-open .sheet.tall.show {
+  top: calc(var(--vvt, 0px) + 8px); bottom: auto;
+  height: calc(var(--vvh, 100%) - 8px); max-height: none;
+  border-radius: 20px 20px 0 0; padding-bottom: 6px;
+}
 #batchSheet { z-index: 32; }
 #datePicker { z-index: 40; }
 #formSheet { z-index: 42; }

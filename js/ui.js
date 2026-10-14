@@ -108,6 +108,9 @@
       const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
       const on = kb > 60;
       document.documentElement.style.setProperty('--kb', on ? kb + 'px' : '0px');
+      // 实时的可见区域（键盘弹出时 iOS 只缩小可见区域，并可能把画面整体挪动）
+      document.documentElement.style.setProperty('--vvh', vv.height + 'px');
+      document.documentElement.style.setProperty('--vvt', vv.offsetTop + 'px');
       document.documentElement.classList.toggle('kb-open', on);
       $('#composer').classList.toggle('keyboard', on);
     };
