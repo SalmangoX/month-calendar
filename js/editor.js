@@ -315,8 +315,10 @@
   // 内嵌选择器：默认日历，可切换滚轮
   function chooserHTML(key) {
     const c = pk.chooser;
-    const val = key === 'until' ? (pk.until || pk.date) : key === 'end' ? endOf() : pk.date;
+    const val = key === 'until' ? (pk.until || pk.date) : key === 'end' ? (pk.pendingEnd || endOf()) : pk.date;
     if (!c.cal) { const d = MC.parse(val); c.cal = { y: d.getFullYear(), m: d.getMonth() }; }
+    // 全天的日期范围：开始到结束之间铺一条圆角色条
+    const rangeEnd = key === 'end' ? val : (!pk.time && pk.days > 1 && key === 'date' ? endOf() : null);
     const head = `<div class="pk-cal-head">${c.mode === 'cal' ? '<button class="nav-btn" data-cnav="-1" aria-label="上个月">‹</button>' : '<span></span>'}
       <h4>${c.mode === 'cal' ? `${c.cal.y}年${c.cal.m + 1}月` : '滚动选择'}</h4>
       ${c.mode === 'cal' ? '<button class="nav-btn" data-cnav="1" aria-label="下个月">›</button>' : ''}
@@ -329,12 +331,24 @@
       for (let i = 0; i < 42; i++) {
         const d = new Date(y, m, 1 - off + i), ds = MC.ymd(d);
         const dis = (key === 'end' || key === 'until') && ds < pk.date;
-        g += `<button class="pk-d${d.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}${ds === val ? ' on' : ''}${dis ? ' dis' : ''}" data-cds="${ds}"><span>${d.getDate()}</span></button>`;
+        let rng = '';
+        if (rangeEnd && ds >= pk.date && ds <= rangeEnd) {
+          const col = i % 7, k = Math.round((d - MC.parse(pk.date)) / 864e5);
+          rng = ` rng${ds === pk.date ? ' rs' : ''}${ds === rangeEnd ? ' re' : ''}${col === 0 ? ' rl' : ''}${col === 6 ? ' rr' : ''}" style="--k:${k}`;
+        }
+        const on = rangeEnd ? '' : (ds === val ? ' on' : '');
+        g += `<button class="pk-d${d.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}${on}${dis ? ' dis' : ''}${rng}" data-cds="${ds}"><span>${d.getDate()}</span></button>`;
       }
       body = `<div class="pk-week">${wk}</div><div class="pk-grid">${g}</div>`;
     } else body = '<div class="wheel-wrap" id="chooserWheel" style="padding:0"></div>';
-    const foot = key === 'until' ? `<div class="chooser-foot"><button class="chip-btn glass" data-cnone="1">不设截止，一直重复</button></div>` : '';
-    return `<div class="chooser" data-key="${key}">${head}${body}${foot}</div>`;
+    let foot = key === 'until' ? `<div class="chooser-foot"><button class="chip-btn glass" data-cnone="1">不设截止，一直重复</button></div>` : '';
+    if (key === 'end' && pk.pendingEnd) {
+      const n = Math.round((MC.parse(pk.pendingEnd) - MC.parse(pk.date)) / 864e5) + 1;
+      foot = `<div class="chooser-foot"><button class="range-ok" data-cok="1">确定 · ${MC.dateLabel(pk.date)}–${MC.dateLabel(pk.pendingEnd)}，共 ${n} 天</button></div>`;
+    }
+    const anim = pk.animRange ? ' anim' : '';
+    pk.animRange = false;
+    return `<div class="chooser${anim}" data-key="${key}">${head}${body}${foot}</div>`;
   }
   function chooserPick(key, ds) {
     if (key === 'date') pk.date = ds;
@@ -342,6 +356,7 @@
     else if (key === 'until') pk.until = ds;
   }
   function openChooser(key) {
+    pk.pendingEnd = null;
     pk.chooser = pk.chooser && pk.chooser.key === key ? null : { key, mode: 'cal', cal: null };
     renderPicker();
   }
@@ -440,7 +455,14 @@
       if (nav) { const c = pk.chooser.cal, t = new Date(c.y, c.m + Number(nav.dataset.cnav), 1); pk.chooser.cal = { y: t.getFullYear(), m: t.getMonth() }; renderPicker(); return; }
       if (e.target.closest('[data-cmode]')) { pk.chooser.mode = pk.chooser.mode === 'cal' ? 'wheel' : 'cal'; renderPicker(); return; }
       if (e.target.closest('[data-cnone]')) { pk.until = ''; pk.chooser = null; renderPicker(); return; }
+      if (e.target.closest('[data-cok]')) { chooserPick('end', pk.pendingEnd); pk.pendingEnd = null; pk.chooser = null; renderPicker(); return; }
       const d = e.target.closest('[data-cds]');
+      if (d && key === 'end') { // 第一次点：色条从开始日期铺过来；再点同一天或点「确定」才生效
+        const ds = d.dataset.cds;
+        if (ds < pk.date) return;
+        if (pk.pendingEnd === ds) { chooserPick('end', ds); pk.pendingEnd = null; pk.chooser = null; renderPicker(); return; }
+        pk.pendingEnd = ds; pk.animRange = true; renderPicker(); return;
+      }
       if (d) {
         chooserPick(key, d.dataset.cds);
         if (key === 'date' && pk.days > 1) { /* 保持天数，结束日期随开始日期移动 */ }

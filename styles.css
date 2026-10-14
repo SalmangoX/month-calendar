@@ -613,3 +613,21 @@ html.locked .lock { display: grid; }
 .chooser .pk-cal-head { padding: 2px 0 4px; }
 .chooser .pk-d.dis { color: var(--text3); pointer-events: none; }
 .chooser-foot { display: flex; justify-content: center; padding-top: 6px; }
+
+/* 全天日期范围：圆角色条（从开始日期依次铺过来） */
+.chooser .pk-d { position: relative; }
+.chooser .pk-d span { position: relative; z-index: 1; }
+.chooser .pk-d.rng::before {
+  content: ""; position: absolute; top: 3px; bottom: 3px; left: -1px; right: -1px; z-index: 0; /* 相邻格子略微重叠，色条连成一整条 */
+  background: var(--accent-soft); transform-origin: left center;
+}
+@supports (background: color-mix(in srgb, red 50%, blue)) {
+  .chooser .pk-d.rng::before { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); } /* 不透明，重叠处不会出现接缝 */
+}
+.chooser .pk-d.rs::before, .chooser .pk-d.rl::before { left: 3px; border-top-left-radius: 17px; border-bottom-left-radius: 17px; }
+.chooser .pk-d.re::before, .chooser .pk-d.rr::before { right: 3px; border-top-right-radius: 17px; border-bottom-right-radius: 17px; }
+.chooser .pk-d.rs span, .chooser .pk-d.re span { background: var(--accent); color: #fff; font-weight: 650; box-shadow: none; }
+.chooser.anim .pk-d.rng::before { animation: rngIn .26s cubic-bezier(.3, .8, .3, 1) both; animation-delay: calc(var(--k, 0) * 24ms); }
+.chooser.anim .pk-d.re span { animation: pop .3s var(--ease-spring) both; animation-delay: calc(var(--k, 0) * 24ms); }
+@keyframes rngIn { from { transform: scaleX(0); opacity: .2; } to { transform: none; opacity: 1; } }
+.range-ok { height: 38px; padding: 0 18px; border-radius: 19px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; animation: rise .25s var(--ease); }
