@@ -634,3 +634,42 @@ html.locked .lock { display: grid; }
 
 
 
+
+/* ---------- 课表 ---------- */
+#page-sched { background: var(--bg-grouped); }
+.sc-actions { display: flex; gap: 8px; }
+.sc-scroll { padding: 0 8px calc(var(--bar-space) + 84px); }
+.sc-grid { --hw: 38px; background: var(--surface); border-radius: var(--r-l); box-shadow: inset 0 0 0 .5px var(--group-line); overflow: clip; } /* clip 不影响表头吸顶 */
+.sc-head { border-radius: var(--r-l) var(--r-l) 0 0; }
+.sc-head { display: grid; grid-template-columns: var(--hw) repeat(var(--days), minmax(0, 1fr)); position: sticky; top: 0; z-index: 3; background: var(--surface); border-bottom: .5px solid var(--group-line); }
+.sc-dh { text-align: center; font-size: 12.5px; font-weight: 600; color: var(--text2); padding: 10px 0 8px; }
+.sc-dh.today { color: var(--accent-text); }
+.sc-main { position: relative; display: grid; grid-template-columns: var(--hw) 1fr; }
+.sc-hours { position: relative; }
+.sc-hr { position: absolute; left: 0; width: var(--hw); text-align: right; padding-right: 6px; font-size: 10px; color: var(--text3); transform: translateY(-6px); font-variant-numeric: tabular-nums; }
+.sc-hr:first-child { transform: none; }
+.sc-line { position: absolute; left: var(--hw); right: 0; height: .5px; background: var(--group-line); pointer-events: none; }
+.sc-cols { position: relative; display: grid; grid-template-columns: repeat(var(--days), minmax(0, 1fr)); }
+.sc-col { position: relative; border-left: .5px solid var(--group-line); }
+.sc-col.today { background: var(--sel); }
+.sc-blk {
+  position: absolute; left: 2px; right: 2px; z-index: 1; border-radius: 8px; padding: 4px 4px 3px 6px; text-align: left; overflow: hidden;
+  display: flex; flex-direction: column; gap: 1px; font-size: 10px; line-height: 1.25; color: var(--text);
+  background: color-mix(in srgb, var(--c) 18%, var(--surface)); box-shadow: inset 3px 0 0 var(--c);
+}
+.sc-blk b { font-size: 11px; font-weight: 700; color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: clip; letter-spacing: -.02em; }
+:root[data-theme="dark"] .sc-blk b { color: color-mix(in srgb, var(--c) 55%, white); }
+.sc-blk span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text2); }
+.sc-blk small { font-size: 9.5px; color: var(--text2); font-variant-numeric: tabular-nums; margin-top: auto; }
+.sc-now { position: absolute; height: 2px; background: var(--p3); z-index: 2; left: calc((var(--d) - 1) / var(--days) * 100%); width: calc(100% / var(--days)); border-radius: 2px; }
+.sc-now::before { content: ""; position: absolute; left: -3px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--p3); }
+#schedForm textarea { min-height: 130px; }
+#schedForm .steps li { font-size: 14px; padding-bottom: 12px; }
+.btn-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
+.replace-opt { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); }
+.sc-prev { gap: 10px; min-height: 46px; }
+.sc-prev i { width: 4px; height: 26px; border-radius: 2px; flex: none; }
+.sc-prev span { flex: 1; font-size: 14px; }
+.sc-prev small { display: block; font-size: 12px; color: var(--text2); }
+.sc-times { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#scDay button { padding: 7px 0; }

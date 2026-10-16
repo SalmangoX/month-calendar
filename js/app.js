@@ -36,7 +36,20 @@
     placeInd();
     renderPage();
   }
+  // 菜单第三项：四象限 / 课表 / 不显示
+  const TAB3 = {
+    quad: { label: '四象限', svg: '<svg viewBox="0 0 24 24" class="filled"><rect x="4" y="4" width="7" height="7" rx="2.2"/><rect x="13" y="4" width="7" height="7" rx="2.2"/><rect x="4" y="13" width="7" height="7" rx="2.2"/><rect x="13" y="13" width="7" height="7" rx="2.2"/></svg>' },
+    sched: { label: '课表', svg: '<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.5h17M9.5 9.5v11M3.5 15h17"/></svg>' },
+  };
+  function applyTab3() {
+    const btn = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
+    const v = MC.settings.tab3 || 'quad';
+    btn.hidden = v === 'off';
+    if (v !== 'off') { btn.dataset.page = v; btn.setAttribute('aria-label', TAB3[v].label); btn.innerHTML = TAB3[v].svg + `<span>${TAB3[v].label}</span>`; }
+    if ((page === 'quad' || page === 'sched') && page !== v) showPage('cal'); else placeInd(false);
+  }
   function renderPage() {
+    if (page === 'sched') { MC.Sched.render(); return; }
     if (page === 'cal') requestAnimationFrame(() => MC.Cal.render());
     else if (page === 'today') renderToday();
     else if (page === 'quad') renderQuad();
@@ -216,6 +229,7 @@
     android: '<svg viewBox="0 0 24 24"><rect x="5.5" y="9" width="13" height="10" rx="2.5"/><path d="M8.5 9a3.5 3.5 0 0 1 7 0M8 4.5l1.5 2M16 4.5l-1.5 2"/><circle cx="10" cy="13" r=".6" fill="currentColor"/><circle cx="14" cy="13" r=".6" fill="currentColor"/></svg>',
     export: '<svg viewBox="0 0 24 24"><path d="M12 14.5V4M8 8l4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
     import: '<svg viewBox="0 0 24 24"><path d="M12 4v10.5M8 10.5l4 4 4-4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
+    grid: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="6.5" height="6.5" rx="1.8"/><rect x="13" y="4.5" width="6.5" height="6.5" rx="1.8"/><rect x="4.5" y="13" width="6.5" height="6.5" rx="1.8"/><rect x="13" y="13" width="6.5" height="6.5" rx="1.8"/></svg>',
     sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.6"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M6 18l1.4-1.4M16.6 7.4L18 6"/></svg>',
     clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>',
   };
@@ -270,6 +284,7 @@
     let h = group('通用', [
       srow({ act: 'theme', icon: 'theme', color: COL.slate, label: '外观', val: { auto: '跟随系统', light: '浅色', dark: '深色' }[S.theme] }),
       srow({ act: 'week', icon: 'week', color: COL.indigo, label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
+      srow({ act: 'tab3', icon: 'grid', color: COL.teal, label: '菜单第三项', val: { quad: '四象限', sched: '课表', off: '不显示' }[S.tab3 || 'quad'] }),
     ]);
     if (!MC.vault.connected()) {
       h += group('账户与同步', [
@@ -326,6 +341,11 @@
       { label: '周日', value: 0, on: MC.settings.weekStart === 0 },
       { label: '周一', value: 1, on: MC.settings.weekStart === 1 },
     ], v => { MC.settings.weekStart = v; MC.saveSettings(); MC.Cal.realign(); renderSettings(); });
+    else if (act === 'tab3') UI.menu(row.querySelector('.sval'), [
+      { label: '四象限', value: 'quad', on: (MC.settings.tab3 || 'quad') === 'quad' },
+      { label: '课表', value: 'sched', on: MC.settings.tab3 === 'sched' },
+      { label: '不显示', value: 'off', on: MC.settings.tab3 === 'off' },
+    ], v => { MC.settings.tab3 = v; MC.saveSettings(); applyTab3(); renderSettings(); });
     else if (act === 'connect' || act === 'retoken') connectForm(act === 'retoken');
     else if (act === 'sync') { const ok = await MC.sync(); UI.toast(ok ? '已同步' : (MC.syncState.error || '同步失败')); renderSettings(); }
     else if (act === 'disconnect') {
@@ -713,6 +733,7 @@
   $('#tabCalNum').textContent = new Date().getDate();
   if (MC.vault.locked()) showLock(); else document.documentElement.classList.remove('locked');
   showPage('cal');
+  applyTab3();
   requestAnimationFrame(() => placeInd(false));
   MC.extendSeries();
   if (MC.session.token) MC.sync().then(() => MC.extendSeries());

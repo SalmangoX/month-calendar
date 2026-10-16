@@ -1,11 +1,11 @@
 // 发布新版本时：改这里的 VERSION、index.html 里的 ?v=、js/store.js 的 MC.VERSION 和 version.json
-const VERSION = '0.8.0';
+const VERSION = '0.8.1';
 const CACHE = 'mcal-' + VERSION;
 const V = '?v=' + VERSION;
 const ASSETS = [
   './index.html', './manifest.webmanifest',
   './styles.css' + V,
-  './js/store.js' + V, './js/ui.js' + V, './js/calendar.js' + V, './js/editor.js' + V, './js/push.js' + V, './js/app.js' + V,
+  './js/store.js' + V, './js/ui.js' + V, './js/calendar.js' + V, './js/editor.js' + V, './js/push.js' + V, './js/sched.js' + V, './js/app.js' + V,
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'
 ];
 

@@ -25,7 +25,7 @@
     } catch (e) { document.documentElement.dataset.theme = 'light'; }
   })();
 </script>
-<link rel="stylesheet" href="styles.css?v=0.8.0">
+<link rel="stylesheet" href="styles.css?v=0.8.1">
 </head>
 <body>
 
@@ -65,6 +65,15 @@
       <button class="chip-btn glass" id="btnQuadDone">显示已完成</button>
     </header>
     <div class="quad" id="quadBody"></div>
+  </section>
+
+  <!-- 课表 -->
+  <section class="page" id="page-sched">
+    <header class="ptitle">
+      <div><h1>课表</h1><p>每周课程</p></div>
+      <div class="sc-actions"><button class="chip-btn glass" id="schedImport">导入</button><button class="chip-btn glass" id="schedAdd" aria-label="添加课程">＋</button></div>
+    </header>
+    <div class="pscroll sc-scroll" id="schedBody"></div>
   </section>
 
   <!-- 设置 -->
@@ -197,6 +206,18 @@
   <form class="form" id="formBody" autocomplete="off"></form>
 </section>
 
+<!-- 课表：导入 / 编辑 -->
+<section class="sheet tall" id="schedSheet" aria-label="课表">
+  <div class="handle"></div>
+  <div class="sheet-head">
+    <button class="text-btn muted" data-close>取消</button>
+    <h2 id="schedTitle">导入课表</h2>
+    <button class="text-btn strong" id="schedOk">导入</button>
+  </div>
+  <div class="form" id="schedForm"></div>
+</section>
+<input type="file" id="schedFile" accept=".ics,text/calendar" hidden>
+
 <!-- 帮助 -->
 <section class="sheet tall" id="helpSheet" aria-label="帮助">
   <div class="handle"></div>
@@ -229,11 +250,12 @@
 <input type="file" id="avatarFile" accept="image/*" hidden>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
-<script src="js/store.js?v=0.8.0"></script>
-<script src="js/ui.js?v=0.8.0"></script>
-<script src="js/calendar.js?v=0.8.0"></script>
-<script src="js/editor.js?v=0.8.0"></script>
-<script src="js/push.js?v=0.8.0"></script>
-<script src="js/app.js?v=0.8.0"></script>
+<script src="js/store.js?v=0.8.1"></script>
+<script src="js/ui.js?v=0.8.1"></script>
+<script src="js/calendar.js?v=0.8.1"></script>
+<script src="js/editor.js?v=0.8.1"></script>
+<script src="js/push.js?v=0.8.1"></script>
+<script src="js/sched.js?v=0.8.1"></script>
+<script src="js/app.js?v=0.8.1"></script>
 </body>
 </html>

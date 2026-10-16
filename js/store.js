@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.8.0';
+  MC.VERSION = '0.8.1';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -80,7 +80,7 @@
   MC.timeLabel = e => e.time ? (e.endTime ? `${e.time}–${e.endTime}` : e.time) : '';
 
   // ---------- 数据 ----------
-  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 } }; }
+  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0 }; }
   function normEvent(e) {
     const t = Date.now();
     return {
@@ -102,6 +102,9 @@
     out.deleted = d.deleted || {};
     out.events = (d.events || []).filter(e => /^\d{4}-\d{2}-\d{2}$/.test(e.date || '')).map(normEvent);
     if (d.profile) out.profile = { name: d.profile.name || '', avatar: d.profile.avatar || '', updatedAt: d.profile.updatedAt || 0 };
+    if (Array.isArray(d.courses)) out.courses = d.courses.filter(c => c && c.code && c.day >= 1 && c.day <= 7 && /^\d{2}:\d{2}$/.test(c.start) && /^\d{2}:\d{2}$/.test(c.end))
+      .map(c => ({ id: c.id || MC.uid(), code: String(c.code).slice(0, 40), type: c.type || '', day: Number(c.day), start: c.start, end: c.end, room: c.room || '' }));
+    out.coursesAt = d.coursesAt || 0;
     if (d.daily) out.daily = { on: !!d.daily.on, time: /^\d{2}:\d{2}$/.test(d.daily.time || '') ? d.daily.time : '13:00', tz: d.daily.tz || '', updatedAt: d.daily.updatedAt || 0 };
     return out;
   };
@@ -131,7 +134,7 @@
   };
 
   MC.settings = Object.assign(
-    { theme: 'auto', weekStart: 0, view: 'month', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '', account: '' },
+    { theme: 'auto', weekStart: 0, view: 'month', tab3: 'quad', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '', account: '' },
     JSON.parse(localStorage.getItem(SET_KEY) || '{}')
   );
   // 从 0.1 版迁移：旧版本明文保存在 token 字段
@@ -177,6 +180,7 @@
     MC.commit();
   };
   MC.setProfile = fields => { Object.assign(MC.data.profile, fields, { updatedAt: Date.now() }); MC.commit(); };
+  MC.setCourses = list => { MC.data.courses = list; MC.data.coursesAt = Date.now(); MC.commit(); };
   MC.setDaily = fields => { Object.assign(MC.data.daily, fields, { updatedAt: Date.now() }); MC.commit(); };
   MC.currentTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; } };
 
@@ -196,12 +200,14 @@
     const profile = (pb.updatedAt || 0) > (pa.updatedAt || 0) ? { ...pb } : { ...pa };
     const da = a.daily || {}, db = b.daily || {};
     const daily = (db.updatedAt || 0) > (da.updatedAt || 0) ? { ...db } : { ...(a.daily || blank().daily) };
-    return { version: 3, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0), events, deleted, profile, daily };
+    const newerCourses = (b.coursesAt || 0) > (a.coursesAt || 0) ? b : a;
+    return { version: 3, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0), events, deleted, profile, daily,
+      courses: (newerCourses.courses || []).map(c => ({ ...c })), coursesAt: newerCourses.coursesAt || 0 };
   };
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
       .map(e => [e.id, e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
-    return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0]);
+    return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, d.coursesAt || 0]);
   }
 
   // ---------- 加密保存令牌 ----------
