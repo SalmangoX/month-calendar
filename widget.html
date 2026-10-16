@@ -33,6 +33,13 @@
   .chip.done { background:color-mix(in srgb, var(--c) var(--mix), transparent); color:color-mix(in srgb, var(--c) 72%, var(--text2)); text-decoration:line-through; }
   .more { font-size:8px; color:var(--text2); padding-left:2px; }
   .msg { margin:auto; text-align:center; font-size:13px; color:var(--text2); padding:16px; line-height:1.6; }
+  .sr { display:flex; align-items:center; gap:8px; padding:6px 8px; margin:0 6px 4px; border-radius:10px; }
+  .sr.live { background:color-mix(in srgb, var(--accent) 16%, transparent); }
+  .sr i { width:3.5px; height:28px; border-radius:2px; flex:none; }
+  .sr div { flex:1; min-width:0; font-size:13px; }
+  .sr b { font-weight:600; } .sr em { font-style:normal; font-size:11px; color:var(--text2); }
+  .sr small { display:block; font-size:11px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sr span { font-size:10px; font-weight:600; color:var(--accent); }
 </style>
 </head>
 <body>
@@ -116,8 +123,29 @@
       <div class="wd">${wd}</div><div class="grid" style="grid-template-rows:repeat(${rows},minmax(0,1fr))">${cells}</div>`;
   }
 
+  // 课表模式：今天还没上完的课（今天没课就显示下一个有课的日子）
+  const PAL = ['#5D7895', '#5F9479', '#C38F45', '#BE6662', '#86769F', '#4E8C92', '#6170A3', '#9A7B5C'];
+  const colorOf = c => { let h = 0; for (const x of c) h = (h * 31 + x.charCodeAt(0)) >>> 0; return PAL[h % PAL.length]; };
+  const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  function renderSched(data) {
+    const cs = data.courses || [], now = new Date(), nm = now.getHours() * 60 + now.getMinutes(), today = (now.getDay() + 6) % 7 + 1;
+    let pick = null;
+    for (let k = 0; k < 8 && !pick; k++) {
+      const d = (today - 1 + k) % 7 + 1;
+      let list = cs.filter(c => c.day === d).sort((a, b) => toMin(a.start) - toMin(b.start));
+      if (k === 0) list = list.filter(c => toMin(c.end) > nm);
+      if (list.length) pick = { d, k, list };
+    }
+    if (!cs.length || !pick) { root.innerHTML = `<div class="msg">${cs.length ? '这周没有课' : '还没有导入课表'}</div>`; return; }
+    const label = pick.k === 0 ? '今天' : pick.k === 1 ? '明天' : `周${WD[pick.d % 7]}`;
+    root.innerHTML = `<div class="head"><b>${label}</b><span>周${WD[pick.d % 7]}</span></div>` + pick.list.slice(0, 5).map(c => {
+      const live = pick.k === 0 && nm >= toMin(c.start);
+      return `<div class="sr${live ? ' live' : ''}"><i style="background:${colorOf(c.code)}"></i><div><b>${esc(c.code)}</b>${c.type ? ` <em>${esc(c.type)}</em>` : ''}<small>${c.start}–${c.end}${c.room ? ' · ' + esc(c.room) : ''}</small></div>${live ? '<span>上课中</span>' : ''}</div>`;
+    }).join('');
+    root.href = './#sched';
+  }
   async function refresh() {
-    try { render(await load()); }
+    try { const d = await load(); if (q.get('mode') === 'sched') renderSched(d); else render(d); }
     catch (e) { root.innerHTML = `<div class="msg">${esc(e.message)}</div>`; }
   }
   refresh();

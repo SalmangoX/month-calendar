@@ -48,6 +48,11 @@
     if (v !== 'off') { btn.dataset.page = v; btn.setAttribute('aria-label', TAB3[v].label); btn.innerHTML = TAB3[v].svg + `<span>${TAB3[v].label}</span>`; }
     if ((page === 'quad' || page === 'sched') && page !== v) showPage('cal'); else placeInd(false);
   }
+  // 页面内直接切换四象限 / 课表
+  document.querySelectorAll('.tab3seg').forEach(seg => seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || b.dataset.v === page) return;
+    MC.settings.tab3 = b.dataset.v; MC.saveSettings(); applyTab3(); showPage(b.dataset.v);
+  }));
   function renderPage() {
     if (page === 'sched') { MC.Sched.render(); return; }
     if (page === 'cal') requestAnimationFrame(() => MC.Cal.render());
@@ -314,6 +319,8 @@
     h += group('桌面小组件', [
       srow({ act: 'ios', icon: 'phone', color: COL.slate, label: 'iOS 小组件', sub: '复制 Scriptable 脚本', help: 'ios', chev: false }),
       srow({ act: 'android', icon: 'android', color: COL.sage, label: '安卓小组件', sub: '复制小组件链接', help: 'android', chev: false }),
+      srow({ act: 'iosSched', icon: 'phone', color: COL.teal, label: 'iOS 课表小组件', sub: '今天的课 · 点一下即刷新', help: 'iosSched', chev: false }),
+      srow({ act: 'androidSched', icon: 'android', color: COL.teal, label: '安卓课表小组件', sub: '复制课表小组件链接', chev: false }),
     ]);
     h += group('数据', [
       srow({ act: 'export', icon: 'export', color: COL.indigo, label: '导出备份', chev: false }),
@@ -381,6 +388,8 @@
     }
     else if (act === 'ios') copyIOS();
     else if (act === 'android') copyAndroid();
+    else if (act === 'iosSched') copySched();
+    else if (act === 'androidSched') { if (!MC.settings.gistId) { UI.toast('请先连接 GitHub 并完成一次同步'); return; } copy(androidLink() + '&mode=sched', '已复制课表小组件链接'); }
     else if (act === 'export') exportData();
     else if (act === 'import') $('#importFile').click();
     else if (act === 'update') {
@@ -578,6 +587,13 @@
       .replace('"__APP_URL__"', JSON.stringify(appUrl()))
       .replace('WEEK_START: 0,', `WEEK_START: ${MC.settings.weekStart},`), '已复制 iOS 小组件脚本');
   }
+  let schedScript = '';
+  fetch('widget-sched-scriptable.js', { cache: 'no-cache' }).then(r => r.text()).then(t => (schedScript = t)).catch(() => {});
+  function copySched() {
+    if (!MC.settings.gistId) { UI.toast('请先连接 GitHub 并完成一次同步'); return; }
+    if (!schedScript) { UI.toast('脚本还在加载，请稍后再点一次'); return; }
+    copy(schedScript.replace('"__GIST_ID__"', JSON.stringify(MC.settings.gistId)).replace('"__APP_URL__"', JSON.stringify(appUrl())), '已复制课表小组件脚本');
+  }
   function copyAndroid() {
     if (!MC.settings.gistId) { UI.toast('请先连接 GitHub 并完成一次同步'); return; }
     copy(androidLink(), '已复制安卓小组件链接');
@@ -585,6 +601,18 @@
 
   // ---------- 帮助 ----------
   const HELP = {
+    iosSched: () => ({
+      title: 'iOS 课表小组件',
+      html: `<ol class="steps">
+        <li>先在「账户与同步」连接 GitHub，并导入课表。</li>
+        <li>点下方 <b>复制课表小组件脚本</b>。</li>
+        <li>打开 Scriptable → 右上角 <b>＋</b> → 粘贴 → 点顶部标题改名为「课表」→ <b>Done</b>。</li>
+        <li>回到桌面长按 → <b>编辑</b> → <b>添加小组件</b> → Scriptable → 选中号（推荐）→ 添加。</li>
+        <li>长按小组件 → <b>编辑小组件</b> → Script 选「课表」，When Interacting 保持 <b>Open App</b>。</li>
+      </ol>
+      <div class="help-copy"><button class="chip-btn glass" data-copy="sched">复制课表小组件脚本</button></div>
+      <div class="help-tip">小号和中号显示今天还没上完的课（今天没课就显示下一个有课的日子），正在上的课标「上课中」，下一节显示还有多久开始；大号显示本周全部课程。<br>每节课开始和结束时小组件会自动请求刷新；想立刻刷新，点一下小组件即可，它会拉取最新课表并打开月历的课表页。</div>`,
+    }),
     ios: () => ({
       title: 'iOS 桌面小组件',
       html: `<ol class="steps">
@@ -685,6 +713,7 @@
     const k = b.dataset.copy;
     if (k === 'ios') copyIOS();
     else if (k === 'android') copyAndroid();
+    else if (k === 'sched') copySched();
     else if (k === 'url') copy(appUrl(), '已复制 App 网址');
     else if (k === 'icsTest') {
       MC.settings.icsTestAt = Date.now() + 3 * 60000; MC.saveSettings();
@@ -807,4 +836,5 @@
   syncTz();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncTz(); });
   if (location.hash === '#today') { showPage('today'); history.replaceState(null, '', location.pathname); }
+  if (location.hash === '#sched') { if (MC.settings.tab3 !== 'sched') { MC.settings.tab3 = 'sched'; MC.saveSettings(); applyTab3(); } showPage('sched'); history.replaceState(null, '', location.pathname); }
 })();

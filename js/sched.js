@@ -36,31 +36,73 @@
     && (/\d/.test(s) || /\b(Hall|Building|Room|Complex|Centre|Center|Pavilion|Library|VIRT|Online|Virtual)\b|楼|室|馆/i.test(s))
     && !TIME_RE.test(s) && !/\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s) && !/^(staff|tba|to be announced)$/i.test(s)
     && !/^[A-Z]{3,4}\s?\d{4}/.test(s) && !/^(Enrolled|Status|Class Nbr|Section|Component)/i.test(s);
+  const CODE_RE = /\b([A-Za-z]{2,5})\s?(\d{3,4}[A-Za-z]?)\b/;
+  const stripDT = t => t.replace(TIME_RE, ' ').replace(new RegExp(DAYTOK, 'gi'), ' ').replace(TYPE_RE, ' ')
+    .replace(/\d{4}[-/]\d{1,2}[-/]\d{1,2}/g, ' ').replace(/[\t|,，·]+/g, ' ').replace(/\s+/g, ' ').trim();
+  // 带表头的表格（从 Excel / 网页表格复制）：课程、星期、开始、结束、地点
+  function parseTable(rawLines) {
+    const tabbed = rawLines[0].includes('\t');
+    const split = l => (tabbed ? l.split('\t') : l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)).map(x => x.replace(/^"|"$/g, '').trim());
+    const head = split(rawLines[0]).map(h => h.toLowerCase());
+    const find = (...keys) => head.findIndex(h => keys.some(k => h.includes(k)));
+    const ci = find('课程', '科目', 'course', 'subject', 'class', 'name', '名称'), di = find('星期', '周', 'day', 'weekday');
+    const si = find('开始', 'start', 'begin', 'from'), ei = find('结束', 'end', 'to', 'until'), ti = find('时间', 'time');
+    const ri = find('地点', '教室', 'room', 'location', 'place', 'where'), ki = find('类型', 'type', 'component');
+    if (ci < 0 || di < 0 || (si < 0 && ti < 0)) return null;
+    const out = [];
+    for (const l of rawLines.slice(1)) {
+      const c = split(l); if (!c[ci]) continue;
+      const days = parseDays(c[di] || '');
+      let st = '', en = '';
+      const tm = (si >= 0 ? `${c[si]}-${c[ei] || ''}` : c[ti] || '').match(/(\d{1,2})[:：](\d{2})\s*(AM|PM)?\s*[-–—~至到]\s*(\d{1,2})[:：](\d{2})\s*(AM|PM)?/i);
+      if (tm) { st = to24(tm[1], tm[2], tm[3] || (tm[6] && +tm[1] <= +tm[4] ? tm[6] : '')); en = to24(tm[4], tm[5], tm[6]); }
+      if (!days.length || !st || toMin(en) <= toMin(st)) continue;
+      const cm = c[ci].match(CODE_RE);
+      for (const d of days) out.push({ code: cm ? `${cm[1].toUpperCase()} ${cm[2]}` : c[ci].slice(0, 24), type: ki >= 0 ? c[ki] || '' : '', day: d, start: st, end: en, room: ri >= 0 ? c[ri] || '' : '' });
+    }
+    return out;
+  }
+  // 任意文字：学校系统、日历、自己写的都行
   Sched.parseText = text => {
     const rawLines = String(text).split(/\r?\n/).filter(l => l.trim());
+    if (!rawLines.length) return [];
+    const table = parseTable(rawLines);
+    if (table && table.length) return dedupe(table);
     const lines = rawLines.map(l => l.replace(/\s+/g, ' ').trim());
-    let code = '', type = '';
+    let code = '', type = '', lastText = '';
     const out = [];
     lines.forEach((line, i) => {
-      const cm = line.match(/\b([A-Za-z]{3,4})\s?(\d{4})\b/);
-      if (cm && !TIME_RE.test(line.slice(0, cm.index + 1))) { code = `${cm[1].toUpperCase()} ${cm[2]}`; }
+      const m = line.match(TIME_RE);
+      const cm = line.match(CODE_RE);
+      if (cm && !(m && cm.index > m.index && /^\d/.test(cm[2]) && line.slice(m.index, cm.index).length < 3)) code = `${cm[1].toUpperCase()} ${cm[2]}`;
       const tm = line.match(TYPE_RE);
       if (tm) { const k = tm[0].toLowerCase(); type = TYPE_CN[k] || tm[0]; }
-      const m = line.match(TIME_RE);
-      if (!m || !code) return;
+      if (!m) { if (!cm && !looksRoom(line) && line.length <= 30 && !/^\d+$/.test(line)) lastText = line; return; }
+      // 同一行有课程名但没有编号：用这行除去时间和星期后的文字
+      let name = code;
+      if (!cm) {
+        const before = stripDT(line.slice(0, m.index)), rest0 = stripDT(line.slice(m.index + m[0].length));
+        if (before && !looksRoom(before)) name = before.slice(0, 24);
+        else if (!code && lastText) name = lastText.slice(0, 24);
+        else if (!code && rest0) name = rest0.split(' ')[0];
+      }
+      if (!name) return;
       const days = parseDays(m[1]);
-      let start = to24(m[2], m[3], m[4] || (m[7] && Number(m[2]) <= Number(m[5]) ? m[7] : '')), end = to24(m[5], m[6], m[7]);
+      const start = to24(m[2], m[3], m[4] || (m[7] && Number(m[2]) <= Number(m[5]) ? m[7] : '')), end = to24(m[5], m[6], m[7]);
       if (toMin(end) <= toMin(start)) return;
-      // 表格复制出来的列用 Tab 分隔：时间后面的第一列就是教室
       const rawM = rawLines[i].match(TIME_RE);
       const rest = rawM ? rawLines[i].slice(rawM.index + rawM[0].length) : '';
       let room = (rest.split(/\t| {2,}/).map(x => x.trim()).filter(Boolean)[0] || '').replace(/^[,，|·-]+/, '').trim();
+      if (cm && room.includes(cm[0])) room = room.replace(cm[0], '').trim();
       if (!looksRoom(room)) room = looksRoom(lines[i + 1]) ? lines[i + 1] : '';
-      for (const d of days) out.push({ code, type, day: d, start, end, room });
+      for (const d of days) out.push({ code: name, type, day: d, start, end, room });
     });
-    const seen = new Set();
-    return out.filter(c => { const k = `${c.code}|${c.day}|${c.start}`; if (seen.has(k)) return false; seen.add(k); return true; });
+    return dedupe(out);
   };
+  function dedupe(list) {
+    const seen = new Set();
+    return list.filter(c => { const k = `${c.code}|${c.day}|${c.start}`; if (seen.has(k)) return false; seen.add(k); return true; });
+  }
 
   // ---------- 解析：.ics 文件 ----------
   Sched.parseICS = text => {
@@ -143,11 +185,9 @@
     $('#schedTitle').textContent = '导入课表';
     $('#schedOk').textContent = '导入';
     $('#schedForm').innerHTML = `
-      <ol class="steps" style="margin-bottom:6px">
-        <li>在 uoZone 打开「我的课程表」，切到 <b>列表视图</b>（List View），全选并复制整页文字。</li>
-        <li>粘贴到下面，App 会自动识别课程、星期、时间和教室。</li>
-      </ol>
-      <textarea id="schedText" rows="6" placeholder="粘贴课程表文字…&#10;也可以一行一节，例如：MAT 2348 周二 14:30-15:50 Tabaret 333"></textarea>
+      <p class="hint" style="margin:0 2px 10px">从学校选课系统、教务网站、Excel 表格或任何日历里复制课程表文字，粘贴到下面即可，App 会自动识别课程、星期、时间和教室。</p>
+      <div class="help-tip" style="margin-bottom:10px">小技巧：网页上的课程表如果有「列表视图」，切到列表再复制，识别最准确（uoZone 就是「List View」）。<br>也可以自己一行写一节：<code>MAT 2348 周二 14:30-15:50 Tabaret 333</code><br>或从 Excel 复制带表头的表格（课程 / 星期 / 开始 / 结束 / 教室）。</div>
+      <textarea id="schedText" rows="6" placeholder="在这里粘贴课程表…"></textarea>
       <div class="btn-line"><button class="chip-btn glass" id="schedIcs">改用 .ics 文件导入</button><label class="replace-opt"><input type="checkbox" id="schedReplace" checked> 替换现有课表</label></div>
       <div id="schedPreview"></div>`;
     $('#schedText').addEventListener('input', () => { parsed = Sched.parseText($('#schedText').value); preview(); });

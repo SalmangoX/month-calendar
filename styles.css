@@ -673,3 +673,6 @@ html.locked .lock { display: grid; }
 .sc-prev small { display: block; font-size: 12px; color: var(--text2); }
 .sc-times { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 #scDay button { padding: 7px 0; }
+
+.tab3seg { display: inline-flex; margin-top: 8px; }
+.tab3seg button { flex: none; padding: 5px 14px; }
