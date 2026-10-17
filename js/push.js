@@ -19,6 +19,17 @@
   Push.enabled = () => !!MC.settings.notify && Push.permission() === 'granted';
   Push.remoteReady = () => Push.enabled() && !!MC.settings.pushReady;
 
+  // 安卓 App 里：通知由原生端用系统精确闹钟弹出（App 关着、断网也准时），不需要网页推送和 GitHub 定时任务
+  const NATIVE = !!(MC.Native && MC.Native.on);
+  Push.native = NATIVE;
+  if (NATIVE) {
+    const N = MC.Native;
+    Push.supported = () => true;
+    Push.pushSupported = () => false;
+    Push.permission = () => N.status().notif || 'default';
+    Push.remoteReady = () => Push.enabled();
+  }
+
   async function readSubs() {
     const g = await MC.gh('/gists/' + MC.settings.gistId);
     const f = g.files && g.files[SUBS_FILE];
@@ -102,6 +113,20 @@
     const reg = await navigator.serviceWorker.ready;
     await reg.showNotification('月历 · 测试通知', { body: '通知可以正常显示了', tag: 'mcal-test', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
   };
+
+  if (NATIVE) {
+    const N = MC.Native;
+    Push.enable = async () => {
+      const st = await N.request('notif');
+      if (!st || st.notif !== 'granted') throw new Error('通知权限没有打开。请在系统设置 → 应用程序 → 月历 → 通知 中允许');
+      MC.settings.notify = true; MC.saveSettings();
+      return true;
+    };
+    Push.disable = async () => { MC.settings.notify = false; MC.settings.pushReady = false; MC.saveSettings(); };
+    Push.resubscribe = () => Promise.resolve(false);
+    Push.regenerate = async () => false;
+    Push.test = async () => { N.test(); };
+  }
 
   // ---------- 一键设置后台提醒（用一个临时令牌自动完成 GitHub 那几步） ----------
   Push.SETUP_TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=repo,workflow&description=' + encodeURIComponent('月历提醒设置（用完可删除）');
@@ -190,6 +215,7 @@
   };
   Push.bodyFor = e => `${MC.dateLabel(e.date)} ${MC.timeLabel(e) || '全天'}${e.note ? ' · ' + e.note : ''}`;
   async function checkLocal() {
+    if (NATIVE) return; // 安卓 App 由原生端提醒
     if (!Push.enabled() || !('serviceWorker' in navigator)) return;
     const now = Date.now();
     let sent = {};

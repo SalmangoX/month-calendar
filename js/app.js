@@ -270,11 +270,20 @@
   }
   function notifyHint() {
     const on = Push.enabled();
+    if (Push.native) {
+      if (!on) return MC.settings.notify && Push.permission() === 'denied' ? '通知权限被关闭了，点「提醒权限检查」重新打开。' : '设置了提醒的事件会到点通知你，App 关着、断网也会准时提醒。';
+      return '由手机系统在本机准时提醒，App 关着、断网也会响。三星手机请在「提醒权限检查」里把各项都设成 ✓。';
+    }
     if (!Push.supported()) return '这个浏览器不支持通知。';
     if (Push.isIOS && !Push.standalone()) return 'iPhone 需要从主屏幕图标打开月历才能开启通知（iOS 16.4 及以上）。';
     if (!on) return MC.settings.notify && Push.permission() === 'denied' ? '通知权限被系统拒绝，请到系统设置中允许。' : '设置了提醒的事件会到点通知你。';
     if (MC.settings.remoteSetup) return 'App 关闭时由你仓库里的 GitHub 定时任务每 5 分钟检查并推送，高峰时可能晚几分钟。';
     return '目前只在 App 打开时提醒。连接 GitHub 后，App 关闭时也能收到推送。';
+  }
+  function nativePermSummary() {
+    const st = MC.Native.status();
+    const bad = [st.notif !== 'granted' && '通知', !st.exact && '精确闹钟', !st.battery && '电池'].filter(Boolean);
+    return bad.length ? `需要处理：${bad.join('、')}` : '各项都已就绪';
   }
   function renderSettings() {
     const pf = MC.data.profile;
@@ -306,17 +315,30 @@
     }
     const nrows = [srow({ icon: 'bell', color: COL.rose, label: '提醒通知', sw: 'nSwitch', swOn: Push.enabled(), help: 'notify' })];
     if (Push.enabled()) nrows.push(srow({ act: 'ntest', icon: 'send', color: COL.teal, label: '发送测试通知', chev: false }));
+    if (Push.native) nrows.push(srow({ act: 'nperm', icon: 'bell', color: COL.sage, label: '提醒权限检查', sub: nativePermSummary(), help: 'nperm' }));
     const dl = MC.data.daily;
     const city = (dl.tz || MC.currentTz()).split('/').pop().replace(/_/g, ' ');
     nrows.push(srow({ icon: 'sun', color: COL.amber, label: '每日未完成提醒', sub: dl.on ? `每天 ${dl.time} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
     if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', color: COL.indigo, label: '每日提醒时间', val: dl.time }));
-    // 始终显示，点进去会自动补齐前置条件（连接 GitHub、通知权限）
-    nrows.splice(1, 0, S.remoteSetup
-      ? srow({ act: 'nsetup', icon: 'cloud', color: COL.sage, label: 'App 关闭时也提醒', val: '已设置' })
-      : srow({ act: 'nsetup', icon: 'cloud', color: COL.slate, label: 'App 关闭时也提醒', sub: '点这里一键设置', val: '未设置' }));
-    if (S.remoteSetup) nrows.splice(2, 0, srow({ act: 'boost', icon: 'clock', color: COL.teal, label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
+    // 始终显示，点进去会自动补齐前置条件（连接 GitHub、通知权限）；安卓 App 由系统提醒，不需要
+    if (!Push.native) {
+      nrows.splice(1, 0, S.remoteSetup
+        ? srow({ act: 'nsetup', icon: 'cloud', color: COL.sage, label: 'App 关闭时也提醒', val: '已设置' })
+        : srow({ act: 'nsetup', icon: 'cloud', color: COL.slate, label: 'App 关闭时也提醒', sub: '点这里一键设置', val: '未设置' }));
+      if (S.remoteSetup) nrows.splice(2, 0, srow({ act: 'boost', icon: 'clock', color: COL.teal, label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
+    }
     h += group('提醒', nrows, notifyHint());
-    h += group('桌面小组件', [
+    if (MC.Native.on) {
+      h += group('桌面小组件', [
+        srow({ act: 'pin:month', icon: 'grid', color: COL.slate, label: '整月小组件', sub: '点一下添加到桌面', help: 'nwidget', chev: false }),
+        srow({ act: 'pin:today', icon: 'sun', color: COL.amber, label: '今日小组件', sub: '今天、已逾期和接下来一周', chev: false }),
+        srow({ act: 'pin:sched', icon: 'clock', color: COL.teal, label: '课表小组件', sub: '今天的课，正在上的突出显示', chev: false }),
+      ], '也可以长按桌面空白处 → 小组件 → 月历，按住拖到桌面。');
+      const up = MC.Native.updateAvailable(), I = MC.Native.info;
+      h += group('安卓 App', [
+        srow({ act: 'apk', icon: 'android', color: COL.sage, label: '安卓 App', sub: up ? `有新版本 ${up.name}，点这里下载安装` : '点这里检查 App 更新', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
+      ], '改网页不需要更新 App，打开就是最新的；只有原生部分（小组件、提醒）改了才需要装新的 APK。');
+    } else h += group('桌面小组件', [
       srow({ act: 'ios', icon: 'phone', color: COL.slate, label: 'iOS 小组件', sub: '复制 Scriptable 脚本', help: 'ios', chev: false }),
       srow({ act: 'android', icon: 'android', color: COL.sage, label: '安卓小组件', sub: '复制小组件链接', help: 'android', chev: false }),
       srow({ act: 'iosSched', icon: 'phone', color: COL.teal, label: 'iOS 课表小组件', sub: '今天的课 · 点一下即刷新', help: 'iosSched', chev: false }),
@@ -339,6 +361,22 @@
     if (e.target.closest('[data-help]')) return;
     const row = e.target.closest('[data-act]'); if (!row) return;
     const act = row.dataset.act;
+    if (act.startsWith('pin:')) {
+      if (!MC.Native.pinWidget(act.slice(4))) openHelp('nwidget');
+      return;
+    }
+    if (act === 'nperm') { openHelp('nperm'); return; }
+    if (act === 'apk') {
+      UI.toast('正在检查 App 更新…');
+      try {
+        const up = await MC.Native.checkUpdate(true);
+        if (up) {
+          if (confirm(`安卓 App 有新版本 ${up.name}（第 ${up.latest} 版）。现在下载？\n下载完成后点通知栏里的文件安装，数据和设置都会保留。`)) MC.Native.update();
+        } else UI.toast(MC.Native.lastCheck().latest ? '已经是最新版本' : '仓库里还没有发布安卓 App');
+      } catch (err) { UI.toast('检查失败：' + err.message); }
+      renderSettings();
+      return;
+    }
     if (act === 'theme') UI.menu(row.querySelector('.sval'), [
       { label: '跟随系统', value: 'auto', on: MC.settings.theme === 'auto' },
       { label: '浅色', value: 'light', on: MC.settings.theme === 'light' },
@@ -364,7 +402,7 @@
         if (Push.enabled()) await Push.disable();
         MC.vault.disconnect();
         MC.settings.account = '';
-        if (v === 'wipe') { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); MC.onChange(); }
+        if (v === 'wipe') { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); MC.onChange(); if (MC.Native.on) MC.Native.wipe(); }
         MC.saveSettings();
         renderSettings(); UI.toast(v === 'wipe' ? '已断开并清除本机数据' : '已断开连接');
       });
@@ -427,7 +465,10 @@
       if (sw.checked) {
         const remote = await Push.enable();
         UI.toast(remote ? '提醒已开启' : '提醒已开启（App 打开时）');
-        if (remote && !MC.settings.remoteSetup) setTimeout(() => setupForm(), 400);
+        if (Push.native) {
+          const st = MC.Native.status();
+          if (!st.exact || !st.battery) setTimeout(() => openHelp('nperm'), 400);
+        } else if (remote && !MC.settings.remoteSetup) setTimeout(() => setupForm(), 400);
       } else { await Push.disable(); UI.toast('提醒已关闭'); }
     } catch (err) {
       UI.toast(err.message);
@@ -601,6 +642,36 @@
 
   // ---------- 帮助 ----------
   const HELP = {
+    nperm: () => {
+      const st = MC.Native.status();
+      const ok = (good, yes, no, key) => good
+        ? `<b style="color:var(--accent-text)">✓ ${yes}</b>`
+        : `<b style="color:var(--p3)">${no}</b>　<button class="chip-btn glass" data-copy="nreq:${key}">去设置</button>`;
+      const when = st.pullAt ? new Date(st.pullAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const sync = !st.token ? '未连接 GitHub（只显示这台手机上的数据）'
+        : st.pullErr ? `<b style="color:var(--p3)">${esc(st.pullErr)}</b>` : `<b style="color:var(--accent-text)">✓ ${when ? '上次 ' + when : '已连接'}</b>`;
+      return {
+        title: '提醒权限检查',
+        html: `<p class="hint" style="margin:0 2px 14px">App 关着也要准时提醒，下面前三项都要是 ✓。</p>
+        <ol class="steps">
+          <li>通知：${ok(st.notif === 'granted', '已允许', '未允许', 'notif')}</li>
+          <li>精确闹钟：${ok(st.exact, '已允许', '未允许', 'exact')}</li>
+          <li>电池不受限制：${ok(st.battery, '已设置', '未设置', 'battery')}<br><small>三星手机再确认一下：设置 → 电池 → 后台使用限制，「休眠应用」和「深度休眠应用」里<b>不能有</b>月历，最好把月历加进「从不休眠的应用」。</small></li>
+          <li>后台同步其他设备的改动：${sync}</li>
+        </ol>
+        <div class="help-copy"><button class="chip-btn glass" data-copy="ntest">立即测试</button><button class="chip-btn glass" data-copy="ntestBg">10 秒后测试</button><button class="chip-btn glass" data-copy="nreq:channels">通知样式</button></div>
+        <div class="help-tip">点「10 秒后测试」后马上回到桌面并锁屏，10 秒左右收到「后台提醒测试」，就说明 App 关着也能准时提醒。<br>想让提醒在锁屏显示、响铃或弹出横幅，点「通知样式」分别设置「事件提醒」和「每日未完成提醒」。</div>`,
+      };
+    },
+    nwidget: () => ({
+      title: '安卓桌面小组件',
+      html: `<ol class="steps">
+        <li>在设置里点 <b>整月 / 今日 / 课表小组件</b>，弹出的窗口里点「添加」，小组件就放到桌面上了。</li>
+        <li>也可以长按桌面空白处 → <b>小组件</b> → 找到「月历」，按住想要的样式拖到桌面。</li>
+        <li>长按小组件可以调整大小。整月小组件格子够高时显示事件名称，格子小时显示彩色圆点；折叠屏的内屏和外屏会按各自的尺寸显示。</li>
+      </ol>
+      <div class="help-tip">整月小组件右上角的 ‹ › 可以翻月，30 分钟后自动回到本月；点日期区域打开月历。<br>在这台手机上改的事件会立刻更新到小组件；在 iPhone 或电脑上改的，连接 GitHub 后大约 15 分钟内同步过来，打开月历则马上同步。</div>`,
+    }),
     iosSched: () => ({
       title: 'iOS 课表小组件',
       html: `<ol class="steps">
@@ -636,7 +707,7 @@
         <li>想固定深浅色，在链接末尾加 <code>&amp;theme=dark</code> 或 <code>&amp;theme=light</code>；不加就跟随系统。</li>
       </ol>
       <div class="help-copy"><button class="chip-btn glass" data-copy="android">复制安卓小组件链接</button></div>
-      <div class="help-tip">小组件显示本月的彩色事件和完成情况，点击会打开月历。刷新频率取决于你装的小组件 App。</div>`,
+      <div class="help-tip">小组件显示本月的彩色事件和完成情况，点击会打开月历。刷新频率取决于你装的小组件 App。${Push.guessRepo() ? `<br>更推荐安装 <a href="https://github.com/${esc(Push.guessRepo())}/releases/latest" target="_blank" rel="noopener">月历安卓 App</a>：自带原生小组件，提醒由手机系统准时弹出。` : ''}</div>`,
     }),
     notify: () => ({
       title: '提醒通知',
@@ -711,6 +782,12 @@
   $('#helpBody').addEventListener('click', async e => {
     const b = e.target.closest('[data-copy]'); if (!b) return;
     const k = b.dataset.copy;
+    if (k.startsWith('nreq:')) { await MC.Native.request(k.slice(5)); if (UI.isOpen('helpSheet')) openHelp('nperm'); renderSettings(); return; }
+    if (k === 'ntest') { if (!Push.enabled()) { UI.toast('请先打开「提醒通知」开关'); return; } Push.test(); return; }
+    if (k === 'ntestBg') {
+      if (!Push.enabled()) { UI.toast('请先打开「提醒通知」开关'); return; }
+      MC.Native.testLater(10); UI.toast('10 秒后弹出测试通知，现在可以回到桌面锁屏'); return;
+    }
     if (k === 'ios') copyIOS();
     else if (k === 'android') copyAndroid();
     else if (k === 'sched') copySched();
@@ -737,6 +814,11 @@
   async function exportData() {
     const json = JSON.stringify(MC.data, null, 2);
     const name = `月历备份-${MC.todayStr()}.json`;
+    if (MC.Native.has('saveFile')) {
+      const r = await MC.Native.saveFile(name, 'application/json', json);
+      if (r && r.ok) UI.toast('备份已保存');
+      return;
+    }
     try {
       const file = new File([json], name, { type: 'application/json' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
@@ -835,6 +917,26 @@
   };
   syncTz();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncTz(); });
-  if (location.hash === '#today') { showPage('today'); history.replaceState(null, '', location.pathname); }
-  if (location.hash === '#sched') { if (MC.settings.tab3 !== 'sched') { MC.settings.tab3 = 'sched'; MC.saveSettings(); applyTab3(); } showPage('sched'); history.replaceState(null, '', location.pathname); }
+  MC.openHash = h => {
+    if (h === '#today') showPage('today');
+    else if (h === '#sched') { if (MC.settings.tab3 !== 'sched') { MC.settings.tab3 = 'sched'; MC.saveSettings(); applyTab3(); } showPage('sched'); }
+  };
+  if (location.hash === '#today' || location.hash === '#sched') { MC.openHash(location.hash); history.replaceState(null, '', location.pathname); }
+  // 安卓返回键：先关菜单和面板，再回到月历页；都没有时由 App 退到后台
+  MC.back = () => {
+    if (document.documentElement.classList.contains('locked')) return false;
+    if (UI.menuOpen()) { UI.closeMenu(); return true; }
+    if (UI.anyOpen()) { UI.close(); return true; }
+    if (page !== 'cal') { showPage('cal'); return true; }
+    return false;
+  };
+  // 安卓 App：提示更新
+  if (MC.Native.on) {
+    if (MC.Native.outdated) setTimeout(() => UI.toast('这个版本的安卓 App 太旧了，请到 设置 → 安卓 App 更新'), 2500);
+    setTimeout(() => MC.Native.checkUpdate(false).then(up => {
+      if (!up || sessionStorage.getItem('mcal.apkTold') === String(up.latest)) return;
+      sessionStorage.setItem('mcal.apkTold', String(up.latest));
+      UI.toast(`安卓 App 有新版本 ${up.name}，到 设置 → 安卓 App 下载`);
+    }).catch(() => {}), 4000);
+  }
 })();
