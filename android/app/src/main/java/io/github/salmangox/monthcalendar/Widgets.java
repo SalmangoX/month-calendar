@@ -324,17 +324,18 @@ final class Widgets {
         boolean isToday = false;
         List<Data.Course> list = new ArrayList<>();
         // 今天还有没上完的课就显示今天，否则找下一个有课的日子
-        for (int k = 0; k < 8 && label == null; k++) {
-            int day = ((dow - 1 + k) % 7) + 1;
+        for (int k = 0; k < 15 && label == null; k++) {
+            LocalDate date = today.plusDays(k);
+            int day = date.getDayOfWeek().getValue();
             List<Data.Course> l = new ArrayList<>();
-            for (Data.Course co : d.courses) if (co.day == day) l.add(co);
+            for (Data.Course co : d.courses) if (co.on(date)) l.add(co); // 按日期范围和隔周判断
             if (k == 0) {
                 boolean left = false;
                 for (Data.Course co : l) if (co.endMin > nm) left = true;
                 if (left) { label = "今天"; pickDay = day; isToday = true; for (Data.Course co : l) if (co.endMin > nm) list.add(co); }
                 continue;
             }
-            if (!l.isEmpty()) { label = k == 1 ? "明天" : "周" + WD[day % 7]; pickDay = day; list = l; }
+            if (!l.isEmpty()) { label = k == 1 ? "明天" : k < 7 ? "周" + WD[day % 7] : date.getMonthValue() + "月" + date.getDayOfMonth() + "日"; pickDay = day; list = l; }
         }
         if (d.courses.isEmpty() || label == null) {
             rv.setTextViewText(R.id.l_title, "课表");

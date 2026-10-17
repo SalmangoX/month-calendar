@@ -44,7 +44,21 @@ final class Data {
 
     static final class Course {
         String id = "", code = "", type = "", room = "", start = "", end = "";
-        int day, startMin, endMin;
+        int day, startMin, endMin, every = 1;
+        LocalDate from, to; // 课程起止日期（可为空）
+
+        /** 这一天有没有这节课：星期、起止日期、隔周 */
+        boolean on(LocalDate d) {
+            if (d.getDayOfWeek().getValue() != day) return false;
+            if (from != null && d.isBefore(from)) return false;
+            if (to != null && d.isAfter(to)) return false;
+            if (every == 2 && from != null) {
+                long w = java.time.temporal.ChronoUnit.WEEKS.between(
+                        from.with(java.time.DayOfWeek.MONDAY), d.with(java.time.DayOfWeek.MONDAY));
+                if (w % 2 != 0) return false;
+            }
+            return true;
+        }
     }
 
     final List<Event> events = new ArrayList<>();
@@ -95,6 +109,9 @@ final class Data {
                 if (!TIME.matcher(x.start).matches() || !TIME.matcher(x.end).matches()) continue;
                 x.startMin = minutes(x.start);
                 x.endMin = minutes(x.end);
+                try { String f = c.optString("from"); if (!f.isEmpty()) x.from = LocalDate.parse(f); } catch (Exception ignored) {}
+                try { String t = c.optString("to"); if (!t.isEmpty()) x.to = LocalDate.parse(t); } catch (Exception ignored) {}
+                x.every = c.optInt("every", 1) == 2 ? 2 : 1;
                 d.courses.add(x);
             }
             d.courses.sort(Comparator.comparingInt((Course c) -> c.day).thenComparingInt(c -> c.startMin));

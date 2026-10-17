@@ -96,7 +96,7 @@ final class Engine {
         }
         int dow = today.getDayOfWeek().getValue();
         for (Data.Course co : d.courses) { // 上课、下课时刷新课表小组件
-            if (co.day != dow) continue;
+            if (!co.on(today)) continue;
             for (int m : new int[]{co.startMin, co.endMin}) {
                 long t = today.atStartOfDay(z).plusMinutes(m).toInstant().toEpochMilli();
                 if (t > now && t < next) next = t;
