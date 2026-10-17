@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 今日 / 课表小组件：标题 + 列表 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:clipToOutline="true"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:paddingTop="10dp">
+
+    <LinearLayout android:id="@+id/l_head" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical" android:orientation="horizontal" android:paddingLeft="3dp" android:paddingBottom="4dp">
+        <TextView android:id="@+id/l_title" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textSize="15dp" android:textStyle="bold" android:textColor="@color/w_text" android:singleLine="true" />
+        <TextView android:id="@+id/l_sub" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:layout_marginLeft="6dp" android:textSize="11dp" android:textColor="@color/w_text2" android:singleLine="true" />
+    </LinearLayout>
+
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <ListView android:id="@+id/l_list" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:divider="@null" android:dividerHeight="0dp" android:scrollbars="none" android:paddingBottom="6dp"
+            android:clipToPadding="false" />
+        <TextView android:id="@+id/l_empty" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:gravity="center" android:paddingBottom="10dp" android:textSize="13dp" android:textColor="@color/w_text2"
+            android:lineSpacingExtra="3dp" android:visibility="gone" />
+    </FrameLayout>
+</LinearLayout>

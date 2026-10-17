@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">月历</string>
+    <string name="w_month">月历 · 整月</string>
+    <string name="w_month_desc">整月日历，彩色显示每天的事件</string>
+    <string name="w_today">月历 · 今日</string>
+    <string name="w_today_desc">今天和接下来一周的事件</string>
+    <string name="w_sched">月历 · 课表</string>
+    <string name="w_sched_desc">今天的课，正在上和下一节会突出显示</string>
+</resources>
