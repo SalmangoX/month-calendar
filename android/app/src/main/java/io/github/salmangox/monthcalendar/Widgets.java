@@ -45,7 +45,7 @@ final class Widgets {
         AppWidgetManager m = AppWidgetManager.getInstance(c);
         for (int id : m.getAppWidgetIds(new ComponentName(c, MonthWidget.class))) m.updateAppWidget(id, month(c, id, m.getAppWidgetOptions(id)));
         for (int id : m.getAppWidgetIds(new ComponentName(c, TodayWidget.class))) updateList(c, m, id, today(c));
-        for (int id : m.getAppWidgetIds(new ComponentName(c, SchedWidget.class))) updateList(c, m, id, sched(c));
+        for (int id : m.getAppWidgetIds(new ComponentName(c, SchedWidget.class))) m.updateAppWidget(id, sched(c, id, m.getAppWidgetOptions(id)));
     }
 
     static int count(Context c, Class<?> cls) {
@@ -301,14 +301,163 @@ final class Widgets {
         return PendingIntent.getActivity(c, req, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
     }
 
-    // ---------- 课表 ----------
+    // ---------- 课表：按小组件大小切换（2×2 单日 / 4×2 横向本周 / 4×4 整月） ----------
+    private static final int DAY = 0, WEEK = 1, MONTH = 2;
+    private static int schedKind(float wDp, float hDp) {
+        if (wDp < 240) return DAY;
+        return hDp < 250 ? WEEK : MONTH;
+    }
+    static RemoteViews sched(Context c, int id, Bundle opts) {
+        List<SizeF> sizes = new ArrayList<>();
+        if (opts != null) {
+            @SuppressWarnings("deprecation")
+            ArrayList<SizeF> s = opts.getParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES);
+            if (s != null) sizes.addAll(s);
+        }
+        if (sizes.isEmpty()) {
+            int w = opts == null ? 0 : opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
+            int h = opts == null ? 0 : opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0);
+            return schedOf(c, id, schedKind(w > 0 ? w : 160, h > 0 ? h : 160), h > 0 ? h : 300);
+        }
+        Map<String, RemoteViews> byKind = new HashMap<>();
+        Map<SizeF, RemoteViews> map = new HashMap<>();
+        for (SizeF s : sizes) {
+            int kind = schedKind(s.getWidth(), s.getHeight());
+            String key = kind == MONTH ? "m" + capacity(s.getHeight()) : String.valueOf(kind);
+            RemoteViews rv = byKind.get(key);
+            if (rv == null) { rv = schedOf(c, id, kind, s.getHeight()); byKind.put(key, rv); }
+            map.put(s, rv);
+        }
+        if (byKind.size() == 1) return byKind.values().iterator().next();
+        return new RemoteViews(map);
+    }
+    private static RemoteViews schedOf(Context c, int id, int kind, float hDp) {
+        if (kind == WEEK) return schedWeek(c);
+        if (kind == MONTH) return schedMonth(c, id, capacity(hDp));
+        return schedDay(c);
+    }
+    static int courseDrawable(String code) {
+        long h = 0;
+        for (int i = 0; i < code.length(); i++) h = (h * 31 + code.charAt(i)) & 0xFFFFFFFFL;
+        return CRS[(int) (h % CRS.length)];
+    }
+    private static final int[] CRS = {R.drawable.crs0, R.drawable.crs1, R.drawable.crs2, R.drawable.crs3, R.drawable.crs4, R.drawable.crs5, R.drawable.crs6, R.drawable.crs7};
+    private static int[] WKC, WKH, WKM;
+    private static int[][] WKE;
+    private static synchronized void weekIds(Context c) {
+        if (WKC != null) return;
+        android.content.res.Resources r = c.getResources();
+        String pkg = c.getPackageName();
+        WKC = new int[7]; WKH = new int[7]; WKM = new int[7]; WKE = new int[7][5];
+        for (int d = 0; d < 7; d++) {
+            WKC[d] = r.getIdentifier("wk_c" + d, "id", pkg);
+            WKH[d] = r.getIdentifier("wk_h" + d, "id", pkg);
+            WKM[d] = r.getIdentifier("wk_m" + d, "id", pkg);
+            for (int k = 0; k < 5; k++) WKE[d][k] = r.getIdentifier("wk_e" + d + "_" + k, "id", pkg);
+        }
+    }
+
+    /** 横向本周：每天一列，课程按时间排成色块（周末有课才显示） */
+    static RemoteViews schedWeek(Context c) {
+        weekIds(c);
+        RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_week);
+        Data d = Store.data(c);
+        LocalDate today = LocalDate.now(ZoneId.systemDefault());
+        LocalDate mon = today.minusDays(today.getDayOfWeek().getValue() - 1);
+        LocalDate sun = mon.plusDays(6);
+        rv.setTextViewText(R.id.wk_sub, mon.getMonthValue() + "/" + mon.getDayOfMonth() + " – " + sun.getMonthValue() + "/" + sun.getDayOfMonth());
+        for (int i = 0; i < 7; i++) {
+            LocalDate date = mon.plusDays(i);
+            List<Data.Course> l = new ArrayList<>();
+            for (Data.Course co : d.courses) if (co.on(date)) l.add(co);
+            boolean show = i < 5 || !l.isEmpty();
+            rv.setViewVisibility(WKC[i], show ? android.view.View.VISIBLE : android.view.View.GONE);
+            if (!show) continue;
+            boolean isToday = date.equals(today);
+            rv.setTextViewText(WKH[i], "周" + WD[(i + 1) % 7] + "\n" + date.getDayOfMonth());
+            rv.setTextColor(WKH[i], isToday ? c.getColor(R.color.accent) : c.getColor(R.color.w_text2));
+            if (isToday) rv.setInt(WKC[i], "setBackgroundResource", R.drawable.wk_today);
+            int shown = l.size() > 5 ? 4 : l.size();
+            for (int k = 0; k < 5; k++) {
+                if (k < shown) {
+                    Data.Course co = l.get(k);
+                    rv.setViewVisibility(WKE[i][k], android.view.View.VISIBLE);
+                    rv.setTextViewText(WKE[i][k], co.code + "\n" + co.start);
+                    rv.setInt(WKE[i][k], "setBackgroundResource", courseDrawable(co.code));
+                } else rv.setViewVisibility(WKE[i][k], android.view.View.INVISIBLE);
+            }
+            if (l.size() > 5) { rv.setViewVisibility(WKM[i], android.view.View.VISIBLE); rv.setTextViewText(WKM[i], "+" + (l.size() - 4)); }
+        }
+        rv.setOnClickPendingIntent(android.R.id.background, Engine.openApp(c, "#sched", 304));
+        return rv;
+    }
+
+    /** 整月课表：每天显示当天的课（按日期范围和隔周），可左右翻月 */
+    static RemoteViews schedMonth(Context c, int id, int cap) {
+        ids(c);
+        RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_month);
+        Data d = Store.data(c);
+        int ws = Store.prefs(c).getInt("weekStart", 0) == 1 ? 1 : 0;
+        int off = schedOffset(c, id);
+        LocalDate today = LocalDate.now(ZoneId.systemDefault());
+        YearMonth ym = YearMonth.from(today).plusMonths(off);
+        LocalDate first = ym.atDay(1);
+        int jsDay = first.getDayOfWeek().getValue() % 7;
+        LocalDate start = first.minusDays((jsDay - ws + 7) % 7);
+        rv.setTextViewText(R.id.m_title, ym.getMonthValue() + "月课表");
+        rv.setTextViewText(R.id.m_year, String.valueOf(ym.getYear()));
+        rv.setViewVisibility(R.id.m_today, off == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
+        for (int k = 0; k < 7; k++) rv.setTextViewText(WDAY[k], WD[(k + ws) % 7]);
+        int perCell = Math.max(1, cap);
+        for (int i = 0; i < 42; i++) {
+            LocalDate day = start.plusDays(i);
+            boolean in = day.getMonthValue() == ym.getMonthValue();
+            rv.setTextViewText(N[i], String.valueOf(day.getDayOfMonth()));
+            if (day.equals(today)) {
+                rv.setInt(N[i], "setBackgroundResource", R.drawable.today_bg);
+                rv.setTextColor(N[i], WHITE);
+            } else if (!in) rv.setTextColor(N[i], DIM);
+            List<Data.Course> l = new ArrayList<>();
+            for (Data.Course co : d.courses) if (co.on(day)) l.add(co);
+            if (l.isEmpty()) continue;
+            int show = l.size() > perCell ? perCell - 1 : l.size();
+            for (int k = 0; k < Math.min(show, 3); k++) {
+                Data.Course co = l.get(k);
+                rv.setViewVisibility(EV[i][k], android.view.View.VISIBLE);
+                rv.setTextViewText(EV[i][k], co.code);
+                rv.setInt(EV[i][k], "setBackgroundResource", courseDrawable(co.code));
+            }
+            if (l.size() > show) {
+                rv.setViewVisibility(MORE[i], android.view.View.VISIBLE);
+                rv.setTextViewText(MORE[i], "+" + (l.size() - show));
+            }
+        }
+        rv.setOnClickPendingIntent(android.R.id.background, Engine.openApp(c, "#sched", 305 + id));
+        rv.setOnClickPendingIntent(R.id.m_prev, schedAction(c, id, ACT_PREV, 5));
+        rv.setOnClickPendingIntent(R.id.m_next, schedAction(c, id, ACT_NEXT, 6));
+        rv.setOnClickPendingIntent(R.id.m_today, schedAction(c, id, ACT_HOME, 7));
+        return rv;
+    }
+    static int schedOffset(Context c, int id) {
+        SharedPreferences p = Store.prefs(c);
+        if (System.currentTimeMillis() - p.getLong("soffAt_" + id, 0) > 30 * 60_000L) return 0;
+        return p.getInt("soff_" + id, 0);
+    }
+    static void setSchedOffset(Context c, int id, int off) {
+        Store.prefs(c).edit().putInt("soff_" + id, off).putLong("soffAt_" + id, System.currentTimeMillis()).apply();
+    }
+    private static PendingIntent schedAction(Context c, int id, String act, int k) {
+        Intent i = new Intent(c, SchedWidget.class).setAction(act).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
+        return PendingIntent.getBroadcast(c, 50000 + id * 8 + k, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
     static int courseColor(String code) {
         long h = 0;
         for (int i = 0; i < code.length(); i++) h = (h * 31 + code.charAt(i)) & 0xFFFFFFFFL;
         return PALETTE[(int) (h % PALETTE.length)];
     }
 
-    static RemoteViews sched(Context c) {
+    static RemoteViews schedDay(Context c) {
         RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_list);
         Data d = Store.data(c);
         LocalDate today = LocalDate.now(ZoneId.systemDefault());
