@@ -6,6 +6,12 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -320,15 +326,16 @@ final class Widgets {
         if (sizes.isEmpty()) {
             int w = opts == null ? 0 : opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
             int h = opts == null ? 0 : opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0);
-            return schedOf(c, id, schedKind(w > 0 ? w : 160, h > 0 ? h : 160), h > 0 ? h : 300);
+            int kind = schedKind(w > 0 ? w : 160, h > 0 ? h : 160);
+            return kind == MONTH ? schedGrid(c, w > 0 ? w : 320, h > 0 ? h : 320) : schedOf(c, id, kind, h > 0 ? h : 300);
         }
         Map<String, RemoteViews> byKind = new HashMap<>();
         Map<SizeF, RemoteViews> map = new HashMap<>();
         for (SizeF s : sizes) {
             int kind = schedKind(s.getWidth(), s.getHeight());
-            String key = kind == MONTH ? "m" + capacity(s.getHeight()) : String.valueOf(kind);
+            String key = kind == MONTH ? "g" + Math.round(s.getWidth()) + "x" + Math.round(s.getHeight()) : String.valueOf(kind);
             RemoteViews rv = byKind.get(key);
-            if (rv == null) { rv = schedOf(c, id, kind, s.getHeight()); byKind.put(key, rv); }
+            if (rv == null) { rv = kind == MONTH ? schedGrid(c, s.getWidth(), s.getHeight()) : schedOf(c, id, kind, s.getHeight()); byKind.put(key, rv); }
             map.put(s, rv);
         }
         if (byKind.size() == 1) return byKind.values().iterator().next();
@@ -452,6 +459,134 @@ final class Widgets {
     private static PendingIntent schedAction(Context c, int id, String act, int k) {
         Intent i = new Intent(c, SchedWidget.class).setAction(act).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
         return PendingIntent.getBroadcast(c, 50000 + id * 8 + k, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    /** 4×4：本周详细课表。左边时间轴、每天一列，课程按上下课时间画成色块（整张画成图片，排版不受小组件限制） */
+    static RemoteViews schedGrid(Context c, float wDp, float hDp) {
+        RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_image);
+        float dens = c.getResources().getDisplayMetrics().density;
+        int W = Math.max(120, Math.round(wDp * dens)), H = Math.max(120, Math.round(hDp * dens));
+        float k = 1f;
+        if ((long) W * H > 2_400_000L) { k = (float) Math.sqrt(2_400_000.0 / ((long) W * H)); W = Math.round(W * k); H = Math.round(H * k); }
+        final float dp = dens * k;
+        Bitmap bm = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
+        Canvas cv = new Canvas(bm);
+        boolean dark = (c.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        int text = c.getColor(R.color.w_text), text2 = c.getColor(R.color.w_text2), line = c.getColor(R.color.w_line), accent = c.getColor(R.color.accent);
+        int bg = dark ? 0xFF1C1C1E : 0xFFF1F2F5;
+
+        Data d = Store.data(c);
+        LocalDate today = LocalDate.now(ZoneId.systemDefault());
+        LocalDate mon = today.minusDays(today.getDayOfWeek().getValue() - 1);
+        List<Integer> days = new ArrayList<>();
+        List<List<Data.Course>> per = new ArrayList<>();
+        int minH = 8, maxH = 18;
+        for (int i = 0; i < 7; i++) {
+            List<Data.Course> l = new ArrayList<>();
+            for (Data.Course co : d.courses) if (co.on(mon.plusDays(i))) l.add(co);
+            if (i < 5 || !l.isEmpty()) { days.add(i); per.add(l); }
+            for (Data.Course co : l) { minH = Math.min(minH, co.startMin / 60); maxH = Math.max(maxH, (co.endMin + 59) / 60); }
+        }
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        float pad = 8 * dp, axis = 30 * dp, headH = 22 * dp, dayH = 20 * dp;
+        float gx = pad + axis, gy = pad + headH + dayH, gw = W - gx - pad, gh = H - gy - pad;
+        float colW = gw / days.size(), hourH = gh / (maxH - minH);
+        float fk = Math.max(.72f, Math.min(1.1f, colW / (64 * dp)));
+
+        // 标题
+        p.setTypeface(Typeface.DEFAULT_BOLD); p.setTextSize(13 * dp); p.setColor(accent);
+        cv.drawText("本周课表", pad + 4 * dp, pad + 14 * dp, p);
+        float tw = p.measureText("本周课表");
+        p.setTypeface(Typeface.DEFAULT); p.setTextSize(10.5f * dp); p.setColor(text2);
+        LocalDate sun = mon.plusDays(6);
+        cv.drawText(mon.getMonthValue() + "/" + mon.getDayOfMonth() + " – " + sun.getMonthValue() + "/" + sun.getDayOfMonth(), pad + 10 * dp + tw, pad + 14 * dp, p);
+
+        // 今天那一列：淡淡的主色底
+        for (int ci = 0; ci < days.size(); ci++) {
+            if (!mon.plusDays(days.get(ci)).equals(today)) continue;
+            p.setColor((accent & 0x00FFFFFF) | (dark ? 0x38000000 : 0x24000000));
+            cv.drawRoundRect(new RectF(gx + ci * colW + 1, pad + headH, gx + (ci + 1) * colW - 1, H - pad), 9 * dp, 9 * dp, p);
+        }
+        // 星期
+        p.setTextAlign(Paint.Align.CENTER);
+        for (int ci = 0; ci < days.size(); ci++) {
+            LocalDate dd = mon.plusDays(days.get(ci));
+            boolean isT = dd.equals(today);
+            p.setTypeface(isT ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT); p.setTextSize(10 * dp);
+            p.setColor(isT ? accent : text2);
+            cv.drawText("周" + WD[(days.get(ci) + 1) % 7] + " " + dd.getDayOfMonth(), gx + ci * colW + colW / 2, pad + headH + 13 * dp, p);
+        }
+        // 时间轴和横线
+        p.setTextAlign(Paint.Align.RIGHT); p.setTypeface(Typeface.DEFAULT); p.setTextSize(9 * dp); p.setColor(text2);
+        Paint lp = new Paint(); lp.setColor(line); lp.setStrokeWidth(Math.max(1, .6f * dp));
+        for (int h = minH; h <= maxH; h++) {
+            float y = gy + (h - minH) * hourH;
+            cv.drawLine(gx, y, W - pad, y, lp);
+            if (h < maxH) cv.drawText(h + ":00", gx - 4 * dp, y + 9 * dp, p);
+        }
+        for (int ci = 1; ci < days.size(); ci++) cv.drawLine(gx + ci * colW, gy, gx + ci * colW, H - pad, lp);
+        p.setTextAlign(Paint.Align.LEFT);
+
+        // 课程色块（同一时间有几节课就并排）
+        for (int ci = 0; ci < days.size(); ci++) {
+            List<Data.Course> l = new ArrayList<>(per.get(ci));
+            l.sort((a, b) -> a.startMin - b.startMin);
+            int[] lane = new int[l.size()], lanes = new int[l.size()];
+            int gStart = 0, gEnd = -1; List<Integer> ends = new ArrayList<>();
+            for (int i = 0; i <= l.size(); i++) {
+                if (i == l.size() || (i > gStart && l.get(i).startMin >= gEnd)) {
+                    for (int j = gStart; j < i; j++) lanes[j] = ends.size();
+                    if (i == l.size()) break;
+                    gStart = i; ends.clear(); gEnd = -1;
+                }
+                Data.Course co = l.get(i);
+                int ln = -1;
+                for (int e = 0; e < ends.size(); e++) if (ends.get(e) <= co.startMin) { ln = e; break; }
+                if (ln < 0) { ln = ends.size(); ends.add(0); }
+                ends.set(ln, co.endMin); lane[i] = ln; gEnd = Math.max(gEnd, co.endMin);
+            }
+            for (int i = 0; i < l.size(); i++) {
+                Data.Course co = l.get(i);
+                float lw = colW / lanes[i];
+                float x0 = gx + ci * colW + lane[i] * lw + 1.5f * dp, x1 = x0 + lw - 3 * dp;
+                float y0 = gy + (co.startMin / 60f - minH) * hourH + 1 * dp, y1 = gy + (co.endMin / 60f - minH) * hourH - 1 * dp;
+                int col = courseColor(co.code);
+                p.setColor(blend(col, bg, dark ? .30f : .20f));
+                cv.drawRoundRect(new RectF(x0, y0, x1, y1), 6 * dp, 6 * dp, p);
+                p.setColor(col);
+                cv.drawRoundRect(new RectF(x0, y0, x0 + 3 * dp, y1), 1.5f * dp, 1.5f * dp, p);
+                float tx = x0 + 6 * dp, maxW = x1 - tx - 2 * dp, y = y0 + 2 * dp;
+                String[] lines = { co.code, co.type, co.start + "–" + co.end, co.room };
+                float[] sizes = { 11f, 9.5f, 9f, 9f };
+                for (int li = 0; li < lines.length; li++) {
+                    String t = lines[li];
+                    if (t == null || t.isEmpty()) continue;
+                    float sz = sizes[li] * fk * dp;
+                    if (y + sz * 1.15f > y1) break;
+                    p.setTextSize(sz);
+                    p.setTypeface(li == 0 ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+                    p.setColor(li == 0 ? (dark ? blend(col, 0xFFFFFFFF, .45f) : blend(col, 0xFF000000, .25f)) : (li == 2 ? text2 : text));
+                    if (p.measureText(t) > maxW) {
+                        int n = p.breakText(t, true, Math.max(0, maxW - p.measureText("…")), null);
+                        t = t.substring(0, Math.max(0, n)) + "…";
+                    }
+                    y += sz;
+                    cv.drawText(t, tx, y, p);
+                    y += sz * .22f;
+                }
+            }
+        }
+        if (d.courses.isEmpty()) {
+            p.setTextAlign(Paint.Align.CENTER); p.setTextSize(13 * dp); p.setColor(text2);
+            cv.drawText("还没有导入课表", W / 2f, H / 2f, p);
+        }
+        rv.setImageViewBitmap(R.id.wi_img, bm);
+        rv.setOnClickPendingIntent(android.R.id.background, Engine.openApp(c, "#sched", 306));
+        return rv;
+    }
+    private static int blend(int a, int b, float t) {
+        int ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255, br = (b >> 16) & 255, bgc = (b >> 8) & 255, bb = b & 255;
+        return 0xFF000000 | (Math.round(br + (ar - br) * t) << 16) | (Math.round(bgc + (ag - bgc) * t) << 8) | Math.round(bb + (ab - bb) * t);
     }
 
     static int courseColor(String code) {
