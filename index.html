@@ -25,7 +25,7 @@
     } catch (e) { document.documentElement.dataset.theme = 'light'; }
   })();
 </script>
-<link rel="stylesheet" href="styles.css?v=0.9.4">
+<link rel="stylesheet" href="styles.css?v=0.9.5">
 </head>
 <body>
 
@@ -75,9 +75,9 @@
     </header>
     <div class="sc-nav" id="schedNav">
       <button class="nav-btn" id="schedPrev" aria-label="上一周">‹</button>
-      <div class="sc-week"><b id="schedWeekMain"></b><small id="schedWeekSub"></small></div>
+      <button class="sc-week" id="schedWeekBtn" aria-label="选择月份和周"><b id="schedWeekMain"></b><small id="schedWeekSub"></small></button>
       <button class="nav-btn" id="schedNext" aria-label="下一周">›</button>
-      <button class="chip-btn glass sc-fit" id="schedFit">放大</button>
+      <button class="chip-btn glass sc-fit" id="schedFit" hidden>还原</button>
       <button class="chip-btn glass sc-this" id="schedThisWeek" hidden>本周</button>
     </div>
     <div class="pscroll sc-scroll" id="schedBody"></div>
@@ -223,6 +223,9 @@
   </div>
   <div class="form" id="schedForm"></div>
 </section>
+<!-- 选择月份和周 -->
+<div class="cpop-scrim" id="wkpickScrim"></div>
+<div class="wkpick" id="wkpick" role="dialog" aria-label="选择周"></div>
 <!-- 课程信息浮窗 -->
 <div class="cpop-scrim" id="cpopScrim"></div>
 <div class="cpop" id="cpop" role="dialog" aria-label="课程信息"></div>
@@ -260,13 +263,13 @@
 <input type="file" id="avatarFile" accept="image/*" hidden>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
-<script src="js/store.js?v=0.9.4"></script>
-<script src="js/native.js?v=0.9.4"></script>
-<script src="js/ui.js?v=0.9.4"></script>
-<script src="js/calendar.js?v=0.9.4"></script>
-<script src="js/editor.js?v=0.9.4"></script>
-<script src="js/push.js?v=0.9.4"></script>
-<script src="js/sched.js?v=0.9.4"></script>
-<script src="js/app.js?v=0.9.4"></script>
+<script src="js/store.js?v=0.9.5"></script>
+<script src="js/native.js?v=0.9.5"></script>
+<script src="js/ui.js?v=0.9.5"></script>
+<script src="js/calendar.js?v=0.9.5"></script>
+<script src="js/editor.js?v=0.9.5"></script>
+<script src="js/push.js?v=0.9.5"></script>
+<script src="js/sched.js?v=0.9.5"></script>
+<script src="js/app.js?v=0.9.5"></script>
 </body>
 </html>

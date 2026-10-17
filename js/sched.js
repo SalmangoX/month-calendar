@@ -224,55 +224,51 @@
     if (group.length) flush();
     return out;
   }
+  let zoom = 1; // 1 = 全览（整周一屏显示）；>1 = 捏合放大
   Sched.render = () => {
     const body = $('#schedBody');
     const all = MC.data.courses || [];
     const t = weekTitle();
     $('#schedWeekMain').textContent = t.main;
     $('#schedWeekSub').textContent = t.sub;
-    const thisWeek = MC.ymd(week) === MC.ymd(mondayOf(new Date()));
-    $('#schedThisWeek').hidden = thisWeek;
+    $('#schedThisWeek').hidden = MC.ymd(week) === MC.ymd(mondayOf(new Date()));
+    $('#schedFit').hidden = zoom <= 1;
     $('#schedNav').hidden = !all.length;
     if (!all.length) {
       body.innerHTML = `<div class="big-empty"><span class="em-ico"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3.5"/><path d="M4 10h16M9 10v10"/></svg></span>还没有课表<br><small style="color:var(--text3)">点右上角「导入」，粘贴课程表文字即可</small></div>`;
       return;
     }
-    // 这一周每一天实际要上的课
     const byDay = {};
     for (let d = 1; d <= 7; d++) byDay[d] = all.filter(c => Sched.on(c, MC.addDays(week, d - 1)));
-    const days = [1, 2, 3, 4, 5].concat([6, 7].filter(d => byDay[d].length)); // 周末有课才显示
+    const days = [1, 2, 3, 4, 5, 6, 7];
+    // 周末没课：显示成两条窄列，仍然能看出今天是周几
+    const wts = days.map(d => (d > 5 && !byDay[d].length ? 0.36 : 1));
     const inWeek = days.flatMap(d => byDay[d]);
-    if (!inWeek.length) {
-      const ts = termStart();
-      body.innerHTML = `<div class="big-empty" style="padding-top:48px"><span class="em-ico"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>这一周没有课${ts && week < ts ? `<br><button class="chip-btn glass" id="schedJump" style="margin-top:12px">跳到开课第一周</button>` : ''}</div>`;
-      const j = $('#schedJump'); if (j) j.onclick = () => { week = ts; Sched.render(); };
-      return;
-    }
-    const minH = Math.min(8, ...inWeek.map(c => Math.floor(toMin(c.start) / 60)));
-    const maxH = Math.max(17, ...inWeek.map(c => Math.ceil(toMin(c.end) / 60)));
-    // 全览（默认）：按屏幕大小等比缩小，一屏显示整周；放大：固定尺寸，可上下左右滚动
-    const fit = MC.settings.schedFit !== false;
-    $('#schedFit').textContent = fit ? '放大' : '全览';
-    let HOUR = 66, colw = 86, fs = 1;
-    if (fit) {
-      const cs = getComputedStyle(body);
-      const avail = body.clientHeight - parseFloat(cs.paddingBottom) - parseFloat(cs.paddingTop) - 44;
-      HOUR = Math.max(20, Math.min(66, avail / (maxH - minH)));
-      colw = 0;
-      fs = Math.max(.62, Math.min(1, HOUR / 60, (body.clientWidth - 40) / days.length / 86));
-    }
+    const ts = termStart();
+    const minH = inWeek.length ? Math.min(8, ...inWeek.map(c => Math.floor(toMin(c.start) / 60))) : 8;
+    const maxH = inWeek.length ? Math.max(17, ...inWeek.map(c => Math.ceil(toMin(c.end) / 60))) : 18;
+    // 尺寸：全览时按屏幕等比缩小；放大时按倍数加大，可以滚动
+    const cs = getComputedStyle(body);
+    const availH = body.clientHeight - parseFloat(cs.paddingBottom) - parseFloat(cs.paddingTop) - 44;
+    const availW = body.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 34;
+    const sumW = wts.reduce((a, b) => a + b, 0);
+    const fitHour = Math.max(20, availH / (maxH - minH)), unit = availW / sumW;
+    const HOUR = fitHour * zoom;
+    const fs = Math.max(.62, Math.min(1.15, Math.min(HOUR / 60, unit * zoom / 80)));
+    const tpl = wts.map(w => zoom > 1 ? `minmax(${(unit * w * zoom).toFixed(1)}px, ${w}fr)` : `${w}fr`).join(' ');
     const todayStr = MC.todayStr();
-    let head = '<div class="sc-corner"></div>';
-    for (const d of days) {
-      const date = MC.addDays(week, d - 1), isToday = MC.ymd(date) === todayStr;
-      head += `<div class="sc-dh${isToday ? ' today' : ''}${d > 5 ? ' we' : ''}"><span>周${DAYS[d]}</span><b>${date.getMonth() + 1}/${date.getDate()}</b></div>`;
-    }
-    let hours = '';
-    for (let h = minH; h < maxH; h++) hours += `<div class="sc-hr" style="top:${(h - minH) * HOUR}px">${h}:00</div>`;
-    let cols = '', todayIdx = -1;
+    let head = '<div class="sc-corner"></div>', todayIdx = -1;
     days.forEach((d, idx) => {
       const date = MC.addDays(week, d - 1), isToday = MC.ymd(date) === todayStr;
       if (isToday) todayIdx = idx;
+      const thin = wts[idx] < 1;
+      head += `<div class="sc-dh${isToday ? ' today' : ''}${d > 5 ? ' we' : ''}${thin ? ' thin' : ''}"><span>${thin ? DAYS[d] : '周' + DAYS[d]}</span><b>${thin ? date.getDate() : `${date.getMonth() + 1}/${date.getDate()}`}</b></div>`;
+    });
+    let hours = '';
+    for (let h = minH; h < maxH; h++) hours += `<div class="sc-hr" style="top:${(h - minH) * HOUR}px">${h}:00</div>`;
+    let cols = '';
+    days.forEach((d, idx) => {
+      const isToday = idx === todayIdx;
       const blocks = lanes(byDay[d]).map(c => {
         const top = (toMin(c.start) / 60 - minH) * HOUR + 1, hgt = Math.max(16, (toMin(c.end) - toMin(c.start)) / 60 * HOUR - 3);
         const w = 100 / c._lanes, left = c._lane * w;
@@ -280,23 +276,79 @@
         return `<button class="sc-blk${c._lanes > 1 ? ' narrow' : ''}" data-id="${c.id}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px);--c:${colorOf(c.code)}">
           ${c._lanes > 1 || hgt < 40 * fs ? '' : `<small class="t">${c.start}–${c.end}</small>`}<b>${c._lanes > 1 ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>${c.type ? `<span class="k">${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}</span>` : (c.every === 2 ? '<span class="k">隔周</span>' : '')}${c.room && hgt > 60 * fs && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(c.room)}</span>` : ''}</button>`;
       }).join('');
-      cols += `<div class="sc-col${isToday ? ' today' : ''}">${blocks}</div>`;
+      cols += `<div class="sc-col${isToday ? ' today' : ''}${wts[idx] < 1 ? ' thin' : ''}">${blocks}</div>`;
     });
+    // 当前时间：贯穿整周的横线，左边时间轴上有一个三角
     const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
-    const nowLine = todayIdx >= 0 && nowMin >= minH * 60 && nowMin <= maxH * 60 ? `<div class="sc-now" style="top:${(nowMin / 60 - minH) * HOUR}px;--i:${todayIdx}"></div>` : '';
+    const showNow = todayIdx >= 0 && nowMin >= minH * 60 && nowMin <= maxH * 60;
+    const nowTop = (nowMin / 60 - minH) * HOUR;
     const grid0 = body.querySelector('.sc-grid'), keepX = grid0 ? grid0.scrollLeft : 0, keepY = grid0 ? grid0.scrollTop : null;
-    body.innerHTML = `<div class="sc-grid${fit ? ' fit' : ''}" style="--days:${days.length};--colw:${colw}px;--fs:${fs.toFixed(3)}"><div class="sc-inner">
+    body.innerHTML = `<div class="sc-grid${zoom > 1 ? '' : ' fit'}" style="--tpl:${tpl};--fs:${fs.toFixed(3)}"><div class="sc-inner">
       <div class="sc-head">${head}</div>
       <div class="sc-main" style="height:${(maxH - minH) * HOUR}px">
-        <div class="sc-hours">${hours}</div><div class="sc-cols">${cols}${nowLine}
-        ${Array.from({ length: maxH - minH }, (_, i) => `<div class="sc-line" style="top:${i * HOUR}px"></div>`).join('')}</div>
-      </div></div></div>`;
+        <div class="sc-hours">${hours}${showNow ? `<div class="sc-tri" style="top:${nowTop}px"><span>${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}</span></div>` : ''}</div>
+        <div class="sc-cols">${cols}
+        ${Array.from({ length: maxH - minH }, (_, i) => `<div class="sc-line" style="top:${i * HOUR}px"></div>`).join('')}
+        ${showNow ? `<div class="sc-nowline" style="top:${nowTop}px"></div>` : ''}</div>
+      </div></div>
+      ${!inWeek.length ? `<div class="sc-empty-week">这一周没有课${ts && week < ts ? '<button class="chip-btn glass" id="schedJump">跳到开课第一周</button>' : ''}</div>` : ''}</div>`;
     const grid = body.querySelector('.sc-grid');
     grid.scrollLeft = keepX;
-    const cur = body.querySelector('.sc-now');
     if (keepY !== null) grid.scrollTop = keepY;
-    else if (cur) grid.scrollTop = Math.max(0, parseFloat(cur.style.top) - 140);
+    else if (zoom > 1 && showNow) grid.scrollTop = Math.max(0, nowTop - 140);
+    const j = $('#schedJump'); if (j) j.onclick = () => { week = ts; Sched.render(); };
+    attachPinch(grid);
   };
+
+  // ---------- 捏合缩放：接近全览时吸附回全览 ----------
+  function attachPinch(grid) {
+    const inner = grid.querySelector('.sc-inner');
+    let p = null;
+    const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    grid.addEventListener('touchstart', e => {
+      if (e.touches.length !== 2) return;
+      const r = grid.getBoundingClientRect();
+      const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left, cy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
+      p = { d0: dist(e.touches), s: 1, cx, cy, fx: grid.scrollLeft + cx, fy: grid.scrollTop + cy };
+      inner.style.transition = 'none';
+      inner.style.transformOrigin = `${p.fx}px ${p.fy}px`;
+    }, { passive: true });
+    grid.addEventListener('touchmove', e => {
+      if (!p || e.touches.length !== 2) return;
+      e.preventDefault();
+      p.s = Math.max(1 / zoom, Math.min(3.2 / zoom, dist(e.touches) / p.d0));
+      inner.style.transform = `scale(${p.s})`;
+    }, { passive: false });
+    const end = () => {
+      if (!p) return;
+      const { s: sc, fx, fy, cx, cy } = p; p = null;
+      let z = zoom * sc;
+      if (z < 1.18) z = 1;                       // 吸附回全览
+      else if (Math.abs(z - 2) < .15) z = 2;      // 吸附到两倍
+      z = Math.min(3, z);
+      const ratio = z / zoom, visual = zoom * sc / z;
+      zoom = z;
+      Sched.render();
+      const g = $('#schedBody .sc-grid'), inn = g.querySelector('.sc-inner');
+      g.scrollLeft = fx * ratio - cx; g.scrollTop = fy * ratio - cy;
+      // 从松手时的大小平滑过渡到吸附后的大小
+      inn.style.transition = 'none';
+      inn.style.transformOrigin = `${fx * ratio}px ${fy * ratio}px`;
+      inn.style.transform = `scale(${visual})`;
+      requestAnimationFrame(() => { inn.style.transition = 'transform .32s cubic-bezier(.25,1.2,.4,1)'; inn.style.transform = 'none'; });
+    };
+    grid.addEventListener('touchend', end);
+    grid.addEventListener('touchcancel', end);
+    grid.addEventListener('wheel', e => { // 触控板捏合
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoom = Math.max(1, Math.min(3, zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08)));
+      clearTimeout(grid._snap);
+      grid._snap = setTimeout(() => { if (zoom < 1.18) zoom = 1; Sched.render(); }, 160);
+      Sched.render();
+    }, { passive: false });
+  }
+
   Sched.goto = ds => { week = mondayOf(MC.parse(ds)); Sched.render(); };
   function shiftWeek(n) {
     const body = $('#schedBody');
@@ -305,23 +357,59 @@
     body.classList.add(n > 0 ? 'slide-l' : 'slide-r');
     Sched.render();
   }
-  $('#schedFit').onclick = () => { MC.settings.schedFit = MC.settings.schedFit === false; MC.saveSettings(); Sched.render(); };
+  $('#schedFit').onclick = () => { zoom = 1; Sched.render(); };
   window.addEventListener('resize', () => { if (document.getElementById('page-sched').classList.contains('active')) Sched.render(); });
   $('#schedPrev').onclick = () => shiftWeek(-1);
   $('#schedNext').onclick = () => shiftWeek(1);
   $('#schedThisWeek').onclick = () => { week = mondayOf(new Date()); Sched.render(); };
-  // 左右滑动换周
+  // 左右滑动换周（放大后左右滑动用来滚动内容）
   (() => {
     const el = $('#schedBody'); let x0 = 0, y0 = 0, on = false;
-    el.addEventListener('touchstart', e => { if (e.touches.length !== 1) return; on = true; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    el.addEventListener('touchstart', e => { if (e.touches.length !== 1) { on = false; return; } on = true; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
     el.addEventListener('touchend', e => {
-      if (!on) return; on = false;
+      if (!on || e.touches.length) return; on = false;
+      if (zoom > 1) return;
       const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
-      const g = el.querySelector('.sc-grid');
-      if (g && g.scrollWidth > g.clientWidth + 2) return; // 内容可以左右滚动时，滑动用来滚动内容；换周用顶部箭头
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftWeek(dx < 0 ? 1 : -1);
     }, { passive: true });
   })();
+
+  // ---------- 点「第几周」：月历里选月份和周 ----------
+  let pickMonth = null;
+  const wk = $('#wkpick'), wkScrim = $('#wkpickScrim');
+  function renderWeekPicker() {
+    const { y, m } = pickMonth, first = new Date(y, m, 1), start = mondayOf(first), t = MC.todayStr(), ts = termStart();
+    let rows = '';
+    for (let r = 0; r < 6; r++) {
+      const mon = MC.addDays(start, r * 7);
+      if (r > 3 && mon.getMonth() !== m) break;
+      const cur = MC.ymd(mon) === MC.ymd(week);
+      const n = ts ? Math.round((mon - ts) / 6048e5) + 1 : 0;
+      let cells = '';
+      for (let k = 0; k < 7; k++) {
+        const d = MC.addDays(mon, k), ds = MC.ymd(d);
+        const has = (MC.data.courses || []).some(c => Sched.on(c, d));
+        cells += `<span class="${d.getMonth() !== m ? 'out' : ''}${ds === t ? ' today' : ''}">${d.getDate()}${has ? '<i></i>' : ''}</span>`;
+      }
+      rows += `<button class="wp-row${cur ? ' on' : ''}" data-mon="${MC.ymd(mon)}"><em>${n >= 1 && n <= 30 ? n : ''}</em>${cells}</button>`;
+    }
+    wk.innerHTML = `<div class="wp-head"><button class="nav-btn" data-pn="-1" aria-label="上个月">‹</button><b>${y}年${m + 1}月</b><button class="nav-btn" data-pn="1" aria-label="下个月">›</button></div>
+      <div class="wp-week"><em>周</em>${[1, 2, 3, 4, 5, 6, 7].map(d => `<span>${DAYS[d]}</span>`).join('')}</div>${rows}`;
+  }
+  $('#schedWeekBtn').onclick = () => {
+    pickMonth = { y: week.getFullYear(), m: MC.addDays(week, 3).getMonth() };
+    if (MC.addDays(week, 3).getFullYear() !== pickMonth.y) pickMonth.y = MC.addDays(week, 3).getFullYear();
+    renderWeekPicker();
+    wk.classList.add('show'); wkScrim.classList.add('show');
+  };
+  const closeWk = () => { wk.classList.remove('show'); wkScrim.classList.remove('show'); };
+  wkScrim.onclick = closeWk;
+  wk.addEventListener('click', e => {
+    const n = e.target.closest('[data-pn]');
+    if (n) { const d = new Date(pickMonth.y, pickMonth.m + Number(n.dataset.pn), 1); pickMonth = { y: d.getFullYear(), m: d.getMonth() }; renderWeekPicker(); return; }
+    const r = e.target.closest('[data-mon]');
+    if (r) { week = MC.parse(r.dataset.mon); closeWk(); Sched.render(); }
+  });
 
   // ---------- 导入 / 编辑面板 ----------
   let parsed = [], mode = 'import', editing = null, editDay = 1, editEvery = 1;
@@ -334,19 +422,46 @@
       <div class="help-tip" style="margin-bottom:10px">小技巧：网页上的课程表如果有「列表视图」，切到列表再复制，识别最准确（uoZone 就是「List View」）。<br>也可以自己一行写一节：<code>MAT 2348 周二 14:30-15:50 Tabaret 333</code><br>或从 Excel 复制带表头的表格（课程 / 星期 / 开始 / 结束 / 教室）。</div>
       <textarea id="schedText" rows="6" placeholder="在这里粘贴课程表…"></textarea>
       <div class="btn-line"><span><button class="chip-btn glass" id="schedIcs">.ics 文件</button> <button class="chip-btn glass" id="schedManual">手动添加</button></span><label class="replace-opt"><input type="checkbox" id="schedReplace" checked> 替换现有课表</label></div>
+      <div class="imp-range" id="impRange" hidden>
+        <p class="hint" style="margin:12px 4px 8px">有些课程没有写日期，请选择它们的上课时间：</p>
+        <div class="sc-times"><label class="field"><span>从</span><input type="month" id="impFromM"></label><label class="field"><span>到</span><input type="month" id="impToM"></label></div>
+        <label class="replace-opt" style="margin:2px 4px 8px"><input type="checkbox" id="impExact"> 精确到具体日期（可选）</label>
+        <div class="sc-times" id="impExactBox" hidden><label class="field"><span>开课日期</span><input type="date" id="impFrom"></label><label class="field"><span>结课日期</span><input type="date" id="impTo"></label></div>
+      </div>
       <div id="schedPreview"></div>`;
+    const ym0 = new Date(), ym1 = new Date(ym0.getFullYear(), ym0.getMonth() + 3, 1);
+    $('#impFromM').value = `${ym0.getFullYear()}-${pad(ym0.getMonth() + 1)}`;
+    $('#impToM').value = `${ym1.getFullYear()}-${pad(ym1.getMonth() + 1)}`;
+    $('#impExact').onchange = () => { $('#impExactBox').hidden = !$('#impExact').checked; preview(); };
+    ['impFromM', 'impToM', 'impFrom', 'impTo'].forEach(id => $('#' + id).addEventListener('change', preview));
     $('#schedText').addEventListener('input', () => { parsed = Sched.parseText($('#schedText').value); preview(); });
     $('#schedIcs').onclick = () => $('#schedFile').click();
     $('#schedManual').onclick = () => openEdit(null);
     preview();
     UI.open('schedSheet');
   }
+  // 没写日期的课程：用选择的月份（默认整月），勾了「精确」就用具体日期
+  function fillDates(list) {
+    const box = $('#impRange'); if (!box) return list;
+    const missing = list.some(c => !c.from && !c.to);
+    box.hidden = !missing;
+    if (!missing) return list;
+    let from, to;
+    if ($('#impExact').checked && $('#impFrom').value) { from = $('#impFrom').value; to = $('#impTo').value || ''; }
+    else {
+      const fm = $('#impFromM').value, tm = $('#impToM').value;
+      from = fm ? `${fm}-01` : '';
+      if (tm) { const [y, m] = tm.split('-').map(Number); to = MC.ymd(new Date(y, m, 0)); } else to = '';
+    }
+    if (from && to && to < from) to = '';
+    return list.map(c => (c.from || c.to ? c : { ...c, from, to }));
+  }
   function preview() {
     const el = $('#schedPreview');
     if (!parsed.length) { el.innerHTML = ''; $('#schedOk').classList.add('disabled'); return; }
     $('#schedOk').classList.remove('disabled');
     $('#schedOk').textContent = `导入 ${parsed.length} 节`;
-    const sorted = [...parsed].sort((a, b) => a.day - b.day || toMin(a.start) - toMin(b.start));
+    const sorted = fillDates([...parsed]).sort((a, b) => a.day - b.day || toMin(a.start) - toMin(b.start));
     el.innerHTML = `<p class="hint" style="margin:10px 4px 6px">识别到 ${parsed.length} 节课，确认无误后点右上角导入：</p>
       <div class="group">${sorted.map(c => `<div class="grow sc-prev"><i style="background:${colorOf(c.code)}"></i><span><b>${esc(c.code)}</b> ${esc(c.type)}<small>周${DAYS[c.day]} ${c.start}–${c.end}${c.room ? ' · ' + esc(c.room) : ''}${c.from ? ` · ${c.from.slice(5).replace('-', '/')}${c.to && c.to !== c.from ? '–' + c.to.slice(5).replace('-', '/') : ''}` : ''}${c.every === 2 ? ' · 隔周' : ''}</small></span></div>`).join('')}</div>`;
   }
@@ -382,7 +497,7 @@
   $('#schedOk').onclick = () => {
     if (mode === 'import') {
       if (!parsed.length) return;
-      const items = parsed.map(c => ({ ...c, id: MC.uid() }));
+      const items = fillDates(parsed).map(c => ({ ...c, id: MC.uid() }));
       MC.setCourses($('#schedReplace').checked ? items : [...(MC.data.courses || []), ...items]);
       UI.close('schedSheet'); UI.toast(`已导入 ${items.length} 节课`);
       return;
