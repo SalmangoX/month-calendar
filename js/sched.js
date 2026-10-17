@@ -266,6 +266,7 @@
     });
     let hours = '';
     for (let h = minH; h < maxH; h++) hours += `<div class="sc-hr" style="top:${(h - minH) * HOUR}px">${h}:00</div>`;
+    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
     let cols = '';
     days.forEach((d, idx) => {
       const isToday = idx === todayIdx;
@@ -273,14 +274,14 @@
         const top = (toMin(c.start) / 60 - minH) * HOUR + 1, hgt = Math.max(16, (toMin(c.end) - toMin(c.start)) / 60 * HOUR - 3);
         const w = 100 / c._lanes, left = c._lane * w;
         const lines = Math.max(1, Math.floor((hgt - 48 * fs) / (13.5 * fs)));
-        return `<button class="sc-blk${c._lanes > 1 ? ' narrow' : ''}" data-id="${c.id}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px);--c:${colorOf(c.code)}">
+        const live = isToday && nowMin >= toMin(c.start) && nowMin < toMin(c.end);
+        return `<button class="sc-blk${c._lanes > 1 ? ' narrow' : ''}${live ? ' live' : ''}" data-id="${c.id}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px);--c:${colorOf(c.code)}">
           ${c._lanes > 1 || hgt < 40 * fs ? '' : `<small class="t">${c.start}–${c.end}</small>`}<b>${c._lanes > 1 ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>${c.type ? `<span class="k">${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}</span>` : (c.every === 2 ? '<span class="k">隔周</span>' : '')}${c.room && hgt > 60 * fs && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(c.room)}</span>` : ''}</button>`;
       }).join('');
       cols += `<div class="sc-col${isToday ? ' today' : ''}${wts[idx] < 1 ? ' thin' : ''}">${blocks}</div>`;
     });
-    // 当前时间：贯穿整周的横线，左边时间轴上有一个三角
-    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
-    const showNow = todayIdx >= 0 && nowMin >= minH * 60 && nowMin <= maxH * 60;
+    // 当前时间：整周一条细线（在课程下面），左边时间轴上有一个三角
+    const showNow = nowMin >= minH * 60 && nowMin <= maxH * 60; // 换到别的周也显示「现在几点」
     const nowTop = (nowMin / 60 - minH) * HOUR;
     const grid0 = body.querySelector('.sc-grid'), keepX = grid0 ? grid0.scrollLeft : 0, keepY = grid0 ? grid0.scrollTop : null;
     body.innerHTML = `<div class="sc-grid${zoom > 1 ? '' : ' fit'}" style="--tpl:${tpl};--fs:${fs.toFixed(3)}"><div class="sc-inner">
@@ -351,27 +352,59 @@
 
   Sched.goto = ds => { week = mondayOf(MC.parse(ds)); Sched.render(); };
   function shiftWeek(n) {
-    const body = $('#schedBody');
     week = MC.addDays(week, 7 * n);
-    body.classList.remove('slide-l', 'slide-r'); void body.offsetWidth;
-    body.classList.add(n > 0 ? 'slide-l' : 'slide-r');
     Sched.render();
+    const inn = $('#schedBody .sc-inner'); if (!inn) return;
+    inn.style.transition = 'none'; inn.style.transform = `translate3d(${n * 36}px,0,0)`; inn.style.opacity = '.3';
+    requestAnimationFrame(() => requestAnimationFrame(() => { inn.style.transition = 'transform .3s cubic-bezier(.2,.9,.25,1), opacity .22s'; inn.style.transform = 'none'; inn.style.opacity = '1'; }));
   }
   $('#schedFit').onclick = () => { zoom = 1; Sched.render(); };
   window.addEventListener('resize', () => { if (document.getElementById('page-sched').classList.contains('active')) Sched.render(); });
   $('#schedPrev').onclick = () => shiftWeek(-1);
   $('#schedNext').onclick = () => shiftWeek(1);
   $('#schedThisWeek').onclick = () => { week = mondayOf(new Date()); Sched.render(); };
-  // 左右滑动换周（放大后左右滑动用来滚动内容）
+  // 左右滑动换周：内容跟着手指走，松手后由合成器播放滑出 / 滑入（放大时左右滑动用来滚动内容）
   (() => {
-    const el = $('#schedBody'); let x0 = 0, y0 = 0, on = false;
-    el.addEventListener('touchstart', e => { if (e.touches.length !== 1) { on = false; return; } on = true; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
-    el.addEventListener('touchend', e => {
-      if (!on || e.touches.length) return; on = false;
-      if (zoom > 1) return;
-      const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftWeek(dx < 0 ? 1 : -1);
+    const el = $('#schedBody');
+    let x0 = 0, y0 = 0, t0 = 0, dx = 0, state = 0, inner = null;
+    el.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1 || zoom > 1) { state = 0; return; }
+      inner = el.querySelector('.sc-inner'); if (!inner) return;
+      state = 1; dx = 0; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = performance.now();
     }, { passive: true });
+    el.addEventListener('touchmove', e => {
+      if (!state || e.touches.length !== 1) { state = 0; return; }
+      dx = e.touches[0].clientX - x0; const dy = e.touches[0].clientY - y0;
+      if (state === 1) {
+        if (Math.abs(dx) < 8) return;
+        if (Math.abs(dx) < Math.abs(dy) * 1.2) { state = 0; return; }
+        state = 2; inner.style.transition = 'none';
+      }
+      e.preventDefault();
+      inner.style.transform = `translate3d(${dx}px,0,0)`;
+      inner.style.opacity = String(1 - Math.min(.35, Math.abs(dx) / 900));
+    }, { passive: false });
+    const end = () => {
+      if (state !== 2) { state = 0; return; }
+      state = 0;
+      const v = dx / Math.max(1, performance.now() - t0), Wd = el.clientWidth;
+      if (Math.abs(dx) > Wd * .22 || Math.abs(v) > .45) {
+        const dir = dx < 0 ? 1 : -1;
+        inner.style.transition = 'transform .2s cubic-bezier(.3,.7,.4,1), opacity .2s';
+        inner.style.transform = `translate3d(${-dir * Wd}px,0,0)`; inner.style.opacity = '0';
+        setTimeout(() => {
+          week = MC.addDays(week, 7 * dir); Sched.render();
+          const n = el.querySelector('.sc-inner'); if (!n) return;
+          n.style.transition = 'none'; n.style.transform = `translate3d(${dir * Wd * .35}px,0,0)`; n.style.opacity = '0';
+          requestAnimationFrame(() => requestAnimationFrame(() => { n.style.transition = 'transform .32s cubic-bezier(.2,.9,.25,1), opacity .25s'; n.style.transform = 'none'; n.style.opacity = '1'; }));
+        }, 190);
+      } else {
+        inner.style.transition = 'transform .3s cubic-bezier(.25,1.3,.4,1), opacity .2s';
+        inner.style.transform = 'none'; inner.style.opacity = '1';
+      }
+    };
+    el.addEventListener('touchend', end);
+    el.addEventListener('touchcancel', end);
   })();
 
   // ---------- 点「第几周」：月历里选月份和周 ----------

@@ -111,7 +111,7 @@ function build(family, courses, offline) {
   if (!courses.length) { w.setPadding(14, 14, 14, 14); addText(w, "课表", Font.boldSystemFont(15), C.text); w.addSpacer(6); addText(w, "还没有导入课表", Font.systemFont(12), C.text2); return w; }
 
   if (family === "medium") return weekLayout(w, courses, now, offline);
-  if (family === "large") return monthLayout(w, courses, now, offline);
+  if (family === "large") return gridLayout(w, courses, now, offline);
 
   const pick = pickDay(courses, now);
   w.setPadding(12, 12, 10, 12);
@@ -173,7 +173,86 @@ function weekLayout(w, courses, now, offline) {
   return w;
 }
 
-// 大号：整月课表（每天显示当天的课）
+// 大号：本周详细课表（时间轴 + 每天一列，课程按上下课时间画成色块）
+const LARGE = { 440: [364, 382], 430: [364, 382], 428: [364, 382], 414: [360, 379], 402: [344, 362], 393: [338, 354], 390: [338, 354], 375: [329, 345], 360: [329, 345], 320: [292, 311] };
+function gridLayout(w, courses, now, offline) {
+  const sw = Math.min(Device.screenSize().width, Device.screenSize().height);
+  const key = Object.keys(LARGE).map(Number).sort((a, b) => b - a).find(x => x <= sw) || 320;
+  const [W, H] = LARGE[key];
+  const dark = forced ? forced === "dark" : Device.isUsingDarkAppearance();
+  const P = dark ? { bg: "#1C1C1E", text: "#EFF1F4", text2: "#8A9099", line: "#2E3035", accent: "#8FA9C4", today: "#253141" }
+                 : { bg: "#F1F2F5", text: "#15171C", text2: "#777D87", line: "#DEE0E6", accent: "#56789A", today: "#E1E8F0" };
+  const mon = mondayOf(now), todayS = ymdL(now);
+  const days = [];
+  let minH = 8, maxH = 18;
+  for (let d = 1; d <= 7; d++) {
+    const date = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + d - 1);
+    const list = courses.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
+    if (d <= 5 || list.length) days.push({ d, date, list });
+    for (const c of list) { minH = Math.min(minH, Math.floor(toMin(c.start) / 60)); maxH = Math.max(maxH, Math.ceil(toMin(c.end) / 60)); }
+  }
+  const ctx = new DrawContext();
+  ctx.size = new Size(W, H); ctx.opaque = false; ctx.respectScreenScale = true;
+  const pad = 8, axis = 28, headH = 20, dayH = 18;
+  const gx = pad + axis, gy = pad + headH + dayH, gw = W - gx - pad, gh = H - gy - pad;
+  const colW = gw / days.length, hourH = gh / (maxH - minH);
+  const fk = Math.max(.75, Math.min(1.05, colW / 62));
+  const text = (t, x, y, w, h, font, color, align) => {
+    ctx.setFont(font); ctx.setTextColor(new Color(color));
+    if (align === "c") ctx.setTextAlignedCenter(); else if (align === "r") ctx.setTextAlignedRight(); else ctx.setTextAlignedLeft();
+    ctx.drawTextInRect(t, new Rect(x, y, w, h));
+  };
+  const round = (x, y, w, h, r, color) => { const p = new Path(); p.addRoundedRect(new Rect(x, y, w, h), r, r); ctx.addPath(p); ctx.setFillColor(new Color(color)); ctx.fillPath(); };
+  const mix = (a, b, t) => { const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16); const c = s => [(s >> 16) & 255, (s >> 8) & 255, s & 255]; const [ar, ag, ab] = c(A), [br, bg, bb] = c(B); return "#" + [br + (ar - br) * t, bg + (ag - bg) * t, bb + (ab - bb) * t].map(v => Math.round(v).toString(16).padStart(2, "0")).join(""); };
+
+  const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+  text("本周课表", pad + 4, pad, 80, 18, Font.boldSystemFont(13), P.accent);
+  text(`${mon.getMonth() + 1}/${mon.getDate()} – ${sun.getMonth() + 1}/${sun.getDate()}${offline ? " · 离线" : ""}`, pad + 70, pad + 2, 160, 16, Font.mediumSystemFont(10), P.text2);
+  days.forEach((x, i) => { if (ymdL(x.date) === todayS) round(gx + i * colW + 1, pad + headH, colW - 2, H - pad - (pad + headH), 8, P.today); });
+  days.forEach((x, i) => {
+    const t = ymdL(x.date) === todayS;
+    text(`周${WD[x.d]} ${x.date.getDate()}`, gx + i * colW, pad + headH + 3, colW, 14, t ? Font.boldSystemFont(9.5) : Font.mediumSystemFont(9.5), t ? P.accent : P.text2, "c");
+  });
+  for (let h = minH; h <= maxH; h++) {
+    const y = gy + (h - minH) * hourH;
+    ctx.setFillColor(new Color(P.line)); ctx.fillRect(new Rect(gx, y, gw, 0.6));
+    if (h < maxH) text(`${h}:00`, pad, y + 1, axis - 4, 12, Font.systemFont(8.5), P.text2, "r");
+  }
+  for (let i = 1; i < days.length; i++) { ctx.setFillColor(new Color(P.line)); ctx.fillRect(new Rect(gx + i * colW, gy, 0.6, gh)); }
+  days.forEach((x, i) => {
+    // 同一时间几节课并排
+    const L = x.list.map(c => ({ ...c })); let ends = [], gEnd = -1, grp = [];
+    const flush = () => { grp.forEach(c => (c._n = ends.length)); grp = []; ends = []; };
+    for (const c of L) {
+      if (grp.length && toMin(c.start) >= gEnd) { flush(); gEnd = -1; }
+      let k = ends.findIndex(e => e <= toMin(c.start)); if (k < 0) { k = ends.length; ends.push(0); }
+      ends[k] = toMin(c.end); c._k = k; gEnd = Math.max(gEnd, toMin(c.end)); grp.push(c);
+    }
+    flush();
+    for (const c of L) {
+      const lw = colW / c._n, x0 = gx + i * colW + c._k * lw + 1.5, y0 = gy + (toMin(c.start) / 60 - minH) * hourH + 1;
+      const bw = lw - 3, bh = (toMin(c.end) - toMin(c.start)) / 60 * hourH - 2, col = colorOf(c.code);
+      round(x0, y0, bw, bh, 5, mix(col, P.bg, dark ? .3 : .2));
+      round(x0, y0, 3, bh, 1.5, col);
+      let y = y0 + 2;
+      const rows = [[c.code, Font.boldSystemFont(10 * fk), dark ? mix(col, "#FFFFFF", .45) : mix(col, "#000000", .75)],
+        [c.type, Font.systemFont(8.5 * fk), P.text], [`${c.start}–${c.end}`, Font.systemFont(8 * fk), P.text2], [c.room, Font.systemFont(8 * fk), P.text]];
+      for (const [t, f, color] of rows) {
+        if (!t) continue;
+        const lh = f.pointSize ? f.pointSize * 1.25 : 11;
+        const h = (f === rows[0][1] ? 10 : 8.5) * fk * 1.3;
+        if (y + h > y0 + bh) break;
+        text(t, x0 + 5, y, bw - 7, h, f, color);
+        y += h;
+      }
+    }
+  });
+  w.setPadding(0, 0, 0, 0);
+  w.backgroundImage = ctx.getImage();
+  return w;
+}
+
+// 大号（旧）：整月课表（每天显示当天的课）
 function monthLayout(w, courses, now, offline) {
   w.setPadding(8, 3, 2, 3);
   const y = now.getFullYear(), m = now.getMonth(), today = ymdL(now);

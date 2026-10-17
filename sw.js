@@ -1,6 +1,6 @@
 // 版本号由 GitHub Actions 发布时自动写入（.github/workflows/pages.yml），平时不用手动改。
 // 如果仍用「从分支部署」，发布新版本时要把这里的 VERSION、index.html 里的 ?v=、js/store.js 的 MC.VERSION 和 version.json 改成同一个版本号。
-const VERSION = '0.9.5';
+const VERSION = '0.9.6';
 const CACHE = 'mcal-' + VERSION;
 const V = '?v=' + VERSION;
 const ASSETS = [

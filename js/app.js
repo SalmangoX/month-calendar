@@ -43,8 +43,9 @@
   };
   function applyTab3() {
     const btn = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
-    const v = MC.settings.tab3 || 'quad';
-    btn.hidden = v === 'off';
+    if (MC.settings.tab3 !== 'sched') MC.settings.tab3 = 'quad'; // 不再提供「不显示」，在页面左上角切换四象限 / 课表
+    const v = MC.settings.tab3;
+    btn.hidden = false;
     if (v !== 'off') { btn.dataset.page = v; btn.setAttribute('aria-label', TAB3[v].label); btn.innerHTML = TAB3[v].svg + `<span>${TAB3[v].label}</span>`; }
     if ((page === 'quad' || page === 'sched') && page !== v) showPage('cal'); else placeInd(false);
   }
@@ -300,7 +301,6 @@
     let h = group('通用', [
       srow({ act: 'theme', icon: 'theme', color: COL.slate, label: '外观', val: { auto: '跟随系统', light: '浅色', dark: '深色' }[S.theme] }),
       srow({ act: 'week', icon: 'week', color: COL.indigo, label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
-      srow({ act: 'tab3', icon: 'grid', color: COL.teal, label: '菜单第三项', val: { quad: '四象限', sched: '课表', off: '不显示' }[S.tab3 || 'quad'] }),
     ]);
     if (!MC.vault.connected()) {
       h += group('账户与同步', [

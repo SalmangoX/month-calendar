@@ -653,6 +653,7 @@ html.locked .lock { display: grid; }
 .sc-fit { padding: 6px 12px; font-size: 12.5px; position: absolute; left: 52px; }
 .sc-grid.fit { overflow: hidden; }
 .sc-grid { touch-action: pan-x pan-y; }
+.sc-grid.fit { touch-action: none; }
 .sc-empty-week { text-align: center; color: var(--text2); font-size: 13px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .sc-hr { z-index: 1; }
 .sc-grid.fit .sc-blk { padding: calc(4px * var(--fs)) 3px calc(4px * var(--fs)) 6px; border-radius: 8px; }
@@ -682,7 +683,7 @@ html.locked .lock { display: grid; }
 .sc-col { position: relative; border-left: .5px solid var(--group-line); }
 .sc-col.today {
   z-index: 2; border-radius: 12px; border-left-color: transparent;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 7%, var(--surface)) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 15%, transparent) 0%, color-mix(in srgb, var(--accent) 7%, transparent) 100%); /* 半透明：时间线能透出来 */
   box-shadow: 0 0 0 .5px color-mix(in srgb, var(--accent) 30%, transparent), 0 6px 18px rgba(40, 70, 105, .16), 0 1px 3px rgba(40, 70, 105, .1);
 }
 :root[data-theme="dark"] .sc-col.today { box-shadow: 0 0 0 .5px color-mix(in srgb, var(--accent) 45%, transparent), 0 6px 20px rgba(0, 0, 0, .55); }
@@ -708,7 +709,10 @@ html.locked .lock { display: grid; }
 .sc-blk.narrow { padding: 3px 1px 3px 4px; }
 .sc-blk.narrow b { font-size: calc(11px * var(--fs, 1)); letter-spacing: -.03em; word-break: keep-all; overflow-wrap: normal; }
 .sc-blk.narrow .k { display: none; }
-.sc-nowline { position: absolute; left: 0; right: 0; height: 1.5px; background: var(--p3); z-index: 3; pointer-events: none; opacity: .85; }
+.sc-nowline { position: absolute; left: 0; right: 0; height: 1px; z-index: 0; pointer-events: none;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--p3) 70%, transparent) 0 6px, transparent 6px 10px); }
+.sc-col { z-index: 1; }
+.sc-blk.live { box-shadow: inset 3px 0 0 var(--c), 0 0 0 1.5px var(--c), 0 4px 12px color-mix(in srgb, var(--c) 35%, transparent); }
 .sc-tri { position: absolute; right: 0; z-index: 4; transform: translateY(-50%); display: flex; align-items: center; pointer-events: none; }
 .sc-tri span { font-size: 9px; font-weight: 700; color: #fff; background: var(--p3); padding: 1px 3px; border-radius: 4px 0 0 4px; font-variant-numeric: tabular-nums; }
 .sc-tri::after { content: ""; width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 6px solid var(--p3); }
