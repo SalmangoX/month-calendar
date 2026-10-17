@@ -27,6 +27,21 @@ const C = {
 const colorOf = code => { let h = 0; for (const c of code) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; };
 const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const isoDay = d => ((d.getDay() + 6) % 7) + 1;
+const ymdL = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const mondayOf = d => new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7));
+// 这一天有没有这节课：星期、起止日期、隔周
+function onDate(c, date) {
+  if (isoDay(date) !== c.day) return false;
+  const ds = ymdL(date);
+  if (c.from && ds < c.from) return false;
+  if (c.to && ds > c.to) return false;
+  if (c.every === 2 && c.from) {
+    const [y, m, d] = c.from.split("-").map(Number);
+    const w = Math.round((mondayOf(date) - mondayOf(new Date(y, m - 1, d))) / (7 * 864e5));
+    if (w % 2) return false;
+  }
+  return true;
+}
 
 async function loadCourses() {
   const fm = FileManager.local();
@@ -53,11 +68,11 @@ async function loadCourses() {
 // 今天的课；今天已经没有课了就找下一个有课的日子
 function pickDay(courses, now) {
   const today = isoDay(now), nm = now.getHours() * 60 + now.getMinutes();
-  for (let k = 0; k < 8; k++) {
-    const d = ((today - 1 + k) % 7) + 1;
-    let list = courses.filter(c => c.day === d).sort((a, b) => toMin(a.start) - toMin(b.start));
+  for (let k = 0; k < 15; k++) {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + k), d = isoDay(date);
+    let list = courses.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
     if (k === 0) { if (list.some(c => toMin(c.end) > nm)) return { label: "今天", day: d, list, isToday: true }; continue; }
-    if (list.length) return { label: k === 1 ? "明天" : `周${WD[d]}`, day: d, list, isToday: false };
+    if (list.length) return { label: k === 1 ? "明天" : k < 7 ? `周${WD[d]}` : `${date.getMonth() + 1}月${date.getDate()}日`, day: d, list, isToday: false };
   }
   return null;
 }
@@ -100,8 +115,10 @@ function build(family, courses, offline) {
     header(w, "本周课表", offline ? "离线" : "");
     w.addSpacer(6);
     const today = isoDay(now);
+    const mon = mondayOf(now);
     for (let d = 1; d <= 7; d++) {
-      const list = courses.filter(c => c.day === d).sort((a, b) => toMin(a.start) - toMin(b.start));
+      const date = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + d - 1);
+      const list = courses.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
       if (!list.length) continue;
       const dh = w.addStack();
       addText(dh, `周${WD[d]}${d === today ? " · 今天" : ""}`, Font.semiboldSystemFont(11), d === today ? C.accent : C.text2);
@@ -118,7 +135,7 @@ function build(family, courses, offline) {
 
   const pick = pickDay(courses, now);
   w.setPadding(12, 12, 10, 12);
-  if (!pick) { addText(w, "这周没有课", Font.systemFont(13), C.text2); return w; }
+  if (!pick) { addText(w, "最近两周没有课", Font.systemFont(13), C.text2); return w; }
   header(w, pick.label, `周${WD[pick.day]}${offline ? " · 离线" : ""}`);
   w.addSpacer(6);
   let list = pick.list;
@@ -140,7 +157,7 @@ function build(family, courses, offline) {
 // 下一次需要刷新的时间：最近一节课的开始或结束，最长 30 分钟
 function nextRefresh(courses) {
   const now = new Date(), nm = now.getHours() * 60 + now.getMinutes(), today = isoDay(now);
-  const marks = courses.filter(c => c.day === today).flatMap(c => [toMin(c.start), toMin(c.end)]).filter(m => m > nm).sort((a, b) => a - b);
+  const marks = courses.filter(c => onDate(c, now)).flatMap(c => [toMin(c.start), toMin(c.end)]).filter(m => m > nm).sort((a, b) => a - b);
   const mins = marks.length ? Math.min(30, marks[0] - nm) : 30;
   return new Date(Date.now() + Math.max(1, mins) * 60000);
 }

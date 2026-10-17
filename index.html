@@ -25,7 +25,7 @@
     } catch (e) { document.documentElement.dataset.theme = 'light'; }
   })();
 </script>
-<link rel="stylesheet" href="styles.css?v=0.9.0">
+<link rel="stylesheet" href="styles.css?v=0.9.1">
 </head>
 <body>
 
@@ -61,7 +61,7 @@
   <!-- 四象限 -->
   <section class="page" id="page-quad">
     <header class="ptitle">
-      <div><h1>四象限</h1><div class="seg small tab3seg"><button data-v="quad" class="on">四象限</button><button data-v="sched">课表</button></div></div>
+      <div><button class="pswitch" aria-haspopup="menu" aria-label="切换四象限 / 课表"><h1>四象限</h1><svg class="psw-chev" viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5"/></svg></button><p>按优先级查看所有事件</p></div>
       <button class="chip-btn glass" id="btnQuadDone">显示已完成</button>
     </header>
     <div class="quad" id="quadBody"></div>
@@ -70,9 +70,15 @@
   <!-- 课表 -->
   <section class="page" id="page-sched">
     <header class="ptitle">
-      <div><h1>课表</h1><div class="seg small tab3seg"><button data-v="quad">四象限</button><button data-v="sched" class="on">课表</button></div></div>
+      <div><button class="pswitch" aria-haspopup="menu" aria-label="切换四象限 / 课表"><h1>课表</h1><svg class="psw-chev" viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5"/></svg></button></div>
       <div class="sc-actions"><button class="chip-btn glass" id="schedImport">导入</button><button class="chip-btn glass" id="schedAdd" aria-label="添加课程">＋</button></div>
     </header>
+    <div class="sc-nav" id="schedNav">
+      <button class="nav-btn" id="schedPrev" aria-label="上一周">‹</button>
+      <div class="sc-week"><b id="schedWeekMain"></b><small id="schedWeekSub"></small></div>
+      <button class="nav-btn" id="schedNext" aria-label="下一周">›</button>
+      <button class="chip-btn glass sc-this" id="schedThisWeek" hidden>本周</button>
+    </div>
     <div class="pscroll sc-scroll" id="schedBody"></div>
   </section>
 
@@ -250,13 +256,13 @@
 <input type="file" id="avatarFile" accept="image/*" hidden>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
-<script src="js/store.js?v=0.9.0"></script>
-<script src="js/native.js?v=0.9.0"></script>
-<script src="js/ui.js?v=0.9.0"></script>
-<script src="js/calendar.js?v=0.9.0"></script>
-<script src="js/editor.js?v=0.9.0"></script>
-<script src="js/push.js?v=0.9.0"></script>
-<script src="js/sched.js?v=0.9.0"></script>
-<script src="js/app.js?v=0.9.0"></script>
+<script src="js/store.js?v=0.9.1"></script>
+<script src="js/native.js?v=0.9.1"></script>
+<script src="js/ui.js?v=0.9.1"></script>
+<script src="js/calendar.js?v=0.9.1"></script>
+<script src="js/editor.js?v=0.9.1"></script>
+<script src="js/push.js?v=0.9.1"></script>
+<script src="js/sched.js?v=0.9.1"></script>
+<script src="js/app.js?v=0.9.1"></script>
 </body>
 </html>

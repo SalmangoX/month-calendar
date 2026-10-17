@@ -48,10 +48,12 @@
     if (v !== 'off') { btn.dataset.page = v; btn.setAttribute('aria-label', TAB3[v].label); btn.innerHTML = TAB3[v].svg + `<span>${TAB3[v].label}</span>`; }
     if ((page === 'quad' || page === 'sched') && page !== v) showPage('cal'); else placeInd(false);
   }
-  // 页面内直接切换四象限 / 课表
-  document.querySelectorAll('.tab3seg').forEach(seg => seg.addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b || b.dataset.v === page) return;
-    MC.settings.tab3 = b.dataset.v; MC.saveSettings(); applyTab3(); showPage(b.dataset.v);
+  // 点左上角标题，弹出菜单切换四象限 / 课表
+  document.querySelectorAll('.pswitch').forEach(btn => btn.addEventListener('click', () => {
+    UI.menu(btn, [
+      { label: '四象限', value: 'quad', on: page === 'quad' },
+      { label: '课表', value: 'sched', on: page === 'sched' },
+    ], v => { if (v === page) return; MC.settings.tab3 = v; MC.saveSettings(); applyTab3(); showPage(v); });
   }));
   function renderPage() {
     if (page === 'sched') { MC.Sched.render(); return; }

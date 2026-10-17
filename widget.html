@@ -129,10 +129,18 @@
   const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   function renderSched(data) {
     const cs = data.courses || [], now = new Date(), nm = now.getHours() * 60 + now.getMinutes(), today = (now.getDay() + 6) % 7 + 1;
+    const mondayOf = d => new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7));
+    const onDate = (c, date) => {
+      if ((date.getDay() + 6) % 7 + 1 !== c.day) return false;
+      const ds = ymd(date);
+      if ((c.from && ds < c.from) || (c.to && ds > c.to)) return false;
+      if (c.every === 2 && c.from) { const [y, m, d] = c.from.split('-').map(Number); if (Math.round((mondayOf(date) - mondayOf(new Date(y, m - 1, d))) / 6048e5) % 2) return false; }
+      return true;
+    };
     let pick = null;
-    for (let k = 0; k < 8 && !pick; k++) {
-      const d = (today - 1 + k) % 7 + 1;
-      let list = cs.filter(c => c.day === d).sort((a, b) => toMin(a.start) - toMin(b.start));
+    for (let k = 0; k < 15 && !pick; k++) {
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + k), d = (date.getDay() + 6) % 7 + 1;
+      let list = cs.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
       if (k === 0) list = list.filter(c => toMin(c.end) > nm);
       if (list.length) pick = { d, k, list };
     }
