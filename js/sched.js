@@ -198,7 +198,7 @@
   };
 
   // ---------- 周课表视图（左右滑动或点箭头换周） ----------
-  const HOUR = 62;
+  const HOUR = 66;
   let week = mondayOf(new Date());
   function termStart() {
     const f = (MC.data.courses || []).map(c => c.from).filter(Boolean).sort()[0];
@@ -265,22 +265,26 @@
       const blocks = lanes(byDay[d]).map(c => {
         const top = (toMin(c.start) / 60 - minH) * HOUR + 1, hgt = Math.max(26, (toMin(c.end) - toMin(c.start)) / 60 * HOUR - 3);
         const w = 100 / c._lanes, left = c._lane * w;
-        const lines = Math.max(1, Math.floor((hgt - 30) / 13));
+        const lines = Math.max(1, Math.floor((hgt - 48) / 13.5));
         return `<button class="sc-blk${c._lanes > 1 ? ' narrow' : ''}" data-id="${c.id}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px);--c:${colorOf(c.code)}">
-          ${c._lanes > 1 ? '' : `<small class="t">${c.start}</small>`}<b>${c._lanes > 1 ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>${c.type ? `<span class="k">${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}</span>` : (c.every === 2 ? '<span class="k">隔周</span>' : '')}${c.room && hgt > 64 && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(c.room)}</span>` : ''}</button>`;
+          ${c._lanes > 1 ? '' : `<small class="t">${c.start}–${c.end}</small>`}<b>${c._lanes > 1 ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>${c.type ? `<span class="k">${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}</span>` : (c.every === 2 ? '<span class="k">隔周</span>' : '')}${c.room && hgt > 60 && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(c.room)}</span>` : ''}</button>`;
       }).join('');
       cols += `<div class="sc-col${isToday ? ' today' : ''}">${blocks}</div>`;
     });
     const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
     const nowLine = todayIdx >= 0 && nowMin >= minH * 60 && nowMin <= maxH * 60 ? `<div class="sc-now" style="top:${(nowMin / 60 - minH) * HOUR}px;--i:${todayIdx}"></div>` : '';
-    body.innerHTML = `<div class="sc-grid" style="--days:${days.length}">
+    const grid0 = body.querySelector('.sc-grid'), keepX = grid0 ? grid0.scrollLeft : 0, keepY = grid0 ? grid0.scrollTop : null;
+    body.innerHTML = `<div class="sc-grid" style="--days:${days.length}"><div class="sc-inner">
       <div class="sc-head">${head}</div>
       <div class="sc-main" style="height:${(maxH - minH) * HOUR}px">
-        <div class="sc-hours">${hours}</div><div class="sc-cols">${cols}${nowLine}</div>
-        ${Array.from({ length: maxH - minH }, (_, i) => `<div class="sc-line" style="top:${i * HOUR}px"></div>`).join('')}
-      </div></div>`;
+        <div class="sc-hours">${hours}</div><div class="sc-cols">${cols}${nowLine}
+        ${Array.from({ length: maxH - minH }, (_, i) => `<div class="sc-line" style="top:${i * HOUR}px"></div>`).join('')}</div>
+      </div></div></div>`;
+    const grid = body.querySelector('.sc-grid');
+    grid.scrollLeft = keepX;
     const cur = body.querySelector('.sc-now');
-    if (cur && !Sched._scrolled) { Sched._scrolled = true; body.scrollTop = Math.max(0, parseFloat(cur.style.top) - 140); }
+    if (keepY !== null) grid.scrollTop = keepY;
+    else if (cur) grid.scrollTop = Math.max(0, parseFloat(cur.style.top) - 140);
   };
   Sched.goto = ds => { week = mondayOf(MC.parse(ds)); Sched.render(); };
   function shiftWeek(n) {
@@ -300,6 +304,8 @@
     el.addEventListener('touchend', e => {
       if (!on) return; on = false;
       const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      const g = el.querySelector('.sc-grid');
+      if (g && g.scrollWidth > g.clientWidth + 2) return; // 内容可以左右滚动时，滑动用来滚动内容；换周用顶部箭头
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftWeek(dx < 0 ? 1 : -1);
     }, { passive: true });
   })();
@@ -380,8 +386,46 @@
   };
   $('#schedImport').onclick = openImport;
   $('#schedAdd').onclick = () => openEdit(null);
+  // ---------- 课程信息浮窗 ----------
+  const pop = $('#cpop'), scrim = $('#cpopScrim');
+  const fmtD = ds => { const d = MC.parse(ds); return `${d.getFullYear() !== new Date().getFullYear() ? d.getFullYear() + '年' : ''}${d.getMonth() + 1}月${d.getDate()}日`; };
+  function nextOn(c) {
+    const now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
+    for (let k = 0; k < 120; k++) {
+      const d = MC.addDays(new Date(now.getFullYear(), now.getMonth(), now.getDate()), k);
+      if (Sched.on(c, d) && !(k === 0 && toMin(c.end) <= nm)) return { d, live: k === 0 && nm >= toMin(c.start) };
+    }
+    return null;
+  }
+  function closePop() { pop.classList.remove('show'); scrim.classList.remove('show'); }
+  function openPop(c, el) {
+    const col = colorOf(c.code), dur = toMin(c.end) - toMin(c.start), nx = nextOn(c);
+    const nxText = !nx ? '本学期已结束' : nx.live ? '正在上课' : (() => { const k = Math.round((nx.d - new Date(new Date().toDateString())) / 864e5); return k === 0 ? '今天 ' + c.start : k === 1 ? '明天 ' + c.start : `${nx.d.getMonth() + 1}月${nx.d.getDate()}日（${k} 天后）`; })();
+    pop.style.setProperty('--c', col);
+    pop.innerHTML = `
+      <div class="cp-top"><div class="cp-tag">${esc(c.type || '课程')}${c.every === 2 ? ' · 隔周' : ''}</div><button class="round cp-x" aria-label="关闭"><svg viewBox="0 0 24 24" width="15" height="15"><path d="M6 6l12 12M18 6L6 18" stroke-width="2.4"/></svg></button></div>
+      <h3>${esc(c.code)}</h3>
+      <div class="cp-row"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg><span>周${DAYS[c.day]} ${c.start} – ${c.end}<small>${dur} 分钟</small></span></div>
+      ${c.room ? `<div class="cp-row"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg><span>${esc(c.room)}</span></div>` : ''}
+      <div class="cp-row"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="3.5"/><path d="M4 10h16M8.5 3.5v3.5M15.5 3.5v3.5"/></svg><span>${c.from || c.to ? `${c.from ? fmtD(c.from) : '开学'} – ${c.to ? fmtD(c.to) : '结课'}` : '每周都上'}<small>${c.every === 2 ? '隔一周上一次' : '每周'}</small></span></div>
+      <div class="cp-next${nx && nx.live ? ' live' : ''}">下一次：${nxText}</div>
+      <div class="cp-acts"><button class="cp-edit">编辑</button></div>`;
+    // 位置：贴着点开的那节课，优先显示在下方，放不下就放上方
+    pop.classList.add('show'); scrim.classList.add('show');
+    const r = el.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight, W = innerWidth, H = innerHeight;
+    let left = Math.min(Math.max(12, r.left + r.width / 2 - pw / 2), W - pw - 12);
+    let top = r.bottom + 10;
+    if (top + ph > H - 90) top = Math.max(12 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-t')) || 0), r.top - ph - 10);
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+    pop.style.transformOrigin = `${r.left + r.width / 2 - left}px ${top > r.top ? 0 : ph}px`;
+    pop.querySelector('.cp-x').onclick = closePop;
+    pop.querySelector('.cp-edit').onclick = () => { closePop(); openEdit(c); };
+  }
+  scrim.addEventListener('click', closePop);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && pop.classList.contains('show')) closePop(); });
   $('#schedBody').addEventListener('click', e => {
     const b = e.target.closest('.sc-blk'); if (!b) return;
-    const c = (MC.data.courses || []).find(x => x.id === b.dataset.id); if (c) openEdit(c);
+    const c = (MC.data.courses || []).find(x => x.id === b.dataset.id); if (c) openPop(c, b);
   });
+  $('#schedBody').addEventListener('scroll', closePop, true);
 })();

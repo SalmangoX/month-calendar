@@ -4,8 +4,8 @@
 
 /*
  * 月历 · 课表小组件（Scriptable）
- * 小号 / 中号：今天的课（今天没课就显示下一个有课的日子），正在上和下一节会突出显示
- * 大号：本周课程一览
+ * 小号：今天的课（今天没课就显示下一个有课的日子），正在上和下一节会突出显示
+ * 中号：横向本周课表；大号：整月课表
  * 每节课开始和结束时自动请求刷新；点一下小组件立即刷新并打开课表
  */
 const CONFIG = {
@@ -110,28 +110,8 @@ function build(family, courses, offline) {
   const now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
   if (!courses.length) { w.setPadding(14, 14, 14, 14); addText(w, "课表", Font.boldSystemFont(15), C.text); w.addSpacer(6); addText(w, "还没有导入课表", Font.systemFont(12), C.text2); return w; }
 
-  if (family === "large") {
-    w.setPadding(12, 12, 10, 12);
-    header(w, "本周课表", offline ? "离线" : "");
-    w.addSpacer(6);
-    const today = isoDay(now);
-    const mon = mondayOf(now);
-    for (let d = 1; d <= 7; d++) {
-      const date = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + d - 1);
-      const list = courses.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
-      if (!list.length) continue;
-      const dh = w.addStack();
-      addText(dh, `周${WD[d]}${d === today ? " · 今天" : ""}`, Font.semiboldSystemFont(11), d === today ? C.accent : C.text2);
-      w.addSpacer(2);
-      for (const c of list.slice(0, 4)) {
-        const live = d === today && nm >= toMin(c.start) && nm < toMin(c.end);
-        row(w, c, live ? "上课中" : "", true);
-      }
-      w.addSpacer(4);
-    }
-    w.addSpacer();
-    return w;
-  }
+  if (family === "medium") return weekLayout(w, courses, now, offline);
+  if (family === "large") return monthLayout(w, courses, now, offline);
 
   const pick = pickDay(courses, now);
   w.setPadding(12, 12, 10, 12);
@@ -154,6 +134,81 @@ function build(family, courses, offline) {
   return w;
 }
 
+// 中号：横向本周课表（每天一列，周末有课才显示）
+function weekLayout(w, courses, now, offline) {
+  w.setPadding(10, 8, 8, 8);
+  const mon = mondayOf(now), today = ymdL(now);
+  const days = [];
+  for (let d = 1; d <= 7; d++) {
+    const date = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + d - 1);
+    const list = courses.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
+    if (d <= 5 || list.length) days.push({ d, date, list });
+  }
+  const h = w.addStack(); h.centerAlignContent(); h.addSpacer(4);
+  addText(h, "本周课表", Font.boldSystemFont(13), C.accent); h.addSpacer(6);
+  const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+  addText(h, `${mon.getMonth() + 1}/${mon.getDate()} – ${sun.getMonth() + 1}/${sun.getDate()}${offline ? " · 离线" : ""}`, Font.mediumSystemFont(10), C.text2);
+  h.addSpacer();
+  w.addSpacer(4);
+  const row = w.addStack();
+  for (const { d, date, list } of days) {
+    const col = row.addStack(); col.layoutVertically(); col.size = new Size(0, 0); col.setPadding(2, 1.5, 2, 1.5);
+    const isToday = ymdL(date) === today;
+    if (isToday) { col.backgroundColor = dyn("#E2E9F1", "#2B3644"); col.cornerRadius = 9; }
+    const hd = col.addStack(); hd.addSpacer();
+    addText(hd, `周${WD[d]} ${date.getDate()}`, Font.semiboldSystemFont(9.5), isToday ? C.accent : C.text2); hd.addSpacer();
+    col.addSpacer(3);
+    for (const c of list.slice(0, list.length > 4 ? 3 : 4)) {
+      const ch = col.addStack(); ch.layoutVertically(); ch.size = new Size(0, 0);
+      ch.backgroundColor = new Color(colorOf(c.code)); ch.cornerRadius = 5; ch.setPadding(2, 3, 2, 2);
+      const t1 = addText(ch, c.code, Font.semiboldSystemFont(9), Color.white(), 1); t1.minimumScaleFactor = 0.8;
+      addText(ch, c.start, Font.mediumSystemFont(8), new Color("#FFFFFF", 0.85), 1);
+      const sp = ch.addStack(); sp.addSpacer();
+      col.addSpacer(2);
+    }
+    if (list.length > 4) { const m = col.addStack(); m.addSpacer(); addText(m, `+${list.length - 3}`, Font.mediumSystemFont(8.5), C.text2); m.addSpacer(); }
+    col.addSpacer();
+  }
+  w.addSpacer();
+  return w;
+}
+
+// 大号：整月课表（每天显示当天的课）
+function monthLayout(w, courses, now, offline) {
+  w.setPadding(8, 3, 2, 3);
+  const y = now.getFullYear(), m = now.getMonth(), today = ymdL(now);
+  const first = new Date(y, m, 1), off = (first.getDay() + 6) % 7;
+  const rows = Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7);
+  const h = w.addStack(); h.centerAlignContent(); h.addSpacer(8);
+  addText(h, `${m + 1}月课表`, Font.boldSystemFont(13), C.accent); h.addSpacer(6);
+  addText(h, String(y) + (offline ? " · 离线" : ""), Font.mediumSystemFont(10), C.text2); h.addSpacer();
+  w.addSpacer(2);
+  const wr = w.addStack();
+  for (let i = 1; i <= 7; i++) { const c = wr.addStack(); c.size = new Size(0, 12); c.addSpacer(); addText(c, WD[i], Font.mediumSystemFont(8.5), C.text2); c.addSpacer(); }
+  const grid = w.addStack(); grid.layoutVertically();
+  for (let r = 0; r < rows; r++) {
+    const row = grid.addStack(); row.size = new Size(0, 0);
+    for (let k = 0; k < 7; k++) {
+      const date = new Date(y, m, 1 - off + r * 7 + k), ds = ymdL(date), out = date.getMonth() !== m;
+      const cell = row.addStack(); cell.layoutVertically(); cell.size = new Size(0, 0); cell.setPadding(1.5, 1, 0, 1);
+      cell.borderColor = dyn("#DEE0E6", "#2E3035"); cell.borderWidth = 0.3;
+      const nr = cell.addStack(); nr.addSpacer(2);
+      if (ds === today) { const b = nr.addStack(); b.backgroundColor = C.accent; b.cornerRadius = 7; b.setPadding(0, 3, 0, 3); addText(b, String(date.getDate()), Font.boldSystemFont(9.5), Color.white()); }
+      else addText(nr, String(date.getDate()), Font.mediumSystemFont(10), out ? C.text2 : C.text);
+      nr.addSpacer();
+      const list = courses.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
+      for (const c of list.slice(0, 2)) {
+        const ch = cell.addStack(); ch.size = new Size(0, 11); ch.backgroundColor = new Color(colorOf(c.code), out ? 0.45 : 1); ch.cornerRadius = 3; ch.setPadding(0, 2, 0, 1); ch.centerAlignContent();
+        const t = addText(ch, c.code, Font.semiboldSystemFont(8), Color.white(), 1); t.minimumScaleFactor = 0.75; ch.addSpacer();
+        cell.addSpacer(1);
+      }
+      if (list.length > 2) addText(cell, ` +${list.length - 2}`, Font.mediumSystemFont(7.5), C.text2);
+      cell.addSpacer();
+    }
+  }
+  return w;
+}
+
 // 下一次需要刷新的时间：最近一节课的开始或结束，最长 30 分钟
 function nextRefresh(courses) {
   const now = new Date(), nm = now.getHours() * 60 + now.getMinutes(), today = isoDay(now);
@@ -162,7 +217,7 @@ function nextRefresh(courses) {
   return new Date(Date.now() + Math.max(1, mins) * 60000);
 }
 
-const family = config.runsInWidget ? (config.widgetFamily || "medium") : "medium";
+const family = config.runsInWidget ? (config.widgetFamily || "small") : "small";
 let widget, courses = [];
 try {
   const r = await loadCourses();
