@@ -1,0 +1,51 @@
+name: 发布网页
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 生成版本号并准备网页文件
+        run: |
+          VER=$(sed -nE 's/.*"version"[^"]*"([^"]+)".*/\1/p' version.json | sed -E 's/-b[0-9]+$//')
+          BUILD="${VER}-b${GITHUB_RUN_NUMBER}"
+          mkdir -p _site
+          tar --exclude=./.git --exclude=./.github --exclude=./android --exclude=./_site -cf - . | tar -xf - -C _site
+          cd _site
+          printf '{ "version": "%s" }\n' "$BUILD" > version.json
+          sed -i -E "s/^const VERSION = '[^']*';/const VERSION = '${BUILD}';/" sw.js
+          sed -i -E "s/MC\.VERSION = '[^']*';/MC.VERSION = '${BUILD}';/" js/store.js
+          sed -i -E "s/\?v=[^\"']*/?v=${BUILD}/g" index.html
+          touch .nojekyll
+          grep -q "'${BUILD}'" sw.js && grep -q "'${BUILD}'" js/store.js && grep -q "?v=${BUILD}" index.html
+          echo "本次发布版本：${BUILD}"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
