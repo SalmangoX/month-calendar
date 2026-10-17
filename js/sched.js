@@ -250,6 +250,17 @@
     }
     const minH = Math.min(8, ...inWeek.map(c => Math.floor(toMin(c.start) / 60)));
     const maxH = Math.max(17, ...inWeek.map(c => Math.ceil(toMin(c.end) / 60)));
+    // 全览（默认）：按屏幕大小等比缩小，一屏显示整周；放大：固定尺寸，可上下左右滚动
+    const fit = MC.settings.schedFit !== false;
+    $('#schedFit').textContent = fit ? '放大' : '全览';
+    let HOUR = 66, colw = 86, fs = 1;
+    if (fit) {
+      const cs = getComputedStyle(body);
+      const avail = body.clientHeight - parseFloat(cs.paddingBottom) - parseFloat(cs.paddingTop) - 44;
+      HOUR = Math.max(20, Math.min(66, avail / (maxH - minH)));
+      colw = 0;
+      fs = Math.max(.62, Math.min(1, HOUR / 60, (body.clientWidth - 40) / days.length / 86));
+    }
     const todayStr = MC.todayStr();
     let head = '<div class="sc-corner"></div>';
     for (const d of days) {
@@ -263,18 +274,18 @@
       const date = MC.addDays(week, d - 1), isToday = MC.ymd(date) === todayStr;
       if (isToday) todayIdx = idx;
       const blocks = lanes(byDay[d]).map(c => {
-        const top = (toMin(c.start) / 60 - minH) * HOUR + 1, hgt = Math.max(26, (toMin(c.end) - toMin(c.start)) / 60 * HOUR - 3);
+        const top = (toMin(c.start) / 60 - minH) * HOUR + 1, hgt = Math.max(16, (toMin(c.end) - toMin(c.start)) / 60 * HOUR - 3);
         const w = 100 / c._lanes, left = c._lane * w;
-        const lines = Math.max(1, Math.floor((hgt - 48) / 13.5));
+        const lines = Math.max(1, Math.floor((hgt - 48 * fs) / (13.5 * fs)));
         return `<button class="sc-blk${c._lanes > 1 ? ' narrow' : ''}" data-id="${c.id}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px);--c:${colorOf(c.code)}">
-          ${c._lanes > 1 ? '' : `<small class="t">${c.start}–${c.end}</small>`}<b>${c._lanes > 1 ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>${c.type ? `<span class="k">${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}</span>` : (c.every === 2 ? '<span class="k">隔周</span>' : '')}${c.room && hgt > 60 && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(c.room)}</span>` : ''}</button>`;
+          ${c._lanes > 1 || hgt < 40 * fs ? '' : `<small class="t">${c.start}–${c.end}</small>`}<b>${c._lanes > 1 ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>${c.type ? `<span class="k">${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}</span>` : (c.every === 2 ? '<span class="k">隔周</span>' : '')}${c.room && hgt > 60 * fs && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(c.room)}</span>` : ''}</button>`;
       }).join('');
       cols += `<div class="sc-col${isToday ? ' today' : ''}">${blocks}</div>`;
     });
     const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
     const nowLine = todayIdx >= 0 && nowMin >= minH * 60 && nowMin <= maxH * 60 ? `<div class="sc-now" style="top:${(nowMin / 60 - minH) * HOUR}px;--i:${todayIdx}"></div>` : '';
     const grid0 = body.querySelector('.sc-grid'), keepX = grid0 ? grid0.scrollLeft : 0, keepY = grid0 ? grid0.scrollTop : null;
-    body.innerHTML = `<div class="sc-grid" style="--days:${days.length}"><div class="sc-inner">
+    body.innerHTML = `<div class="sc-grid${fit ? ' fit' : ''}" style="--days:${days.length};--colw:${colw}px;--fs:${fs.toFixed(3)}"><div class="sc-inner">
       <div class="sc-head">${head}</div>
       <div class="sc-main" style="height:${(maxH - minH) * HOUR}px">
         <div class="sc-hours">${hours}</div><div class="sc-cols">${cols}${nowLine}
@@ -294,6 +305,8 @@
     body.classList.add(n > 0 ? 'slide-l' : 'slide-r');
     Sched.render();
   }
+  $('#schedFit').onclick = () => { MC.settings.schedFit = MC.settings.schedFit === false; MC.saveSettings(); Sched.render(); };
+  window.addEventListener('resize', () => { if (document.getElementById('page-sched').classList.contains('active')) Sched.render(); });
   $('#schedPrev').onclick = () => shiftWeek(-1);
   $('#schedNext').onclick = () => shiftWeek(1);
   $('#schedThisWeek').onclick = () => { week = mondayOf(new Date()); Sched.render(); };
@@ -320,10 +333,11 @@
       <p class="hint" style="margin:0 2px 10px">从学校选课系统、教务网站、Excel 表格或任何日历里复制课程表文字，粘贴到下面即可，App 会自动识别课程、星期、时间和教室。</p>
       <div class="help-tip" style="margin-bottom:10px">小技巧：网页上的课程表如果有「列表视图」，切到列表再复制，识别最准确（uoZone 就是「List View」）。<br>也可以自己一行写一节：<code>MAT 2348 周二 14:30-15:50 Tabaret 333</code><br>或从 Excel 复制带表头的表格（课程 / 星期 / 开始 / 结束 / 教室）。</div>
       <textarea id="schedText" rows="6" placeholder="在这里粘贴课程表…"></textarea>
-      <div class="btn-line"><button class="chip-btn glass" id="schedIcs">改用 .ics 文件导入</button><label class="replace-opt"><input type="checkbox" id="schedReplace" checked> 替换现有课表</label></div>
+      <div class="btn-line"><span><button class="chip-btn glass" id="schedIcs">.ics 文件</button> <button class="chip-btn glass" id="schedManual">手动添加</button></span><label class="replace-opt"><input type="checkbox" id="schedReplace" checked> 替换现有课表</label></div>
       <div id="schedPreview"></div>`;
     $('#schedText').addEventListener('input', () => { parsed = Sched.parseText($('#schedText').value); preview(); });
     $('#schedIcs').onclick = () => $('#schedFile').click();
+    $('#schedManual').onclick = () => openEdit(null);
     preview();
     UI.open('schedSheet');
   }
@@ -385,7 +399,6 @@
     UI.close('schedSheet'); UI.toast('已保存');
   };
   $('#schedImport').onclick = openImport;
-  $('#schedAdd').onclick = () => openEdit(null);
   // ---------- 课程信息浮窗 ----------
   const pop = $('#cpop'), scrim = $('#cpopScrim');
   const fmtD = ds => { const d = MC.parse(ds); return `${d.getFullYear() !== new Date().getFullYear() ? d.getFullYear() + '年' : ''}${d.getMonth() + 1}月${d.getDate()}日`; };

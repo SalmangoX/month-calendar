@@ -110,8 +110,10 @@
     if (r.status === 404) { localStorage.setItem(UKEY, JSON.stringify({ at: Date.now(), latest: 0 })); return null; }
     if (!r.ok) throw new Error(`GitHub 返回 ${r.status}`);
     const j = await r.json();
-    const m = /^android-(.+)-(\d+)$/.exec(j.tag_name || '');
-    localStorage.setItem(UKEY, JSON.stringify({ at: Date.now(), latest: m ? Number(m[2]) : 0, name: m ? m[1] : '' }));
+    // 标签形如 android-0.9.3-5；版本号缺失时（android--5）也要能认出第几版
+    const m = /^android-(.*?)-?(\d+)$/.exec(j.tag_name || '');
+    const name = (m && m[1]) || ((j.name || '').match(/App\s+([\d.]+)/) || [])[1] || '';
+    localStorage.setItem(UKEY, JSON.stringify({ at: Date.now(), latest: m ? Number(m[2]) : 0, name: name || `第 ${m ? m[2] : '?'} 版` }));
     return Native.updateAvailable();
   };
   Native.update = () => Native.openUrl(Native.apkUrl());
