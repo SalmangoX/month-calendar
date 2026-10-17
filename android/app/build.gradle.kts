@@ -5,6 +5,11 @@ plugins {
 }
 
 val ver = Properties().apply { rootProject.file("version.properties").inputStream().use { load(it) } }
+// 版本号和网页共用仓库根目录的 version.json（例如 0.9.2），不再单独维护
+val webVersion: String = Regex("\"version\"\\s*:\\s*\"([^\"]+)\"")
+    .find(rootProject.file("../version.json").takeIf { it.exists() }?.readText() ?: "")
+    ?.groupValues?.get(1)?.replace(Regex("-b\\d+$"), "")
+    ?: (ver.getProperty("versionName") ?: "0.0.0")
 // 在 GitHub Actions 里编译时由工作流提供；在自己电脑上编译时用调试签名
 val keystoreFile: String? = System.getenv("KEYSTORE_FILE")
 
@@ -17,7 +22,7 @@ android {
         minSdk = 31
         targetSdk = 35
         versionCode = (System.getenv("VERSION_CODE") ?: "1").toInt()
-        versionName = ver.getProperty("versionName")
+        versionName = webVersion
         buildConfigField("String", "APP_URL", "\"${ver.getProperty("appUrl")}\"")
         buildConfigField("String", "REPO", "\"${ver.getProperty("repo")}\"")
     }
