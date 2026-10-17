@@ -303,9 +303,12 @@ final class Widgets {
 
     // ---------- 课表：按小组件大小切换（2×2 单日 / 4×2 横向本周 / 4×4 整月） ----------
     private static final int DAY = 0, WEEK = 1, MONTH = 2;
+    // 按形状判断，不用固定高度：三星 One UI（尤其 Fold 的内外屏）每格的高度差别很大
+    // 窄（约 2 格宽）= 单日；明显横向的长条 = 本周；接近方形或更高 = 整月
     private static int schedKind(float wDp, float hDp) {
-        if (wDp < 240) return DAY;
-        return hDp < 250 ? WEEK : MONTH;
+        if (wDp < 250) return DAY;
+        if (hDp <= 0 || wDp / hDp >= 1.3f) return WEEK;
+        return MONTH;
     }
     static RemoteViews sched(Context c, int id, Bundle opts) {
         List<SizeF> sizes = new ArrayList<>();
