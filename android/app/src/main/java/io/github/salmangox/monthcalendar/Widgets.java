@@ -237,7 +237,7 @@ final class Widgets {
         // 已逾期：最近 30 天内结束、还没完成的
         List<Data.Event> over = new ArrayList<>();
         for (Data.Event e : d.events) {
-            if (e.done) continue;
+            if (e.done || !e.cal.isEmpty()) continue;
             LocalDate end = e.end();
             if (end.isBefore(today) && !end.isBefore(today.minusDays(30))) over.add(e);
         }

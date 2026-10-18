@@ -32,6 +32,7 @@ final class Data {
 
     static final class Event {
         String id = "", title = "", note = "", time = "", endTime = "";
+        String cal = ""; // 所属日历：空 = 主日历；其余是特殊记录日历（小组件不显示，提醒照常）
         LocalDate date;
         int priority, days = 1;
         boolean done, hasRemind;
@@ -127,6 +128,7 @@ final class Data {
         Event x = new Event();
         try { x.date = LocalDate.parse(ds); } catch (DateTimeException ex) { return null; }
         x.id = e.optString("id");
+        x.cal = e.optString("cal", "");
         x.title = e.optString("title");
         x.note = e.optString("note");
         int p = e.optInt("priority", 0);
@@ -169,6 +171,7 @@ final class Data {
 
     private void index() {
         for (Event e : events) {
+            if (!e.cal.isEmpty()) continue; // 小组件和每日提醒只看主日历
             for (int k = 0; k < e.days; k++) { // 多天的全天事件出现在跨越的每一天
                 byDate.computeIfAbsent(e.date.plusDays(k), x -> new ArrayList<>()).add(e);
             }
@@ -235,6 +238,26 @@ final class Data {
             JSONArray courses = nc.optJSONArray("courses");
             out.put("courses", courses == null ? new JSONArray() : courses);
             out.put("coursesAt", nc.optLong("coursesAt"));
+            // 特殊记录日历：和事件一样按 id 取较新的一份，删除记录用 "cal:<id>"
+            LinkedHashMap<String, JSONObject> cmap = new LinkedHashMap<>();
+            for (JSONObject src : new JSONObject[]{a, b}) {
+                JSONArray cs = src.optJSONArray("cals");
+                if (cs == null) continue;
+                for (int i = 0; i < cs.length(); i++) {
+                    JSONObject c = cs.optJSONObject(i);
+                    if (c == null) continue;
+                    String id = c.optString("id");
+                    JSONObject old = cmap.get(id);
+                    if (old == null || c.optLong("updatedAt") > old.optLong("updatedAt")) cmap.put(id, c);
+                }
+            }
+            JSONArray cals = new JSONArray();
+            for (JSONObject c : cmap.values()) {
+                String k = "cal:" + c.optString("id");
+                if (deleted.has(k) && deleted.optLong(k) >= c.optLong("updatedAt")) continue;
+                cals.put(c);
+            }
+            out.put("cals", cals);
             return out;
         } catch (JSONException e) {
             return b;
