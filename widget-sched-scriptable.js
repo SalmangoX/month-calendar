@@ -21,8 +21,8 @@ let forced = null;
 String(args.widgetParameter || "").split(/[\s,;，]+/).forEach(p => { if (/^(light|dark)$/i.test(p)) forced = p.toLowerCase(); });
 const dyn = (l, d) => forced === "light" ? new Color(l) : forced === "dark" ? new Color(d) : Color.dynamic(new Color(l), new Color(d));
 const C = {
-  bg: dyn("#F1F2F5", "#1C1C1E"), card: dyn("#FFFFFF", "#2A2B2F"),
-  text: dyn("#15171C", "#EFF1F4"), text2: dyn("#777D87", "#8A9099"), accent: dyn("#56789A", "#8FA9C4"),
+  bg: dyn("#F4F2EF", "#1B1C21"), card: dyn("#FDFDFB", "#2A2B30"),
+  text: dyn("#1B1D22", "#EEEEF1"), text2: dyn("#75777F", "#8C8E97"), accent: dyn("#52618E", "#9FADD5"),
 };
 const colorOf = code => { let h = 0; for (const c of code) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; };
 const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
@@ -180,8 +180,8 @@ function gridLayout(w, courses, now, offline) {
   const key = Object.keys(LARGE).map(Number).sort((a, b) => b - a).find(x => x <= sw) || 320;
   const [W, H] = LARGE[key];
   const dark = forced ? forced === "dark" : Device.isUsingDarkAppearance();
-  const P = dark ? { bg: "#1C1C1E", text: "#EFF1F4", text2: "#8A9099", line: "#2E3035", accent: "#8FA9C4", today: "#253141" }
-                 : { bg: "#F1F2F5", text: "#15171C", text2: "#777D87", line: "#DEE0E6", accent: "#56789A", today: "#E1E8F0" };
+  const P = dark ? { bg: "#1B1C21", text: "#EEEEF1", text2: "#8C8E97", line: "#2F3035", accent: "#9FADD5", today: "#2A3040" }
+                 : { bg: "#F4F2EF", text: "#1B1D22", text2: "#75777F", line: "#E2E0DD", accent: "#52618E", today: "#E3E7F2" };
   const mon = mondayOf(now), todayS = ymdL(now);
   const days = [];
   let minH = 8, maxH = 18;
@@ -270,7 +270,7 @@ function monthLayout(w, courses, now, offline) {
     for (let k = 0; k < 7; k++) {
       const date = new Date(y, m, 1 - off + r * 7 + k), ds = ymdL(date), out = date.getMonth() !== m;
       const cell = row.addStack(); cell.layoutVertically(); cell.size = new Size(0, 0); cell.setPadding(1.5, 1, 0, 1);
-      cell.borderColor = dyn("#DEE0E6", "#2E3035"); cell.borderWidth = 0.3;
+      cell.borderColor = dyn("#E2E0DD", "#2F3035"); cell.borderWidth = 0.3;
       const nr = cell.addStack(); nr.addSpacer(2);
       if (ds === today) { const b = nr.addStack(); b.backgroundColor = C.accent; b.cornerRadius = 7; b.setPadding(0, 3, 0, 3); addText(b, String(date.getDate()), Font.boldSystemFont(9.5), Color.white()); }
       else addText(nr, String(date.getDate()), Font.mediumSystemFont(10), out ? C.text2 : C.text);

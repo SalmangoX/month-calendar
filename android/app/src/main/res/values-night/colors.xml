@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="accent">#6A8AAB</color>
-    <color name="app_bg">#000000</color>
-    <color name="w_bg">#1C1C1E</color>
-    <color name="w_line">#2A2A2D</color>
-    <color name="w_text">#F2F2F5</color>
-    <color name="w_text2">#8E8E93</color>
-    <color name="w_live">#3D6A8AAB</color>
+    <color name="accent">#8E9DCA</color>
+    <color name="app_bg">#050608</color>
+    <color name="w_bg">#1B1C21</color>
+    <color name="w_line">#292A2F</color>
+    <color name="w_text">#EEEEF1</color>
+    <color name="w_text2">#8C8E97</color>
+    <color name="w_live">#3D8E9DCA</color>
     <color name="p3_soft">#4DD9453E</color>
     <color name="p2_soft">#4DD88018</color>
     <color name="p1_soft">#4D3C7DC2</color>

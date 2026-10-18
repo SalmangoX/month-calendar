@@ -21,7 +21,7 @@ const PHEX = { 3: "#D9453E", 2: "#D88018", 1: "#3C7DC2", 0: "#979CA2" };
 const PDARK = { 3: ["#AC312C", "#FFE2DE"], 2: ["#BB6800", "#FCE5D3"], 1: ["#255593", "#DDEBFD"], 0: ["#383B3F", "#E8E9EB"] };
 const RANK = p => (p >= 0 && p <= 3 ? p : 0); // 只认 0–3
 const WD = ["日", "一", "二", "三", "四", "五", "六"];
-const ACCENT_HEX = ["#56789A", "#6A8AAB"]; // 浅色 / 深色
+const ACCENT_HEX = ["#52618E", "#8E9DCA"]; // 浅色 / 深色
 
 // ---------- 参数 ----------
 let gistId = CONFIG.GIST_ID;
@@ -40,11 +40,11 @@ function dyn(light, dark) {
 const hex = (h, a) => (a == null ? new Color(h) : new Color(h, a));
 const ACCENT = dyn(hex(ACCENT_HEX[0]), hex(ACCENT_HEX[1]));
 const C = {
-  bg: dyn(hex("#F1F2F5"), hex("#1C1C1E")), // 浅色用柔和的灰白，不刺眼（横条的实色按这两个底色算，改这里要一起改 BG_L / BG_D）
-  text: dyn(hex("#1C1C1E"), hex("#F2F2F5")),
-  text2: dyn(hex("#86868C"), hex("#8E8E93")),
-  text3: dyn(hex("#C3C3C8"), hex("#4A4A4F")),
-  line: dyn(hex("#DEE0E6"), hex("#2E3035")),
+  bg: dyn(hex("#F4F2EF"), hex("#1B1C21")), // 浅色用柔和的灰白，不刺眼（横条的实色按这两个底色算，改这里要一起改 BG_L / BG_D）
+  text: dyn(hex("#1B1D22"), hex("#EEEEF1")),
+  text2: dyn(hex("#84868E"), hex("#8C8E97")),
+  text3: dyn(hex("#C5C3C0"), hex("#494A50")),
+  line: dyn(hex("#E2E0DD"), hex("#2F3035")),
 };
 // 事件色条，和应用里一致：浅色 = 实色底 + 白字；深色 = 专门的深色调 + 带同色的柔白字（不刺眼）
 // 半透明色叠在小组件底色上的实际颜色（不透明）。横条由两段拼成、会有重叠，用不透明色重叠处才不会变亮
@@ -52,7 +52,7 @@ function over(h, a, base) {
   const n = parseInt(h.slice(1), 16), b = parseInt(base.slice(1), 16), mix = (x, y) => Math.round(x * a + y * (1 - a));
   return "#" + [mix(n >> 16, b >> 16), mix((n >> 8) & 255, (b >> 8) & 255), mix(n & 255, b & 255)].map(v => v.toString(16).padStart(2, "0")).join("");
 }
-const BG_L = "#F1F2F5", BG_D = "#1C1C1E";
+const BG_L = "#F4F2EF", BG_D = "#1B1C21";
 function barColors(p, done, out) {
   const h = PHEX[p] || PHEX[0], dk = PDARK[p] || PDARK[0], c = chipColors(p, done, out);
   const bgL = over(h, done ? 0.16 : out ? 0.5 : 1, BG_L), bgD = done ? over(h, 0.26, BG_D) : over(dk[0], out ? 0.45 : 1, BG_D);

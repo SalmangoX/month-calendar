@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 与网页 styles.css / widget.html 相同的配色 -->
-    <color name="accent">#56789A</color>
-    <color name="app_bg">#FFFFFF</color>
-    <color name="w_bg">#F1F2F5</color>
-    <color name="w_line">#DEE0E6</color>
-    <color name="w_text">#1C1C1E</color>
-    <color name="w_text2">#86868C</color>
-    <color name="w_live">#2956789A</color>
+    <color name="accent">#52618E</color>
+    <color name="app_bg">#F8F7F4</color>
+    <color name="w_bg">#F4F2EF</color>
+    <color name="w_line">#E2E0DD</color>
+    <color name="w_text">#1B1D22</color>
+    <color name="w_text2">#84868E</color>
+    <color name="w_live">#2952618E</color>
     <color name="p3">#D9453E</color>
     <color name="p2">#D88018</color>
     <color name="p1">#3C7DC2</color>

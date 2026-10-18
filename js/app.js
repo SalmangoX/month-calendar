@@ -11,9 +11,9 @@
     const dark = t === 'dark' || (t === 'auto' && mq.matches);
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     // 和月账本一样：两个 theme-color 分别对应浅色 / 深色；手动指定外观时两者都用该颜色
-    const forced = t === 'auto' ? null : (dark ? '#000000' : '#FFFFFF');
+    const forced = t === 'auto' ? null : (dark ? '#050608' : '#F8F7F4');
     $('#themeLight').setAttribute('content', forced || '#FFFFFF');
-    $('#themeDark').setAttribute('content', forced || '#000000');
+    $('#themeDark').setAttribute('content', forced || '#050608');
   }
   mq.addEventListener ? mq.addEventListener('change', applyTheme) : mq.addListener(applyTheme);
 

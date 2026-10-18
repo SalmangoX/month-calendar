@@ -5,19 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>节律小组件</title>
 <style>
-  :root { --accent:#56789A; --p3:#D9453E; --p2:#D88018; --p1:#3C7DC2; --p0:#979CA2;
+  :root { --accent:#52618E; --p3:#D9453E; --p2:#D88018; --p1:#3C7DC2; --p0:#979CA2;
     --p3f:#AC312C; --p3i:#FFE2DE; --p2f:#BB6800; --p2i:#FCE5D3; --p1f:#255593; --p1i:#DDEBFD; --p0f:#383B3F; --p0i:#E8E9EB; }
-  :root[data-theme="dark"] { --accent:#6A8AAB; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#6A8AAB; } }
-  :root, :root[data-theme="light"] { color-scheme:light; --bg:#F1F2F5; --line:#DEE0E6; --text:#1C1C1E; --text2:#86868C; --text3:#C3C3C8; --mix:20%;
+  :root[data-theme="dark"] { --accent:#8E9DCA; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#8E9DCA; } }
+  :root, :root[data-theme="light"] { color-scheme:light; --bg:#F4F2EF; --line:#E2E0DD; --text:#1B1D22; --text2:#84868E; --text3:#C5C3C0; --mix:20%;
     --chip-weight:600; }
   .chip { --chip-bg:var(--c); --chip-fg:#fff; }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { color-scheme:dark; --bg:#1C1C1E; --line:#2A2A2D; --text:#F2F2F5; --text2:#8E8E93; --text3:#4A4A4F; --mix:30%;
+    :root:not([data-theme="light"]) { color-scheme:dark; --bg:#1B1C21; --line:#292A2F; --text:#EEEEF1; --text2:#8C8E97; --text3:#494A50; --mix:30%;
       --chip-weight:500; }
     :root:not([data-theme="light"]) .chip:not(.done) { --chip-bg:var(--cf); --chip-fg:var(--ci); }
   }
-  :root[data-theme="dark"] { color-scheme:dark; --bg:#1C1C1E; --line:#2A2A2D; --text:#F2F2F5; --text2:#8E8E93; --text3:#4A4A4F; --mix:30%;
+  :root[data-theme="dark"] { color-scheme:dark; --bg:#1B1C21; --line:#292A2F; --text:#EEEEF1; --text2:#8C8E97; --text3:#494A50; --mix:30%;
     --chip-weight:500; }
   :root[data-theme="dark"] .chip:not(.done) { --chip-bg:var(--cf); --chip-fg:var(--ci); }
   * { box-sizing:border-box; }

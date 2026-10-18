@@ -569,7 +569,7 @@ final class Widgets {
         Canvas cv = new Canvas(bm);
         boolean dark = (c.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
         int text = c.getColor(R.color.w_text), text2 = c.getColor(R.color.w_text2), line = c.getColor(R.color.w_line), accent = c.getColor(R.color.accent);
-        int bg = dark ? 0xFF1C1C1E : 0xFFF1F2F5;
+        int bg = dark ? 0xFF1B1C21 : 0xFFF4F2EF;
 
         Data d = Store.data(c);
         LocalDate today = LocalDate.now(ZoneId.systemDefault());

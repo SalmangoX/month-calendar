@@ -19,78 +19,78 @@
   --r-s: 10px; --r-m: 14px; --r-l: 20px; --r-xl: 26px;
 }
 :root[data-theme="light"] {
+  /* 配色取自图标：浅色是「晨」——比纯白柔和、只带一丝暖意的米白；主色是图标里暮色薰衣草和原来灰蓝之间的暮蓝 */
   color-scheme: light;
-  --bg: #FFFFFF;
-  --bg-grouped: #F3F4F6;
-  --surface: #FFFFFF;
-  --line: #EDEEF1;
-  --text: #15171C;
-  --text2: #777D87;
-  --text3: #C1C5CC;
-  --sel: rgba(86, 120, 154, .05);
-  --field: rgba(116, 126, 142, .10);
-  --group-line: rgba(18, 28, 46, .07);
-  --accent: #56789A;
-  --accent-base: #56789A;
-  --ind-glass: linear-gradient(180deg, rgba(255, 255, 255, .78) 0%, rgba(255, 255, 255, .34) 55%, rgba(255, 255, 255, .5) 100%);
-  --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .9), inset 0 1.5px 1px rgba(255, 255, 255, .95), inset 0 -1.5px 2px rgba(30, 50, 80, .10), 0 10px 24px rgba(20, 32, 52, .20), 0 2px 5px rgba(20, 32, 52, .12);
-  --drawer-frost: rgba(246, 248, 251, .72);
-  --accent-deep: #46667F;
-  --accent-text: #4B6D8F;
-  --accent-soft: rgba(86, 120, 154, .12);
-  --sel-line: rgba(86, 120, 154, .5);
-  --today-dim: rgba(86, 120, 154, .2);
-  --sel-bg: rgba(86, 120, 154, .09);
-  --sel-veil: rgba(86, 120, 154, .10);
+  --bg: #F8F7F4;
+  --bg-grouped: #F2F0ED;
+  --surface: #FDFDFB;
+  --line: #E8E6E3;
+  --text: #1B1D22;
+  --text2: #75777F;
+  --text3: #C6C4C0;
+  --sel: rgba(82, 97, 142, .05);
+  --field: rgba(118, 116, 112, .09);
+  --group-line: rgba(40, 36, 30, .075);
+  --accent: #52618E;
+  --accent-base: #52618E;
+  --drawer-frost: rgba(248, 247, 244, .74);
+  --accent-deep: #3E4B73;
+  --accent-text: #45537F;
+  --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .7), 0 8px 20px rgba(40, 36, 32, .14), 0 1px 3px rgba(40, 36, 32, .08);
+  --accent-soft: rgba(82, 97, 142, .12);
+  --sel-line: rgba(82, 97, 142, .5);
+  --today-dim: rgba(82, 97, 142, .2);
+  --sel-bg: rgba(82, 97, 142, .09);
+  --sel-veil: rgba(82, 97, 142, .10);
   --sel-veil-top: rgba(255, 255, 255, .0);
   --sel-tint: color-mix(in srgb, var(--accent) 12%, transparent);
-  --frost: rgba(249, 250, 252, .74);
-  --frost-strong: rgba(250, 251, 253, .9);
-  --cpop-bg: rgba(250, 251, 253, .64);
+  --frost: rgba(249, 248, 246, .76);
+  --frost-strong: rgba(250, 250, 248, .92);
+  --cpop-bg: rgba(250, 249, 247, .64);
   --cpop-sheen: rgba(255, 255, 255, .5);
-  --frost-edge: rgba(16, 26, 44, .08);
+  --frost-edge: rgba(36, 32, 26, .08);
   --frost-hi: rgba(255, 255, 255, .7);
-  --frost-shadow: 0 10px 34px rgba(22, 34, 56, .10), 0 1px 3px rgba(22, 34, 56, .06);
-  --bar-frost: rgba(248, 249, 252, .58);
-  --backdrop: rgba(18, 24, 34, .24);
+  --frost-shadow: 0 10px 34px rgba(40, 36, 32, .10), 0 1px 3px rgba(40, 36, 32, .06);
+  --bar-frost: rgba(249, 248, 245, .6);
+  --backdrop: rgba(24, 22, 20, .24);
   --done-mix: 18%;
 }
 :root[data-theme="dark"] {
+  /* 深色是「夜」——几乎是黑，只带一丝暮色；主色是柔和的蓝紫 */
   color-scheme: dark;
-  --bg: #000000;
-  --bg-grouped: #000000;
-  --surface: #141518;
-  --line: #1A1B1F;
-  --text: #EFF1F4;
-  --text2: #8A9099;
-  --text3: #444850;
-  --sel: rgba(122, 154, 188, .055);
-  --field: rgba(255, 255, 255, .075);
-  --group-line: rgba(255, 255, 255, .065);
-  --accent: #6A8AAB;
-  --accent-base: #6A8AAB;
-  --ind-glass: linear-gradient(180deg, rgba(255, 255, 255, .26) 0%, rgba(255, 255, 255, .08) 55%, rgba(255, 255, 255, .14) 100%);
-  --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .22), inset 0 1.5px 1px rgba(255, 255, 255, .28), inset 0 -1.5px 2px rgba(0, 0, 0, .25), 0 10px 26px rgba(0, 0, 0, .55), 0 2px 6px rgba(0, 0, 0, .35);
-  --drawer-frost: rgba(28, 30, 35, .68);
-  --accent-deep: #58789A;
-  --accent-text: #A0B8D1;
-  --accent-soft: rgba(122, 154, 188, .17);
-  --sel-line: rgba(150, 180, 212, .62);
-  --today-dim: rgba(122, 154, 188, .28);
-  --sel-bg: rgba(122, 154, 188, .14);
-  --sel-veil: rgba(130, 160, 192, .16);
-  --sel-veil-top: rgba(130, 160, 192, .04);
+  --bg: #050608;
+  --bg-grouped: #050608;
+  --surface: #131318;
+  --line: #1C1D21;
+  --text: #EEEEF1;
+  --text2: #8F929B;
+  --text3: #45474F;
+  --sel: rgba(142, 157, 202, .055);
+  --field: rgba(236, 238, 250, .075);
+  --group-line: rgba(236, 238, 250, .065);
+  --accent: #8E9DCA;
+  --accent-base: #8E9DCA;
+  --drawer-frost: rgba(24, 24, 30, .7);
+  --accent-deep: #61709C;
+  --accent-text: #B0BDE2;
+  --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .10), 0 8px 22px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .35);
+  --accent-soft: rgba(142, 157, 202, .17);
+  --sel-line: rgba(142, 157, 202, .62);
+  --today-dim: rgba(142, 157, 202, .28);
+  --sel-bg: rgba(142, 157, 202, .14);
+  --sel-veil: rgba(142, 157, 202, .16);
+  --sel-veil-top: rgba(142, 157, 202, .04);
   --sel-tint: color-mix(in srgb, var(--accent) 20%, transparent);
   --sel-tint-pct: 20%;
-  --frost: rgba(30, 32, 37, .66);
-  --frost-strong: rgba(22, 24, 28, .9);
-  --cpop-bg: rgba(26, 28, 33, .62);
+  --frost: rgba(27, 27, 33, .66);
+  --frost-strong: rgba(19, 19, 24, .9);
+  --cpop-bg: rgba(23, 23, 29, .62);
   --cpop-sheen: rgba(255, 255, 255, .07);
   --frost-edge: rgba(255, 255, 255, .07);
   --frost-hi: rgba(255, 255, 255, .06);
   --frost-shadow: 0 12px 36px rgba(0, 0, 0, .55);
-  --bar-frost: rgba(36, 38, 44, .5);
-  --backdrop: rgba(0, 0, 0, .52);
+  --bar-frost: rgba(33, 33, 40, .5);
+  --backdrop: rgba(3, 3, 6, .54);
   --done-mix: 28%;
 }
 
@@ -381,20 +381,15 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 }
 .tabbar.glass:active { transform: none; opacity: 1; }
 .tab-ind {
-  /* 位置和形变全部由 app.js 的弹簧逐帧计算；--lift 0→1 = 平放的浅色块 → 浮起的磨砂玻璃泡 */
+  /* 位置和形变由 app.js 的弹簧逐帧计算；--lift 0→1 = 平放 → 被拿起。
+     颜色从头到尾都是同一种主色淡底，拿起时只是略深一点、多一圈均匀的边和一点投影，不会出现渐变色块或颜色跳变 */
   --lift: 0;
   position: absolute; top: 5px; bottom: 5px; left: 0; border-radius: 25px;
-  background: color-mix(in srgb, var(--accent-soft) calc((1 - var(--lift)) * 100%), transparent);
+  background: var(--accent-soft);
   pointer-events: none; will-change: transform; z-index: 0;
 }
-.tab-ind::before, .tab-ind::after { content: ""; position: absolute; inset: 0; border-radius: inherit; opacity: var(--lift); pointer-events: none; }
-.tab-ind::before { background: var(--ind-glass); box-shadow: var(--ind-rim); }
-/* 玻璃顶部的一道高光 */
-.tab-ind::after {
-  inset: 2px 16% auto; height: 42%; border-radius: 20px 20px 60% 60% / 20px 20px 100% 100%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, 0));
-}
-:root[data-theme="dark"] .tab-ind::after { background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0)); }
+.tab-ind::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  opacity: var(--lift); background: color-mix(in srgb, var(--accent) 7%, transparent); box-shadow: var(--ind-rim); }
 .tabbar.glass { transition: background .2s; } /* transform 由弹簧控制，不能有过渡 */
 .tabbar button {
   position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;

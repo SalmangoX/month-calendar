@@ -175,12 +175,12 @@ public class MainActivity extends Activity {
 
     private void showOffline() {
         boolean dark = isDark(Store.prefs(this).getString("theme", "auto"));
-        String bg = dark ? "#000" : "#fff", fg = dark ? "#EFF1F4" : "#15171C", sub = dark ? "#8A9099" : "#777D87";
+        String bg = dark ? "#050608" : "#F8F7F4", fg = dark ? "#EEEEF1" : "#1B1D22", sub = dark ? "#8F929B" : "#75777F", acc = dark ? "#61709C" : "#52618E";
         String html = "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
                 + "<body style='margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:" + bg
                 + ";color:" + fg + ";font-family:sans-serif;text-align:center'><div><div style='font-size:19px;font-weight:600'>连不上网络</div>"
                 + "<div style='margin:10px 24px 22px;color:" + sub + ";font-size:14px;line-height:1.6'>第一次打开需要联网下载节律，之后断网也能用。</div>"
-                + "<a href='" + BuildConfig.APP_URL + "' style='display:inline-block;padding:10px 26px;border-radius:20px;background:#56789A;color:#fff;text-decoration:none'>重试</a></div>";
+                + "<a href='" + BuildConfig.APP_URL + "' style='display:inline-block;padding:10px 26px;border-radius:20px;background:" + acc + ";color:#fff;text-decoration:none'>重试</a></div>";
         web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
     }
 
@@ -193,7 +193,7 @@ public class MainActivity extends Activity {
 
     void applyTheme(String pref) {
         boolean dark = isDark(pref);
-        int bg = dark ? 0xFF000000 : 0xFFFFFFFF;
+        int bg = dark ? 0xFF050608 : 0xFFF8F7F4;
         root.setBackgroundColor(bg);
         if (web != null) web.setBackgroundColor(bg);
         WindowInsetsController ic = getWindow().getInsetsController();
