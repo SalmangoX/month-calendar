@@ -16,7 +16,8 @@ const CONFIG = {
 };
 
 const FILE = "mcal-calendar.json";
-const PHEX = { 3: "#E05A55", 2: "#E3A040", 1: "#4B82E8", 0: "#8D929B" };
+const PHEX = { 3: "#E05A55", 2: "#E3A040", 1: "#4B82E8", 4: "#41B08F", 0: "#8D929B" };
+const RANK = p => ({ 3: 4, 2: 3, 1: 2, 4: 1 })[p] || 0;
 const WD = ["日", "一", "二", "三", "四", "五", "六"];
 const ACCENT_HEX = ["#56789A", "#6A8AAB"]; // 浅色 / 深色
 
@@ -91,7 +92,7 @@ function indexEvents(events) {
     const n = e.days > 1 && !e.time ? e.days : 1, [y, m, d] = e.date.split("-").map(Number);
     for (let k = 0; k < n; k++) { const ds = ymd(new Date(y, m - 1, d + k)); (by[ds] = by[ds] || []).push(e); }
   }
-  for (const k in by) by[k].sort((a, b) => (a.done - b.done) || (b.priority - a.priority) || ((a.createdAt || 0) - (b.createdAt || 0)));
+  for (const k in by) by[k].sort((a, b) => (a.done - b.done) || (RANK(b.priority) - RANK(a.priority)) || ((a.createdAt || 0) - (b.createdAt || 0)));
   return by;
 }
 function monthStats(idx, y, m) {

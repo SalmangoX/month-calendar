@@ -3,6 +3,7 @@
   --p3: #E05A55;   /* 高 */
   --p2: #E3A040;   /* 中 */
   --p1: #4B82E8;   /* 低 */
+  --p4: #41B08F;   /* 最低：薄荷绿（OKLCH 0.685 0.112 170，明度与其他优先级色同档，彩度略收） */
   --p0: #8D929B;   /* 无 */
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -453,7 +454,7 @@ html.kb-open .sheet.tall.show {
 .cmp-edit { display: flex; align-items: center; gap: 16px; }
 .cmp-check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text2); padding: 4px 0; }
 .cmp-check i { width: 20px; height: 20px; border-radius: 6px; border: 1.8px solid var(--text3); display: grid; place-items: center; }
-.cmp-check[aria-pressed="true"] i { background: #5BA77F; border-color: #5BA77F; }
+.cmp-check[aria-pressed="true"] i { background: var(--accent); border-color: var(--accent); } /* 不用绿色，免得和薄荷绿优先级混淆 */
 .cmp-check[aria-pressed="true"] i::after { content: ""; width: 9px; height: 5px; border: solid #fff; border-width: 0 0 2.2px 2.2px; transform: rotate(-45deg) translate(1px, -1px); }
 .spacer { flex: 1; }
 .cmp-card { background: var(--surface); border-radius: var(--r-l); padding: 12px 14px 6px; box-shadow: inset 0 0 0 .5px var(--group-line); }
@@ -878,3 +879,24 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .dr-switches .pk-row { gap: 12px; font-size: 15.5px; }
 .dr-switches .pk-row small { display: block; font-size: 12px; color: var(--text2); margin-top: 1px; }
 .dr-switches .pk-row span { flex: 1; min-width: 0; }
+
+/* ---------- 跨天的全天事件：连成一整条 ---------- */
+.wrow { position: relative; --ct: 39px; } /* --ct：格子里第一条事件的顶部（数字下方） */
+.cal-body.previewing .wrow { --ct: 34px; }
+.chip.gap { visibility: hidden; }
+.mbar, .wbar { position: absolute; z-index: 1; pointer-events: none; --il: 3px; --ir: 3px; text-overflow: ellipsis; }
+.mbar.ol, .wbar.ol { --il: 0px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.mbar.or, .wbar.or { --ir: 0px; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.mbar {
+  top: calc(var(--ct) + var(--s) * (var(--chip-h) + 2px));
+  left: calc(2px + (100% - 4px) * var(--a) / 7 + var(--il));
+  width: calc((100% - 4px) * var(--n) / 7 - var(--il) - var(--ir));
+  padding: 0 4px;
+}
+.wbar {
+  top: calc(44px + var(--s) * 23px);
+  left: calc(4px + (100% - 8px) * var(--a) / 7 + var(--il));
+  width: calc((100% - 8px) * var(--n) / 7 - var(--il) - var(--ir));
+  height: 20px; line-height: 20px; padding: 0 6px; font-size: 10.5px;
+}
+.wlanes { height: calc(var(--lanes) * 23px); }

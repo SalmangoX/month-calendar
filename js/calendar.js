@@ -42,16 +42,64 @@
     for (const [k, c] of counts) if (c > bc) { bc = c; best = k; }
     focus = { y: Math.floor(best / 12), m: best % 12 };
   }
-  function chipsHTML(evs) {
-    if (!evs.length) return '';
-    // 放得下就全显示；放不下时留一行显示「+n」，空间太小则只显示最重要的一条
-    const fit = evs.length <= maxChips ? evs.length : Math.max(1, withMore);
-    let h = '';
-    for (let k = 0; k < fit; k++) {
-      const e = evs[k];
-      h += `<div class="chip${e.done ? ' done' : ''}" style="--c:${MC.evColor(e)}">${esc(e.title)}</div>`;
+  // ---------- 跨天的全天事件：在一周里拉成一条不断的横条 ----------
+  const spans = e => e.days > 1 && !e.time;
+  // 给一周 7 天排位置：跨天事件先占上面的行（开始早、跨得长的在上），单天事件依次填进空位
+  function layWeek(days) {
+    const evsBy = days.map(ds => MC.eventsOn(ds));
+    const multi = new Map();
+    evsBy.forEach((evs, c) => evs.forEach(e => {
+      if (!spans(e)) return;
+      const m = multi.get(e.id);
+      if (m) m.c1 = c; else multi.set(e.id, { e, c0: c, c1: c });
+    }));
+    const bars = [...multi.values()].sort((a, b) => (a.c0 - b.c0) || ((b.c1 - b.c0) - (a.c1 - a.c0)) || MC.cmp(a.e, b.e));
+    const occ = days.map(() => []);
+    for (const b of bars) {
+      let s = 0;
+      for (;;) { let free = true; for (let c = b.c0; c <= b.c1; c++) if (occ[c][s]) { free = false; break; } if (free) break; s++; }
+      b.slot = s;
+      for (let c = b.c0; c <= b.c1; c++) occ[c][s] = b;
     }
-    if (fit < evs.length && withMore >= 1) h += `<div class="more">+${evs.length - fit}</div>`;
+    evsBy.forEach((evs, c) => evs.forEach(e => {
+      if (multi.has(e.id)) return;
+      let s = 0; while (occ[c][s]) s++;
+      occ[c][s] = { e };
+    }));
+    return { evsBy, bars, occ };
+  }
+  const chipHTML = (e, cls = '', style = '') =>
+    `<div class="chip${cls}${e.done ? ' done' : ''}" style="--c:${MC.evColor(e)}${style}">${esc(e.title)}</div>`;
+  // 一天的格子：跨天横条的位置留空，单天事件放在自己的行上
+  // 放得下就全显示；放不下时留一行显示「+n」，空间太小则只显示一行
+  function cellChips(occ, lim) {
+    if (!occ.length) return '';
+    let h = '';
+    for (let s = 0; s < Math.min(lim, occ.length); s++) {
+      const it = occ[s];
+      h += it && !('slot' in it) ? chipHTML(it.e) : '<div class="chip gap"></div>'; // 有 slot 的是跨天横条
+    }
+    let hidden = 0;
+    for (let s = lim; s < occ.length; s++) if (occ[s]) hidden++;
+    if (hidden && withMore >= 1) h += `<div class="more">+${hidden}</div>`;
+    return h;
+  }
+  const limitOf = occ => (occ.length <= maxChips ? occ.length : Math.max(1, withMore));
+  // 横条：在被「+n」挡住的日子断开，其余连成一整条；从上周延续过来 / 延续到下周的一端是平的
+  function barsHTML(lay, days, lims) {
+    let h = '';
+    for (const b of lay.bars) {
+      const e = b.e, first = e.date, last = MC.endDate(e);
+      let c = b.c0;
+      while (c <= b.c1) {
+        if (b.slot >= lims[c]) { c++; continue; }
+        let d = c;
+        while (d + 1 <= b.c1 && b.slot < lims[d + 1]) d++;
+        const openL = days[c] !== first, openR = days[d] !== last;
+        h += chipHTML(e, ` mbar${openL ? ' ol' : ''}${openR ? ' or' : ''}`, `;--a:${c};--n:${d - c + 1};--s:${b.slot}`);
+        c = d + 1;
+      }
+    }
     return h;
   }
   function renderMonth() {
@@ -61,16 +109,19 @@
     let h = '';
     for (let r = 0; r < 6 + BUF * 2; r++) {
       h += `<div class="wrow" style="height:${rowH}px">`;
+      const days = [];
+      for (let c = 0; c < 7; c++) days.push(MC.ymd(MC.addDays(start, r * 7 + c)));
+      const lay = layWeek(days), lims = lay.occ.map(limitOf);
       for (let c = 0; c < 7; c++) {
-        const d = MC.addDays(start, r * 7 + c), ds = MC.ymd(d);
+        const d = MC.addDays(start, r * 7 + c), ds = days[c];
         const cls = ['cell'];
         if (d.getFullYear() * 12 + d.getMonth() !== fk) cls.push('out');
         if (ds === t) cls.push('today');
         if (ds === selected) cls.push('sel');
         if (d.getDate() === 1) cls.push('first');
-        h += `<div class="${cls.join(' ')}" data-date="${ds}">${d.getDate() === 1 ? `<span class="mlabel">${d.getMonth() + 1}月</span>` : ''}<div class="num">${d.getDate()}</div><div class="chips">${chipsHTML(MC.eventsOn(ds))}</div></div>`;
+        h += `<div class="${cls.join(' ')}" data-date="${ds}">${d.getDate() === 1 ? `<span class="mlabel">${d.getMonth() + 1}月</span>` : ''}<div class="num">${d.getDate()}</div><div class="chips">${cellChips(lay.occ[c], lims[c])}</div></div>`;
       }
-      h += '</div>';
+      h += barsHTML(lay, days, lims) + '</div>';
     }
     track.style.cssText = '';
     track.innerHTML = h + `<svg class="mframe" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
@@ -206,15 +257,22 @@
   // ---------- 周视图 ----------
   function weekPanelHTML(ws, left) {
     const t = MC.todayStr();
-    let h = `<div class="wpanel" style="left:${left}px;width:${W}px">`;
+    const days = []; for (let i = 0; i < 7; i++) days.push(MC.ymd(MC.addDays(ws, i)));
+    // 跨天的全天事件放在每天最上面，拉成横条；下面再排当天的事件
+    const lay = layWeek(days), lanes = lay.bars.reduce((m, b) => Math.max(m, b.slot + 1), 0);
+    let h = `<div class="wpanel" style="left:${left}px;width:${W}px;--lanes:${lanes}">`;
     for (let i = 0; i < 7; i++) {
-      const d = MC.addDays(ws, i), ds = MC.ymd(d);
+      const d = MC.addDays(ws, i), ds = days[i];
       const cls = ['wcol'];
       if (ds === t) cls.push('today');
       if (ds === selected) cls.push('sel');
-      const chips = MC.eventsOn(ds).map(e =>
+      const chips = lay.evsBy[i].filter(e => !spans(e)).map(e =>
         `<div class="chip${e.done ? ' done' : ''}" style="--c:${MC.evColor(e)}">${esc(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
-      h += `<div class="${cls.join(' ')}" data-date="${ds}"><div class="wnum">${d.getDate()}</div>${chips}</div>`;
+      h += `<div class="${cls.join(' ')}" data-date="${ds}"><div class="wnum">${d.getDate()}</div>${lanes ? '<div class="wlanes"></div>' : ''}${chips}</div>`;
+    }
+    for (const b of lay.bars) {
+      const e = b.e;
+      h += chipHTML(e, ` wbar${days[b.c0] !== e.date ? ' ol' : ''}${days[b.c1] !== MC.endDate(e) ? ' or' : ''}`, `;--a:${b.c0};--n:${b.c1 - b.c0 + 1};--s:${b.slot}`);
     }
     return h + '</div>';
   }

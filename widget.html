@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>月历小组件</title>
 <style>
-  :root { --accent:#56789A; --p3:#E05A55; --p2:#E3A040; --p1:#4B82E8; --p0:#8D929B; }
+  :root { --accent:#56789A; --p3:#E05A55; --p2:#E3A040; --p1:#4B82E8; --p4:#41B08F; --p0:#8D929B; }
   :root[data-theme="dark"] { --accent:#6A8AAB; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#6A8AAB; } }
   :root, :root[data-theme="light"] { color-scheme:light; --bg:#F1F2F5; --line:#DEE0E6; --text:#1C1C1E; --text2:#86868C; --text3:#C3C3C8; --mix:20%; }
@@ -51,7 +51,8 @@
   const WS = Number(q.get('ws') || 0) === 1 ? 1 : 0;
   const theme = q.get('theme');
   if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-  const COLORS = { 3:'var(--p3)', 2:'var(--p2)', 1:'var(--p1)', 0:'var(--p0)' };
+  const COLORS = { 3:'var(--p3)', 2:'var(--p2)', 1:'var(--p1)', 4:'var(--p4)', 0:'var(--p0)' };
+  const RANK = p => ({ 3: 4, 2: 3, 1: 2, 4: 1 })[p] || 0;
   const WD = ['日','一','二','三','四','五','六'];
   const pad = n => String(n).padStart(2,'0');
   const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -96,7 +97,7 @@
       const n = e.days > 1 && !e.time ? e.days : 1, [yy, mm, dd] = e.date.split('-').map(Number);
       for (let k = 0; k < n; k++) { const ds = ymd(new Date(yy, mm - 1, dd + k)); (by[ds] = by[ds] || []).push(e); }
     }
-    for (const k in by) by[k].sort((a,b) => (a.done-b.done) || (b.priority-a.priority) || (a.createdAt-b.createdAt));
+    for (const k in by) by[k].sort((a,b) => (a.done-b.done) || (RANK(b.priority)-RANK(a.priority)) || (a.createdAt-b.createdAt));
     const prefix = `${y}-${pad(m+1)}-`;
     let total = 0, done = 0;
     for (const k in by) if (k.startsWith(prefix)) { total += by[k].length; done += by[k].filter(e => e.done).length; }
