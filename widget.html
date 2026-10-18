@@ -90,9 +90,9 @@
 
   function render(data) {
     const now = new Date(), y = now.getFullYear(), m = now.getMonth(), t = ymd(now);
-    const by = {};
+    const by = {}, shown = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id));
     for (const e of data.events || []) {
-      if (e.cal) continue; // 只显示主日历
+      if (e.cal && !shown.has(e.cal)) continue; // 主日历 + 设为在主日历显示的记录日历
       const n = e.days > 1 && !e.time ? e.days : 1, [yy, mm, dd] = e.date.split('-').map(Number);
       for (let k = 0; k < n; k++) { const ds = ymd(new Date(yy, mm - 1, dd + k)); (by[ds] = by[ds] || []).push(e); }
     }

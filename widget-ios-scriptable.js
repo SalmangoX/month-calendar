@@ -83,10 +83,11 @@ async function loadData() {
     throw e;
   }
 }
+let SHOWN = new Set();
 function indexEvents(events) {
   const by = {};
   for (const e of events) {
-    if (e.cal) continue; // 只显示主日历
+    if (e.cal && !SHOWN.has(e.cal)) continue; // 主日历 + 设为在主日历显示的记录日历
     const n = e.days > 1 && !e.time ? e.days : 1, [y, m, d] = e.date.split("-").map(Number);
     for (let k = 0; k < n; k++) { const ds = ymd(new Date(y, m - 1, d + k)); (by[ds] = by[ds] || []).push(e); }
   }
@@ -392,7 +393,7 @@ const family = config.runsInWidget ? (config.widgetFamily || "large") : "large";
 let widget;
 try {
   const { data, offline } = await loadData();
-  const idx = indexEvents(data.events || []);
+  const idx = (SHOWN = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id)), indexEvents(data.events || []));
   widget = new ListWidget();
   widget.backgroundColor = C.bg;
   if (family === "large" || family === "extraLarge") largeLayout(widget, idx, offline);
@@ -422,7 +423,7 @@ if (args.queryParameters && args.queryParameters.tap === "1") {
     let pw;
     try {
       const { data, offline } = await loadData();
-      const idx = indexEvents(data.events || []);
+      const idx = (SHOWN = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id)), indexEvents(data.events || []));
       pw = new ListWidget(); pw.backgroundColor = C.bg;
       if (fam === "large") largeLayout(pw, idx, offline);
       else if (fam === "medium") mediumLayout(pw, idx, offline);

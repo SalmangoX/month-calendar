@@ -64,9 +64,15 @@ function fireTime(e, tz) {
   const [h, mi] = (e.time || '09:00').split(':').map(Number);
   return localToUtc(y, m, d, h, mi, tz) - Number(e.remind) * 60000;
 }
-function body(e) {
+function fmt(t, h12, noHalf) {
+  if (!h12) return t;
+  const [h, m] = t.split(':').map(Number);
+  return (noHalf ? '' : h < 12 ? '上午' : '下午') + (h % 12 || 12) + ':' + String(m).padStart(2, '0');
+}
+function body(e, h12) {
   const [, m, d] = e.date.split('-').map(Number);
-  const t = e.time ? (e.endTime ? `${e.time}–${e.endTime}` : e.time) : '全天';
+  const same = e.endTime && (+e.time.slice(0, 2) < 12) === (+e.endTime.slice(0, 2) < 12);
+  const t = e.time ? (e.endTime ? `${fmt(e.time, h12)}–${fmt(e.endTime, h12, same)}` : fmt(e.time, h12)) : '全天';
   return `${m}月${d}日 ${t}${e.note ? ' · ' + e.note : ''}`;
 }
 
@@ -81,13 +87,14 @@ const sent = sentDoc.sent || {};
 
 webpush.setVapidDetails(info.subject && /^https:|^mailto:/.test(info.subject) ? info.subject : 'mailto:noreply@example.com', info.publicKey, VAPID_PRIVATE);
 
+const notifyCals = new Set((data.cals || []).filter(c => c && c.notify).map(c => c.id));
 const now = Date.now();
 const dead = new Set();
 let count = 0, changed = false;
 for (const sub of info.subs) {
   const tz = sub.tz || 'UTC';
   for (const e of data.events || []) {
-    if (e.done) continue;
+    if (e.done || (e.cal && !notifyCals.has(e.cal))) continue; // 记录日历只有打开通知才提醒
     const ft = fireTime(e, tz);
     if (ft === null || ft > now || ft < now - LOOKBACK || ft < (sub.addedAt || 0)) continue;
     const tag = `${e.id}@${ft}`;
@@ -95,7 +102,7 @@ for (const sub of info.subs) {
     if (sent[key]) continue;
     try {
       await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys },
-        JSON.stringify({ title: e.title, body: body(e), tag, url: info.subject || './' }),
+        JSON.stringify({ title: e.title, body: body(e, !!sub.h12), tag, url: info.subject || './' }),
         { TTL: 3600, urgency: 'high' });
       count++;
     } catch (err) {

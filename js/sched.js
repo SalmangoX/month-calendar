@@ -250,7 +250,8 @@
     // 尺寸：全览时按屏幕等比缩小；放大时按倍数加大，可以滚动
     const cs = getComputedStyle(body);
     const availH = body.clientHeight - parseFloat(cs.paddingBottom) - parseFloat(cs.paddingTop) - 44;
-    const availW = body.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 34;
+    const h12 = MC.use12(), HW = h12 ? 40 : 36;           // 左边时间轴的宽度：12 小时制要放下「下午」
+    const availW = body.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - HW - 2;
     const sumW = wts.reduce((a, b) => a + b, 0);
     const fitHour = Math.max(20, availH / (maxH - minH)), unit = availW / sumW;
     const HOUR = fitHour * zoom;
@@ -265,7 +266,7 @@
       head += `<div class="sc-dh${isToday ? ' today' : ''}${d > 5 ? ' we' : ''}${thin ? ' thin' : ''}"><span>${thin ? DAYS[d] : '周' + DAYS[d]}</span><b>${thin ? date.getDate() : `${date.getMonth() + 1}/${date.getDate()}`}</b></div>`;
     });
     let hours = '';
-    for (let h = minH; h < maxH; h++) hours += `<div class="sc-hr" style="top:${(h - minH) * HOUR}px">${h}:00</div>`;
+    for (let h = minH; h < maxH; h++) hours += `<div class="sc-hr" style="top:${(h - minH) * HOUR}px">${h12 ? `<small>${h < 12 ? '上午' : '下午'}</small>${h % 12 || 12}` : `${h}:00`}</div>`;
     const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
     let cols = '';
     days.forEach((d, idx) => {
@@ -276,7 +277,7 @@
         const lines = Math.max(1, Math.floor((hgt - 48 * fs) / (13.5 * fs)));
         const live = isToday && nowMin >= toMin(c.start) && nowMin < toMin(c.end);
         return `<button class="sc-blk${c._lanes > 1 ? ' narrow' : ''}${live ? ' live' : ''}" data-id="${c.id}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px);--c:${colorOf(c.code)}">
-          ${c._lanes > 1 || hgt < 40 * fs ? '' : `<small class="t">${c.start}–${c.end}</small>`}<b>${c._lanes > 1 ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>${c.type ? `<span class="k">${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}</span>` : (c.every === 2 ? '<span class="k">隔周</span>' : '')}${c.room && hgt > 60 * fs && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(c.room)}</span>` : ''}</button>`;
+          ${c._lanes > 1 || hgt < 40 * fs ? '' : `<small class="t">${h12 ? `${MC.fmtTime(c.start, true)}–${MC.fmtTime(c.end, true)}` : `${c.start}–${c.end}`}</small>`}<b>${c._lanes > 1 ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>${c.type ? `<span class="k">${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}</span>` : (c.every === 2 ? '<span class="k">隔周</span>' : '')}${c.room && hgt > 60 * fs && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(c.room)}</span>` : ''}</button>`;
       }).join('');
       cols += `<div class="sc-col${isToday ? ' today' : ''}${wts[idx] < 1 ? ' thin' : ''}">${blocks}</div>`;
     });
@@ -284,10 +285,10 @@
     const showNow = nowMin >= minH * 60 && nowMin <= maxH * 60; // 换到别的周也显示「现在几点」
     const nowTop = (nowMin / 60 - minH) * HOUR;
     const grid0 = body.querySelector('.sc-grid'), keepX = grid0 ? grid0.scrollLeft : 0, keepY = grid0 ? grid0.scrollTop : null;
-    body.innerHTML = `<div class="sc-grid${zoom > 1 ? '' : ' fit'}" style="--tpl:${tpl};--fs:${fs.toFixed(3)}"><div class="sc-inner">
+    body.innerHTML = `<div class="sc-grid${zoom > 1 ? '' : ' fit'}${h12 ? ' h12' : ''}" style="--tpl:${tpl};--fs:${fs.toFixed(3)};--hw:${HW}px"><div class="sc-inner">
       <div class="sc-head">${head}</div>
       <div class="sc-main" style="height:${(maxH - minH) * HOUR}px">
-        <div class="sc-hours">${hours}${showNow ? `<div class="sc-tri" style="top:${nowTop}px"><span>${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}</span></div>` : ''}</div>
+        <div class="sc-hours">${hours}${showNow ? `<div class="sc-tri" style="top:${nowTop}px"><span>${MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`)}</span></div>` : ''}</div>
         <div class="sc-cols">${cols}
         ${Array.from({ length: maxH - minH }, (_, i) => `<div class="sc-line" style="top:${i * HOUR}px"></div>`).join('')}
         ${showNow ? `<div class="sc-nowline" style="top:${nowTop}px"></div>` : ''}</div>
@@ -496,7 +497,7 @@
     $('#schedOk').textContent = `导入 ${parsed.length} 节`;
     const sorted = fillDates([...parsed]).sort((a, b) => a.day - b.day || toMin(a.start) - toMin(b.start));
     el.innerHTML = `<p class="hint" style="margin:10px 4px 6px">识别到 ${parsed.length} 节课，确认无误后点右上角导入：</p>
-      <div class="group">${sorted.map(c => `<div class="grow sc-prev"><i style="background:${colorOf(c.code)}"></i><span><b>${esc(c.code)}</b> ${esc(c.type)}<small>周${DAYS[c.day]} ${c.start}–${c.end}${c.room ? ' · ' + esc(c.room) : ''}${c.from ? ` · ${c.from.slice(5).replace('-', '/')}${c.to && c.to !== c.from ? '–' + c.to.slice(5).replace('-', '/') : ''}` : ''}${c.every === 2 ? ' · 隔周' : ''}</small></span></div>`).join('')}</div>`;
+      <div class="group">${sorted.map(c => `<div class="grow sc-prev"><i style="background:${colorOf(c.code)}"></i><span><b>${esc(c.code)}</b> ${esc(c.type)}<small>周${DAYS[c.day]} ${MC.fmtRange(c.start, c.end)}${c.room ? ' · ' + esc(c.room) : ''}${c.from ? ` · ${c.from.slice(5).replace('-', '/')}${c.to && c.to !== c.from ? '–' + c.to.slice(5).replace('-', '/') : ''}` : ''}${c.every === 2 ? ' · 隔周' : ''}</small></span></div>`).join('')}</div>`;
   }
   $('#schedFile').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = '';
@@ -561,12 +562,12 @@
   function closePop() { pop.classList.remove('show'); scrim.classList.remove('show'); }
   function openPop(c, el) {
     const col = colorOf(c.code), dur = toMin(c.end) - toMin(c.start), nx = nextOn(c);
-    const nxText = !nx ? '本学期已结束' : nx.live ? '正在上课' : (() => { const k = Math.round((nx.d - new Date(new Date().toDateString())) / 864e5); return k === 0 ? '今天 ' + c.start : k === 1 ? '明天 ' + c.start : `${nx.d.getMonth() + 1}月${nx.d.getDate()}日（${k} 天后）`; })();
+    const nxText = !nx ? '本学期已结束' : nx.live ? '正在上课' : (() => { const k = Math.round((nx.d - new Date(new Date().toDateString())) / 864e5); return k === 0 ? '今天 ' + MC.fmtTime(c.start) : k === 1 ? '明天 ' + MC.fmtTime(c.start) : `${nx.d.getMonth() + 1}月${nx.d.getDate()}日（${k} 天后）`; })();
     pop.style.setProperty('--c', col);
     pop.innerHTML = `
       <div class="cp-top"><div class="cp-tag">${esc(c.type || '课程')}${c.every === 2 ? ' · 隔周' : ''}</div><button class="round cp-x" aria-label="关闭"><svg viewBox="0 0 24 24" width="15" height="15"><path d="M6 6l12 12M18 6L6 18" stroke-width="2.4"/></svg></button></div>
       <h3>${esc(c.code)}</h3>
-      <div class="cp-row"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg><span>周${DAYS[c.day]} ${c.start} – ${c.end}<small>${dur} 分钟</small></span></div>
+      <div class="cp-row"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg><span>周${DAYS[c.day]} ${MC.fmtRange(c.start, c.end, ' – ')}<small>${dur} 分钟</small></span></div>
       ${c.room ? `<div class="cp-row"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg><span>${esc(c.room)}</span></div>` : ''}
       <div class="cp-row"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="3.5"/><path d="M4 10h16M8.5 3.5v3.5M15.5 3.5v3.5"/></svg><span>${c.from || c.to ? `${c.from ? fmtD(c.from) : '开学'} – ${c.to ? fmtD(c.to) : '结课'}` : '每周都上'}<small>${c.every === 2 ? '隔一周上一次' : '每周'}</small></span></div>
       <div class="cp-next${nx && nx.live ? ' live' : ''}">下一次：${nxText}</div>

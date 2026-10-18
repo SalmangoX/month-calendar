@@ -356,6 +356,7 @@
     let h = group('通用', [
       srow({ act: 'theme', icon: 'theme', color: COL.slate, label: '外观', val: { auto: '跟随系统', light: '浅色', dark: '深色' }[S.theme] }),
       srow({ act: 'week', icon: 'week', color: COL.indigo, label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
+      srow({ act: 'clock', icon: 'clock', color: COL.teal, label: '时间格式', val: S.clock === '12' ? '12 小时制' : S.clock === '24' ? '24 小时制' : `跟随地区（${MC.region12() ? 12 : 24} 小时）` }),
     ]);
     if (!MC.vault.connected()) {
       h += group('账户与同步', [
@@ -375,8 +376,8 @@
     if (Push.native) nrows.push(srow({ act: 'nperm', icon: 'bell', color: COL.sage, label: '提醒权限检查', sub: nativePermSummary(), help: 'nperm' }));
     const dl = MC.data.daily;
     const city = (dl.tz || MC.currentTz()).split('/').pop().replace(/_/g, ' ');
-    nrows.push(srow({ icon: 'sun', color: COL.amber, label: '每日未完成提醒', sub: dl.on ? `每天 ${dl.time} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
-    if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', color: COL.indigo, label: '每日提醒时间', val: dl.time }));
+    nrows.push(srow({ icon: 'sun', color: COL.amber, label: '每日未完成提醒', sub: dl.on ? `每天 ${MC.fmtTime(dl.time)} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
+    if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', color: COL.indigo, label: '每日提醒时间', val: MC.fmtTime(dl.time) }));
     // 始终显示，点进去会自动补齐前置条件（连接 GitHub、通知权限）；安卓 App 由系统提醒，不需要
     if (!Push.native) {
       nrows.splice(1, 0, S.remoteSetup
@@ -443,6 +444,14 @@
       { label: '周日', value: 0, on: MC.settings.weekStart === 0 },
       { label: '周一', value: 1, on: MC.settings.weekStart === 1 },
     ], v => { MC.settings.weekStart = v; MC.saveSettings(); MC.Cal.realign(); renderSettings(); });
+    else if (act === 'clock') UI.menu(row.querySelector('.sval'), [
+      { label: `跟随地区（${MC.region12() ? 12 : 24} 小时）`, value: 'auto', on: (MC.settings.clock || 'auto') === 'auto' },
+      { label: '12 小时制', value: '12', on: MC.settings.clock === '12' },
+      { label: '24 小时制', value: '24', on: MC.settings.clock === '24' },
+    ], v => {
+      MC.settings.clock = v; MC.saveSettings(); renderSettings();
+      if (Push.enabled() && MC.settings.pushReady && MC.session.token && MC.settings.subH12 !== MC.use12()) Push.resubscribe().catch(() => {});
+    });
     else if (act === 'tab3') UI.menu(row.querySelector('.sval'), [
       { label: '四象限', value: 'quad', on: (MC.settings.tab3 || 'quad') === 'quad' },
       { label: '课表', value: 'sched', on: MC.settings.tab3 === 'sched' },
@@ -509,7 +518,7 @@
         if (sw.checked) {
           if (!Push.enabled()) await Push.enable();
           MC.setDaily({ on: true, tz: MC.currentTz() });
-          UI.toast(`每天 ${MC.data.daily.time} 提醒你查看当天未完成的事件`);
+          UI.toast(`每天 ${MC.fmtTime(MC.data.daily.time)} 提醒你查看当天未完成的事件`);
         } else { MC.setDaily({ on: false }); UI.toast('已关闭每日提醒'); }
       } catch (err) { UI.toast(err.message); }
       renderSettings();
@@ -600,7 +609,7 @@
     $('#formTitle').textContent = '每日提醒时间';
     $('#formSubmit').textContent = '保存';
     $('#formBody').innerHTML = `<div class="group"><div class="wheel-wrap" id="dWheel"></div></div><p class="form-note">按你当前所在的时区（${esc(MC.currentTz())}）每天这个时间提醒你查看当天未完成的事件；都完成了会告诉你「今日事件已完成」。</p><p class="form-err" id="formErr"></p>`;
-    formHandler = { fields: [], onSubmit: async () => { MC.setDaily({ time: val, tz: MC.currentTz() }); renderSettings(); UI.toast(`每日提醒改为 ${val}`); } };
+    formHandler = { fields: [], onSubmit: async () => { MC.setDaily({ time: val, tz: MC.currentTz() }); renderSettings(); UI.toast(`每日提醒改为 ${MC.fmtTime(val)}`); } };
     UI.open('formSheet');
     requestAnimationFrame(() => UI.timeWheel($('#dWheel'), val, '', t => { val = t; }));
   }
@@ -971,7 +980,7 @@
     const tz = MC.currentTz(), d = MC.data.daily;
     if (d.on && d.tz !== tz) MC.setDaily({ tz });
     // 换了时区：更新这台设备的推送时区，事件提醒按新时区计算
-    if (Push.enabled() && MC.settings.pushReady && MC.session.token && MC.settings.subTz !== tz) Push.resubscribe();
+    if (Push.enabled() && MC.settings.pushReady && MC.session.token && (MC.settings.subTz !== tz || MC.settings.subH12 !== MC.use12())) Push.resubscribe();
   };
   syncTz();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncTz(); });

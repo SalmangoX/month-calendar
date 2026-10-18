@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.10.0';
+  MC.VERSION = '0.11.0';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -63,8 +63,8 @@
   MC.remindOptions = hasTime => hasTime
     ? [{ v: null, label: '无' }, { v: 0, label: '准时' }, { v: 5, label: '提前 5 分钟' }, { v: 15, label: '提前 15 分钟' },
        { v: 30, label: '提前 30 分钟' }, { v: 60, label: '提前 1 小时' }, { v: 1440, label: '提前 1 天' }]
-    : [{ v: null, label: '无' }, { v: 0, label: '当天 9:00' }, { v: 1440, label: '提前 1 天 9:00' },
-       { v: 2880, label: '提前 2 天 9:00' }, { v: 10080, label: '提前 1 周 9:00' }];
+    : [{ v: null, label: '无' }, { v: 0, label: `当天 ${MC.fmtTime('09:00')}` }, { v: 1440, label: `提前 1 天 ${MC.fmtTime('09:00')}` },
+       { v: 2880, label: `提前 2 天 ${MC.fmtTime('09:00')}` }, { v: 10080, label: `提前 1 周 ${MC.fmtTime('09:00')}` }];
   MC.remindLabel = (v, hasTime) => {
     if (v === null || v === undefined) return '无';
     const o = MC.remindOptions(hasTime).find(x => x.v === v);
@@ -77,7 +77,39 @@
     return new Date(y, m - 1, d, h, mi).getTime() - e.remind * 60000;
   };
   MC.endDate = e => (e.days > 1 ? ymd(MC.addDays(parse(e.date), e.days - 1)) : e.date);
-  MC.timeLabel = e => e.time ? (e.endTime ? `${e.time}–${e.endTime}` : e.time) : '';
+  // ---------- 12 / 24 小时制 ----------
+  // 默认按设备所在地区（比如加拿大、美国用 12 小时制，中国大陆、欧洲大部分用 24 小时制），设置里可以改
+  MC.region12 = (() => {
+    let v = null;
+    return () => {
+      if (v !== null) return v;
+      try {
+        const lang = (navigator.languages && navigator.languages[0]) || navigator.language || 'zh-CN';
+        const region = new Intl.Locale(lang).maximize().region;
+        const loc = region ? new Intl.Locale('und-' + region).maximize().toString() : lang;
+        const o = new Intl.DateTimeFormat(loc, { hour: 'numeric' }).resolvedOptions();
+        v = o.hourCycle ? /h1[12]/.test(o.hourCycle) : !!o.hour12;
+      } catch (e) {
+        try { v = !!new Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12; } catch (e2) { v = false; }
+      }
+      return v;
+    };
+  })();
+  MC.use12 = () => (MC.settings.clock === '12' ? true : MC.settings.clock === '24' ? false : MC.region12());
+  const half = h => (h < 12 ? '上午' : '下午');
+  // '14:30' → '下午2:30'（12 小时制）或 '14:30'；noHalf：省略上午 / 下午
+  MC.fmtTime = (t, noHalf) => {
+    if (!t || !MC.use12()) return t || '';
+    const [h, m] = t.split(':').map(Number);
+    return (noHalf ? '' : half(h)) + (h % 12 || 12) + ':' + pad(m);
+  };
+  MC.fmtRange = (a, b, sep = '–') => {
+    if (!b) return MC.fmtTime(a);
+    if (!MC.use12()) return `${a}${sep}${b}`;
+    const same = half(+a.slice(0, 2)) === half(+b.slice(0, 2));
+    return `${MC.fmtTime(a)}${sep}${MC.fmtTime(b, same)}`;
+  };
+  MC.timeLabel = e => e.time ? MC.fmtRange(e.time, e.endTime) : '';
 
   // ---------- 数据 ----------
   function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [] }; }
@@ -117,6 +149,8 @@
   function normCal(c) {
     const t = Date.now();
     return { id: String(c.id).slice(0, 40), name: String(c.name || '记录').slice(0, 24), color: /^#[0-9a-fA-F]{6}$/.test(c.color || '') ? c.color : MC.CAL_COLORS[0],
+      showInMain: !!c.showInMain, // 事件也显示在主日历里
+      notify: !!c.notify,         // 这个日历的事件到点提醒
       createdAt: c.createdAt || t, updatedAt: c.updatedAt || c.createdAt || t };
   }
   function loadData() {
@@ -145,7 +179,7 @@
   };
 
   MC.settings = Object.assign(
-    { theme: 'auto', weekStart: 0, view: 'month', tab3: 'quad', activeCal: '', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '', account: '' },
+    { theme: 'auto', weekStart: 0, view: 'month', tab3: 'quad', activeCal: '', clock: 'auto', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '', account: '' },
     JSON.parse(localStorage.getItem(SET_KEY) || '{}')
   );
   // 从 0.1 版迁移：旧版本明文保存在 token 字段
@@ -159,14 +193,19 @@
   const cmp = (a, b) => (a.done - b.done) || (b.priority - a.priority) || ((a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0) || (a.createdAt - b.createdAt);
   MC.cmp = cmp;
   // 当前在日历页显示的是哪个日历（'' = 主日历）。每个日历的事件各自独立：
-  // 日历页只显示当前日历；今日页、四象限、小组件、每日提醒只看主日历。
+  // 日历页只显示当前日历；主日历还会带上打开了「在主日历显示」的记录日历；
+  // 今日页、四象限、每日提醒只看主日历自己的事件。
   MC.cal = id => (id ? MC.data.cals.find(c => c.id === id) : MC.MAIN_CAL) || null;
   MC.activeCal = () => (MC.settings.activeCal && MC.cal(MC.settings.activeCal) ? MC.settings.activeCal : '');
   MC.setActiveCal = id => { MC.settings.activeCal = id || ''; MC.saveSettings(); MC.reindex(); };
   MC.inCal = (e, id) => (e.cal || '') === (id || '');
   MC.mainEvents = () => MC.data.events.filter(e => !e.cal);
+  // 记录日历的事件是否提醒：主日历永远提醒（由通知总开关控制），记录日历看自己的开关
+  MC.notifies = e => !e.cal || !!(MC.cal(e.cal) || {}).notify;
+  // 事件颜色：记录日历里没设优先级的事件用日历颜色
+  MC.evColor = e => (e.cal && !e.priority && MC.cal(e.cal) ? MC.cal(e.cal).color : MC.priOf(e.priority).color);
   MC.byDate = new Map();    // 当前日历
-  MC.mainByDate = new Map(); // 主日历
+  MC.mainByDate = new Map(); // 主日历自己的事件（待办）
   function indexOf(list) {
     const m = new Map();
     for (const e of list) {
@@ -182,8 +221,10 @@
   }
   MC.reindex = () => {
     const act = MC.activeCal();
+    const shown = new Set(MC.data.cals.filter(c => c.showInMain).map(c => c.id));
     MC.mainByDate = indexOf(MC.data.events.filter(e => !e.cal));
-    MC.byDate = act ? indexOf(MC.data.events.filter(e => e.cal === act)) : MC.mainByDate;
+    MC.byDate = act ? indexOf(MC.data.events.filter(e => e.cal === act))
+      : shown.size ? indexOf(MC.data.events.filter(e => !e.cal || shown.has(e.cal))) : MC.mainByDate;
   };
   MC.reindex();
   MC.eventsOn = ds => MC.byDate.get(ds) || [];      // 当前日历
@@ -208,8 +249,8 @@
   };
   MC.setProfile = fields => { Object.assign(MC.data.profile, fields, { updatedAt: Date.now() }); MC.commit(); };
   MC.setCourses = list => { MC.data.courses = list; MC.data.coursesAt = Date.now(); MC.commit(); };
-  MC.addCal = (name, color) => {
-    const c = normCal({ id: 'c' + MC.uid(), name, color });
+  MC.addCal = (name, color, opts = {}) => {
+    const c = normCal({ id: 'c' + MC.uid(), name, color, ...opts });
     MC.data.cals.push(c); MC.commit(); return c;
   };
   MC.updateCal = (c, fields) => { Object.assign(c, fields, { updatedAt: Date.now() }); MC.commit(); };
@@ -257,7 +298,7 @@
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
       .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
-    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, c.updatedAt]);
+    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.updatedAt]);
     return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, d.coursesAt || 0, cs]);
   }
 

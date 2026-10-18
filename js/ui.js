@@ -167,8 +167,10 @@
     } else if (multi) bits.push(`${MC.dateLabel(e.date)}–${MC.dateLabel(MC.endDate(e))} · 共 ${e.days} 天`);
     const tl = MC.timeLabel(e);
     if (tl) bits.push(esc(tl));
+    const ec = e.cal && e.cal !== MC.activeCal() && MC.cal(e.cal); // 主日历里显示的记录日历事件：标出来自哪个日历
+    if (ec) bits.unshift(`<span class="cal-tag" style="--cc:${ec.color}">${esc(ec.name)}</span>`);
     if (e.note) bits.push(esc(e.note));
-    return `<li class="item${e.done ? ' done' : ''}${e.done && UI.justDone === e.id ? ' just-done' : ''}" data-id="${e.id}" style="--c:${p.color}">
+    return `<li class="item${e.done ? ' done' : ''}${e.done && UI.justDone === e.id ? ' just-done' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)}">
       <button class="check" data-act="toggle" aria-label="${e.done ? '标为未完成' : '标为完成'}">${checkSVG}</button>
       <div class="item-main" data-act="open">
         <div class="item-title"><span class="ttxt">${esc(e.title)}</span></div>
@@ -272,7 +274,8 @@
 
   // 时间滚轮：时 : 分（可选结束时间）
   UI.timeWheel = (host, start, end, onChange) => {
-    const hours = []; for (let h = 0; h < 24; h++) hours.push({ label: MC.pad(h), value: h });
+    const h12 = MC.use12();
+    const hours = []; for (let h = 0; h < 24; h++) hours.push({ label: h12 ? `${h < 12 ? '上午' : '下午'} ${h % 12 || 12}` : MC.pad(h), value: h });
     const mins = m0 => {
       const out = []; for (let m = 0; m < 60; m += 5) out.push({ label: MC.pad(m), value: m });
       if (m0 % 5) { out.push({ label: MC.pad(m0), value: m0 }); out.sort((a, b) => a.value - b.value); }

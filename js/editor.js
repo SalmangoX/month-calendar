@@ -242,7 +242,9 @@
     }
     const series = rep ? MC.uid() : '';
     MC.addEvents(dates.map(ds => MC.makeEvent({ ...fields, cal: newCal, date: ds, series, rep, id: series ? `${series}-${ds}` : MC.uid() })));
-    UI.toast(rep ? (rep.forever ? `已添加，${MC.repeatLabel(rep.freq)}重复` : `已添加 ${dates.length} 个重复事件`) : `已添加到${MC.dayDiff(draft.date) === 0 ? '今天' : ' ' + MC.dateLabel(draft.date)}`);
+    const quiet = draft.remind !== null && draft.remind !== undefined && newCal && !MC.notifies({ cal: newCal });
+    UI.toast((rep ? (rep.forever ? `已添加，${MC.repeatLabel(rep.freq)}重复` : `已添加 ${dates.length} 个重复事件`) : `已添加到${MC.dayDiff(draft.date) === 0 ? '今天' : ' ' + MC.dateLabel(draft.date)}`)
+      + (quiet ? `。「${MC.cal(newCal).name}」的通知没有打开，不会提醒` : ''));
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';
     draft.repeat = 'none'; draft.until = '';
     localStorage.removeItem(DRAFT_KEY);
@@ -396,7 +398,7 @@
         <button class="pk-card${pk.chooser && pk.chooser.key === 'date' ? ' active' : ''}" data-act="cardDate"><small>${allDay ? '开始' : '日期'}</small><b data-bind="cardDate">${MC.dateLabel(pk.date)}，周${MC.WD[MC.parse(pk.date).getDay()]}</b><small data-bind="cardRel">${MC.relLabel(pk.date)}</small></button>
         ${allDay
           ? `<button class="pk-card${pk.chooser && pk.chooser.key === 'end' ? ' active' : ''}" data-act="cardEnd"><small>结束</small><b>${MC.dateLabel(end)}，周${MC.WD[MC.parse(end).getDay()]}</b><small>${pk.days > 1 ? `共 ${pk.days} 天` : '当天'}</small></button>`
-          : `<button class="pk-card${pk.expanded === 'range' ? ' active' : ''}" data-act="cardTime"><small>时间</small><b data-bind="cardTime">${pk.time} - ${pk.endTime}</b><small data-bind="cardDur">${dur ? '持续时间：' + dur : '　'}</small></button>`}
+          : `<button class="pk-card${pk.expanded === 'range' ? ' active' : ''}" data-act="cardTime"><small>时间</small><b data-bind="cardTime">${MC.fmtRange(pk.time, pk.endTime, ' - ')}</b><small data-bind="cardDur">${dur ? '持续时间：' + dur : '　'}</small></button>`}
       </div>`;
       if (pk.chooser && (pk.chooser.key === 'date' || pk.chooser.key === 'end')) h += `<div class="group pk-rows">${chooserHTML(pk.chooser.key)}</div>`;
       if (pk.expanded === 'range' && !allDay) h += '<div class="group pk-rows"><div class="wheel-wrap" id="pkWheelRange"></div></div>';
@@ -422,7 +424,7 @@
     set('until', pk.until ? MC.dateLabel(pk.until) + ' ' + MC.parse(pk.until).getFullYear() : '不设，一直重复');
     set('cardDate', `${MC.dateLabel(pk.date)}，周${MC.WD[MC.parse(pk.date).getDay()]}`);
     set('cardRel', MC.relLabel(pk.date));
-    if (pk.time) { set('cardTime', `${pk.time} - ${pk.endTime}`); const d = durLabel(pk.time, pk.endTime); set('cardDur', d ? '持续时间：' + d : '结束时间需晚于开始时间'); }
+    if (pk.time) { set('cardTime', MC.fmtRange(pk.time, pk.endTime, ' - ')); const d = durLabel(pk.time, pk.endTime); set('cardDur', d ? '持续时间：' + d : '结束时间需晚于开始时间'); }
   }
   function mountWheels() {
     const cw = $('#chooserWheel');

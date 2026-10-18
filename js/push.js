@@ -74,10 +74,12 @@
       device: MC.settings.deviceId, endpoint: j.endpoint, keys: j.keys,
       tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       ua: navigator.userAgent.slice(0, 120), addedAt: Date.now(),
+      h12: MC.use12(), // 推送里的时间按这台设备的 12 / 24 小时制显示
     });
     await writeSubs(info);
     MC.settings.pushReady = true;
     MC.settings.subTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; // 记录推送用的时区
+    MC.settings.subH12 = MC.use12();
     MC.saveSettings();
     return true;
   }
@@ -222,7 +224,7 @@
     try { sent = JSON.parse(localStorage.getItem(LKEY) || '{}'); } catch (e) {}
     const due = [];
     for (const e of MC.data.events) {
-      if (e.done) continue;
+      if (e.done || !MC.notifies(e)) continue; // 记录日历没开通知就不提醒
       const ft = MC.fireTime(e);
       if (ft === null || ft > now || ft < now - 3 * 60000) continue;
       const key = `${e.id}@${ft}`;

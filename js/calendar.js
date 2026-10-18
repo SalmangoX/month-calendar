@@ -49,7 +49,7 @@
     let h = '';
     for (let k = 0; k < fit; k++) {
       const e = evs[k];
-      h += `<div class="chip${e.done ? ' done' : ''}" style="--c:${MC.priOf(e.priority).color}">${esc(e.title)}</div>`;
+      h += `<div class="chip${e.done ? ' done' : ''}" style="--c:${MC.evColor(e)}">${esc(e.title)}</div>`;
     }
     if (fit < evs.length && withMore >= 1) h += `<div class="more">+${evs.length - fit}</div>`;
     return h;
@@ -213,7 +213,7 @@
       if (ds === t) cls.push('today');
       if (ds === selected) cls.push('sel');
       const chips = MC.eventsOn(ds).map(e =>
-        `<div class="chip${e.done ? ' done' : ''}" style="--c:${MC.priOf(e.priority).color}">${esc(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
+        `<div class="chip${e.done ? ' done' : ''}" style="--c:${MC.evColor(e)}">${esc(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
       h += `<div class="${cls.join(' ')}" data-date="${ds}"><div class="wnum">${d.getDate()}</div>${chips}</div>`;
     }
     return h + '</div>';
@@ -243,7 +243,7 @@
         if (evs.length) {
           const open = evs.filter(e => !e.done);
           const top = (open.length ? open : evs)[0];
-          dot = `<i class="${open.length ? '' : 'faded'}" style="--c:${MC.priOf(top.priority).color}"></i>`;
+          dot = `<i class="${open.length ? '' : 'faded'}" style="--c:${MC.evColor(top)}"></i>`;
         }
         g += `<div class="md${ds === t ? ' today' : ''}"><span>${d.getDate()}</span>${dot}</div>`;
       }

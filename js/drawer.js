@@ -73,10 +73,13 @@
   const ICON_MAIN = '<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.2h17M8 2.8v3.4M16 2.8v3.4"/></svg>';
   const ICON_REC = '<svg viewBox="0 0 24 24"><path d="M6.5 3.5h11a2 2 0 0 1 2 2v15l-7.5-4-7.5 4v-15a2 2 0 0 1 2-2z"/></svg>';
   const TICK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const BELL = '<svg viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
+  const LAYERS = '<svg viewBox="0 0 24 24"><path d="M12 4l8.5 4.5L12 13 3.5 8.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg>';
   const MORE = '<svg viewBox="0 0 24 24" class="filled"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg>';
   function row(c, i) {
     const on = c.id === MC.activeCal(), n = MC.countIn(c.id);
-    const sub = c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日和四象限';
+    const flags = c.id ? `${c.showInMain ? `<span title="显示在主日历">${LAYERS}</span>` : ''}${c.notify ? `<span title="通知已开">${BELL}</span>` : ''}` : '';
+    const sub = (c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日和四象限') + (flags ? `<span class="dr-flags">${flags}</span>` : '');
     return `<div class="dr-row${on ? ' on' : ''}" style="--cc:${c.id ? c.color : 'var(--accent-base)'};--i:${i}" data-id="${esc(c.id)}">
       <button class="dr-pick" data-act="pick" aria-pressed="${on}">
         <span class="dr-ico">${c.id ? ICON_REC : ICON_MAIN}</span>
@@ -91,7 +94,7 @@
     let h = row(MC.MAIN_CAL, 1);
     h += `<p class="dr-sec">记录日历</p>`;
     if (cals.length) h += cals.map((c, i) => row(c, i + 2)).join('');
-    else h += `<p class="dr-empty" style="--i:2">经期、运动、症状这类记录可以各放一个日历，和待办分开显示，互不干扰。</p>`;
+    else h += `<p class="dr-empty" style="--i:2">记录日历和待办分开显示，可以分别设置是否显示在主日历、是否通知。</p>`;
     list.innerHTML = h;
   }
   list.addEventListener('click', e => {
@@ -106,8 +109,15 @@
       return;
     }
     const c = MC.cal(id); if (!c) return;
-    UI.menu(b, [{ label: '名称和颜色', value: 'edit' }, { label: '删除这个日历', value: 'del' }], v => {
-      if (v === 'edit') calForm(c);
+    UI.menu(b, [
+      { label: '在主日历显示', value: 'main', on: c.showInMain },
+      { label: '通知', value: 'notify', on: c.notify },
+      { label: '名称和颜色', value: 'edit' },
+      { label: '删除这个日历', value: 'del' },
+    ], v => {
+      if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? `「${c.name}」的事件会显示在主日历` : `「${c.name}」不再显示在主日历`); }
+      else if (v === 'notify') { MC.updateCal(c, { notify: !c.notify }); render(); UI.toast(c.notify ? `已打开「${c.name}」的通知` : `已关闭「${c.name}」的通知`); }
+      else if (v === 'edit') calForm(c);
       else {
         const n = MC.countIn(c.id);
         if (!confirm(`删除「${c.name}」？${n ? `里面的 ${n} 条记录会一起删除，` : ''}其他设备同步后也会删除。`)) return;
@@ -127,14 +137,17 @@
     MC.openForm({
       title: c ? '编辑日历' : '新建记录日历',
       submit: c ? '保存' : '新建',
-      fields: [{ id: 'calName', label: '名称', ph: '比如：经期、运动、头痛', val: c ? c.name : '', max: 24 }],
-      extra: sw(),
-      note: c ? '' : '新日历的内容只在这个日历里显示，不会出现在今日、四象限和小组件中。',
+      fields: [{ id: 'calName', label: '名称', ph: '日历名称', val: c ? c.name : '', max: 24 }],
+      extra: sw() + `<div class="group dr-switches">
+        <label class="pk-row"><span>在主日历显示<small>这个日历的事件也出现在主日历里</small></span><input type="checkbox" class="switch" id="calMain"${c && c.showInMain ? ' checked' : ''}></label>
+        <label class="pk-row"><span>通知<small>事件设了提醒时到点通知</small></span><input type="checkbox" class="switch" id="calNotify"${c && c.notify ? ' checked' : ''}></label>
+      </div>`,
       onSubmit: async v => {
         const name = v.calName.trim();
         if (!name) throw new Error('请填写名称');
-        if (c) { MC.updateCal(c, { name, color }); D.paint(); render(); UI.toast('已保存'); return; }
-        const nc = MC.addCal(name, color);
+        const showInMain = $('#calMain').checked, notify = $('#calNotify').checked;
+        if (c) { MC.updateCal(c, { name, color, showInMain, notify }); MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast('已保存'); return; }
+        const nc = MC.addCal(name, color, { showInMain, notify });
         MC.setActiveCal(nc.id); D.paint(); render(); MC.Cal.render();
         UI.toast(`已新建「${name}」，现在显示的就是它`);
         setTimeout(D.close, 260);
