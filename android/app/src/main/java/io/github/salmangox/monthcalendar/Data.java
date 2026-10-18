@@ -267,8 +267,8 @@ final class Data {
                     JSONObject c = cs.optJSONObject(i);
                     if (c == null) continue;
                     String id = c.optString("id");
-                    JSONObject old = cmap.get(id);
-                    if (old == null || c.optLong("updatedAt") > old.optLong("updatedAt")) cmap.put(id, c);
+                    JSONObject prev = cmap.get(id);
+                    if (prev == null || c.optLong("updatedAt") > prev.optLong("updatedAt")) cmap.put(id, c);
                 }
             }
             JSONArray cals = new JSONArray();
