@@ -66,6 +66,9 @@ final class Data {
 
     final List<Event> events = new ArrayList<>();
     final List<Course> courses = new ArrayList<>();
+    /** 课程代码 → 这门课的一整套颜色（CourseColors.BASE…BAR_D） */
+    final Map<String, int[]> courseTone = new HashMap<>();
+    int[] toneOf(String code) { int[] t = courseTone.get(code); return t != null ? t : CourseColors.tone(240); }
     boolean dailyOn;
     LocalTime dailyTime = LocalTime.of(13, 0);
     int version;
@@ -136,6 +139,10 @@ final class Data {
                 d.courses.add(x);
             }
             d.courses.sort(Comparator.comparingInt((Course c) -> c.day).thenComparingInt(c -> c.startMin));
+            // 课程颜色：按科目定色相、整体在色环上推开（与网页 sched.js 相同的算法，见 CourseColors）
+            List<String> codes = new ArrayList<>();
+            for (Course x : d.courses) codes.add(x.code);
+            for (Map.Entry<String, Double> e : CourseColors.hues(codes).entrySet()) d.courseTone.put(e.getKey(), CourseColors.tone(e.getValue()));
         }
         d.index();
         return d;

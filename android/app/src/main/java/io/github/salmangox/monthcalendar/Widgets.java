@@ -39,7 +39,6 @@ final class Widgets {
     private static final int WHITE = 0xFFFFFFFF;
     /** 不在本月的日期：半透明灰，浅色和深色背景上都合适 */
     private static final int DIM = 0x80888890;
-    private static final int[] PALETTE = {0xFF5D7895, 0xFF5F9479, 0xFFC38F45, 0xFFBE6662, 0xFF86769F, 0xFF4E8C92, 0xFF6170A3, 0xFF9A7B5C};
     private static final int[] CHIP = {R.drawable.chip_p0, R.drawable.chip_p1, R.drawable.chip_p2, R.drawable.chip_p3};
     private static final int[] SOFT = {R.drawable.chip_p0_soft, R.drawable.chip_p1_soft, R.drawable.chip_p2_soft, R.drawable.chip_p3_soft};
     private static final int[] DOT = {R.drawable.dot_p0, R.drawable.dot_p1, R.drawable.dot_p2, R.drawable.dot_p3};
@@ -442,12 +441,14 @@ final class Widgets {
         if (kind == MONTH) return schedMonth(c, id, capacity(hDp));
         return schedDay(c);
     }
-    static int courseDrawable(String code) {
-        long h = 0;
-        for (int i = 0; i < code.length(); i++) h = (h * 31 + code.charAt(i)) & 0xFFFFFFFFL;
-        return CRS[(int) (h % CRS.length)];
+    /** 课程小色块：一个圆角形状按这门课的颜色着色；浅色实色 + 白字，深色深色调 + 柔白字（桌面切换深浅色时自动跟着变） */
+    private static void courseChip(RemoteViews rv, int vid, Data d, String code) {
+        int[] t = d.toneOf(code);
+        rv.setInt(vid, "setBackgroundResource", R.drawable.crs_chip);
+        rv.setColorStateList(vid, "setBackgroundTintList",
+                android.content.res.ColorStateList.valueOf(t[CourseColors.BASE]), android.content.res.ColorStateList.valueOf(t[CourseColors.CHIP_D]));
+        rv.setColorInt(vid, "setTextColor", WHITE, t[CourseColors.CHIP_INK_D]);
     }
-    private static final int[] CRS = {R.drawable.crs0, R.drawable.crs1, R.drawable.crs2, R.drawable.crs3, R.drawable.crs4, R.drawable.crs5, R.drawable.crs6, R.drawable.crs7};
     private static int[] WKC, WKH, WKM;
     private static int[][] WKE;
     private static synchronized void weekIds(Context c) {
@@ -489,7 +490,7 @@ final class Widgets {
                     Data.Course co = l.get(k);
                     rv.setViewVisibility(WKE[i][k], android.view.View.VISIBLE);
                     rv.setTextViewText(WKE[i][k], co.code + "\n" + co.start);
-                    rv.setInt(WKE[i][k], "setBackgroundResource", courseDrawable(co.code));
+                    courseChip(rv, WKE[i][k], d, co.code);
                 } else rv.setViewVisibility(WKE[i][k], android.view.View.INVISIBLE);
             }
             if (l.size() > 5) { rv.setViewVisibility(WKM[i], android.view.View.VISIBLE); rv.setTextViewText(WKM[i], "+" + (l.size() - 4)); }
@@ -531,7 +532,7 @@ final class Widgets {
                 Data.Course co = l.get(k);
                 rv.setViewVisibility(EV[i][k], android.view.View.VISIBLE);
                 rv.setTextViewText(EV[i][k], co.code);
-                rv.setInt(EV[i][k], "setBackgroundResource", courseDrawable(co.code));
+                courseChip(rv, EV[i][k], d, co.code);
             }
             if (l.size() > show) {
                 rv.setViewVisibility(MORE[i], android.view.View.VISIBLE);
@@ -646,8 +647,9 @@ final class Widgets {
                 float lw = colW / lanes[i];
                 float x0 = gx + ci * colW + lane[i] * lw + 1.5f * dp, x1 = x0 + lw - 3 * dp;
                 float y0 = gy + (co.startMin / 60f - minH) * hourH + 1 * dp, y1 = gy + (co.endMin / 60f - minH) * hourH - 1 * dp;
-                int col = courseColor(co.code);
-                p.setColor(blend(col, bg, dark ? .30f : .20f));
+                int[] tn = d.toneOf(co.code);
+                int col = tn[dark ? CourseColors.BAR_D : CourseColors.BASE];
+                p.setColor(tn[dark ? CourseColors.FILL_D : CourseColors.FILL_L]);           // 和应用课表一样：淡底 / 深底
                 cv.drawRoundRect(new RectF(x0, y0, x1, y1), 6 * dp, 6 * dp, p);
                 p.setColor(col);
                 cv.drawRoundRect(new RectF(x0, y0, x0 + 3 * dp, y1), 1.5f * dp, 1.5f * dp, p);
@@ -661,7 +663,7 @@ final class Widgets {
                     if (y + sz * 1.15f > y1) break;
                     p.setTextSize(sz);
                     p.setTypeface(li == 0 ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
-                    p.setColor(li == 0 ? (dark ? blend(col, 0xFFFFFFFF, .45f) : blend(col, 0xFF000000, .25f)) : (li == 2 ? text2 : text));
+                    p.setColor(li == 0 ? tn[dark ? CourseColors.INK_D : CourseColors.INK_L] : (li == 2 ? text2 : text));
                     if (p.measureText(t) > maxW) {
                         int n = p.breakText(t, true, Math.max(0, maxW - p.measureText("…")), null);
                         t = t.substring(0, Math.max(0, n)) + "…";
@@ -685,11 +687,7 @@ final class Widgets {
         return 0xFF000000 | (Math.round(br + (ar - br) * t) << 16) | (Math.round(bgc + (ag - bgc) * t) << 8) | Math.round(bb + (ab - bb) * t);
     }
 
-    static int courseColor(String code) {
-        long h = 0;
-        for (int i = 0; i < code.length(); i++) h = (h * 31 + code.charAt(i)) & 0xFFFFFFFFL;
-        return PALETTE[(int) (h % PALETTE.length)];
-    }
+    static int courseColor(Data d, String code) { return d.toneOf(code)[CourseColors.BASE]; }
 
     static RemoteViews schedDay(Context c) {
         RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_list);
@@ -740,7 +738,8 @@ final class Widgets {
         long key = 0;
         for (Data.Course co : list) {
             RemoteViews r = new RemoteViews(c.getPackageName(), R.layout.item_course);
-            r.setInt(R.id.cs_bar, "setBackgroundColor", courseColor(co.code));
+            int[] ct = d.toneOf(co.code);
+            r.setColorInt(R.id.cs_bar, "setBackgroundColor", ct[CourseColors.BASE], ct[CourseColors.BAR_D]);
             r.setTextViewText(R.id.cs_title, co.type.isEmpty() ? co.code : co.code + "  " + co.type);
             r.setTextViewText(R.id.cs_sub, co.start + "–" + co.end + (co.room.isEmpty() ? "" : " · " + co.room));
             String state = "";

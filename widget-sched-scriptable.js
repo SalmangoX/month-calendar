@@ -15,16 +15,65 @@ const CONFIG = {
 };
 const FILE = "mcal-calendar.json";
 const WD = ["", "一", "二", "三", "四", "五", "六", "日"];
-const PALETTE = ["#5D7895", "#5F9479", "#C38F45", "#BE6662", "#86769F", "#4E8C92", "#6170A3", "#9A7B5C"];
+// ---------- 课程配色（应用 / 小组件共用同一套算法） ----------
+// 科目定「锚点色相」（数学 = 晴空蓝、经济 = 玉青、语言 = 杏……），再把这学期的所有课程在色环上推开：
+// 有含义（同科目颜色相近），又整体均匀（任意两门至少隔开一段距离）；跳过黄绿一带（深色下会发橄榄色）。
+// 每门课明度、彩度相同，只有色相不同，所以一样醒目。
+const CRS_FAM = [
+  [240, ['MAT', 'STA']], [205, ['CSI', 'ITI', 'SEG', 'CEG', 'ELG', 'GNG', 'MCG', 'CVG', 'CHG']], [275, ['PHY', 'CHM', 'EVS', 'GEO', 'ERS']],
+  [140, ['BIO', 'BCH', 'BPS', 'ANP', 'HSS', 'NUT']], [175, ['ECO', 'ADM', 'FIN']], [58, ['ENG', 'FRA', 'ESL', 'FLS', 'LIN', 'ESP', 'ALL']],
+  [18, ['HIS', 'PHI', 'CLA', 'REL']], [310, ['PSY', 'SOC', 'POL', 'CRM', 'ANT']], [345, ['ART', 'MUS', 'THE', 'ARV']],
+];
+function courseHues(list) {
+  const G0 = 78, G1 = 138, U = 360 - (G1 - G0);
+  const toU = h => (h < G0 ? h : h < G1 ? G0 : h - (G1 - G0)), toH = u => (u < G0 ? u : u + (G1 - G0));
+  const wrap = x => ((x % U) + U) % U, sd = (a, b) => { const d = wrap(b - a); return d > U / 2 ? d - U : d; };
+  const codes = [...new Set(list)].sort(), pre = c => (String(c).match(/^[A-Za-z]+/) || [''])[0].toUpperCase();
+  const anchor = new Map(); for (const [h, ps] of CRS_FAM) for (const p of ps) anchor.set(p, h);
+  const used = new Set(codes.map(pre).filter(p => anchor.has(p)).map(p => anchor.get(p)));
+  const free = CRS_FAM.map(f => f[0]).filter(h => !used.has(h));
+  [...new Set(codes.map(pre).filter(p => !anchor.has(p)))].sort().forEach((p, i) => anchor.set(p, free.length ? free[i % free.length] : CRS_FAM[i % CRS_FAM.length][0]));
+  const it = codes.map(c => ({ c, a: toU(anchor.get(pre(c))) })).sort((x, y) => x.a - y.a || (x.c < y.c ? -1 : x.c > y.c ? 1 : 0));
+  const n = it.length; if (!n) return new Map();
+  const D = Math.min(60, (U / n) * 0.8);
+  const groups = new Map(); it.forEach(o => { if (!groups.has(o.a)) groups.set(o.a, []); groups.get(o.a).push(o); });
+  for (const g of groups.values()) g.forEach((o, k) => (o.p = o.a + (k - (g.length - 1) / 2) * D));
+  const push = () => { for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const A = it[i], B = it[j], d = sd(A.p, B.p), ad = Math.abs(d);
+    if (ad < D) { const m = (D - ad) / 2 * (d >= 0 ? 1 : -1) + (ad === 0 ? 0.01 : 0); A.p -= m; B.p += m; } } };
+  for (let r = 0; r < 300; r++) { for (const o of it) o.p += 0.06 * sd(o.p, o.a); push(); push(); push(); }
+  for (let r = 0; r < 60; r++) push();
+  return new Map(it.map(o => [o.c, Math.round(toH(wrap(o.p)) * 10) / 10]));
+}
+function oklchHex(L, C, H) { // 超出屏幕色域时降低彩度
+  const g = v => (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055);
+  for (let c = C; c >= 0; c -= 0.005) {
+    const A = c * Math.cos(H * Math.PI / 180), B = c * Math.sin(H * Math.PI / 180);
+    const l = Math.pow(L + 0.3963377774 * A + 0.2158037573 * B, 3), m = Math.pow(L - 0.1055613458 * A - 0.0638541728 * B, 3), s = Math.pow(L - 0.0894841775 * A - 1.291485548 * B, 3);
+    const rgb = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+    if (rgb.every(v => v >= -1e-4 && v <= 1.0001)) return '#' + rgb.map(v => Math.round(Math.min(1, Math.max(0, g(v))) * 255).toString(16).padStart(2, '0').toUpperCase()).join('');
+  }
+  return '#808080';
+}
+// 一门课的一整套颜色：浅色（淡底、深字、色条 / 小色块）、深色（深底、浅字、亮色条、深色小色块）
+const courseTone = h => ({ base: oklchHex(.64, .095, h), fillL: oklchHex(.955, .03, h), inkL: oklchHex(.42, .085, h), fillD: oklchHex(.30, .045, h),
+  inkD: oklchHex(.86, .065, h), chipD: oklchHex(.42, .075, h), chipInkD: oklchHex(.935, .03, h), barD: oklchHex(.70, .095, h) });
+let HUES = new Map();
+const TONE_CACHE = new Map();
+const setSlots = list => { HUES = courseHues(list.map(c => c.code)); };
 
 let forced = null;
 String(args.widgetParameter || "").split(/[\s,;，]+/).forEach(p => { if (/^(light|dark)$/i.test(p)) forced = p.toLowerCase(); });
-const dyn = (l, d) => forced === "light" ? new Color(l) : forced === "dark" ? new Color(d) : Color.dynamic(new Color(l), new Color(d));
+const dyn = (l, d, a = 1) => forced === "light" ? new Color(l, a) : forced === "dark" ? new Color(d, a) : Color.dynamic(new Color(l, a), new Color(d, a));
 const C = {
   bg: dyn("#F4F2EF", "#1B1C21"), card: dyn("#FDFDFB", "#2A2B30"),
   text: dyn("#1B1D22", "#EEEEF1"), text2: dyn("#75777F", "#8C8E97"), accent: dyn("#52618E", "#9FADD5"),
 };
-const colorOf = code => { let h = 0; for (const c of code) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; };
+const toneOf = code => { const h = HUES.has(code) ? HUES.get(code) : 240; if (!TONE_CACHE.has(h)) TONE_CACHE.set(h, courseTone(h)); return TONE_CACHE.get(h); };
+const colorOf = code => toneOf(code).base;
+// 小色块：浅色实色 + 白字；深色深色调 + 柔白字（和应用里的事件 / 课程色块一致）
+const chipBg = (code, a = 1) => { const t = toneOf(code); return dyn(t.base, t.chipD, a); };
+const chipFg = code => { const t = toneOf(code); return dyn("#FFFFFF", t.chipInkD); };
 const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const isoDay = d => ((d.getDay() + 6) % 7) + 1;
 const ymdL = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -84,8 +133,8 @@ function row(parent, c, state, compact) {
   r.centerAlignContent();
   r.setPadding(compact ? 3 : 5, 6, compact ? 3 : 5, 8);
   r.cornerRadius = 10;
-  if (state) r.backgroundColor = dyn("#E6ECF3", "#2E3A48");
-  const bar = r.addStack(); bar.size = new Size(3.5, compact ? 22 : 30); bar.cornerRadius = 2; bar.backgroundColor = new Color(colorOf(c.code));
+  if (state) r.backgroundColor = dyn("#E3E7F2", "#2A3040");
+  const bar = r.addStack(); bar.size = new Size(3.5, compact ? 22 : 30); bar.cornerRadius = 2; bar.backgroundColor = dyn(toneOf(c.code).base, toneOf(c.code).barD);
   r.addSpacer(8);
   const mid = r.addStack(); mid.layoutVertically();
   const top = mid.addStack(); top.centerAlignContent();
@@ -160,9 +209,9 @@ function weekLayout(w, courses, now, offline) {
     col.addSpacer(3);
     for (const c of list.slice(0, list.length > 4 ? 3 : 4)) {
       const ch = col.addStack(); ch.layoutVertically(); ch.size = new Size(0, 0);
-      ch.backgroundColor = new Color(colorOf(c.code)); ch.cornerRadius = 5; ch.setPadding(2, 3, 2, 2);
-      const t1 = addText(ch, c.code, Font.semiboldSystemFont(9), Color.white(), 1); t1.minimumScaleFactor = 0.8;
-      addText(ch, c.start, Font.mediumSystemFont(8), new Color("#FFFFFF", 0.85), 1);
+      ch.backgroundColor = chipBg(c.code); ch.cornerRadius = 5; ch.setPadding(2, 3, 2, 2);
+      const t1 = addText(ch, c.code, Font.semiboldSystemFont(9), chipFg(c.code), 1); t1.minimumScaleFactor = 0.8;
+      addText(ch, c.start, Font.mediumSystemFont(8), chipFg(c.code), 1);
       const sp = ch.addStack(); sp.addSpacer();
       col.addSpacer(2);
     }
@@ -231,11 +280,11 @@ function gridLayout(w, courses, now, offline) {
     flush();
     for (const c of L) {
       const lw = colW / c._n, x0 = gx + i * colW + c._k * lw + 1.5, y0 = gy + (toMin(c.start) / 60 - minH) * hourH + 1;
-      const bw = lw - 3, bh = (toMin(c.end) - toMin(c.start)) / 60 * hourH - 2, col = colorOf(c.code);
-      round(x0, y0, bw, bh, 5, mix(col, P.bg, dark ? .3 : .2));
-      round(x0, y0, 3, bh, 1.5, col);
+      const bw = lw - 3, bh = (toMin(c.end) - toMin(c.start)) / 60 * hourH - 2, tn = toneOf(c.code);
+      round(x0, y0, bw, bh, 5, dark ? tn.fillD : tn.fillL);   // 和应用课表一样：淡底 / 深底 + 色条
+      round(x0, y0, 3, bh, 1.5, dark ? tn.barD : tn.base);
       let y = y0 + 2;
-      const rows = [[c.code, Font.boldSystemFont(10 * fk), dark ? mix(col, "#FFFFFF", .45) : mix(col, "#000000", .75)],
+      const rows = [[c.code, Font.boldSystemFont(10 * fk), dark ? tn.inkD : tn.inkL],
         [c.type, Font.systemFont(8.5 * fk), P.text], [`${c.start}–${c.end}`, Font.systemFont(8 * fk), P.text2], [c.room, Font.systemFont(8 * fk), P.text]];
       for (const [t, f, color] of rows) {
         if (!t) continue;
@@ -277,8 +326,8 @@ function monthLayout(w, courses, now, offline) {
       nr.addSpacer();
       const list = courses.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
       for (const c of list.slice(0, 2)) {
-        const ch = cell.addStack(); ch.size = new Size(0, 11); ch.backgroundColor = new Color(colorOf(c.code), out ? 0.45 : 1); ch.cornerRadius = 3; ch.setPadding(0, 2, 0, 1); ch.centerAlignContent();
-        const t = addText(ch, c.code, Font.semiboldSystemFont(8), Color.white(), 1); t.minimumScaleFactor = 0.75; ch.addSpacer();
+        const ch = cell.addStack(); ch.size = new Size(0, 11); ch.backgroundColor = chipBg(c.code, out ? 0.45 : 1); ch.cornerRadius = 3; ch.setPadding(0, 2, 0, 1); ch.centerAlignContent();
+        const t = addText(ch, c.code, Font.semiboldSystemFont(8), chipFg(c.code), 1); t.minimumScaleFactor = 0.75; ch.addSpacer();
         cell.addSpacer(1);
       }
       if (list.length > 2) addText(cell, ` +${list.length - 2}`, Font.mediumSystemFont(7.5), C.text2);
@@ -301,6 +350,7 @@ let widget, courses = [];
 try {
   const r = await loadCourses();
   courses = r.courses;
+  setSlots(courses);
   widget = build(family, courses, r.offline);
 } catch (e) {
   widget = new ListWidget(); widget.backgroundColor = C.bg; widget.setPadding(14, 14, 14, 14);

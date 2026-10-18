@@ -218,10 +218,12 @@ function largeLayout(w, idx, offline) {
   w.addSpacer(1);
 
   const gridH = S.lh - padT - padB - 15 - 1 - 11 - 1;
-  const rowH = Math.floor(gridH / rows);
+  // 每周之间、上下各有一条 0.5 的线，也要从高度里扣掉，否则每周会比格子高一点、被下一周盖住
+  const rowH = Math.floor((gridH - (rows + 1) * 0.5) / rows);
   const numH = 15, chipH = 13, gap = 1, padTop = 2.5, SEP = 0.5, STEP = chipH + gap;
   const top0 = padTop + numH + 1; // 格子里第一条事件的顶部
-  const maxChips = Math.max(1, Math.floor((rowH - numH - 2) / STEP));
+  // 能放几行事件：按实际画出来的日期行高度（top0）算，保证「日期 + 事件行」不会超过一周的高度
+  const maxChips = Math.max(0, Math.floor((rowH - (2.5 + numH + 1)) / STEP)); // 0 = 一行事件都放不下：只在日期旁标数量
   const colW = (S.mw - SEP * 6) / 7;
   // 每一周按「横带」从上往下搭：日期带 + 若干事件行 + 剩余空白。
   // 跨天事件是横跨几列的一整个 stack（颜色随深浅色自动切换），格子之间的竖线在横条经过处自然断开
@@ -234,10 +236,10 @@ function largeLayout(w, idx, offline) {
   for (let r = 0; r < rows; r++) {
     const wk = days.slice(r * 7, r * 7 + 7), dss = wk.map(ymd);
     const lay = layWeek(dss, idx);
-    const lim = lay.occ.map(o => (o.length <= maxChips ? o.length : maxChips - 1));
+    const lim = lay.occ.map(o => (o.length <= maxChips ? o.length : Math.max(0, maxChips - 1)));
     const hidden = lay.occ.map((o, c) => o.slice(lim[c]).filter(Boolean).length);
     const segs = barSegments(lay, dss, lim, m);
-    const lanes = Math.max(0, ...lim.map((l, c) => l + (hidden[c] ? 1 : 0)));
+    const lanes = Math.min(maxChips, Math.max(0, ...lim.map((l, c) => l + (hidden[c] ? 1 : 0))));
     const row = grid.addStack();
     row.layoutVertically();
     row.size = new Size(S.mw, rowH);
@@ -261,6 +263,7 @@ function largeLayout(w, idx, offline) {
         nr.addSpacer(3.5);
         addText(nr, String(d.getDate()), Font.mediumSystemFont(11), out ? C.text3 : C.text);
       }
+      if (!maxChips && hidden[c]) { nr.addSpacer(2); addText(nr, `+${hidden[c]}`, Font.mediumSystemFont(7.5), C.text2); }
       nr.addSpacer();
       cell.addSpacer();
     }

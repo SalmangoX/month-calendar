@@ -296,7 +296,6 @@
     sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.6"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M6 18l1.4-1.4M16.6 7.4L18 6"/></svg>',
     clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>',
   };
-  const COL = { slate: '#5D7895', sage: '#5F9479', amber: '#C38F45', rose: '#BE6662', plum: '#86769F', graphite: '#7A7F88', teal: '#4E8C92', indigo: '#6170A3' };
   const CHEV = '<span class="chev"><svg viewBox="0 0 8 13"><path d="M1.5 1.5l5 5-5 5"/></svg></span>';
   function srow(o) {
     const sub = o.sub ? `<small>${esc(o.sub)}</small>` : '';
@@ -305,7 +304,9 @@
     const right = o.sw !== undefined
       ? `<input type="checkbox" class="switch" id="${o.sw}" ${o.swOn ? 'checked' : ''}>${help}`
       : `${val}${help}${o.chev === false ? '' : CHEV}`;
-    const inner = `<span class="sicon" style="--ic:${o.color}">${IC[o.icon]}</span><span class="slabel">${esc(o.label)}${sub}</span>${right}`;
+    // 图标两种调子（取自图标的晨昏两半）：和时间 / 提醒有关的用「晨」杏色，其余用「暮」主色；危险操作用红
+    const ic = { dawn: 'var(--dawn)', danger: 'var(--p3)' }[o.tone] || 'var(--accent)';
+    const inner = `<span class="sicon" style="--ic:${ic}">${IC[o.icon]}</span><span class="slabel">${esc(o.label)}${sub}</span>${right}`;
     return o.sw !== undefined
       ? `<label class="srow">${inner}</label>`
       : `<div class="srow tap${o.danger ? ' danger' : ''}" role="button" tabindex="0" data-act="${o.act}">${inner}</div>`;
@@ -353,67 +354,73 @@
     paintStatus();
 
     const S = MC.settings;
-    let h = group('通用', [
-      srow({ act: 'theme', icon: 'theme', color: COL.slate, label: '外观', val: { auto: '跟随系统', light: '浅色', dark: '深色' }[S.theme] }),
-      srow({ act: 'week', icon: 'week', color: COL.indigo, label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
-      srow({ act: 'clock', icon: 'clock', color: COL.teal, label: '时间格式', val: S.clock === '12' ? '12 小时制' : S.clock === '24' ? '24 小时制' : `跟随地区（${MC.region12() ? 12 : 24} 小时）` }),
+    let gSync = '', gWidgets = '';
+    const gDisplay = group('显示与时间', [
+      srow({ act: 'theme', icon: 'theme', tone: 'dusk', label: '外观', val: { auto: '跟随系统', light: '浅色', dark: '深色' }[S.theme] }),
+      srow({ act: 'week', icon: 'week', tone: 'dawn', label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
+      srow({ act: 'clock', icon: 'clock', tone: 'dawn', label: '时间格式', val: S.clock === '12' ? '12 小时制' : S.clock === '24' ? '24 小时制' : `跟随地区（${MC.region12() ? 12 : 24} 小时）` }),
     ]);
     if (!MC.vault.connected()) {
-      h += group('账户与同步', [
-        srow({ act: 'connect', icon: 'link', color: COL.slate, label: '连接 GitHub', sub: '用自己的令牌在多台设备间同步', help: 'sync' }),
+      gSync = group('同步', [
+        srow({ act: 'connect', icon: 'link', tone: 'dusk', label: '连接 GitHub', sub: '用自己的令牌在多台设备间同步', help: 'sync' }),
       ], '每个人用自己的 GitHub 令牌，令牌只保存在这台设备上。');
     } else {
       const rows = [
-        srow({ act: 'account', icon: 'link', color: COL.slate, label: 'GitHub 账号', val: MC.settings.account ? '@' + MC.settings.account : '已连接', chev: false }),
-        srow({ act: 'sync', icon: 'refresh', color: COL.teal, label: '立即同步', sub: syncText()[0], help: 'sync', chev: false }),
+        srow({ act: 'account', icon: 'link', tone: 'dusk', label: 'GitHub 账号', val: MC.settings.account ? '@' + MC.settings.account : '已连接', chev: false }),
+        srow({ act: 'sync', icon: 'refresh', tone: 'dusk', label: '立即同步', sub: syncText()[0], help: 'sync', chev: false }),
       ];
-      rows.push(srow({ act: 'retoken', icon: 'key', color: COL.plum, label: '更换令牌' }));
-      rows.push(srow({ act: 'disconnect', icon: 'unlink', color: COL.rose, label: '断开连接', danger: true, chev: false }));
-      h += group('账户与同步', rows, '令牌只保存在这台设备上。');
+      rows.push(srow({ act: 'retoken', icon: 'key', tone: 'dusk', label: '更换令牌' }));
+      rows.push(srow({ act: 'disconnect', icon: 'unlink', tone: 'danger', label: '断开连接', danger: true, chev: false }));
+      gSync = group('同步', rows, '令牌只保存在这台设备上。');
     }
-    const nrows = [srow({ icon: 'bell', color: COL.rose, label: '提醒通知', sw: 'nSwitch', swOn: Push.enabled(), help: 'notify' })];
-    if (Push.enabled()) nrows.push(srow({ act: 'ntest', icon: 'send', color: COL.teal, label: '发送测试通知', chev: false }));
-    if (Push.native) nrows.push(srow({ act: 'nperm', icon: 'bell', color: COL.sage, label: '提醒权限检查', sub: nativePermSummary(), help: 'nperm' }));
+    const nrows = [srow({ icon: 'bell', tone: 'dawn', label: '提醒通知', sw: 'nSwitch', swOn: Push.enabled(), help: 'notify' })];
+    if (Push.enabled()) nrows.push(srow({ act: 'ntest', icon: 'send', tone: 'dawn', label: '发送测试通知', chev: false }));
+    if (Push.native) nrows.push(srow({ act: 'nperm', icon: 'bell', tone: 'dawn', label: '提醒权限检查', sub: nativePermSummary(), help: 'nperm' }));
     const dl = MC.data.daily;
     const city = (dl.tz || MC.currentTz()).split('/').pop().replace(/_/g, ' ');
-    nrows.push(srow({ icon: 'sun', color: COL.amber, label: '每日未完成提醒', sub: dl.on ? `每天 ${MC.fmtTime(dl.time)} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
-    if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', color: COL.indigo, label: '每日提醒时间', val: MC.fmtTime(dl.time) }));
+    nrows.push(srow({ icon: 'sun', tone: 'dawn', label: '每日未完成提醒', sub: dl.on ? `每天 ${MC.fmtTime(dl.time)} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
+    if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', tone: 'dawn', label: '每日提醒时间', val: MC.fmtTime(dl.time) }));
     // 始终显示，点进去会自动补齐前置条件（连接 GitHub、通知权限）；安卓 App 由系统提醒，不需要
     if (!Push.native) {
       nrows.splice(1, 0, S.remoteSetup
-        ? srow({ act: 'nsetup', icon: 'cloud', color: COL.sage, label: 'App 关闭时也提醒', val: '已设置' })
-        : srow({ act: 'nsetup', icon: 'cloud', color: COL.slate, label: 'App 关闭时也提醒', sub: '点这里一键设置', val: '未设置' }));
-      if (S.remoteSetup) nrows.splice(2, 0, srow({ act: 'boost', icon: 'clock', color: COL.teal, label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
+        ? srow({ act: 'nsetup', icon: 'cloud', tone: 'dawn', label: 'App 关闭时也提醒', val: '已设置' })
+        : srow({ act: 'nsetup', icon: 'cloud', tone: 'dawn', label: 'App 关闭时也提醒', sub: '点这里一键设置', val: '未设置' }));
+      if (S.remoteSetup) nrows.splice(2, 0, srow({ act: 'boost', icon: 'clock', tone: 'dawn', label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
     }
-    h += group('提醒', nrows, notifyHint());
+    const gRemind = group('提醒', nrows, notifyHint());
     if (MC.Native.on) {
-      h += group('桌面小组件', [
-        srow({ act: 'pin:month', icon: 'grid', color: COL.slate, label: '整月小组件', sub: '点一下添加到桌面', help: 'nwidget', chev: false }),
-        srow({ act: 'pin:today', icon: 'sun', color: COL.amber, label: '今日小组件', sub: '今天、已逾期和接下来一周', chev: false }),
-        srow({ act: 'pin:sched', icon: 'clock', color: COL.teal, label: '课表小组件', sub: '今天的课，正在上的突出显示', chev: false }),
+      gWidgets += group('桌面小组件', [
+        srow({ act: 'pin:month', icon: 'grid', tone: 'dusk', label: '整月小组件', sub: '点一下添加到桌面', help: 'nwidget', chev: false }),
+        srow({ act: 'pin:today', icon: 'sun', tone: 'dawn', label: '今日小组件', sub: '今天、已逾期和接下来一周', chev: false }),
+        srow({ act: 'pin:sched', icon: 'clock', tone: 'dawn', label: '课表小组件', sub: '今天的课，正在上的突出显示', chev: false }),
       ], '也可以长按桌面空白处 → 小组件 → 节律，按住拖到桌面。');
       const up = MC.Native.updateAvailable(), I = MC.Native.info;
-      h += group('安卓 App', [
-        srow({ act: 'apk', icon: 'android', color: COL.sage, label: '安卓 App', sub: up ? `有新版本 ${up.name}，点这里下载安装` : '点这里检查 App 更新', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
+      gWidgets += group('安卓 App', [
+        srow({ act: 'apk', icon: 'android', tone: 'dusk', label: '安卓 App', sub: up ? `有新版本 ${up.name}，点这里下载安装` : '点这里检查 App 更新', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
       ], '改网页不需要更新 App，打开就是最新的；只有原生部分（小组件、提醒）改了才需要装新的 APK。');
-    } else h += group('桌面小组件', [
-      srow({ act: 'ios', icon: 'phone', color: COL.slate, label: 'iOS 小组件', sub: '复制 Scriptable 脚本', help: 'ios', chev: false }),
-      srow({ act: 'android', icon: 'android', color: COL.sage, label: '安卓小组件', sub: '复制小组件链接', help: 'android', chev: false }),
-      srow({ act: 'iosSched', icon: 'phone', color: COL.teal, label: 'iOS 课表小组件', sub: '今天的课 · 点一下即刷新', help: 'iosSched', chev: false }),
-      srow({ act: 'androidSched', icon: 'android', color: COL.teal, label: '安卓课表小组件', sub: '复制课表小组件链接', chev: false }),
+    } else gWidgets += group('桌面小组件', [
+      srow({ act: 'ios', icon: 'phone', tone: 'dusk', label: 'iOS 小组件', sub: '复制 Scriptable 脚本', help: 'ios', chev: false }),
+      srow({ act: 'android', icon: 'android', tone: 'dusk', label: '安卓小组件', sub: '复制小组件链接', help: 'android', chev: false }),
+      srow({ act: 'iosSched', icon: 'phone', tone: 'dusk', label: 'iOS 课表小组件', sub: '今天的课 · 点一下即刷新', help: 'iosSched', chev: false }),
+      srow({ act: 'androidSched', icon: 'android', tone: 'dusk', label: '安卓课表小组件', sub: '复制课表小组件链接', chev: false }),
     ]);
-    h += group('数据', [
-      srow({ act: 'export', icon: 'export', color: COL.indigo, label: '导出备份', chev: false }),
-      srow({ act: 'import', icon: 'import', color: COL.graphite, label: '导入备份', sub: '与现有数据合并', chev: false }),
-      srow({ act: 'update', icon: 'refresh', color: COL.slate, label: '检查更新', sub: `当前版本 ${MC.VERSION}`, chev: false }),
+    const gData = group('数据', [
+      srow({ act: 'export', icon: 'export', tone: 'dusk', label: '导出备份', chev: false }),
+      srow({ act: 'import', icon: 'import', tone: 'dusk', label: '导入备份', sub: '与现有数据合并', chev: false }),
+      srow({ act: 'update', icon: 'refresh', tone: 'dusk', label: '检查更新', sub: `当前版本 ${MC.VERSION}`, chev: false }),
     ]);
+    // 按重要程度排：最常来设置的是提醒，其次是显示，同步、小组件和数据放后面
+    const h = gRemind + gDisplay + gSync + gWidgets + gData;
     $('#setGroups').innerHTML = h;
     const total = MC.data.events.length, done = MC.data.events.filter(e => e.done).length;
-    $('#statLine').innerHTML = `版本 ${MC.VERSION} · 共 ${total} 个事件，已完成 ${done} 个<br><small style="opacity:.6">${esc(MC.screenInfo || '')}</small>`;
+    $('#statLine').innerHTML = `版本 ${MC.VERSION} · 共 ${total} 个事件，已完成 ${done} 个<small class="dbg"${showDbg ? '' : ' hidden'}>${esc(MC.screenInfo || '')}</small>`;
     if (!iosScript) fetch('widget-ios-scriptable.js', { cache: 'no-cache' }).then(r => r.text()).then(t => (iosScript = t)).catch(() => {});
     if (!workflowYml) fetch('scripts/reminders.yml', { cache: 'no-cache' }).then(r => r.text()).then(t => (workflowYml = t)).catch(() => {});
   }
 
+  // 页脚：开发用的屏幕信息平时收起，点一下版本号显示 / 收起
+  let showDbg = false;
+  $('#statLine').addEventListener('click', () => { showDbg = !showDbg; const d = $('#statLine .dbg'); if (d) d.hidden = !showDbg; });
   $('#setGroups').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.srow.tap')) { e.preventDefault(); e.target.click(); } });
   $('#setGroups').addEventListener('click', async e => {
     if (e.target.closest('[data-help]')) return;

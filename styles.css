@@ -37,6 +37,7 @@
   --accent-deep: #3E4B73;
   --accent-text: #45537F;
   --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .7), 0 8px 20px rgba(40, 36, 32, .14), 0 1px 3px rgba(40, 36, 32, .08);
+  --dawn: #BB723C;   /* 「晨」：图标右半的杏色，用于和时间 / 提醒有关的图标 */
   --accent-soft: rgba(82, 97, 142, .12);
   --sel-line: rgba(82, 97, 142, .5);
   --today-dim: rgba(82, 97, 142, .2);
@@ -74,6 +75,7 @@
   --accent-deep: #61709C;
   --accent-text: #B0BDE2;
   --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .10), 0 8px 22px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .35);
+  --dawn: #E8AC7C;
   --accent-soft: rgba(142, 157, 202, .17);
   --sel-line: rgba(142, 157, 202, .62);
   --today-dim: rgba(142, 157, 202, .28);
@@ -349,7 +351,11 @@ svg.filled { fill: currentColor; stroke: none; }
 .srow { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px; width: 100%; text-align: left; font-size: 16px; position: relative; }
 .srow + .srow::before { content: ""; position: absolute; top: 0; left: 55px; right: 0; height: .5px; background: var(--group-line); }
 button.srow:active, .srow.tap:active { background: var(--field); }
-.sicon { flex: none; width: 29px; height: 29px; border-radius: 8px; display: grid; place-items: center; color: #fff; background: var(--ic, #7C8088); }
+.sicon {
+  /* 设置图标：同色淡底 + 同色线条，只有「晨」（时间 / 提醒）和「暮」（应用 / 数据）两种调子，不再是八种实色方块 */
+  flex: none; width: 29px; height: 29px; border-radius: 8px; display: grid; place-items: center;
+  color: var(--ic, var(--accent)); background: color-mix(in srgb, var(--ic, var(--accent)) 14%, transparent);
+}
 .sicon svg { width: 17px; height: 17px; stroke-width: 1.9; }
 .slabel { flex: 1; min-width: 0; }
 .slabel small { display: block; font-size: 12px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -362,6 +368,10 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 .foot { text-align: center; margin: 30px 0 10px; color: var(--text2); font-size: 12px; }
 .foot img { width: 44px; height: 44px; border-radius: 11px; display: block; margin: 0 auto 8px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 .foot b { display: block; font-size: 13px; color: var(--text); font-weight: 650; margin-bottom: 2px; }
+.foot #statLine { cursor: default; }
+.foot .dbg { display: block; margin-top: 4px; opacity: .6; }
+/* 设置页不需要「新建事件」的加号 */
+body[data-page="set"] .fab { opacity: 0; transform: scale(.6); pointer-events: none; }
 
 .seg { display: flex; background: var(--field); border-radius: 12px; padding: 3px; gap: 2px; }
 .seg button { flex: 1; padding: 7px 12px; border-radius: 9px; font-size: 13.5px; color: var(--text2); white-space: nowrap; transition: background .2s, color .2s; }
@@ -715,13 +725,15 @@ html.locked .lock { display: grid; }
 .sc-blk {
   position: absolute; z-index: 1; border-radius: 10px; padding: 5px 5px 5px 8px; text-align: left; overflow: hidden;
   display: flex; flex-direction: column; gap: 1px; line-height: 1.22; color: var(--text);
-  background: color-mix(in srgb, var(--c) 17%, var(--surface)); box-shadow: inset 3px 0 0 var(--c);
+  /* 课程块：淡底 + 左侧色条 + 同色深字（深色模式：深底 + 亮色条 + 同色浅字），颜色由 sched.js 的「晨昏八色」给出 */
+  background: var(--cfl, color-mix(in srgb, var(--c) 17%, var(--surface))); box-shadow: inset 3px 0 0 var(--c);
   transition: transform .15s;
 }
 .sc-blk:active { transform: scale(.97); }
 .sc-blk .t { font-size: calc(10.5px * var(--fs, 1)); color: var(--text2); font-variant-numeric: tabular-nums; }
-.sc-blk b { font-size: calc(13px * var(--fs, 1)); font-weight: 700; color: var(--c); letter-spacing: -.02em; overflow-wrap: break-word; line-height: 1.15; }
-:root[data-theme="dark"] .sc-blk b { color: color-mix(in srgb, var(--c) 55%, white); }
+.sc-blk b { font-size: calc(13px * var(--fs, 1)); font-weight: 700; color: var(--cil, var(--c)); letter-spacing: -.02em; overflow-wrap: break-word; line-height: 1.15; }
+:root[data-theme="dark"] .sc-blk { background: var(--cfd); box-shadow: inset 3px 0 0 var(--cbd); }
+:root[data-theme="dark"] .sc-blk b { color: var(--cid); }
 .sc-blk .k { font-size: calc(11px * var(--fs, 1)); color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sc-blk .r { font-size: calc(11px * var(--fs, 1)); color: var(--text2); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; }
 .sc-blk.narrow { padding: 3px 1px 3px 4px; }
@@ -731,6 +743,7 @@ html.locked .lock { display: grid; }
   background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--p3) 70%, transparent) 0 6px, transparent 6px 10px); }
 .sc-col { z-index: 1; }
 .sc-blk.live { box-shadow: inset 3px 0 0 var(--c), 0 0 0 1.5px var(--c), 0 4px 12px color-mix(in srgb, var(--c) 35%, transparent); }
+:root[data-theme="dark"] .sc-blk.live { box-shadow: inset 3px 0 0 var(--cbd), 0 0 0 1.5px var(--cbd), 0 4px 14px color-mix(in srgb, var(--cbd) 30%, transparent); }
 /* 现在时间：标签从时间轴左边开始往右排，完整显示「21:36」或「下午9:36」，箭头伸进课表指着红线 */
 .sc-tri { position: absolute; left: 1px; z-index: 4; transform: translateY(-50%); display: flex; align-items: center; pointer-events: none; white-space: nowrap; }
 .sc-tri span { min-width: calc(var(--hw) - 7px); text-align: center; font-size: 9.5px; font-weight: 700; color: #fff; background: var(--p3); padding: 1px 3px 1px 4px; border-radius: 4px 0 0 4px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
