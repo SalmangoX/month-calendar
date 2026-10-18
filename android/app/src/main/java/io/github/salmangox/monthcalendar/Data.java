@@ -152,7 +152,7 @@ final class Data {
         x.title = e.optString("title");
         x.note = e.optString("note");
         int p = e.optInt("priority", 0);
-        x.priority = p < 0 || p > 3 ? 0 : p;
+        x.priority = p < 0 || p > 4 ? 0 : p;
         x.done = e.optBoolean("done");
         String t = e.optString("time");
         x.time = TIME.matcher(t).matches() ? t : "";
@@ -181,9 +181,12 @@ final class Data {
 
     // ---------- 查询 ----------
     /** 与网页 MC.cmp 相同：未完成在前，优先级高在前，有时间的按时间，最后按创建时间 */
+    /** 排序用的重要程度：高 > 中 > 低 > 最低（绿，数值 4）> 无 */
+    static int rank(int p) { return p == 4 ? 1 : p == 0 ? 0 : p + 1; }
+
     static final Comparator<Event> ORDER = (a, b) -> {
         if (a.done != b.done) return a.done ? 1 : -1;
-        if (a.priority != b.priority) return b.priority - a.priority;
+        if (a.priority != b.priority) return rank(b.priority) - rank(a.priority);
         int t = (a.time.isEmpty() ? "99" : a.time).compareTo(b.time.isEmpty() ? "99" : b.time);
         if (t != 0) return t;
         return Long.compare(a.createdAt, b.createdAt);

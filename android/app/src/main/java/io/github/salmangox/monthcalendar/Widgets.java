@@ -39,11 +39,11 @@ final class Widgets {
     /** 不在本月的日期：半透明灰，浅色和深色背景上都合适 */
     private static final int DIM = 0x80888890;
     private static final int[] PALETTE = {0xFF5D7895, 0xFF5F9479, 0xFFC38F45, 0xFFBE6662, 0xFF86769F, 0xFF4E8C92, 0xFF6170A3, 0xFF9A7B5C};
-    private static final int[] CHIP = {R.drawable.chip_p0, R.drawable.chip_p1, R.drawable.chip_p2, R.drawable.chip_p3};
-    private static final int[] SOFT = {R.drawable.chip_p0_soft, R.drawable.chip_p1_soft, R.drawable.chip_p2_soft, R.drawable.chip_p3_soft};
-    private static final int[] DOT = {R.drawable.dot_p0, R.drawable.dot_p1, R.drawable.dot_p2, R.drawable.dot_p3};
-    private static final int[] BAR = {R.drawable.bar_p0, R.drawable.bar_p1, R.drawable.bar_p2, R.drawable.bar_p3};
-    private static final int[] PCOL = {R.color.p0, R.color.p1, R.color.p2, R.color.p3};
+    private static final int[] CHIP = {R.drawable.chip_p0, R.drawable.chip_p1, R.drawable.chip_p2, R.drawable.chip_p3, R.drawable.chip_p4};
+    private static final int[] SOFT = {R.drawable.chip_p0_soft, R.drawable.chip_p1_soft, R.drawable.chip_p2_soft, R.drawable.chip_p3_soft, R.drawable.chip_p4_soft};
+    private static final int[] DOT = {R.drawable.dot_p0, R.drawable.dot_p1, R.drawable.dot_p2, R.drawable.dot_p3, R.drawable.dot_p4};
+    private static final int[] BAR = {R.drawable.bar_p0, R.drawable.bar_p1, R.drawable.bar_p2, R.drawable.bar_p3, R.drawable.bar_p4};
+    private static final int[] PCOL = {R.color.p0, R.color.p1, R.color.p2, R.color.p3, R.color.p4}; // 下标 = 优先级数值，4 = 最低（绿）
 
     private Widgets() { }
 
