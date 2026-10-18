@@ -568,8 +568,9 @@
       <label class="field"><span>课程</span><input id="scCode" value="${esc(c ? c.code : '')}" placeholder="例如 MAT 2348"></label>
       <label class="field"><span>类型（选填）</span><input id="scType" value="${esc(c ? c.type : '')}" placeholder="讲座 / 实验 / 辅导"></label>
       <div class="field"><span>星期</span><div class="seg" id="scDay">${[1, 2, 3, 4, 5, 6, 7].map(d => `<button data-d="${d}" class="${d === editDay ? 'on' : ''}">${DAYS[d]}</button>`).join('')}</div></div>
-      <div class="sc-times"><label class="field"><span>开始</span><input id="scStart" type="time" value="${c ? c.start : '08:30'}"></label>
-      <label class="field"><span>结束</span><input id="scEnd" type="time" value="${c ? c.end : '09:50'}"></label></div>
+      <div class="sc-times"><div class="field"><span>开始</span><button type="button" class="sc-tbtn" data-t="scStart">${MC.fmtTime(c ? c.start : '08:30')}</button><input type="hidden" id="scStart" value="${c ? c.start : '08:30'}"></div>
+      <div class="field"><span>结束</span><button type="button" class="sc-tbtn" data-t="scEnd">${MC.fmtTime(c ? c.end : '09:50')}</button><input type="hidden" id="scEnd" value="${c ? c.end : '09:50'}"></div></div>
+      <div class="group sc-wheel" id="scWheel" hidden></div>
       <label class="field"><span>地点（选填）</span><input id="scRoom" value="${esc(c ? c.room : '')}" placeholder="例如 Tabaret Hall 333"></label>
       <div class="sc-times"><label class="field"><span>开课日期（选填）</span><input id="scFrom" type="date" value="${c ? c.from || '' : ''}"></label>
       <label class="field"><span>结课日期（选填）</span><input id="scTo" type="date" value="${c ? c.to || '' : ''}"></label></div>
@@ -577,6 +578,15 @@
       <small class="form-note">隔周以开课日期那一周为第一次上课；不填日期则以本周为第一次。</small></div>
       ${c ? '<button class="pk-clear" id="scDel">删除这节课</button>' : ''}`;
     editEvery = c && c.every === 2 ? 2 : 1;
+    // 点开始 / 结束：在下面展开时间滚轮，再点一次收起
+    $('#schedForm').querySelectorAll('.sc-tbtn').forEach(btn => btn.onclick = () => {
+      const wheel = $('#scWheel'), on = btn.classList.contains('on');
+      $('#schedForm').querySelectorAll('.sc-tbtn').forEach(x => x.classList.remove('on'));
+      if (on) { wheel.hidden = true; return; }
+      btn.classList.add('on'); wheel.hidden = false;
+      const inp = $('#' + btn.dataset.t);
+      UI.timeWheel(wheel, inp.value, '', t => { inp.value = t; btn.textContent = MC.fmtTime(t); });
+    });
     $('#scEvery').onclick = e => { const b = e.target.closest('button'); if (!b) return; editEvery = Number(b.dataset.e); $('#scEvery').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
     $('#scDay').onclick = e => { const b = e.target.closest('button'); if (!b) return; editDay = Number(b.dataset.d); $('#scDay').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
     if (c) $('#scDel').onclick = () => { MC.setCourses(MC.data.courses.filter(x => x.id !== c.id)); UI.close('schedSheet'); UI.toast('已删除'); };

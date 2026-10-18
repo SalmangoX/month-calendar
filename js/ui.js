@@ -31,9 +31,13 @@
     $('#' + id).classList.add('show');
     syncBackdrop();
   };
-  UI.close = id => {
+  // 关闭前确认：UI.guard(id, proceed => …) 可以拦下关闭（取消、点外面、下拉、返回手势都走这里），确认后调 proceed()
+  const guards = {};
+  UI.guard = (id, fn) => { if (fn) guards[id] = fn; else delete guards[id]; };
+  UI.close = (id, force) => {
     id = id || stack[stack.length - 1];
     if (!id) return;
+    if (!force && guards[id] && stack.includes(id)) { guards[id](() => UI.close(id, true)); return; }
     const i = stack.indexOf(id);
     if (i >= 0) stack.splice(i, 1);
     $('#' + id).classList.remove('show');

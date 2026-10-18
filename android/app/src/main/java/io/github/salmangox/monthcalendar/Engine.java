@@ -177,14 +177,14 @@ final class Engine {
                 .setShowWhen(true);
     }
 
-    static String bodyFor(Data.Event e) {
-        String t = e.timeLabel();
+    static String bodyFor(Context c, Data.Event e) {
+        String t = e.timeLabel(Data.h12(c));
         return e.date.getMonthValue() + "月" + e.date.getDayOfMonth() + "日 " + (t.isEmpty() ? "全天" : t)
                 + (e.note.isEmpty() ? "" : " · " + e.note);
     }
 
     private static void showEvent(Context c, Data.Event e, String key, long when) {
-        String body = bodyFor(e);
+        String body = bodyFor(c, e);
         Notification n = builder(c, CH_EVENT)
                 .setContentTitle(e.title.isEmpty() ? "（无标题）" : e.title)
                 .setContentText(body)

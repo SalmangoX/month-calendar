@@ -104,6 +104,26 @@ final class CourseColors {
         return 0xFF808080;
     }
 
+    /** 0xRRGGBB → OKLCH（与网页 store.js 的 toOklch 一致） */
+    static double[] toOklch(int rgb) {
+        double[] v = {((rgb >> 16) & 255) / 255.0, ((rgb >> 8) & 255) / 255.0, (rgb & 255) / 255.0};
+        for (int k = 0; k < 3; k++) v[k] = v[k] <= 0.04045 ? v[k] / 12.92 : Math.pow((v[k] + 0.055) / 1.055, 2.4);
+        double l = Math.cbrt(0.4122214708 * v[0] + 0.5363325363 * v[1] + 0.0514459929 * v[2]);
+        double m = Math.cbrt(0.2119034982 * v[0] + 0.6806995451 * v[1] + 0.1073969566 * v[2]);
+        double s = Math.cbrt(0.0883024619 * v[0] + 0.2817188376 * v[1] + 0.6299787005 * v[2]);
+        double L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
+        return new double[]{L, Math.hypot(A, B), (Math.atan2(B, A) * 180 / Math.PI + 360) % 360};
+    }
+
+    /** 深色模式下一个颜色的深色调 {底色, 文字}（与网页 MC.darkTone 相同的规则：保持彩度，橙黄一带提亮，不发灰发棕） */
+    static int[] darkTone(int rgb) {
+        double[] o = toOklch(rgb);
+        double c = o[1], h = o[2];
+        if (c < 0.03) return new int[]{oklch(0.36, c * 0.5, h), oklch(0.935, c * 0.3, h)};
+        double warm = Math.max(0, Math.min(1, (1 - Math.abs(h - 75) / 50) * 1.6));
+        return new int[]{oklch(0.45 + 0.15 * warm, Math.min(c, 0.15), h), oklch(0.935, Math.min(0.035, c * 0.25), h)};
+    }
+
     static int[] tone(double h) {
         return new int[]{oklch(.64, .095, h), oklch(.955, .03, h), oklch(.42, .085, h), oklch(.30, .045, h),
                 oklch(.86, .065, h), oklch(.42, .075, h), oklch(.935, .03, h), oklch(.70, .095, h)};

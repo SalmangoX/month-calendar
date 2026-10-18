@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.19.1';
+  MC.VERSION = '0.20.0';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -49,6 +49,22 @@
       : [fromOklch(0.45 + 0.15 * warm, Math.min(c, 0.15), h), fromOklch(0.935, Math.min(0.035, c * 0.25), h)];
     toneCache.set(hex, t);
     return t;
+  };
+  // 新建记录日历的默认颜色：在可选颜色里挑和主日历（四个优先级色、主色）以及已有记录日历最不像的一个（OKLab 距离最大）
+  MC.suggestCalColor = (used = []) => {
+    const lab = h => { const [L, C, H] = toOklch(h); return [L, C * Math.cos(H * Math.PI / 180), C * Math.sin(H * Math.PI / 180)]; };
+    const dist = (a, b) => { const p = lab(a), q = lab(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) * 100; };
+    const main = [...Object.values(MC.PAL.light), '#52618E'];      // 四个优先级色 + 主色（固定值，不随深浅色变）
+    const free = MC.CAL_COLORS.filter(c => !used.includes(c));
+    const pool = free.length ? free : MC.CAL_COLORS;
+    // 先排除离主日历颜色太近的（ΔE < 11），再在剩下的里挑离主日历和已有记录日历都最远的
+    const ok = pool.filter(c => Math.min(...main.map(m => dist(c, m))) >= 11);
+    let best = (ok.length ? ok : pool)[0], score = -1;
+    for (const c of ok.length ? ok : pool) {
+      const d = Math.min(...[...main, ...used].map(m => dist(c, m)));
+      if (d > score) { score = d; best = c; }
+    }
+    return best;
   };
   // 色条上要写的颜色变量：--c 浅色用；--cf / --ci 深色用
   MC.toneVars = e => {
@@ -134,7 +150,9 @@
       return v;
     };
   })();
-  MC.use12 = () => (MC.settings.clock === '12' ? true : MC.settings.clock === '24' ? false : MC.region12());
+  // 12 / 24 小时制存在同步数据里（profile.clock），小组件和其他设备都按同一个设置显示；旧版只存在本机设置里
+  MC.clockPref = () => (MC.data && MC.data.profile && MC.data.profile.clock) || MC.settings.clock || 'auto';
+  MC.use12 = () => { const c = MC.clockPref(); return c === '12' ? true : c === '24' ? false : MC.region12(); };
   const half = h => (h < 12 ? '上午' : '下午');
   // '14:30' → '下午2:30'（12 小时制）或 '14:30'；noHalf：省略上午 / 下午
   MC.fmtTime = (t, noHalf) => {
@@ -151,7 +169,7 @@
   MC.timeLabel = e => e.time ? MC.fmtRange(e.time, e.endTime) : '';
 
   // ---------- 数据 ----------
-  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [] }; }
+  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', clock: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [] }; }
   function normEvent(e) {
     const t = Date.now();
     return {
@@ -173,7 +191,7 @@
     out.updatedAt = d.updatedAt || 0;
     out.deleted = d.deleted || {};
     out.events = (d.events || []).filter(e => /^\d{4}-\d{2}-\d{2}$/.test(e.date || '')).map(normEvent);
-    if (d.profile) out.profile = { name: d.profile.name || '', avatar: d.profile.avatar || '', updatedAt: d.profile.updatedAt || 0 };
+    if (d.profile) out.profile = { name: d.profile.name || '', avatar: d.profile.avatar || '', clock: ['auto', '12', '24'].includes(d.profile.clock) ? d.profile.clock : '', updatedAt: d.profile.updatedAt || 0 };
     if (Array.isArray(d.courses)) out.courses = d.courses.filter(c => c && c.code && c.day >= 1 && c.day <= 7 && /^\d{2}:\d{2}$/.test(c.start) && /^\d{2}:\d{2}$/.test(c.end))
       .map(c => ({ id: c.id || MC.uid(), code: String(c.code).slice(0, 40), type: c.type || '', day: Number(c.day), start: c.start, end: c.end, room: c.room || '',
         from: /^\d{4}-\d{2}-\d{2}$/.test(c.from || '') ? c.from : '', to: /^\d{4}-\d{2}-\d{2}$/.test(c.to || '') ? c.to : '', every: c.every === 2 ? 2 : 1 }));
@@ -183,7 +201,9 @@
     return out;
   };
   // ---------- 特殊记录日历 ----------
-  MC.CAL_COLORS = ['#C2617E', '#5E9C86', '#8C74C4', '#C98A4B', '#4F95B8', '#8A8F5C', '#B8605A', '#6C7FA6'];
+  // 记录日历可选的 14 种颜色：12 个色相（OKLCH 明度 0.60、彩度 0.11，跳过会发橄榄色的黄绿一带）+ 两种中性灰，
+  // 和整套配色同一个体系；浅色时白字都清楚，深色时用 MC.darkTone 生成同色的深色调
+  MC.CAL_COLORS = ['#B76271', '#B86652', '#B06F35', '#539156', '#269573', '#009390', '#138DB1', '#4086BD', '#607EC2', '#8074BD', '#9B6AAB', '#AE648F', '#656970', '#627887'];
   MC.MAIN_CAL = { id: '', name: '主日历', color: 'var(--accent)' };
   function normCal(c) {
     const t = Date.now();

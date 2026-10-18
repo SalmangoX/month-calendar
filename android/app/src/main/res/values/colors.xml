@@ -27,4 +27,6 @@
     <color name="chip_p1">#3C7DC2</color>
     <color name="chip_p0">#979CA2</color>
 
+    <!-- 今天格子的淡主色底（浅色 12%、深色 20%，和应用里选中日期一致） -->
+    <color name="w_today">#1F52618E</color>
 </resources>

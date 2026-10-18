@@ -4,6 +4,7 @@ import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -157,6 +158,9 @@ final class Widgets {
             boolean in = day.getMonthValue() == ym.getMonthValue();
             rv.setTextViewText(N[i], String.valueOf(day.getDayOfMonth()));
             if (day.equals(today)) {
+                // 今天整格叠一层淡主色（边框样式按格子位置：前 5 行 / 前 6 列有右边或下边框）
+                int row = i / 7, col = i % 7;
+                rv.setInt(CELL[i], "setBackgroundResource", row < 5 ? (col < 6 ? R.drawable.cell_rb_today : R.drawable.cell_b_today) : (col < 6 ? R.drawable.cell_r_today : R.drawable.cell_n_today));
                 rv.setInt(N[i], "setBackgroundResource", R.drawable.today_bg);
                 rv.setTextColor(N[i], WHITE);
             } else if (!in) {
@@ -170,6 +174,8 @@ final class Widgets {
                     if (e.done || k >= 3) continue;
                     rv.setViewVisibility(OD[i][k], android.view.View.VISIBLE);
                     rv.setImageViewResource(OD[i][k], DOT[e.priority]);
+                    Integer dc = d.calColorOf(e);
+                    if (dc != null) rv.setColorStateList(OD[i][k], "setImageTintList", ColorStateList.valueOf(dc), ColorStateList.valueOf(dc));
                     k++;
                 }
                 if (k > 0) rv.setViewVisibility(DOTS[i], android.view.View.VISIBLE);
@@ -198,6 +204,12 @@ final class Widgets {
                     if (hidden > 0) {
                         rv.setViewVisibility(MORE[i], android.view.View.VISIBLE);
                         rv.setTextViewText(MORE[i], "+" + hidden);
+                        if (start.plusDays(i).equals(LocalDate.now(ZoneId.systemDefault()))) {
+                            // 今天还有放不下的事：用主色小标签提醒，比其他日子的灰色「+n」醒目
+                            rv.setInt(MORE[i], "setBackgroundResource", R.drawable.more_today);
+                            rv.setTextColor(MORE[i], WHITE);
+                            rv.setTextViewText(MORE[i], " +" + hidden + " ");
+                        }
                     }
                 }
                 final LocalDate wk0 = start.plusDays(r * 7L);
@@ -255,11 +267,13 @@ final class Widgets {
             for (int k = g.a; k <= g.b; k++) if (wk0.plusDays(k).getMonthValue() == ym.getMonthValue()) { out = false; break; }
             boolean softy = e.done || out;
             float x0 = g.a * cw + (g.openL ? 0 : 1), x1 = (g.b + 1) * cw - (g.openR ? 0 : 1), y = g.slot * SLOT_DP;
-            int col = c.getColor(PCOL[e.priority]);
+            Integer cc = Data.CUR != null ? Data.CUR.calColorOf(e) : null;
+            int col = cc != null ? cc : c.getColor(PCOL[e.priority]);
+            int[] dk = cc != null ? CourseColors.darkTone(cc) : new int[]{DARK_FILL[e.priority], DARK_INK[e.priority]};
             // 颜色和格子里的色条一样：浅色实色 + 白字；深色用专门的深色调 + 柔白字；已完成 / 不在本月用淡色（与 p*_soft 相同的透明度）
-            fill.setColor(softy ? alpha(col, dark ? 0x4D : 0x40) : dark ? DARK_FILL[e.priority] : col);
+            fill.setColor(softy ? alpha(col, dark ? 0x4D : 0x40) : dark ? dk[0] : col);
             cv.drawPath(barPath(x0, y, x1 - x0, h, rad, g.openL, g.openR), fill);
-            text.setColor(softy ? col : dark ? DARK_INK[e.priority] : WHITE);
+            text.setColor(softy ? col : dark ? dk[1] : WHITE);
             text.setStrikeThruText(e.done);
             cv.save();
             cv.clipRect(x0 + 1.5f, y, x1 - 1f, y + h);
@@ -287,6 +301,19 @@ final class Widgets {
             rv.setTextViewText(vid, s);
         } else {
             rv.setTextViewText(vid, title);
+        }
+        Integer cc = Data.CUR != null ? Data.CUR.calColorOf(e) : null;
+        if (cc != null) { // 记录日历的颜色：和应用一致，深色用同一套算法生成的深色调
+            int[] dk = CourseColors.darkTone(cc);
+            rv.setInt(vid, "setBackgroundResource", R.drawable.cal_chip);
+            if (e.done || !inMonth) {
+                rv.setColorStateList(vid, "setBackgroundTintList", ColorStateList.valueOf(alpha(cc, 0x40)), ColorStateList.valueOf(alpha(cc, 0x4D)));
+                rv.setTextColor(vid, cc);
+            } else {
+                rv.setColorStateList(vid, "setBackgroundTintList", ColorStateList.valueOf(cc), ColorStateList.valueOf(dk[0]));
+                rv.setColorInt(vid, "setTextColor", WHITE, dk[1]);
+            }
+            return;
         }
         if (e.done || !inMonth) {
             rv.setInt(vid, "setBackgroundResource", SOFT[e.priority]);
@@ -388,7 +415,9 @@ final class Widgets {
             r.setTextViewText(R.id.it_title, title);
             r.setInt(R.id.it_bar, "setBackgroundResource", BAR[e.priority]);
         }
-        String t = e.timeLabel();
+        Integer bc = Data.CUR != null ? Data.CUR.calColorOf(e) : null;
+        if (bc != null) r.setColorStateList(R.id.it_bar, "setBackgroundTintList", ColorStateList.valueOf(bc), ColorStateList.valueOf(bc));
+        String t = e.timeLabel(Data.h12(c));
         String sub = (prefix != null ? prefix + " · " : "") + (t.isEmpty() ? "全天" : t);
         if (e.days > 1) sub += " · " + e.days + " 天";
         if (!e.note.isEmpty()) sub += " · " + e.note.replace('\n', ' ');
@@ -446,7 +475,7 @@ final class Widgets {
         int[] t = d.toneOf(code);
         rv.setInt(vid, "setBackgroundResource", R.drawable.crs_chip);
         rv.setColorStateList(vid, "setBackgroundTintList",
-                android.content.res.ColorStateList.valueOf(t[CourseColors.BASE]), android.content.res.ColorStateList.valueOf(t[CourseColors.CHIP_D]));
+                ColorStateList.valueOf(t[CourseColors.BASE]), ColorStateList.valueOf(t[CourseColors.CHIP_D]));
         rv.setColorInt(vid, "setTextColor", WHITE, t[CourseColors.CHIP_INK_D]);
     }
     private static int[] WKC, WKH, WKM;
@@ -489,7 +518,7 @@ final class Widgets {
                 if (k < shown) {
                     Data.Course co = l.get(k);
                     rv.setViewVisibility(WKE[i][k], android.view.View.VISIBLE);
-                    rv.setTextViewText(WKE[i][k], co.code + "\n" + co.start);
+                    rv.setTextViewText(WKE[i][k], co.code + "\n" + Data.fmt(co.start, Data.h12(c), true));
                     courseChip(rv, WKE[i][k], d, co.code);
                 } else rv.setViewVisibility(WKE[i][k], android.view.View.INVISIBLE);
             }
@@ -521,6 +550,9 @@ final class Widgets {
             boolean in = day.getMonthValue() == ym.getMonthValue();
             rv.setTextViewText(N[i], String.valueOf(day.getDayOfMonth()));
             if (day.equals(today)) {
+                // 今天整格叠一层淡主色（边框样式按格子位置：前 5 行 / 前 6 列有右边或下边框）
+                int row = i / 7, col = i % 7;
+                rv.setInt(CELL[i], "setBackgroundResource", row < 5 ? (col < 6 ? R.drawable.cell_rb_today : R.drawable.cell_b_today) : (col < 6 ? R.drawable.cell_r_today : R.drawable.cell_n_today));
                 rv.setInt(N[i], "setBackgroundResource", R.drawable.today_bg);
                 rv.setTextColor(N[i], WHITE);
             } else if (!in) rv.setTextColor(N[i], DIM);
@@ -619,7 +651,7 @@ final class Widgets {
         for (int h = minH; h <= maxH; h++) {
             float y = gy + (h - minH) * hourH;
             cv.drawLine(gx, y, W - pad, y, lp);
-            if (h < maxH) cv.drawText(h + ":00", gx - 4 * dp, y + 9 * dp, p);
+            if (h < maxH) cv.drawText(Data.hourLabel(h, Data.h12(c)), gx - 4 * dp, y + 9 * dp, p);
         }
         for (int ci = 1; ci < days.size(); ci++) cv.drawLine(gx + ci * colW, gy, gx + ci * colW, H - pad, lp);
         p.setTextAlign(Paint.Align.LEFT);
@@ -654,7 +686,8 @@ final class Widgets {
                 p.setColor(col);
                 cv.drawRoundRect(new RectF(x0, y0, x0 + 3 * dp, y1), 1.5f * dp, 1.5f * dp, p);
                 float tx = x0 + 6 * dp, maxW = x1 - tx - 2 * dp, y = y0 + 2 * dp;
-                String[] lines = { co.code, co.type, co.start + "–" + co.end, co.room };
+                boolean h12 = Data.h12(c);
+                String[] lines = { co.code, co.type, h12 ? Data.fmt(co.start, true, true) + "–" + Data.fmt(co.end, true, true) : co.start + "–" + co.end, co.room };
                 float[] sizes = { 11f, 9.5f, 9f, 9f };
                 for (int li = 0; li < lines.length; li++) {
                     String t = lines[li];
@@ -741,7 +774,7 @@ final class Widgets {
             int[] ct = d.toneOf(co.code);
             r.setColorInt(R.id.cs_bar, "setBackgroundColor", ct[CourseColors.BASE], ct[CourseColors.BAR_D]);
             r.setTextViewText(R.id.cs_title, co.type.isEmpty() ? co.code : co.code + "  " + co.type);
-            r.setTextViewText(R.id.cs_sub, co.start + "–" + co.end + (co.room.isEmpty() ? "" : " · " + co.room));
+            r.setTextViewText(R.id.cs_sub, Data.range(co.start, co.end, Data.h12(c)) + (co.room.isEmpty() ? "" : " · " + co.room));
             String state = "";
             if (isToday && nm >= co.startMin) {
                 state = "上课中";

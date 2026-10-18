@@ -131,7 +131,7 @@
   // 新建 / 编辑：名称 + 颜色
   function calForm(c) {
     const used = new Set(MC.data.cals.map(x => x.color));
-    let color = c ? c.color : (MC.CAL_COLORS.find(x => !used.has(x)) || MC.CAL_COLORS[0]);
+    let color = c ? c.color : MC.suggestCalColor([...used]); // 没选颜色时：自动挑和主日历、其他记录日历都不冲突的
     const sw = () => `<div class="field"><span>颜色</span><div class="dr-swatches" id="calSw">${MC.CAL_COLORS.map(x =>
       `<button type="button" class="dr-sw${x === color ? ' on' : ''}" style="--cc:${x}" data-c="${x}" aria-label="颜色 ${x}" aria-pressed="${x === color}"></button>`).join('')}</div></div>`;
     MC.openForm({

@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 记录日历事件的色条：白色圆角形状，代码里按日历颜色着色（深浅色各一种），圆角和 chip_p*.xml 一样 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="#FFFFFFFF" /><corners android:radius="3.5dp" /></shape>

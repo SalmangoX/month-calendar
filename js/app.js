@@ -361,7 +361,7 @@
     const gDisplay = group('显示与时间', [
       srow({ act: 'theme', icon: 'theme', tone: 'periwinkle', label: '外观', val: { auto: '跟随系统', light: '浅色', dark: '深色' }[S.theme] }),
       srow({ act: 'week', icon: 'week', tone: 'rose', label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
-      srow({ act: 'clock', icon: 'clock', tone: 'teal', label: '时间格式', val: S.clock === '12' ? '12 小时制' : S.clock === '24' ? '24 小时制' : `跟随地区（${MC.region12() ? 12 : 24} 小时）` }),
+      srow({ act: 'clock', icon: 'clock', tone: 'teal', label: '时间格式', val: MC.clockPref() === '12' ? '12 小时制' : MC.clockPref() === '24' ? '24 小时制' : `跟随地区（${MC.region12() ? 12 : 24} 小时）` }),
     ]);
     if (!MC.vault.connected()) {
       gSync = group('同步', [
@@ -455,11 +455,11 @@
       { label: '周一', value: 1, on: MC.settings.weekStart === 1 },
     ], v => { MC.settings.weekStart = v; MC.saveSettings(); MC.Cal.realign(); renderSettings(); });
     else if (act === 'clock') UI.menu(row.querySelector('.sval'), [
-      { label: `跟随地区（${MC.region12() ? 12 : 24} 小时）`, value: 'auto', on: (MC.settings.clock || 'auto') === 'auto' },
-      { label: '12 小时制', value: '12', on: MC.settings.clock === '12' },
-      { label: '24 小时制', value: '24', on: MC.settings.clock === '24' },
+      { label: `跟随地区（${MC.region12() ? 12 : 24} 小时）`, value: 'auto', on: MC.clockPref() === 'auto' },
+      { label: '12 小时制', value: '12', on: MC.clockPref() === '12' },
+      { label: '24 小时制', value: '24', on: MC.clockPref() === '24' },
     ], v => {
-      MC.settings.clock = v; MC.saveSettings(); renderSettings();
+      MC.settings.clock = v; MC.saveSettings(); MC.setProfile({ clock: v }); renderSettings(); // 存进同步数据，小组件也跟着变
       if (Push.enabled() && MC.settings.pushReady && MC.session.token && MC.settings.subH12 !== MC.use12()) Push.resubscribe().catch(() => {});
     });
     else if (act === 'tab3') UI.menu(row.querySelector('.sval'), [

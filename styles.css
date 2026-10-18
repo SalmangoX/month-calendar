@@ -936,3 +936,8 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 /* 批量添加：日期按钮上的提醒 / 重复小图标 */
 .date-tool { display: inline-flex; align-items: center; gap: 4px; }
 .date-tool .b-ic { width: 13px; height: 13px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
+
+/* 课程编辑：开始 / 结束时间按钮（点开下面的时间滚轮） */
+.sc-tbtn { display: block; width: 100%; height: 44px; padding: 0 12px; border-radius: 12px; background: var(--field); color: var(--text); font-size: 16px; text-align: left; font-variant-numeric: tabular-nums; }
+.sc-tbtn.on { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.sc-wheel { margin-top: -4px; }

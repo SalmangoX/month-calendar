@@ -521,6 +521,31 @@
 
   // ======================= 批量添加 =======================
   let rows = [];
+  // 草稿：随时自动保存在本机，关掉再打开会恢复；添加成功或选择清空后删除
+  const BATCH_KEY = 'mcal.batchDraft';
+  const rowHasContent = r => !!(r.title.trim() || r.note.trim() || r.priority || r.time || (r.remind !== null && r.remind !== undefined) || (r.repeat && r.repeat !== 'none'));
+  const batchHasContent = () => rows.some(rowHasContent);
+  function saveBatchDraft() {
+    try {
+      if (batchHasContent()) localStorage.setItem(BATCH_KEY, JSON.stringify({ rows, cal: newCal, at: Date.now() }));
+      else localStorage.removeItem(BATCH_KEY);
+    } catch (e) {}
+    paintBatchHint();
+  }
+  const readBatchDraft = () => { try { return JSON.parse(localStorage.getItem(BATCH_KEY) || 'null'); } catch (e) { return null; } };
+  const BATCH_HINT = '名称必填；不选优先级默认为灰色；备注可不填。';
+  const paintBatchHint = () => { $('#batchHint').textContent = batchHasContent() ? BATCH_HINT + '草稿已自动保存。' : BATCH_HINT; };
+  // 返回确认：有内容时问一下保留草稿还是清空；点别处 = 继续编辑
+  UI.guard('batchSheet', proceed => {
+    if (!batchHasContent()) { localStorage.removeItem(BATCH_KEY); proceed(); return; }
+    UI.menu($('#batchSheet [data-close]'), [
+      { label: '保留草稿，稍后继续', value: 'keep' },
+      { label: '不保留，清空', value: 'drop' },
+    ], v => {
+      if (v === 'keep') { saveBatchDraft(); proceed(); UI.toast('草稿已保存，下次打开批量添加会恢复'); }
+      else { rows = []; localStorage.removeItem(BATCH_KEY); proceed(); }
+    });
+  });
   const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', ...extra });
   // 行里日期按钮上的摘要：日期 + 时间，有提醒 / 重复时各加一个小图标
   const I_BELL = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="有提醒"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
@@ -532,7 +557,12 @@
   };
   function openBatch() {
     const t = $('#cmpTitle').value.trim(), n = $('#cmpNote').value.trim();
-    rows = [blankRow(draft.date, { title: t, note: n, priority: draft.priority }), blankRow(draft.date), blankRow(draft.date)];
+    const saved = readBatchDraft();
+    if (saved && Array.isArray(saved.rows) && saved.rows.length) {
+      rows = saved.rows.map(r => blankRow(r.date || draft.date, r));
+      if (t && !rows.some(r => r.title.trim() === t)) rows.unshift(blankRow(draft.date, { title: t, note: n, priority: draft.priority }));
+      UI.toast('已恢复上次没添加完的草稿');
+    } else rows = [blankRow(draft.date, { title: t, note: n, priority: draft.priority }), blankRow(draft.date), blankRow(draft.date)];
     $('#cmpTitle').blur(); $('#cmpNote').blur();
     renderBatch();
     UI.open('batchSheet');
@@ -554,6 +584,7 @@
       </div>`).join('');
     $('#batchList').querySelectorAll('.brow').forEach(el => paintFlag(el.querySelector('[data-act="flag"]'), rows[Number(el.dataset.i)].priority));
     updateBatchCount();
+    saveBatchDraft();
   }
   function updateBatchCount() {
     const n = rows.filter(r => r.title.trim()).length;
@@ -564,6 +595,7 @@
     const r = rows[Number(el.dataset.i)];
     if (e.target.classList.contains('b-title')) { r.title = e.target.value; el.classList.remove('err'); updateBatchCount(); }
     if (e.target.classList.contains('b-note')) r.note = e.target.value;
+    saveBatchDraft();
   });
   $('#batchList').addEventListener('focusin', e => {
     // 只滚动列表本身，不能用 scrollIntoView（它会连带滚动整个面板和页面，导致面板“缩没了”）
@@ -585,11 +617,11 @@
     const a = e.target.closest('[data-act]'); if (!a) return;
     const el = a.closest('.brow'), i = Number(el.dataset.i), r = rows[i];
     if (a.dataset.act === 'del') { rows.splice(i, 1); renderBatch(); }
-    else if (a.dataset.act === 'flag') UI.menu(a, UI.priMenuItems(r.priority), v => { r.priority = v; paintFlag(a, v); });
+    else if (a.dataset.act === 'flag') UI.menu(a, UI.priMenuItems(r.priority), v => { r.priority = v; paintFlag(a, v); saveBatchDraft(); });
     else if (a.dataset.act === 'date') {
       document.activeElement && document.activeElement.blur();
       // 和单个添加一样的完整选择：日期、时间段、多天、提醒、重复
-      Editor.openPicker({ ...r, allowRepeat: true }, s => { Object.assign(r, s); a.innerHTML = whenHTML(r); });
+      Editor.openPicker({ ...r, allowRepeat: true }, s => { Object.assign(r, s); a.innerHTML = whenHTML(r); saveBatchDraft(); });
     }
   });
   function addRow() {
@@ -619,7 +651,8 @@
     }
     MC.addEvents(all);
     const quiet = newCal && !MC.notifies({ cal: newCal }) && valid.some(r => r.remind !== null && r.remind !== undefined);
-    UI.close('batchSheet');
+    rows = []; localStorage.removeItem(BATCH_KEY);
+    UI.close('batchSheet', true);
     localStorage.removeItem(DRAFT_KEY);
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';
     if (UI.isOpen('composer')) closeComposer(false);

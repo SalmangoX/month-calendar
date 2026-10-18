@@ -42,6 +42,11 @@
   .chip.done { background:color-mix(in srgb, var(--c) var(--mix), transparent); color:color-mix(in srgb, var(--c) 72%, var(--text2)); text-decoration:line-through; }
   .more { font-size:8px; color:var(--text2); padding-left:2px; }
   .chip.gap { visibility:hidden; }
+  /* 今天：整格叠一层淡主色；还有放不下的事件时，「+n」用主色小标签 */
+  .c.today { background:color-mix(in srgb, var(--accent) 12%, transparent); }
+  :root[data-theme="dark"] .c.today { background:color-mix(in srgb, var(--accent) 20%, transparent); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .c.today { background:color-mix(in srgb, var(--accent) 20%, transparent); } }
+  .c.today .more { display:inline-block; color:#fff; background:var(--accent); border-radius:4px; padding:0 3px; font-weight:700; margin-left:2px; }
   /* 跨天的全天事件：作为网格里横跨几列的一项，叠在格子上面连成一条 */
   .bar { z-index:1; align-self:start; pointer-events:none; margin:calc(24px + var(--s) * 15px) 2px 0; }
   .bar.ol { margin-left:0; border-top-left-radius:0; border-bottom-left-radius:0; }
@@ -124,8 +129,11 @@
     const rowH = gridH / rows;
     const max = Math.max(1, Math.floor((rowH - 24) / 15));
     const label = e => { const mm = String(e.title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/); return mm ? `${mm[1].toUpperCase()} ${mm[2]}` : e.title; };
-    const chip = (e, cls = '', st = '') => { const p = COLORS[e.priority] ? e.priority : 0;
-      return `<div class="chip${cls}${e.done ? ' done' : ''}" style="--c:var(--p${p});--cf:var(--p${p}f);--ci:var(--p${p}i)${st}">${esc(label(e))}</div>`; };
+    // 记录日历里没设优先级的事件用日历自己的颜色（和应用一致），深色用同一套算法生成的深色调
+    const calc = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color]));
+    const chip = (e, cls = '', st = '') => { const p = COLORS[e.priority] ? e.priority : 0, ch = e.cal && !e.priority && calc.get(e.cal);
+      const vars = ch ? (() => { const [f, i] = darkTone(ch); return `--c:${ch};--cf:${f};--ci:${i}`; })() : `--c:var(--p${p});--cf:var(--p${p}f);--ci:var(--p${p}i)`;
+      return `<div class="chip${cls}${e.done ? ' done' : ''}" style="${vars}${st}">${esc(label(e))}</div>`; };
     const endOf = e => { const [a, b, c] = e.date.split('-').map(Number); return ymd(new Date(a, b - 1, c + e.days - 1)); };
     let cells = '', bars = '';
     for (let r = 0; r < rows; r++) {
@@ -214,12 +222,54 @@
   // 一门课的一整套颜色：浅色（淡底、深字、色条 / 小色块）、深色（深底、浅字、亮色条、深色小色块）
   const courseTone = h => ({ base: oklchHex(.64, .095, h), fillL: oklchHex(.955, .03, h), inkL: oklchHex(.42, .085, h), fillD: oklchHex(.30, .045, h),
     inkD: oklchHex(.86, .065, h), chipD: oklchHex(.42, .075, h), chipInkD: oklchHex(.935, .03, h), barD: oklchHex(.70, .095, h) });
+  // ---------- 12 / 24 小时制：用应用里的设置（同步数据 profile.clock），「跟随地区」时按设备地区 ----------
+  let CLOCK = 'auto';
+  const region12 = () => {
+    try {
+      const loc = (typeof Device !== 'undefined' && Device.locale ? Device.locale() : (typeof navigator !== 'undefined' ? navigator.language : '')) || '';
+      const parts = loc.replace('_', '-').split('-'), region = parts.length > 1 ? parts[parts.length - 1] : '';
+      const tag = region ? new Intl.Locale('und-' + region).maximize().toString() : loc;
+      const o = new Intl.DateTimeFormat(tag || undefined, { hour: 'numeric' }).resolvedOptions();
+      return o.hourCycle ? /h1[12]/.test(o.hourCycle) : !!o.hour12;
+    } catch (e) { return false; }
+  };
+  const use12 = () => (CLOCK === '12' ? true : CLOCK === '24' ? false : region12());
+  const fmtT = (t, noHalf) => { if (!t || !use12()) return t || ''; const [h, m] = t.split(':').map(Number); return (noHalf ? '' : h < 12 ? '上午' : '下午') + (h % 12 || 12) + ':' + String(m).padStart(2, '0'); };
+  const fmtR = (a, b) => { if (!use12()) return `${a}–${b}`; const same = (+a.slice(0, 2) < 12) === (+b.slice(0, 2) < 12); return `${fmtT(a)}–${fmtT(b, same)}`; };
+  const hourLabel = h => (use12() ? `${h < 12 ? '上午' : '下午'}${h % 12 || 12}` : `${h}:00`);
+  const lin = v => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4), gam = v => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
+  function toOklch(hex) {
+    const n = parseInt(hex.slice(1), 16), r = lin((n >> 16) / 255), g = lin(((n >> 8) & 255) / 255), b = lin((n & 255) / 255);
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    const L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
+    return [L, Math.hypot(A, B), (Math.atan2(B, A) * 180 / Math.PI + 360) % 360];
+  }
+  function fromOklch(L, C, H) { // 超出屏幕色域时降低彩度
+    for (let c = C; c >= 0; c -= 0.005) {
+      const A = c * Math.cos(H * Math.PI / 180), B = c * Math.sin(H * Math.PI / 180);
+      const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3, m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3, s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+      const rgb = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+      if (rgb.every(v => v >= -1e-4 && v <= 1.0001)) return '#' + rgb.map(v => Math.round(Math.min(1, Math.max(0, gam(v))) * 255).toString(16).padStart(2, '0')).join('');
+    }
+    return '#808080';
+  }
+  const toneCache = new Map();
+  const darkTone = hex => {
+    if (toneCache.has(hex)) return toneCache.get(hex);
+    const [, c, h] = toOklch(hex), warm = c < 0.03 ? 0 : Math.max(0, Math.min(1, (1 - Math.abs(h - 75) / 50) * 1.6));
+    const t = c < 0.03 ? [fromOklch(0.36, c * 0.5, h), fromOklch(0.935, c * 0.3, h)]
+      : [fromOklch(0.45 + 0.15 * warm, Math.min(c, 0.15), h), fromOklch(0.935, Math.min(0.035, c * 0.25), h)];
+    toneCache.set(hex, t);
+    return t;
+  };
+  // 新建记录日历的默认颜色：在可选颜色里挑和主日历（四个优先级色、主色）以及已有记录日历最不像的一个（OKLab 距离最大）
   let HUES = new Map();
   const colorOf = c => courseTone(HUES.has(c) ? HUES.get(c) : 240).base;
   const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   function renderSched(data) {
     const cs = data.courses || [];
     HUES = courseHues(cs.map(c => c.code));
+    CLOCK = (data.profile && data.profile.clock) || 'auto';
     const now = new Date(), nm = now.getHours() * 60 + now.getMinutes(), today = (now.getDay() + 6) % 7 + 1;
     const mondayOf = d => new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7));
     const onDate = (c, date) => {
@@ -240,7 +290,7 @@
     const label = pick.k === 0 ? '今天' : pick.k === 1 ? '明天' : `周${WD[pick.d % 7]}`;
     root.innerHTML = `<div class="head"><b>${label}</b><span>周${WD[pick.d % 7]}</span></div>` + pick.list.slice(0, 5).map(c => {
       const live = pick.k === 0 && nm >= toMin(c.start);
-      return `<div class="sr${live ? ' live' : ''}"><i style="background:${colorOf(c.code)}"></i><div><b>${esc(c.code)}</b>${c.type ? ` <em>${esc(c.type)}</em>` : ''}<small>${c.start}–${c.end}${c.room ? ' · ' + esc(c.room) : ''}</small></div>${live ? '<span>上课中</span>' : ''}</div>`;
+      return `<div class="sr${live ? ' live' : ''}"><i style="background:${colorOf(c.code)}"></i><div><b>${esc(c.code)}</b>${c.type ? ` <em>${esc(c.type)}</em>` : ''}<small>${fmtR(c.start, c.end)}${c.room ? ' · ' + esc(c.room) : ''}</small></div>${live ? '<span>上课中</span>' : ''}</div>`;
     }).join('');
     root.href = './#sched';
   }

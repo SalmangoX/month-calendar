@@ -42,7 +42,7 @@ final class Data {
 
         LocalDate end() { return days > 1 ? date.plusDays(days - 1) : date; }
 
-        String timeLabel() { return time.isEmpty() ? "" : endTime.isEmpty() ? time : time + "–" + endTime; }
+        String timeLabel(boolean h12) { return time.isEmpty() ? "" : endTime.isEmpty() ? fmt(time, h12, false) : range(time, endTime, h12); }
     }
 
     static final class Course {
@@ -65,6 +65,29 @@ final class Data {
     }
 
     final List<Event> events = new ArrayList<>();
+    // ---------- 12 / 24 小时制（与网页 MC.fmtTime / fmtRange 一致） ----------
+    /** 应用里的设置（同步数据 profile.clock）：auto / 12 / 24；最近一次读到的数据为准 */
+    static volatile String clock = "auto";
+    static volatile Data CUR;
+    /** 「跟随地区」= 用手机系统的 12 / 24 小时设置 */
+    static boolean h12(android.content.Context c) {
+        if ("12".equals(clock)) return true;
+        if ("24".equals(clock)) return false;
+        return !android.text.format.DateFormat.is24HourFormat(c);
+    }
+    /** "14:30" → "下午2:30"（12 小时制）或 "14:30"；noHalf：省略上午 / 下午 */
+    static String fmt(String hhmm, boolean h12, boolean noHalf) {
+        if (hhmm == null || hhmm.isEmpty() || !h12) return hhmm == null ? "" : hhmm;
+        int h = Integer.parseInt(hhmm.substring(0, 2)), m = Integer.parseInt(hhmm.substring(3, 5));
+        return (noHalf ? "" : h < 12 ? "上午" : "下午") + (h % 12 == 0 ? 12 : h % 12) + ":" + (m < 10 ? "0" : "") + m;
+    }
+    static String range(String a, String b, boolean h12) {
+        if (!h12) return a + "–" + b;
+        boolean same = (Integer.parseInt(a.substring(0, 2)) < 12) == (Integer.parseInt(b.substring(0, 2)) < 12);
+        return fmt(a, true, false) + "–" + fmt(b, true, same);
+    }
+    static String hourLabel(int h, boolean h12) { return h12 ? (h < 12 ? "上午" : "下午") + (h % 12 == 0 ? 12 : h % 12) : h + ":00"; }
+
     final List<Course> courses = new ArrayList<>();
     /** 课程代码 → 这门课的一整套颜色（CourseColors.BASE…BAR_D） */
     final Map<String, int[]> courseTone = new HashMap<>();
@@ -75,6 +98,10 @@ final class Data {
     private final Map<LocalDate, List<Event>> byDate = new HashMap<>();
     /** 打开了「在主日历显示」的记录日历（小组件里和主日历一起显示） */
     final Set<String> shownCals = new HashSet<>();
+    /** 记录日历的颜色 */
+    final Map<String, Integer> calColor = new HashMap<>();
+    /** 这个事件要用日历颜色吗（和网页一致：记录日历里没设优先级的事件用日历自己的颜色）；不用时返回 null */
+    Integer calColorOf(Event e) { return !e.cal.isEmpty() && e.priority == 0 ? calColor.get(e.cal) : null; }
     /** 打开了「通知」的记录日历 */
     final Set<String> notifyCals = new HashSet<>();
 
@@ -99,6 +126,9 @@ final class Data {
                 if (x != null) d.events.add(x);
             }
         }
+        CUR = d; // 最近一次读到的数据（小组件取记录日历颜色等）
+        JSONObject prof = o.optJSONObject("profile");
+        clock = prof == null ? "auto" : prof.optString("clock", "auto");
         JSONArray cals = o.optJSONArray("cals");
         if (cals != null) {
             for (int i = 0; i < cals.length(); i++) {
@@ -107,6 +137,8 @@ final class Data {
                 String id = c.optString("id");
                 if (id.isEmpty()) continue;
                 if (c.optBoolean("showInMain")) d.shownCals.add(id);
+                String col = c.optString("color");
+                if (col.matches("#[0-9a-fA-F]{6}")) d.calColor.put(id, 0xFF000000 | Integer.parseInt(col.substring(1), 16));
                 if (c.optBoolean("notify")) d.notifyCals.add(id);
             }
         }

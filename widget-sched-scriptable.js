@@ -92,6 +92,21 @@ function onDate(c, date) {
   return true;
 }
 
+// ---------- 12 / 24 小时制：用应用里的设置（同步数据 profile.clock），「跟随地区」时按设备地区 ----------
+let CLOCK = "auto";
+const region12 = () => {
+  try {
+    const loc = (typeof Device !== "undefined" && Device.locale ? Device.locale() : (typeof navigator !== "undefined" ? navigator.language : "")) || "";
+    const parts = loc.replace("_", "-").split("-"), region = parts.length > 1 ? parts[parts.length - 1] : "";
+    const tag = region ? new Intl.Locale("und-" + region).maximize().toString() : loc;
+    const o = new Intl.DateTimeFormat(tag || undefined, { hour: "numeric" }).resolvedOptions();
+    return o.hourCycle ? /h1[12]/.test(o.hourCycle) : !!o.hour12;
+  } catch (e) { return false; }
+};
+const use12 = () => (CLOCK === "12" ? true : CLOCK === "24" ? false : region12());
+const fmtT = (t, noHalf) => { if (!t || !use12()) return t || ""; const [h, m] = t.split(":").map(Number); return (noHalf ? "" : h < 12 ? "上午" : "下午") + (h % 12 || 12) + ":" + String(m).padStart(2, "0"); };
+const fmtR = (a, b) => { if (!use12()) return `${a}–${b}`; const same = (+a.slice(0, 2) < 12) === (+b.slice(0, 2) < 12); return `${fmtT(a)}–${fmtT(b, same)}`; };
+const hourLabel = h => (use12() ? `${h < 12 ? "上午" : "下午"}${h % 12 || 12}` : `${h}:00`);
 async function loadCourses() {
   const fm = FileManager.local();
   const cache = fm.joinPath(fm.cacheDirectory(), "mcal-sched-cache.json");
@@ -105,11 +120,11 @@ async function loadCourses() {
     const f = g.files && g.files[FILE];
     if (!f) throw new Error("没有找到节律数据");
     const text = f.truncated ? await new Request(f.raw_url).loadString() : f.content;
-    const courses = (JSON.parse(text).courses || []);
-    fm.writeString(cache, JSON.stringify(courses));
-    return { courses, offline: false };
+    const data = JSON.parse(text), courses = (data.courses || []), clock = (data.profile && data.profile.clock) || "auto";
+    fm.writeString(cache, JSON.stringify({ courses, clock }));
+    return { courses, clock, offline: false };
   } catch (e) {
-    if (fm.fileExists(cache)) return { courses: JSON.parse(fm.readString(cache)), offline: true };
+    if (fm.fileExists(cache)) { const c = JSON.parse(fm.readString(cache)); return Array.isArray(c) ? { courses: c, clock: "auto", offline: true } : { ...c, offline: true }; }
     throw e;
   }
 }
@@ -140,7 +155,7 @@ function row(parent, c, state, compact) {
   const top = mid.addStack(); top.centerAlignContent();
   addText(top, c.code, Font.semiboldSystemFont(compact ? 12 : 13.5), C.text, 1);
   if (c.type && !compact) { top.addSpacer(5); addText(top, c.type, Font.systemFont(11), C.text2, 1); }
-  addText(mid, `${c.start}–${c.end}${c.room && !compact ? " · " + c.room : ""}`, Font.mediumSystemFont(compact ? 10 : 11), C.text2, 1);
+  addText(mid, `${fmtR(c.start, c.end)}${c.room && !compact ? " · " + c.room : ""}`, Font.mediumSystemFont(compact ? 10 : 11), C.text2, 1);
   r.addSpacer();
   if (state) addText(r, state, Font.semiboldSystemFont(10), C.accent);
 }
@@ -211,7 +226,7 @@ function weekLayout(w, courses, now, offline) {
       const ch = col.addStack(); ch.layoutVertically(); ch.size = new Size(0, 0);
       ch.backgroundColor = chipBg(c.code); ch.cornerRadius = 5; ch.setPadding(2, 3, 2, 2);
       const t1 = addText(ch, c.code, Font.semiboldSystemFont(9), chipFg(c.code), 1); t1.minimumScaleFactor = 0.8;
-      addText(ch, c.start, Font.mediumSystemFont(8), chipFg(c.code), 1);
+      addText(ch, fmtT(c.start, true), Font.mediumSystemFont(8), chipFg(c.code), 1);
       const sp = ch.addStack(); sp.addSpacer();
       col.addSpacer(2);
     }
@@ -265,7 +280,7 @@ function gridLayout(w, courses, now, offline) {
   for (let h = minH; h <= maxH; h++) {
     const y = gy + (h - minH) * hourH;
     ctx.setFillColor(new Color(P.line)); ctx.fillRect(new Rect(gx, y, gw, 0.6));
-    if (h < maxH) text(`${h}:00`, pad, y + 1, axis - 4, 12, Font.systemFont(8.5), P.text2, "r");
+    if (h < maxH) text(hourLabel(h), pad, y + 1, axis - 4, 12, Font.systemFont(8.5), P.text2, "r");
   }
   for (let i = 1; i < days.length; i++) { ctx.setFillColor(new Color(P.line)); ctx.fillRect(new Rect(gx + i * colW, gy, 0.6, gh)); }
   days.forEach((x, i) => {
@@ -285,7 +300,7 @@ function gridLayout(w, courses, now, offline) {
       round(x0, y0, 3, bh, 1.5, dark ? tn.barD : tn.base);
       let y = y0 + 2;
       const rows = [[c.code, Font.boldSystemFont(10 * fk), dark ? tn.inkD : tn.inkL],
-        [c.type, Font.systemFont(8.5 * fk), P.text], [`${c.start}–${c.end}`, Font.systemFont(8 * fk), P.text2], [c.room, Font.systemFont(8 * fk), P.text]];
+        [c.type, Font.systemFont(8.5 * fk), P.text], [use12() ? `${fmtT(c.start, true)}–${fmtT(c.end, true)}` : `${c.start}–${c.end}`, Font.systemFont(8 * fk), P.text2], [c.room, Font.systemFont(8 * fk), P.text]];
       for (const [t, f, color] of rows) {
         if (!t) continue;
         const lh = f.pointSize ? f.pointSize * 1.25 : 11;
@@ -350,6 +365,7 @@ let widget, courses = [];
 try {
   const r = await loadCourses();
   courses = r.courses;
+  CLOCK = r.clock || "auto";
   setSlots(courses);
   widget = build(family, courses, r.offline);
 } catch (e) {

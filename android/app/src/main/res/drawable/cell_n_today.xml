@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 今天的格子（无边框那一格）：底色上叠一层淡主色 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape><solid android:color="@color/w_bg" /></shape></item>
+    <item><shape><solid android:color="@color/w_today" /></shape></item>
+</layer-list>
