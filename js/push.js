@@ -86,9 +86,9 @@
 
   Push.enable = async () => {
     if (!Push.supported()) throw new Error('这个浏览器不支持通知');
-    if (Push.isIOS && !Push.standalone()) throw new Error('iPhone 需要先「添加到主屏幕」，再从主屏幕图标打开月历，才能开启通知');
+    if (Push.isIOS && !Push.standalone()) throw new Error('iPhone 需要先「添加到主屏幕」，再从主屏幕图标打开节律，才能开启通知');
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') throw new Error('通知权限被拒绝。请到系统设置 → 通知 → 月历 中允许通知');
+    if (perm !== 'granted') throw new Error('通知权限被拒绝。请到系统设置 → 通知 → 节律 中允许通知');
     MC.settings.notify = true; MC.saveSettings();
     try { return await subscribe(false); }
     catch (e) { MC.settings.pushReady = false; MC.saveSettings(); throw new Error('通知已开启，但后台推送设置失败：' + e.message); }
@@ -113,14 +113,14 @@
   };
   Push.test = async () => {
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('月历 · 测试通知', { body: '通知可以正常显示了', tag: 'mcal-test', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
+    await reg.showNotification('节律 · 测试通知', { body: '通知可以正常显示了', tag: 'mcal-test', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
   };
 
   if (NATIVE) {
     const N = MC.Native;
     Push.enable = async () => {
       const st = await N.request('notif');
-      if (!st || st.notif !== 'granted') throw new Error('通知权限没有打开。请在系统设置 → 应用程序 → 月历 → 通知 中允许');
+      if (!st || st.notif !== 'granted') throw new Error('通知权限没有打开。请在系统设置 → 应用程序 → 节律 → 通知 中允许');
       MC.settings.notify = true; MC.saveSettings();
       return true;
     };
@@ -171,7 +171,7 @@
     const cur = await api(`/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`, {}, token);
     if (cur.status === 200) return;
     const text = await (await fetch(srcUrl + '?_=' + Date.now(), { cache: 'no-store' })).text();
-    const r = await api(`/repos/${repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify({ message: '添加月历提醒', content: b64utf8(text), branch }) }, token);
+    const r = await api(`/repos/${repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify({ message: '添加节律提醒', content: b64utf8(text), branch }) }, token);
     if (r.status >= 300) throw new Error(r.status === 403 || r.status === 404 ? '临时令牌缺少 repo 或 workflow 权限' : `上传 ${path} 失败（${r.status}）`);
   }
   Push.setupRemote = async (token, repo, step) => {

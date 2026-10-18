@@ -1,6 +1,6 @@
 {
-  "name": "月历",
-  "short_name": "月历",
+  "name": "节律 · Cadence",
+  "short_name": "节律",
   "description": "按月查看与管理带优先级颜色的事件，支持多设备同步",
   "lang": "zh-CN",
   "start_url": "./",

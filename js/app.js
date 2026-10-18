@@ -333,7 +333,7 @@
       return '由手机系统在本机准时提醒，App 关着、断网也会响。三星手机请在「提醒权限检查」里把各项都设成 ✓。';
     }
     if (!Push.supported()) return '这个浏览器不支持通知。';
-    if (Push.isIOS && !Push.standalone()) return 'iPhone 需要从主屏幕图标打开月历才能开启通知（iOS 16.4 及以上）。';
+    if (Push.isIOS && !Push.standalone()) return 'iPhone 需要从主屏幕图标打开节律才能开启通知（iOS 16.4 及以上）。';
     if (!on) return MC.settings.notify && Push.permission() === 'denied' ? '通知权限被系统拒绝，请到系统设置中允许。' : '设置了提醒的事件会到点通知你。';
     if (MC.settings.remoteSetup) return 'App 关闭时由你仓库里的 GitHub 定时任务每 5 分钟检查并推送，高峰时可能晚几分钟。';
     return '目前只在 App 打开时提醒。连接 GitHub 后，App 关闭时也能收到推送。';
@@ -391,7 +391,7 @@
         srow({ act: 'pin:month', icon: 'grid', color: COL.slate, label: '整月小组件', sub: '点一下添加到桌面', help: 'nwidget', chev: false }),
         srow({ act: 'pin:today', icon: 'sun', color: COL.amber, label: '今日小组件', sub: '今天、已逾期和接下来一周', chev: false }),
         srow({ act: 'pin:sched', icon: 'clock', color: COL.teal, label: '课表小组件', sub: '今天的课，正在上的突出显示', chev: false }),
-      ], '也可以长按桌面空白处 → 小组件 → 月历，按住拖到桌面。');
+      ], '也可以长按桌面空白处 → 小组件 → 节律，按住拖到桌面。');
       const up = MC.Native.updateAvailable(), I = MC.Native.info;
       h += group('安卓 App', [
         srow({ act: 'apk', icon: 'android', color: COL.sage, label: '安卓 App', sub: up ? `有新版本 ${up.name}，点这里下载安装` : '点这里检查 App 更新', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
@@ -618,7 +618,7 @@
       title: '后台提醒', submit: '开始设置',
       fields: [
         { id: 'tmp', label: '临时令牌', type: 'password', ph: 'ghp_…' },
-        { id: 'repo', label: '月历所在的仓库（一般不用改）', ph: '用户名/仓库名' },
+        { id: 'repo', label: '节律所在的仓库（一般不用改）', ph: '用户名/仓库名' },
       ],
       note: `<a href="${Push.SETUP_TOKEN_URL}" target="_blank" rel="noopener">点这里去 GitHub 生成临时令牌</a>（已自动勾好所需权限），拉到底点 Generate token，复制回来粘贴。<br>App 会自动上传提醒程序、写入密钥并启动定时任务。完成后这个临时令牌就可以在 GitHub 上删除。`,
       onSubmit: async v => {
@@ -639,7 +639,7 @@
   function showLock() {
     document.documentElement.classList.add('locked');
     paintAvatar($('#lockAvatar'));
-    $('#lockName').textContent = MC.data.profile.name || '月历';
+    $('#lockName').textContent = MC.data.profile.name || '节律';
     $('#lockErr').textContent = '';
     $('#lockPw').value = '';
   }
@@ -723,7 +723,7 @@
         <ol class="steps">
           <li>通知：${ok(st.notif === 'granted', '已允许', '未允许', 'notif')}</li>
           <li>精确闹钟：${ok(st.exact, '已允许', '未允许', 'exact')}</li>
-          <li>电池不受限制：${ok(st.battery, '已设置', '未设置', 'battery')}<br><small>三星手机再确认一下：设置 → 电池 → 后台使用限制，「休眠应用」和「深度休眠应用」里<b>不能有</b>月历，最好把月历加进「从不休眠的应用」。</small></li>
+          <li>电池不受限制：${ok(st.battery, '已设置', '未设置', 'battery')}<br><small>三星手机再确认一下：设置 → 电池 → 后台使用限制，「休眠应用」和「深度休眠应用」里<b>不能有</b>节律，最好把节律加进「从不休眠的应用」。</small></li>
           <li>后台同步其他设备的改动：${sync}</li>
         </ol>
         <div class="help-copy"><button class="chip-btn glass" data-copy="ntest">立即测试</button><button class="chip-btn glass" data-copy="ntestBg">10 秒后测试</button><button class="chip-btn glass" data-copy="nreq:channels">通知样式</button></div>
@@ -734,10 +734,10 @@
       title: '安卓桌面小组件',
       html: `<ol class="steps">
         <li>在设置里点 <b>整月 / 今日 / 课表小组件</b>，弹出的窗口里点「添加」，小组件就放到桌面上了。</li>
-        <li>也可以长按桌面空白处 → <b>小组件</b> → 找到「月历」，按住想要的样式拖到桌面。</li>
+        <li>也可以长按桌面空白处 → <b>小组件</b> → 找到「节律」，按住想要的样式拖到桌面。</li>
         <li>长按小组件可以调整大小。整月小组件格子够高时显示事件名称，格子小时显示彩色圆点；折叠屏的内屏和外屏会按各自的尺寸显示。</li>
       </ol>
-      <div class="help-tip">整月小组件右上角的 ‹ › 可以翻月，30 分钟后自动回到本月；点日期区域打开月历。<br>在这台手机上改的事件会立刻更新到小组件；在 iPhone 或电脑上改的，连接 GitHub 后大约 15 分钟内同步过来，打开月历则马上同步。</div>`,
+      <div class="help-tip">整月小组件右上角的 ‹ › 可以翻月，30 分钟后自动回到本月；点日期区域打开节律。<br>在这台手机上改的事件会立刻更新到小组件；在 iPhone 或电脑上改的，连接 GitHub 后大约 15 分钟内同步过来，打开节律则马上同步。</div>`,
     }),
     iosSched: () => ({
       title: 'iOS 课表小组件',
@@ -749,7 +749,7 @@
         <li>长按小组件 → <b>编辑小组件</b> → Script 选「课表」，When Interacting 保持 <b>Open App</b>。</li>
       </ol>
       <div class="help-copy"><button class="chip-btn glass" data-copy="sched">复制课表小组件脚本</button></div>
-      <div class="help-tip">小号显示今天还没上完的课（今天没课就显示下一个有课的日子），正在上的课标「上课中」；中号是横向的本周课表；大号是整月课表。<br>每节课开始和结束时小组件会自动请求刷新；想立刻刷新，点一下小组件即可，它会拉取最新课表并打开月历的课表页。</div>`,
+      <div class="help-tip">小号显示今天还没上完的课（今天没课就显示下一个有课的日子），正在上的课标「上课中」；中号是横向的本周课表；大号是整月课表。<br>每节课开始和结束时小组件会自动请求刷新；想立刻刷新，点一下小组件即可，它会拉取最新课表并打开节律的课表页。</div>`,
     }),
     ios: () => ({
       title: 'iOS 桌面小组件',
@@ -757,9 +757,9 @@
         <li>先在「账户与同步」连接 GitHub，并同步成功一次。</li>
         <li>在 App Store 安装免费的 <b>Scriptable</b>。</li>
         <li>点下方 <b>复制 iOS 小组件脚本</b>（已自动填好你的数据地址）。</li>
-        <li>打开 Scriptable → 右上角 <b>＋</b> → 长按空白处粘贴 → 点顶部标题改名为「月历」→ <b>Done</b>。可以点 ▶ 预览大、中、小三种尺寸。</li>
+        <li>打开 Scriptable → 右上角 <b>＋</b> → 长按空白处粘贴 → 点顶部标题改名为「节律」→ <b>Done</b>。可以点 ▶ 预览大、中、小三种尺寸。</li>
         <li>回到桌面，长按空白处 → 左上角 <b>编辑</b> → <b>添加小组件</b> → 搜索 Scriptable → 选<b>大号</b>（整月日历），也可以选中号或小号 → 添加。</li>
-        <li>长按这个小组件 → <b>编辑小组件</b>：Script 选「月历」，When Interacting 保持默认的 <b>Open App</b>。之后点小组件会先拉取最新数据，再打开月历。</li>
+        <li>长按这个小组件 → <b>编辑小组件</b>：Script 选「节律」，When Interacting 保持默认的 <b>Open App</b>。之后点小组件会先拉取最新数据，再打开节律。</li>
       </ol>
       <div class="help-copy"><button class="chip-btn glass" data-copy="ios">复制 iOS 小组件脚本</button><button class="chip-btn glass" data-copy="url">复制 App 网址</button></div>
       <div class="help-tip">小组件会请求每 5 分钟刷新，但实际时间由 iOS 决定；想立刻看到最新内容，点一下小组件再回到桌面即可。小组件参数（Parameter）填 <code>dark</code> 或 <code>light</code> 可固定深浅色，不填就跟随系统。</div>`,
@@ -774,12 +774,12 @@
         <li>想固定深浅色，在链接末尾加 <code>&amp;theme=dark</code> 或 <code>&amp;theme=light</code>；不加就跟随系统。</li>
       </ol>
       <div class="help-copy"><button class="chip-btn glass" data-copy="android">复制安卓小组件链接</button></div>
-      <div class="help-tip">小组件显示本月的彩色事件和完成情况，点击会打开月历。刷新频率取决于你装的小组件 App。${Push.guessRepo() ? `<br>更推荐安装 <a href="https://github.com/${esc(Push.guessRepo())}/releases/latest" target="_blank" rel="noopener">月历安卓 App</a>：自带原生小组件，提醒由手机系统准时弹出。` : ''}</div>`,
+      <div class="help-tip">小组件显示本月的彩色事件和完成情况，点击会打开节律。刷新频率取决于你装的小组件 App。${Push.guessRepo() ? `<br>更推荐安装 <a href="https://github.com/${esc(Push.guessRepo())}/releases/latest" target="_blank" rel="noopener">月历安卓 App</a>：自带原生小组件，提醒由手机系统准时弹出。` : ''}</div>`,
     }),
     notify: () => ({
       title: '提醒通知',
       html: `<ol class="steps">
-        <li>打开 <b>提醒通知</b> 开关并允许通知。iPhone 需要 iOS 16.4 以上，并且从主屏幕图标打开月历。</li>
+        <li>打开 <b>提醒通知</b> 开关并允许通知。iPhone 需要 iOS 16.4 以上，并且从主屏幕图标打开节律。</li>
         <li>到这一步，App 开着时已经会准时提醒。</li>
         <li>想在 App 关闭时也收到：点 <b>一键设置：App 关闭时也提醒</b>，按提示去 GitHub 生成一个临时令牌（权限已自动勾好），粘贴回来点「开始设置」。</li>
         <li>看到「后台提醒已设置好」就完成了，临时令牌可以在 GitHub 上删除。</li>
@@ -791,11 +791,11 @@
       const web = url.replace(/^https:/, 'webcal:');
       return {
         title: '订阅到 iPhone 日历',
-        html: url ? `<p class="hint" style="margin:0 2px 14px">设置了提醒的事件和每日提醒会同步到 iPhone 自带的日历，到点由系统准时弹出，月历关着、断网也会响。只需订阅一次。</p>
+        html: url ? `<p class="hint" style="margin:0 2px 14px">设置了提醒的事件和每日提醒会同步到 iPhone 自带的日历，到点由系统准时弹出，节律关着、断网也会响。只需订阅一次。</p>
         <ol class="steps">
           <li>先点 <b>生成 3 分钟后的测试提醒</b>。</li>
           <li>再点 <b>订阅</b>，系统询问时点「订阅」，然后点「添加」或「完成」。</li>
-          <li>等 3 分钟，收到「月历订阅提醒测试」就说明你的 iPhone 支持，以后不用再管。</li>
+          <li>等 3 分钟，收到「节律订阅提醒测试」就说明你的 iPhone 支持，以后不用再管。</li>
         </ol>
         <div class="help-copy">
           <button class="chip-btn glass" data-copy="icsTest">生成 3 分钟后的测试提醒</button>
@@ -825,7 +825,7 @@
           <button class="chip-btn glass" data-copy="boostAccept">复制 Accept 值</button>
           <button class="chip-btn glass" data-copy="boostBody">复制 Request body</button>
         </div>
-        <div class="help-tip">这个令牌只能触发这个仓库的提醒程序，碰不到其他内容，放在 cron-job.org 上也比较安全。设置好后，GitHub 仓库的 Actions 页面会看到每隔约 5 分钟就有一次「月历提醒」的运行记录。</div>`,
+        <div class="help-tip">这个令牌只能触发这个仓库的提醒程序，碰不到其他内容，放在 cron-job.org 上也比较安全。设置好后，GitHub 仓库的 Actions 页面会看到每隔约 5 分钟就有一次「节律提醒」的运行记录。</div>`,
         _url: url,
       };
     },
@@ -834,7 +834,7 @@
       html: `<ol class="steps">
         <li>点下方 <b>去 GitHub 生成令牌</b>（权限已自动勾好 gist），登录后 Expiration 可选 <b>No expiration</b>。</li>
         <li>拉到最下面点 <b>Generate token</b>，复制以 <code>ghp_</code> 开头的令牌。</li>
-        <li>回到月历：设置 → <b>连接 GitHub</b>，粘贴令牌。</li>
+        <li>回到节律：设置 → <b>连接 GitHub</b>，粘贴令牌。</li>
         <li>其他设备粘贴<b>同一个</b>令牌即可同步。</li>
       </ol>
       <div class="help-copy"><a class="chip-btn glass" href="${TOKEN_URL}" target="_blank" rel="noopener" style="text-decoration:none">去 GitHub 生成令牌</a></div>
@@ -880,7 +880,7 @@
   // ---------- 备份 ----------
   async function exportData() {
     const json = JSON.stringify(MC.data, null, 2);
-    const name = `月历备份-${MC.todayStr()}.json`;
+    const name = `节律备份-${MC.todayStr()}.json`;
     if (MC.Native.has('saveFile')) {
       const r = await MC.Native.saveFile(name, 'application/json', json);
       if (r && r.ok) UI.toast('备份已保存');

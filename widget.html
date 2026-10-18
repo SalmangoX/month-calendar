@@ -3,16 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>月历小组件</title>
+<title>节律小组件</title>
 <style>
-  :root { --accent:#56789A; --p3:#E05A55; --p2:#E3A040; --p1:#4B82E8; --p0:#8D929B; }
+  :root { --accent:#56789A; --p3:#D9453E; --p2:#D88018; --p1:#3C7DC2; --p0:#979CA2;
+    --p3f:#AC312C; --p3i:#FFE2DE; --p2f:#BB6800; --p2i:#FCE5D3; --p1f:#255593; --p1i:#DDEBFD; --p0f:#383B3F; --p0i:#E8E9EB; }
   :root[data-theme="dark"] { --accent:#6A8AAB; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#6A8AAB; } }
-  :root, :root[data-theme="light"] { color-scheme:light; --bg:#F1F2F5; --line:#DEE0E6; --text:#1C1C1E; --text2:#86868C; --text3:#C3C3C8; --mix:20%; }
+  :root, :root[data-theme="light"] { color-scheme:light; --bg:#F1F2F5; --line:#DEE0E6; --text:#1C1C1E; --text2:#86868C; --text3:#C3C3C8; --mix:20%;
+    --chip-weight:600; }
+  .chip { --chip-bg:var(--c); --chip-fg:#fff; }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { color-scheme:dark; --bg:#1C1C1E; --line:#2A2A2D; --text:#F2F2F5; --text2:#8E8E93; --text3:#4A4A4F; --mix:30%; }
+    :root:not([data-theme="light"]) { color-scheme:dark; --bg:#1C1C1E; --line:#2A2A2D; --text:#F2F2F5; --text2:#8E8E93; --text3:#4A4A4F; --mix:30%;
+      --chip-weight:500; }
+    :root:not([data-theme="light"]) .chip:not(.done) { --chip-bg:var(--cf); --chip-fg:var(--ci); }
   }
-  :root[data-theme="dark"] { color-scheme:dark; --bg:#1C1C1E; --line:#2A2A2D; --text:#F2F2F5; --text2:#8E8E93; --text3:#4A4A4F; --mix:30%; }
+  :root[data-theme="dark"] { color-scheme:dark; --bg:#1C1C1E; --line:#2A2A2D; --text:#F2F2F5; --text2:#8E8E93; --text3:#4A4A4F; --mix:30%;
+    --chip-weight:500; }
+  :root[data-theme="dark"] .chip:not(.done) { --chip-bg:var(--cf); --chip-fg:var(--ci); }
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden;
     font-family:-apple-system, "Noto Sans SC", "PingFang SC", Roboto, sans-serif; }
@@ -28,8 +35,10 @@
   .n { min-width:18px; height:18px; padding:0 3px; margin:2px 0 2px 3px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; }
   .out .n { color:var(--text3); } .out .chip { opacity:.55; }
   .today .n { background:var(--accent); color:#fff; font-weight:700; }
-  .chip { height:14px; line-height:14px; font-size:9.5px; font-weight:600; margin:0 1px 1px; padding:0 1.5px; border-radius:3.5px; letter-spacing:-.02em;
-    white-space:nowrap; overflow:hidden; background:var(--c); color:#fff; }
+  /* 事件色条，和应用一致：浅色实色底白字；深色用专门的深色调 + 带同色的柔白字、中等字重 */
+  .chip { height:14px; line-height:14px; font-size:9.5px; font-weight:var(--chip-weight); margin:0 1px 1px; padding:0 1.5px; border-radius:3.5px; letter-spacing:-.02em;
+    white-space:nowrap; overflow:hidden;
+    background:var(--chip-bg); color:var(--chip-fg); }
   .chip.done { background:color-mix(in srgb, var(--c) var(--mix), transparent); color:color-mix(in srgb, var(--c) 72%, var(--text2)); text-decoration:line-through; }
   .more { font-size:8px; color:var(--text2); padding-left:2px; }
   .chip.gap { visibility:hidden; }
@@ -71,7 +80,7 @@
       // 与 App 同源时可直接读取本机数据（便于在浏览器里预览）
       const local = localStorage.getItem('mcal.data.v1');
       if (local) return JSON.parse(local);
-      throw new Error('链接里缺少 gist 参数。请在月历 App 的设置中「复制安卓小组件链接」。');
+      throw new Error('链接里缺少 gist 参数。请在节律 App 的设置中「复制安卓小组件链接」。');
     }
     try {
       const headers = { Accept: 'application/vnd.github+json' };
@@ -84,7 +93,7 @@
       try { localStorage.setItem(CACHE_KEY + '.etag', r.headers.get('ETag') || ''); } catch (e) {}
       const g = await r.json();
       const f = g.files && g.files['mcal-calendar.json'];
-      if (!f) throw new Error('Gist 中没有月历数据');
+      if (!f) throw new Error('Gist 中没有节律数据');
       const text = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
       try { localStorage.setItem(CACHE_KEY, text); } catch (e) {}
       return JSON.parse(text);
@@ -115,7 +124,8 @@
     const rowH = gridH / rows;
     const max = Math.max(1, Math.floor((rowH - 24) / 15));
     const label = e => { const mm = String(e.title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/); return mm ? `${mm[1].toUpperCase()} ${mm[2]}` : e.title; };
-    const chip = (e, cls = '', st = '') => `<div class="chip${cls}${e.done ? ' done' : ''}" style="--c:${COLORS[e.priority] || COLORS[0]}${st}">${esc(label(e))}</div>`;
+    const chip = (e, cls = '', st = '') => { const p = COLORS[e.priority] ? e.priority : 0;
+      return `<div class="chip${cls}${e.done ? ' done' : ''}" style="--c:var(--p${p});--cf:var(--p${p}f);--ci:var(--p${p}i)${st}">${esc(label(e))}</div>`; };
     const endOf = e => { const [a, b, c] = e.date.split('-').map(Number); return ymd(new Date(a, b - 1, c + e.days - 1)); };
     let cells = '', bars = '';
     for (let r = 0; r < rows; r++) {

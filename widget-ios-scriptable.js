@@ -16,7 +16,9 @@ const CONFIG = {
 };
 
 const FILE = "mcal-calendar.json";
-const PHEX = { 3: "#E05A55", 2: "#E3A040", 1: "#4B82E8", 0: "#8D929B" };
+const PHEX = { 3: "#D9453E", 2: "#D88018", 1: "#3C7DC2", 0: "#979CA2" };
+// 深色模式专门设计的深色调 [底色, 文字]，和应用 MC.PAL.dark 一致
+const PDARK = { 3: ["#AC312C", "#FFE2DE"], 2: ["#BB6800", "#FCE5D3"], 1: ["#255593", "#DDEBFD"], 0: ["#383B3F", "#E8E9EB"] };
 const RANK = p => (p >= 0 && p <= 3 ? p : 0); // 只认 0–3
 const WD = ["日", "一", "二", "三", "四", "五", "六"];
 const ACCENT_HEX = ["#56789A", "#6A8AAB"]; // 浅色 / 深色
@@ -38,17 +40,33 @@ function dyn(light, dark) {
 const hex = (h, a) => (a == null ? new Color(h) : new Color(h, a));
 const ACCENT = dyn(hex(ACCENT_HEX[0]), hex(ACCENT_HEX[1]));
 const C = {
-  bg: dyn(hex("#F1F2F5"), hex("#1C1C1E")), // 浅色用柔和的灰白，不刺眼
+  bg: dyn(hex("#F1F2F5"), hex("#1C1C1E")), // 浅色用柔和的灰白，不刺眼（横条的实色按这两个底色算，改这里要一起改 BG_L / BG_D）
   text: dyn(hex("#1C1C1E"), hex("#F2F2F5")),
   text2: dyn(hex("#86868C"), hex("#8E8E93")),
   text3: dyn(hex("#C3C3C8"), hex("#4A4A4F")),
   line: dyn(hex("#DEE0E6"), hex("#2E3035")),
 };
+// 事件色条，和应用里一致：浅色 = 实色底 + 白字；深色 = 专门的深色调 + 带同色的柔白字（不刺眼）
+// 半透明色叠在小组件底色上的实际颜色（不透明）。横条由两段拼成、会有重叠，用不透明色重叠处才不会变亮
+function over(h, a, base) {
+  const n = parseInt(h.slice(1), 16), b = parseInt(base.slice(1), 16), mix = (x, y) => Math.round(x * a + y * (1 - a));
+  return "#" + [mix(n >> 16, b >> 16), mix((n >> 8) & 255, (b >> 8) & 255), mix(n & 255, b & 255)].map(v => v.toString(16).padStart(2, "0")).join("");
+}
+const BG_L = "#F1F2F5", BG_D = "#1C1C1E";
+function barColors(p, done, out) {
+  const h = PHEX[p] || PHEX[0], dk = PDARK[p] || PDARK[0], c = chipColors(p, done, out);
+  const bgL = over(h, done ? 0.16 : out ? 0.5 : 1, BG_L), bgD = done ? over(h, 0.26, BG_D) : over(dk[0], out ? 0.45 : 1, BG_D);
+  return { bg: dyn(hex(bgL), hex(bgD)), fg: c.fg };
+}
 function chipColors(p, done, out) {
   const h = PHEX[p] || PHEX[0];
   if (done) return { bg: dyn(hex(h, 0.16), hex(h, 0.26)), fg: dyn(hex(h, out ? 0.45 : 0.75), hex(h, out ? 0.45 : 0.75)) };
-  return { bg: hex(h, out ? 0.5 : 1), fg: Color.white() };
+  const dk = PDARK[p] || PDARK[0];
+  return { bg: dyn(hex(h, out ? 0.5 : 1), hex(dk[0], out ? 0.45 : 1)), fg: dyn(Color.white(), hex(dk[1], out ? 0.5 : 1)) };
 }
+// 字重也和应用一致：浅色半粗、深色中等。字体不能随系统深浅自动切换，按参数或当前外观决定
+const DARK_UI = forcedTheme ? forcedTheme === "dark" : (() => { try { return Device.isUsingDarkAppearance(); } catch (e) { return false; } })();
+const chipFont = fs => (DARK_UI ? Font.mediumSystemFont(fs) : Font.semiboldSystemFont(fs));
 
 // ---------- 日期 ----------
 const pad = n => String(n).padStart(2, "0");
@@ -64,7 +82,7 @@ function monthDays(y, m) {
 async function loadData() {
   const fm = FileManager.local();
   const cachePath = fm.joinPath(fm.cacheDirectory(), "mcal-widget-cache.json");
-  if (!gistId || gistId.startsWith("__")) throw new Error("还没有设置 Gist ID。\n请在月历 App 设置里「复制 iOS 小组件脚本」后重新粘贴，或在小组件参数中填写。");
+  if (!gistId || gistId.startsWith("__")) throw new Error("还没有设置 Gist ID。\n请在节律 App 设置里「复制 iOS 小组件脚本」后重新粘贴，或在小组件参数中填写。");
   try {
     const req = new Request("https://api.github.com/gists/" + gistId);
     const headers = { Accept: "application/vnd.github+json", "User-Agent": "mcal-scriptable" };
@@ -73,7 +91,7 @@ async function loadData() {
     req.timeoutInterval = 12;
     const g = await req.loadJSON();
     const f = g.files && g.files[FILE];
-    if (!f) throw new Error(g.message || "Gist 中没有月历数据");
+    if (!f) throw new Error(g.message || "Gist 中没有节律数据");
     let text = f.content;
     if (f.truncated) text = await new Request(f.raw_url).loadString();
     const data = JSON.parse(text);
@@ -127,6 +145,12 @@ function addText(stack, str, font, color, opts = {}) {
   if (opts.opacity != null) t.textOpacity = opts.opacity;
   return t;
 }
+function chipLabel(e) {
+  const m = String(e.title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/);
+  let label = m ? `${m[1].toUpperCase()} ${m[2]}` : e.title;
+  if (e.done) label = Array.from(label).map(c => c + "\u0336").join(""); // 已完成：删除线
+  return label;
+}
 function addChip(parent, e, width, h, fs, out) {
   const { bg, fg } = chipColors(e.priority, e.done, out);
   const ch = parent.addStack();
@@ -136,10 +160,8 @@ function addChip(parent, e, width, h, fs, out) {
   ch.setPadding(0, 1.5, 0, 0.5);
   ch.centerAlignContent();
   // 课程类标题（如「MAT 2348 Mid」）在小组件里只显示课程编号，避免省略号和多余空白
-  const m = String(e.title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/);
-  let label = m ? `${m[1].toUpperCase()} ${m[2]}` : e.title;
-  if (e.done) label = Array.from(label).map(c => c + "\u0336").join(""); // 已完成：删除线
-  const tx = addText(ch, label, Font.semiboldSystemFont(fs), fg, { lines: 1 });
+  const label = chipLabel(e);
+  const tx = addText(ch, label, chipFont(fs), fg, { lines: 1 });
   tx.minimumScaleFactor = 0.85;
   ch.addSpacer();
 }
@@ -197,30 +219,35 @@ function largeLayout(w, idx, offline) {
 
   const gridH = S.lh - padT - padB - 15 - 1 - 11 - 1;
   const rowH = Math.floor(gridH / rows);
-  const numH = 15, chipH = 13, gap = 1, padTop = 2.5, SEP = 0.5;
+  const numH = 15, chipH = 13, gap = 1, padTop = 2.5, SEP = 0.5, STEP = chipH + gap;
   const top0 = padTop + numH + 1; // 格子里第一条事件的顶部
-  const maxChips = Math.max(1, Math.floor((rowH - numH - 2) / (chipH + gap)));
-  const cellW = (S.mw - SEP * 6) / 7, cellX = c => c * (cellW + SEP);
+  const maxChips = Math.max(1, Math.floor((rowH - numH - 2) / STEP));
+  const colW = (S.mw - SEP * 6) / 7;
+  // 每一周按「横带」从上往下搭：日期带 + 若干事件行 + 剩余空白。
+  // 跨天事件是横跨几列的一整个 stack（颜色随深浅色自动切换），格子之间的竖线在横条经过处自然断开
+  const band = (parent, h) => { const b = parent.addStack(); b.size = new Size(S.mw, h); b.layoutHorizontally(); return b; };
+  const sep = (b, h) => { const x = b.addStack(); x.size = new Size(SEP, h); x.backgroundColor = C.line; };
+  const box = (b, w, h) => { const x = b.addStack(); x.size = new Size(w, h); x.layoutVertically(); return x; };
   const grid = w.addStack();
   grid.layoutVertically();
   addLine(grid, 0);
   for (let r = 0; r < rows; r++) {
-    const wk = days.slice(r * 7, r * 7 + 7);
-    const lay = layWeek(wk.map(ymd), idx);
+    const wk = days.slice(r * 7, r * 7 + 7), dss = wk.map(ymd);
+    const lay = layWeek(dss, idx);
     const lim = lay.occ.map(o => (o.length <= maxChips ? o.length : maxChips - 1));
-    const segs = barSegments(lay, wk.map(ymd), lim, m);
+    const hidden = lay.occ.map((o, c) => o.slice(lim[c]).filter(Boolean).length);
+    const segs = barSegments(lay, dss, lim, m);
+    const lanes = Math.max(0, ...lim.map((l, c) => l + (hidden[c] ? 1 : 0)));
     const row = grid.addStack();
-    row.size = new Size(0, rowH);
-    // 跨天事件：整行画成一张透明图当背景，横条在格子之间连续不断
-    if (segs.length) row.backgroundImage = barsImage(segs, S.mw, rowH, cellX, cellW, top0, chipH + gap, chipH);
+    row.layoutVertically();
+    row.size = new Size(S.mw, rowH);
+    // 日期
+    const nb = band(row, top0);
     for (let c = 0; c < 7; c++) {
-      const d = wk[c], ds = ymd(d), out = d.getMonth() !== m, isToday = ds === t;
-      if (c) sepLine(row, segs, c, top0, chipH + gap, Math.max(...lim, 0));
-      const cell = row.addStack();
-      cell.size = new Size(0, 0); // 宽度平分；高度跟随行高
-      cell.layoutVertically();
+      if (c) sep(nb, top0);
+      const d = wk[c], out = d.getMonth() !== m, isToday = dss[c] === t;
+      const cell = box(nb, colW, top0);
       cell.setPadding(padTop, 1, 0, 1);
-      // 日期：靠左上；今天用主色实心圆
       const nr = cell.addStack();
       nr.size = new Size(0, numH);
       nr.centerAlignContent();
@@ -235,22 +262,60 @@ function largeLayout(w, idx, offline) {
         addText(nr, String(d.getDate()), Font.mediumSystemFont(11), out ? C.text3 : C.text);
       }
       nr.addSpacer();
-      cell.addSpacer(1);
-      const o = lay.occ[c];
-      for (let k = 0; k < Math.min(lim[c], o.length); k++) {
-        if (o[k] && !o[k].bar) addChip(cell, o[k].e, 0, chipH, 9, out);
-        else cell.addSpacer(chipH); // 横条经过的位置留空
-        cell.addSpacer(gap);
-      }
-      const hidden = o.slice(lim[c]).filter(Boolean).length;
-      if (hidden) {
-        const mr = cell.addStack(); mr.size = new Size(0, chipH - 2);
-        addText(mr, `+${hidden}`, Font.mediumSystemFont(7.5), C.text2); mr.addSpacer();
-      }
       cell.addSpacer();
+    }
+    // 事件行
+    for (let k = 0; k < lanes; k++) {
+      const lb = band(row, STEP);
+      for (let c = 0; c < 7;) {
+        if (c) sep(lb, STEP);
+        const g = segs.find(x => x.s === k && x.a === c);
+        if (g) { addBar(lb, g, (g.b - g.a + 1) * colW + (g.b - g.a) * SEP); c = g.b + 1; continue; }
+        const cell = box(lb, colW, STEP);
+        cell.setPadding(0, 1, 0, 1);
+        const o = lay.occ[c][k], out = wk[c].getMonth() !== m;
+        if (k < lim[c] && o && !o.bar) addChip(cell, o.e, 0, chipH, 9, out);
+        else if (k === lim[c] && hidden[c]) {
+          const mr = cell.addStack(); mr.size = new Size(0, chipH - 2);
+          addText(mr, `+${hidden[c]}`, Font.mediumSystemFont(7.5), C.text2); mr.addSpacer();
+        }
+        cell.addSpacer();
+        c++;
+      }
+    }
+    // 剩下的空白（竖线照常）
+    const rest = rowH - top0 - lanes * STEP;
+    if (rest > 0) {
+      const fb = band(row, rest);
+      for (let c = 0; c < 7; c++) { if (c) sep(fb, rest); box(fb, colW, rest); }
     }
     addLine(grid, 0);
   }
+}
+
+// 一整条横条。只有一边延续时，用「平的一小段 + 圆角段」稍微叠在一起，做出一边方、一边圆
+function addBar(parent, g, width) {
+  const e = g.e, { bg, fg } = barColors(e.priority, e.done, g.out), h = 13, R = 3;
+  const outer = parent.addStack();
+  outer.size = new Size(width, h + 1);
+  outer.layoutVertically();
+  const bar = outer.addStack();
+  bar.size = new Size(width, h);
+  bar.setPadding(0, g.ol ? 0 : 1, 0, g.or ? 0 : 1);
+  outer.addSpacer();
+  const flat = () => { const f = bar.addStack(); f.size = new Size(R + 1, h); f.backgroundColor = bg; };
+  if (g.ol !== g.or) bar.spacing = -R; // 平的一段和圆角段重叠 R，盖住圆角那一侧
+  if (g.ol && !g.or) flat();
+  const body = bar.addStack();
+  body.size = new Size(0, h);
+  body.backgroundColor = bg;
+  body.cornerRadius = g.ol && g.or ? 0 : R;
+  body.setPadding(0, g.ol && !g.or ? 0.5 : 1.5, 0, 0.5);
+  body.centerAlignContent();
+  const tx = addText(body, chipLabel(e), chipFont(9), fg, { lines: 1 });
+  tx.minimumScaleFactor = 0.85;
+  body.addSpacer();
+  if (g.or && !g.ol) flat();
 }
 
 // ---------- 跨天的全天事件：一周里连成一条横条 ----------
@@ -286,49 +351,6 @@ function barSegments(lay, dss, lim, month) {
     }
   }
   return out;
-}
-// 只有一边圆角的矩形
-function barPath(x, y, w, h, r, ol, or) {
-  const p = new Path(), rl = ol ? 0 : r, rr = or ? 0 : r;
-  p.move(new Point(x + rl, y));
-  p.addLine(new Point(x + w - rr, y));
-  if (rr) p.addQuadCurve(new Point(x + w, y + rr), new Point(x + w, y));
-  p.addLine(new Point(x + w, y + h - rr));
-  if (rr) p.addQuadCurve(new Point(x + w - rr, y + h), new Point(x + w, y + h));
-  p.addLine(new Point(x + rl, y + h));
-  if (rl) p.addQuadCurve(new Point(x, y + h - rl), new Point(x, y + h));
-  p.addLine(new Point(x, y + rl));
-  if (rl) p.addQuadCurve(new Point(x + rl, y), new Point(x, y));
-  p.closeSubpath();
-  return p;
-}
-function barsImage(segs, W, H, cellX, cellW, top0, step, chipH) {
-  const dc = new DrawContext();
-  dc.size = new Size(W, H); dc.opaque = false; dc.respectScreenScale = true;
-  for (const g of segs) {
-    const e = g.e, x0 = cellX(g.a) + (g.ol ? 0 : 1), x1 = cellX(g.b) + cellW - (g.or ? 0 : 1), y = top0 + g.s * step;
-    const hx = PHEX[e.priority] || PHEX[0];
-    // 已完成：同色淡底 + 同色文字；整段都不在本月：变淡。都是半透明叠在小组件背景上，浅色深色都合适
-    dc.setFillColor(e.done ? hex(hx, 0.21) : hex(hx, g.out ? 0.5 : 1));
-    dc.addPath(barPath(x0, y, x1 - x0, chipH, 3, g.ol, g.or)); dc.fillPath();
-    let label = e.title;
-    if (e.done) label = Array.from(label).map(ch => ch + "\u0336").join("");
-    dc.setFont(Font.semiboldSystemFont(9));
-    dc.setTextColor(e.done ? hex(hx, g.out ? 0.45 : 0.75) : Color.white());
-    dc.drawTextInRect(label, new Rect(x0 + 3, y + 1, x1 - x0 - 5, chipH - 1));
-  }
-  return dc.getImage();
-}
-// 竖分隔线：横条穿过的那一段断开
-function sepLine(row, segs, c, top0, step, slots) {
-  const col = row.addStack();
-  col.layoutVertically();
-  col.size = new Size(0.5, 0);
-  const crossed = s => segs.some(g => g.s === s && g.a < c && g.b >= c);
-  const piece = (h, on) => { const p = col.addStack(); p.size = new Size(0.5, h); if (on) p.backgroundColor = C.line; };
-  piece(top0, true);
-  for (let s = 0; s < slots; s++) piece(step, !crossed(s));
-  const rest = col.addStack(); rest.size = new Size(0.5, 0); rest.backgroundColor = C.line; rest.layoutVertically(); rest.addSpacer();
 }
 
 // ---------- 中号：迷你月历 + 今日 ----------
@@ -473,7 +495,7 @@ function errorWidget(msg) {
   const w = new ListWidget();
   w.backgroundColor = C.bg;
   w.setPadding(14, 14, 14, 14);
-  addText(w, "月历", Font.boldSystemFont(14), C.text);
+  addText(w, "节律", Font.boldSystemFont(14), C.text);
   w.addSpacer(6);
   addText(w, msg, Font.systemFont(11), C.text2);
   return w;

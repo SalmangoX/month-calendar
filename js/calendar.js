@@ -69,7 +69,7 @@
     return { evsBy, bars, occ };
   }
   const chipHTML = (e, cls = '', style = '') =>
-    `<div class="chip${cls}${e.done ? ' done' : ''}" style="--c:${MC.evColor(e)}${style}">${esc(e.title)}</div>`;
+    `<div class="chip${cls}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}${style}">${esc(e.title)}</div>`;
   // 一天的格子：跨天横条的位置留空，单天事件放在自己的行上
   // 放得下就全显示；放不下时留一行显示「+n」，空间太小则只显示一行
   function cellChips(occ, lim) {
@@ -267,7 +267,7 @@
       if (ds === t) cls.push('today');
       if (ds === selected) cls.push('sel');
       const chips = lay.evsBy[i].filter(e => !spans(e)).map(e =>
-        `<div class="chip${e.done ? ' done' : ''}" style="--c:${MC.evColor(e)}">${esc(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
+        `<div class="chip${e.done ? ' done' : ''}" style="${MC.toneVars(e)}">${esc(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
       h += `<div class="${cls.join(' ')}" data-date="${ds}"><div class="wnum">${d.getDate()}</div>${lanes ? '<div class="wlanes"></div>' : ''}${chips}</div>`;
     }
     for (const b of lay.bars) {

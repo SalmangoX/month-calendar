@@ -212,7 +212,7 @@ final class Engine {
 
     static void showTest(Context c, boolean background) {
         Notification n = builder(c, CH_TEST)
-                .setContentTitle(background ? "月历 · 后台提醒测试" : "月历 · 测试通知")
+                .setContentTitle(background ? "节律 · 后台提醒测试" : "节律 · 测试通知")
                 .setContentText(background ? "App 关着也能准时收到提醒。" : "通知可以正常显示了")
                 .setContentIntent(openApp(c, "", 9))
                 .build();

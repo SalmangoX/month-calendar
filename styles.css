@@ -1,9 +1,11 @@
 /* 月历 0.3 · 磨砂玻璃 / 灰蓝主色 */
 :root {
-  --p3: #E05A55;   /* 高 */
-  --p2: #E3A040;   /* 中 */
-  --p1: #4B82E8;   /* 低 */
-  --p0: #8D929B;   /* 无 */
+  /* 优先级色（按色彩心理设计）：高 = 朱红（紧迫、最醒目）、中 = 琥珀（提醒注意）、低 = 静蓝（平静）、无 = 中性灰（退后）。
+     越重要越鲜艳；高和中靠明暗也能区分，红绿色弱也看得出来。深色模式另有一套专门的深色调（见 store.js MC.PAL） */
+  --p3: #D9453E;   /* 高 */
+  --p2: #D88018;   /* 中 */
+  --p1: #3C7DC2;   /* 低 */
+  --p0: #979CA2;   /* 无 */
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --kb: 0px;
@@ -41,14 +43,11 @@
   --sel-bg: rgba(86, 120, 154, .09);
   --sel-veil: rgba(86, 120, 154, .10);
   --sel-veil-top: rgba(255, 255, 255, .0);
-  --glass-blur: .7px;
-  --glass-sheen: rgba(255, 255, 255, .6);
-  --glass-hi: rgba(255, 255, 255, .9);
-  --glass-glow: rgba(255, 255, 255, .45);
-  --glass-edge: rgba(40, 60, 90, .08);
-  --glass-depth: rgba(86, 120, 154, .08);
+  --sel-tint: color-mix(in srgb, var(--accent) 12%, transparent);
   --frost: rgba(249, 250, 252, .74);
   --frost-strong: rgba(250, 251, 253, .9);
+  --cpop-bg: rgba(250, 251, 253, .64);
+  --cpop-sheen: rgba(255, 255, 255, .5);
   --frost-edge: rgba(16, 26, 44, .08);
   --frost-hi: rgba(255, 255, 255, .7);
   --frost-shadow: 0 10px 34px rgba(22, 34, 56, .10), 0 1px 3px rgba(22, 34, 56, .06);
@@ -81,14 +80,12 @@
   --sel-bg: rgba(122, 154, 188, .14);
   --sel-veil: rgba(130, 160, 192, .16);
   --sel-veil-top: rgba(130, 160, 192, .04);
-  --glass-blur: .7px;
-  --glass-sheen: rgba(255, 255, 255, .13);
-  --glass-hi: rgba(255, 255, 255, .22);
-  --glass-glow: rgba(160, 190, 222, .10);
-  --glass-edge: rgba(0, 0, 0, .35);
-  --glass-depth: rgba(0, 0, 0, .28);
+  --sel-tint: color-mix(in srgb, var(--accent) 20%, transparent);
+  --sel-tint-pct: 20%;
   --frost: rgba(30, 32, 37, .66);
   --frost-strong: rgba(22, 24, 28, .9);
+  --cpop-bg: rgba(26, 28, 33, .62);
+  --cpop-sheen: rgba(255, 255, 255, .07);
   --frost-edge: rgba(255, 255, 255, .07);
   --frost-hi: rgba(255, 255, 255, .06);
   --frost-shadow: 0 12px 36px rgba(0, 0, 0, .55);
@@ -190,7 +187,7 @@ svg.filled { fill: currentColor; stroke: none; }
 
 .wrow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 0 2px; contain: layout paint style; }
 .cell { position: relative; overflow: hidden; min-width: 0; padding-top: 6px; cursor: pointer; border-top: .5px solid var(--line); }
-.cell::before { content: ""; position: absolute; inset: 2px 1px; border-radius: 13px; background: transparent; transition: background .2s; }
+.cell::before { content: ""; position: absolute; inset: 2px 1px; border-radius: 11px; background: transparent; transition: background .2s; }
 .cell > * { position: relative; }
 .num {
   position: relative; display: flex; align-items: center; justify-content: center;
@@ -201,24 +198,11 @@ svg.filled { fill: currentColor; stroke: none; }
 /* 今天：只用主色文字；选中：实心圆（今天被选中时用主色实心圆） */
 .cell.today .num, .wcol.today .wnum { color: var(--accent-text); font-weight: 650; }
 /* 选中：整格灰蓝浅底 + 一层盖在事件上的淡淡薄纱和描边；数字为主色实心圆，点选时轻轻弹一下 */
-.cell.sel::before, .wcol.sel::before { background: var(--sel-bg); }
+/* 选中：一块平的主色淡底，在事件下面（半透明的事件会透出这层颜色），没有边框、没有遮罩 */
+.cell.sel::before, .wcol.sel::before { background: var(--sel-tint); }
 .cell::after, .wcol::after {
   content: ""; position: absolute; inset: 2px 1px; border-radius: 13px; pointer-events: none; z-index: 2;
   background: transparent; box-shadow: none; transition: background .2s, box-shadow .2s;
-}
-.cell.sel::after, .wcol.sel::after {
-  /* 选中框：一块带一点厚度的磨砂玻璃盖在当天上面，没有外圈线条；
-     下面的横条和事件还在，只是透过玻璃被柔化。顶部一抹高光、底部一点厚度阴影，看起来微微鼓起 */
-  background:
-    radial-gradient(120% 55% at 30% 0%, var(--glass-sheen), transparent 70%),
-    linear-gradient(180deg, var(--sel-veil-top), var(--sel-veil));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-  box-shadow:
-    inset 0 1.5px 1px var(--glass-hi),          /* 顶边受光 */
-    inset 0 0 8px var(--glass-glow),            /* 玻璃内部的柔光，代替外圈线条 */
-    inset 0 -2px 2px var(--glass-edge),         /* 底边的厚度 */
-    inset 0 -10px 16px var(--glass-depth);
 }
 .num, .wnum { z-index: 3; }
 .mlabel { position: absolute; top: 3px; left: 5px; font-size: 8.5px; color: var(--accent-text); font-weight: 650; white-space: nowrap; z-index: 3; }
@@ -241,9 +225,12 @@ svg.filled { fill: currentColor; stroke: none; }
 .cal-body.previewing .num { margin-bottom: 3px; }
 .chip {
   height: var(--chip-h); line-height: var(--chip-h);
-  font-size: 9.5px; font-weight: 600; padding: 0 2px; border-radius: 4.5px; letter-spacing: -.025em;
-  white-space: nowrap; overflow: hidden; background: var(--c); color: #fff;
+  font-size: 9.5px; padding: 0 2px; border-radius: 4.5px; letter-spacing: -.025em;
+  white-space: nowrap; overflow: hidden;
+  background: var(--c); color: #fff; font-weight: 600;
 }
+/* 深色：每个颜色专门设计的深色调（--cf，宝石色，不发灰不发棕）+ 带一点同色的柔白字（--ci），由 store.js 算好写在每个色条上 */
+:root[data-theme="dark"] .chip:not(.done) { background: var(--cf, var(--c)); color: var(--ci, #F0F0F0); font-weight: 500; }
 .chip.done { opacity: .42; text-decoration: line-through; }
 @supports (background: color-mix(in srgb, red 50%, blue)) {
   .chip.done { opacity: 1; background: color-mix(in srgb, var(--c) var(--done-mix), transparent); color: color-mix(in srgb, var(--c) 70%, var(--text2)); }
@@ -254,7 +241,7 @@ svg.filled { fill: currentColor; stroke: none; }
 .wpanel { position: absolute; top: 0; bottom: 0; width: 100%; padding: 0 4px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .wcol { position: relative; min-width: 0; overflow: hidden; padding: 6px 2px 0; cursor: pointer; border-left: .5px solid var(--line); }
 .wcol:first-child { border-left: 0; }
-.wcol::before { content: ""; position: absolute; inset: 2px 1px; border-radius: 13px; transition: background .18s; }
+.wcol::before { content: ""; position: absolute; inset: 2px 1px; border-radius: 11px; transition: background .18s; }
 .wcol > * { position: relative; }
 .wnum { width: 30px; height: 30px; margin: 2px auto 6px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500; font-variant-numeric: proportional-nums; line-height: 1; transition: background .22s var(--ease), color .22s var(--ease); }
 .wcol .chip { height: auto; line-height: 1.3; white-space: normal; padding: 3px 4px; font-size: 10.5px; overflow-wrap: anywhere; margin: 0 1px 3px; }
@@ -767,13 +754,17 @@ html.locked .lock { display: grid; }
 
 
 /* 课程信息浮窗：圆角、毛玻璃、多层阴影，与背景拉开层次 */
-.cpop-scrim { position: absolute; inset: 0; z-index: 45; background: rgba(15, 22, 32, .16); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+.cpop-scrim { position: absolute; inset: 0; z-index: 45; background: rgba(15, 22, 32, .14); /* 不模糊：让课程卡的玻璃透出后面的课表 */
   opacity: 0; pointer-events: none; transition: opacity .22s; }
 .cpop-scrim.show { opacity: 1; pointer-events: auto; }
-:root[data-theme="dark"] .cpop-scrim { background: rgba(0, 0, 0, .4); }
+:root[data-theme="dark"] .cpop-scrim { background: rgba(0, 0, 0, .32); }
 .cpop {
   position: absolute; z-index: 46; width: min(300px, calc(100% - 24px)); padding: 14px 16px 14px; border-radius: 24px;
-  background: var(--frost-strong); -webkit-backdrop-filter: blur(30px) saturate(160%); backdrop-filter: blur(30px) saturate(160%);
+  /* 玻璃：半透明 + 强模糊 + 提饱和，后面课表的颜色柔柔地透出来；带一点这门课自己的颜色，顶部一抹斜向高光 */
+  background:
+    linear-gradient(155deg, var(--cpop-sheen) 0%, transparent 42%),
+    color-mix(in srgb, var(--c) 7%, var(--cpop-bg));
+  -webkit-backdrop-filter: blur(26px) saturate(185%); backdrop-filter: blur(26px) saturate(185%);
   box-shadow: inset 0 0 0 .5px var(--frost-edge), inset 0 1px 0 var(--frost-hi), 0 2px 6px rgba(15, 25, 40, .08), 0 18px 48px rgba(15, 25, 40, .24);
   opacity: 0; transform: scale(.88); pointer-events: none; transition: opacity .18s, transform .32s var(--ease-spring);
 }
@@ -887,6 +878,7 @@ body[data-cal][data-page="cal"] {
   --today-dim: color-mix(in srgb, var(--cc) 26%, transparent);
   --sel-bg: color-mix(in srgb, var(--cc) 10%, transparent);
   --sel-veil: color-mix(in srgb, var(--cc) 11%, transparent);
+  --sel-tint: color-mix(in srgb, var(--cc) var(--sel-tint-pct, 12%), transparent);
   --p0: var(--cc); /* 记录日历里「无优先级」的事件用日历颜色 */
 }
 body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(in srgb, var(--cc) 40%, transparent), inset 0 1px 0 rgba(255, 255, 255, .18); }
@@ -905,7 +897,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .wrow { position: relative; --ct: 39px; } /* --ct：格子里第一条事件的顶部（数字下方） */
 .cal-body.previewing .wrow { --ct: 34px; }
 .chip.gap { visibility: hidden; }
-.mbar, .wbar { position: absolute; z-index: 1; /* 在选中框（玻璃）下面 */ pointer-events: none; --il: 3px; --ir: 3px; text-overflow: ellipsis; }
+.mbar, .wbar { position: absolute; z-index: 1; /* 在选中底色上面 */ pointer-events: none; --il: 3px; --ir: 3px; text-overflow: ellipsis; }
 .mbar.ol, .wbar.ol { --il: 0px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .mbar.or, .wbar.or { --ir: 0px; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .mbar {
@@ -923,12 +915,12 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .wlanes { height: calc(var(--lanes) * 23px); }
 
 
-/* 选中时玻璃盖「啵」地落下：先被压扁一点，再弹回，像果冻 */
-.cell.sel.pop::after, .wcol.sel.pop::after { animation: glassIn .46s cubic-bezier(.3, .7, .3, 1) both; }
+/* 选中时底色「啵」地出现：先被压扁一点，再弹回，像果冻 */
+.cell.sel.pop::before, .wcol.sel.pop::before { animation: glassIn .46s cubic-bezier(.3, .7, .3, 1) both; }
 @keyframes glassIn {
   0%   { transform: scale(.82, .86); opacity: .2; }
   45%  { transform: scale(1.045, .965); opacity: 1; }
   70%  { transform: scale(.985, 1.015); }
   100% { transform: none; }
 }
-@media (prefers-reduced-motion: reduce) { .cell.sel.pop::after, .wcol.sel.pop::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cell.sel.pop::before, .wcol.sel.pop::before { animation: none; } }

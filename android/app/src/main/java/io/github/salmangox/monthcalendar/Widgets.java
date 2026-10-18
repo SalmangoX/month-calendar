@@ -12,6 +12,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Icon;
 import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -206,7 +207,10 @@ final class Widgets {
                 if (segs.isEmpty()) continue;
                 int lanes = 0;
                 for (WeekLanes.Seg<Data.Event> g : segs) lanes = Math.max(lanes, g.slot + 1);
-                rv.setImageViewBitmap(BARS[r], barsBitmap(c, segs, widthDp, lanes, wk0, ym));
+                // 浅色、深色各画一张，桌面切换深浅色时自动换（和格子里的色条一样跟着系统走）
+                rv.setIcon(BARS[r], "setImageIcon",
+                        Icon.createWithBitmap(barsBitmap(c, segs, widthDp, lanes, wk0, ym, false)),
+                        Icon.createWithBitmap(barsBitmap(c, segs, widthDp, lanes, wk0, ym, true)));
                 rv.setViewLayoutHeight(BARS[r], lanes * SLOT_DP - 1f, android.util.TypedValue.COMPLEX_UNIT_DIP);
                 rv.setViewVisibility(BARS[r], android.view.View.VISIBLE);
             }
@@ -219,6 +223,12 @@ final class Widgets {
         return rv;
     }
 
+    /** 深色模式的色条：专门设计的深色调和文字色（与应用 MC.PAL.dark 一致），下标 = 优先级 */
+    private static final int[] DARK_FILL = {0xFF383B3F, 0xFF255593, 0xFFBB6800, 0xFFAC312C};
+    private static final int[] DARK_INK = {0xFFE8E9EB, 0xFFDDEBFD, 0xFFFCE5D3, 0xFFFFE2DE};
+
+    private static int alpha(int col, int a) { return (col & 0x00FFFFFF) | (a << 24); }
+
     /** 格子里一行的高度：色条 13.5dp + 上间距 1dp（与 widget_month.xml 一致） */
     private static final float SLOT_DP = 14.5f;
 
@@ -226,7 +236,7 @@ final class Widgets {
      * 一周的跨天横条画成一张透明图：和格子里的色条同样的颜色、圆角、字号；
      * 延续到上一周 / 下一周的一端是平的。图片宽度 = 小组件宽度，7 等分对应 7 个格子。
      */
-    private static Bitmap barsBitmap(Context c, List<WeekLanes.Seg<Data.Event>> segs, float widthDp, int lanes, LocalDate wk0, YearMonth ym) {
+    private static Bitmap barsBitmap(Context c, List<WeekLanes.Seg<Data.Event>> segs, float widthDp, int lanes, LocalDate wk0, YearMonth ym, boolean dark) {
         // 最多按 2.5 倍画：折叠屏内屏很宽、又有好几种尺寸，太大的图会超过小组件的内存上限
         float sc = Math.min(2.5f, c.getResources().getDisplayMetrics().density);
         int W = Math.max(1, Math.round(widthDp * sc)), H = Math.max(1, Math.round((lanes * SLOT_DP - 1f) * sc));
@@ -237,18 +247,20 @@ final class Widgets {
         Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
         text.setTextSize(9f);
-        text.setTypeface(Typeface.DEFAULT_BOLD);
+        // 字重和格子里的色条一致：浅色 700、深色 500
+        text.setTypeface(Typeface.create(Typeface.DEFAULT, dark ? 500 : 700, false));
         Paint.FontMetrics fm = text.getFontMetrics();
-        int[] soft = {R.color.p0_soft, R.color.p1_soft, R.color.p2_soft, R.color.p3_soft};
         for (WeekLanes.Seg<Data.Event> g : segs) {
             Data.Event e = g.e;
             boolean out = true; // 整段都不在本月：和格子里的色条一样变淡
             for (int k = g.a; k <= g.b; k++) if (wk0.plusDays(k).getMonthValue() == ym.getMonthValue()) { out = false; break; }
             boolean softy = e.done || out;
             float x0 = g.a * cw + (g.openL ? 0 : 1), x1 = (g.b + 1) * cw - (g.openR ? 0 : 1), y = g.slot * SLOT_DP;
-            fill.setColor(c.getColor(softy ? soft[e.priority] : PCOL[e.priority]));
+            int col = c.getColor(PCOL[e.priority]);
+            // 颜色和格子里的色条一样：浅色实色 + 白字；深色用专门的深色调 + 柔白字；已完成 / 不在本月用淡色（与 p*_soft 相同的透明度）
+            fill.setColor(softy ? alpha(col, dark ? 0x4D : 0x40) : dark ? DARK_FILL[e.priority] : col);
             cv.drawPath(barPath(x0, y, x1 - x0, h, rad, g.openL, g.openR), fill);
-            text.setColor(softy ? c.getColor(PCOL[e.priority]) : WHITE);
+            text.setColor(softy ? col : dark ? DARK_INK[e.priority] : WHITE);
             text.setStrikeThruText(e.done);
             cv.save();
             cv.clipRect(x0 + 1.5f, y, x1 - 1f, y + h);
@@ -281,7 +293,9 @@ final class Widgets {
             rv.setInt(vid, "setBackgroundResource", SOFT[e.priority]);
             rv.setTextColor(vid, c.getColor(PCOL[e.priority]));
         } else {
-            rv.setInt(vid, "setBackgroundResource", CHIP[e.priority]);
+            rv.setInt(vid, "setBackgroundResource", CHIP[e.priority]); // 底色：深色时是 52% 透明（values-night）
+            // 字色：浅色白字；深色是带 20% 事件色的柔白，和应用一致。桌面切换深浅色时自动跟着变
+            rv.setColorInt(vid, "setTextColor", WHITE, DARK_INK[e.priority]);
         }
     }
 
@@ -348,7 +362,7 @@ final class Widgets {
         boolean empty = over.isEmpty() && todays.isEmpty() && later == 0;
         rv.setViewVisibility(R.id.l_empty, empty ? android.view.View.VISIBLE : android.view.View.GONE);
         rv.setViewVisibility(R.id.l_list, empty ? android.view.View.GONE : android.view.View.VISIBLE);
-        if (empty) rv.setTextViewText(R.id.l_empty, Store.hasData(c) ? "今天没有事件\n接下来一周也很空闲" : "打开月历 App\n同步一次后这里会显示事件");
+        if (empty) rv.setTextViewText(R.id.l_empty, Store.hasData(c) ? "今天没有事件\n接下来一周也很空闲" : "打开节律 App\n同步一次后这里会显示事件");
         rv.setRemoteAdapter(R.id.l_list, b.build());
         rv.setPendingIntentTemplate(R.id.l_list, template(c, 201));
         rv.setOnClickPendingIntent(android.R.id.background, Engine.openApp(c, "#today", 202));

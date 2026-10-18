@@ -179,7 +179,7 @@ public class MainActivity extends Activity {
         String html = "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
                 + "<body style='margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:" + bg
                 + ";color:" + fg + ";font-family:sans-serif;text-align:center'><div><div style='font-size:19px;font-weight:600'>连不上网络</div>"
-                + "<div style='margin:10px 24px 22px;color:" + sub + ";font-size:14px;line-height:1.6'>第一次打开需要联网下载月历，之后断网也能用。</div>"
+                + "<div style='margin:10px 24px 22px;color:" + sub + ";font-size:14px;line-height:1.6'>第一次打开需要联网下载节律，之后断网也能用。</div>"
                 + "<a href='" + BuildConfig.APP_URL + "' style='display:inline-block;padding:10px 26px;border-radius:20px;background:#56789A;color:#fff;text-decoration:none'>重试</a></div>";
         web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
     }

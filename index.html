@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>月历</title>
+<title>节律</title>
 <meta name="description" content="按年、月、周查看与管理带优先级颜色的事件">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="月历">
+<meta name="apple-mobile-web-app-title" content="节律">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" id="themeLight">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" id="themeDark">
@@ -25,7 +25,7 @@
     } catch (e) { document.documentElement.dataset.theme = 'light'; }
   })();
 </script>
-<link rel="stylesheet" href="styles.css?v=0.13.0">
+<link rel="stylesheet" href="styles.css?v=0.17.0">
 </head>
 <body>
 
@@ -98,7 +98,7 @@
         </div>
       </div>
       <div id="setGroups"></div>
-      <div class="foot"><img src="icons/icon-192.png" alt=""><b>月历</b><span id="statLine"></span></div>
+      <div class="foot"><img src="icons/icon-192.png" alt=""><b>节律</b><span id="statLine"></span></div>
     </div>
   </section>
 </div>
@@ -260,7 +260,7 @@
   <div class="lock-card">
     <div class="avatar big" id="lockAvatar"></div>
     <h2 id="lockName"></h2>
-    <p>月历不再使用开屏密码。最后输入一次原来的密码，之后打开就不用了。</p>
+    <p>节律不再使用开屏密码。最后输入一次原来的密码，之后打开就不用了。</p>
     <form id="lockForm" autocomplete="off">
       <input id="lockPw" type="password" placeholder="密码" enterkeyhint="go" autocomplete="current-password">
       <button class="wide-btn glass accent" type="submit">完成</button>
@@ -274,14 +274,14 @@
 <input type="file" id="avatarFile" accept="image/*" hidden>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
-<script src="js/store.js?v=0.13.0"></script>
-<script src="js/native.js?v=0.13.0"></script>
-<script src="js/ui.js?v=0.13.0"></script>
-<script src="js/calendar.js?v=0.13.0"></script>
-<script src="js/editor.js?v=0.13.0"></script>
-<script src="js/push.js?v=0.13.0"></script>
-<script src="js/sched.js?v=0.13.0"></script>
-<script src="js/drawer.js?v=0.13.0"></script>
-<script src="js/app.js?v=0.13.0"></script>
+<script src="js/store.js?v=0.17.0"></script>
+<script src="js/native.js?v=0.17.0"></script>
+<script src="js/ui.js?v=0.17.0"></script>
+<script src="js/calendar.js?v=0.17.0"></script>
+<script src="js/editor.js?v=0.17.0"></script>
+<script src="js/push.js?v=0.17.0"></script>
+<script src="js/sched.js?v=0.17.0"></script>
+<script src="js/drawer.js?v=0.17.0"></script>
+<script src="js/app.js?v=0.17.0"></script>
 </body>
 </html>

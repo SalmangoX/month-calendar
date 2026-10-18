@@ -2,12 +2,12 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.13.0';
+  MC.VERSION = '0.17.0';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
   const GIST_FILE = 'mcal-calendar.json';
-  const GIST_DESC = '月历 App 数据（请勿手动修改）';
+  const GIST_DESC = '节律 App 数据（请勿手动修改）';
 
   // ---------- 优先级 ----------
   MC.PRI = [
@@ -17,6 +17,45 @@
     { v: 0, name: '无', full: '无优先级', quad: '不重要不紧急', roman: 'Ⅳ', color: 'var(--p0)' },
   ];
   MC.priOf = v => MC.PRI.find(p => p.v === v) || MC.PRI[3];
+
+  // ---------- 颜色：浅色用 styles.css 里的 --p*；深色每个优先级有专门设计的深色调（OKLCH 里定的） ----------
+  // 不是把浅色压暗（那样会发灰发棕，像氧化了），而是保持彩度、暖色适当提亮
+  MC.PAL = {
+    light: { 3: '#D9453E', 2: '#D88018', 1: '#3C7DC2', 0: '#979CA2' },
+    dark: { 3: ['#AC312C', '#FFE2DE'], 2: ['#BB6800', '#FCE5D3'], 1: ['#255593', '#DDEBFD'], 0: ['#383B3F', '#E8E9EB'] }, // [底色, 文字]
+  };
+  // 任意颜色（记录日历自定义的颜色）按同一规则生成深色调：OKLCH 明度 0.45（橙黄一带提到约 0.6），彩度最多 0.15，文字是带同色的柔白
+  const lin = v => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4), gam = v => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
+  function toOklch(hex) {
+    const n = parseInt(hex.slice(1), 16), r = lin((n >> 16) / 255), g = lin(((n >> 8) & 255) / 255), b = lin((n & 255) / 255);
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    const L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
+    return [L, Math.hypot(A, B), (Math.atan2(B, A) * 180 / Math.PI + 360) % 360];
+  }
+  function fromOklch(L, C, H) { // 超出屏幕色域时降低彩度
+    for (let c = C; c >= 0; c -= 0.005) {
+      const A = c * Math.cos(H * Math.PI / 180), B = c * Math.sin(H * Math.PI / 180);
+      const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3, m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3, s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+      const rgb = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+      if (rgb.every(v => v >= -1e-4 && v <= 1.0001)) return '#' + rgb.map(v => Math.round(Math.min(1, Math.max(0, gam(v))) * 255).toString(16).padStart(2, '0')).join('');
+    }
+    return '#808080';
+  }
+  const toneCache = new Map();
+  MC.darkTone = hex => {
+    if (toneCache.has(hex)) return toneCache.get(hex);
+    const [, c, h] = toOklch(hex), warm = c < 0.03 ? 0 : Math.max(0, Math.min(1, (1 - Math.abs(h - 75) / 50) * 1.6));
+    const t = c < 0.03 ? [fromOklch(0.36, c * 0.5, h), fromOklch(0.935, c * 0.3, h)]
+      : [fromOklch(0.45 + 0.15 * warm, Math.min(c, 0.15), h), fromOklch(0.935, Math.min(0.035, c * 0.25), h)];
+    toneCache.set(hex, t);
+    return t;
+  };
+  // 色条上要写的颜色变量：--c 浅色用；--cf / --ci 深色用
+  MC.toneVars = e => {
+    const c = MC.evColor(e), m = /^var\(--p(\d)\)$/.exec(c);
+    const [f, i] = m ? MC.PAL.dark[m[1]] : MC.darkTone(c);
+    return `--c:${c};--cf:${f};--ci:${i}`;
+  };
 
   // ---------- 工具 ----------
   const pad = (MC.pad = n => String(n).padStart(2, '0'));
@@ -384,7 +423,7 @@
     }
     const g = await r.json();
     const f = g.files && g.files[GIST_FILE];
-    if (!f) throw new Error('这个 Gist 里没有月历数据');
+    if (!f) throw new Error('这个 Gist 里没有节律数据');
     const text = f.truncated ? await (await fetch(f.raw_url, { cache: 'no-store' })).text() : f.content;
     etag = r.headers.get('ETag') || '';
     lastRemote = MC.normalize(JSON.parse(text));
@@ -409,7 +448,7 @@
   const stampOf = ts => new Date(ts).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   MC.buildICS = d => {
     const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Month Calendar//CN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
-      'X-WR-CALNAME:月历提醒', 'X-PUBLISHED-TTL:PT15M', 'REFRESH-INTERVAL;VALUE=DURATION:PT15M'];
+      'X-WR-CALNAME:节律提醒', 'X-PUBLISHED-TTL:PT15M', 'REFRESH-INTERVAL;VALUE=DURATION:PT15M'];
     const from = ymd(MC.addDays(new Date(), -2)), to = ymd(MC.addDays(new Date(), 400));
     const stamp = stampOf(Date.now());
     const alarm = (trigger, text) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(text), 'TRIGGER:' + trigger, 'END:VALARM'];
@@ -439,7 +478,7 @@
     const t = MC.settings.icsTestAt;
     if (t && t > Date.now()) {
       const dt = new Date(t), st = icsDate(ymd(dt)) + 'T' + pad(dt.getHours()) + pad(dt.getMinutes()) + '00';
-      L.push('BEGIN:VEVENT', `UID:test-${t}@mcal`, 'DTSTAMP:' + stamp, 'SUMMARY:月历订阅提醒测试', 'DTSTART:' + st, 'DURATION:PT5M',
+      L.push('BEGIN:VEVENT', `UID:test-${t}@mcal`, 'DTSTAMP:' + stamp, 'SUMMARY:节律订阅提醒测试', 'DTSTART:' + st, 'DURATION:PT5M',
         ...alarm('PT0M', '订阅成功，提醒可以正常弹出'), 'END:VEVENT');
     }
     L.push('END:VCALENDAR');

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 月历小组件色条的字重：浅色 700（和以前一样的粗体），深色见 values-night -->
+    <integer name="chip_weight">700</integer>
+</resources>

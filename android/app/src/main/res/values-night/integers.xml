@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色：中等字重，和应用里一致，不刺眼 -->
+    <integer name="chip_weight">500</integer>
+</resources>

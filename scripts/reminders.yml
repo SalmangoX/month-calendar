@@ -1,4 +1,4 @@
-name: 月历提醒
+name: 节律提醒
 
 on:
   schedule:

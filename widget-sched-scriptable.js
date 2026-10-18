@@ -46,7 +46,7 @@ function onDate(c, date) {
 async function loadCourses() {
   const fm = FileManager.local();
   const cache = fm.joinPath(fm.cacheDirectory(), "mcal-sched-cache.json");
-  if (!CONFIG.GIST_ID || CONFIG.GIST_ID.startsWith("__")) throw new Error("请在月历 设置 → 桌面小组件 里复制「iOS 课表小组件」脚本后重新粘贴。");
+  if (!CONFIG.GIST_ID || CONFIG.GIST_ID.startsWith("__")) throw new Error("请在节律 设置 → 桌面小组件 里复制「iOS 课表小组件」脚本后重新粘贴。");
   try {
     const req = new Request("https://api.github.com/gists/" + CONFIG.GIST_ID);
     const h = { Accept: "application/vnd.github+json", "User-Agent": "mcal-scriptable" };
@@ -54,7 +54,7 @@ async function loadCourses() {
     req.headers = h; req.timeoutInterval = 12;
     const g = await req.loadJSON();
     const f = g.files && g.files[FILE];
-    if (!f) throw new Error("没有找到月历数据");
+    if (!f) throw new Error("没有找到节律数据");
     const text = f.truncated ? await new Request(f.raw_url).loadString() : f.content;
     const courses = (JSON.parse(text).courses || []);
     fm.writeString(cache, JSON.stringify(courses));

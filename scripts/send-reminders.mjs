@@ -77,7 +77,7 @@ function body(e, h12) {
 }
 
 const id = await findGist();
-if (!id) { console.log('没有找到月历数据。'); process.exit(0); }
+if (!id) { console.log('没有找到节律数据。'); process.exit(0); }
 const gist = await gh('/gists/' + id);
 const data = await readJSON(gist.files[DATA_FILE], { events: [] });
 const info = await readJSON(gist.files[SUBS_FILE], null);
