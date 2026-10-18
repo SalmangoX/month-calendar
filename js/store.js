@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.9.6';
+  MC.VERSION = '0.10.0';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -80,7 +80,7 @@
   MC.timeLabel = e => e.time ? (e.endTime ? `${e.time}–${e.endTime}` : e.time) : '';
 
   // ---------- 数据 ----------
-  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0 }; }
+  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [] }; }
   function normEvent(e) {
     const t = Date.now();
     return {
@@ -92,6 +92,7 @@
       remind: e.remind === null || e.remind === undefined || e.remind === '' ? null : Number(e.remind),
       days: /^\d{2}:\d{2}$/.test(e.time || '') ? 1 : Math.max(1, Math.min(60, parseInt(e.days, 10) || 1)),
       series: e.series || '',
+      cal: typeof e.cal === 'string' ? e.cal.slice(0, 40) : '', // 所属日历：'' = 主日历，其余为特殊记录日历的 id
       rep: e.rep && e.rep.freq ? { freq: e.rep.freq, forever: !!e.rep.forever } : null,
       createdAt: e.createdAt || t, updatedAt: e.updatedAt || e.createdAt || t,
     };
@@ -106,9 +107,18 @@
       .map(c => ({ id: c.id || MC.uid(), code: String(c.code).slice(0, 40), type: c.type || '', day: Number(c.day), start: c.start, end: c.end, room: c.room || '',
         from: /^\d{4}-\d{2}-\d{2}$/.test(c.from || '') ? c.from : '', to: /^\d{4}-\d{2}-\d{2}$/.test(c.to || '') ? c.to : '', every: c.every === 2 ? 2 : 1 }));
     out.coursesAt = d.coursesAt || 0;
+    if (Array.isArray(d.cals)) out.cals = d.cals.filter(c => c && c.id && typeof c.id === 'string').map(normCal);
     if (d.daily) out.daily = { on: !!d.daily.on, time: /^\d{2}:\d{2}$/.test(d.daily.time || '') ? d.daily.time : '13:00', tz: d.daily.tz || '', updatedAt: d.daily.updatedAt || 0 };
     return out;
   };
+  // ---------- 特殊记录日历 ----------
+  MC.CAL_COLORS = ['#C2617E', '#5E9C86', '#8C74C4', '#C98A4B', '#4F95B8', '#8A8F5C', '#B8605A', '#6C7FA6'];
+  MC.MAIN_CAL = { id: '', name: '主日历', color: 'var(--accent)' };
+  function normCal(c) {
+    const t = Date.now();
+    return { id: String(c.id).slice(0, 40), name: String(c.name || '记录').slice(0, 24), color: /^#[0-9a-fA-F]{6}$/.test(c.color || '') ? c.color : MC.CAL_COLORS[0],
+      createdAt: c.createdAt || t, updatedAt: c.updatedAt || c.createdAt || t };
+  }
   function loadData() {
     try { const d = JSON.parse(localStorage.getItem(DATA_KEY)); if (d && Array.isArray(d.events)) return MC.normalize(d); } catch (e) {}
     return blank();
@@ -128,14 +138,14 @@
       for (const ds of MC.repeatDates(e.date, e.rep.freq, ymd(MC.addDays(today, h))).slice(1)) {
         const id = `${sid}-${ds}`;
         if (have.has(id) || MC.data.deleted[id]) continue;
-        add.push(MC.makeEvent({ id, date: ds, title: e.title, note: e.note, priority: e.priority, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, series: sid, rep: e.rep, done: false }));
+        add.push(MC.makeEvent({ id, cal: e.cal, date: ds, title: e.title, note: e.note, priority: e.priority, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, series: sid, rep: e.rep, done: false }));
       }
     }
     if (add.length) MC.addEvents(add);
   };
 
   MC.settings = Object.assign(
-    { theme: 'auto', weekStart: 0, view: 'month', tab3: 'quad', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '', account: '' },
+    { theme: 'auto', weekStart: 0, view: 'month', tab3: 'quad', activeCal: '', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '', account: '' },
     JSON.parse(localStorage.getItem(SET_KEY) || '{}')
   );
   // 从 0.1 版迁移：旧版本明文保存在 token 字段
@@ -148,21 +158,37 @@
 
   const cmp = (a, b) => (a.done - b.done) || (b.priority - a.priority) || ((a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0) || (a.createdAt - b.createdAt);
   MC.cmp = cmp;
-  MC.byDate = new Map();
-  MC.reindex = () => {
-    MC.byDate = new Map();
-    for (const e of MC.data.events) {
+  // 当前在日历页显示的是哪个日历（'' = 主日历）。每个日历的事件各自独立：
+  // 日历页只显示当前日历；今日页、四象限、小组件、每日提醒只看主日历。
+  MC.cal = id => (id ? MC.data.cals.find(c => c.id === id) : MC.MAIN_CAL) || null;
+  MC.activeCal = () => (MC.settings.activeCal && MC.cal(MC.settings.activeCal) ? MC.settings.activeCal : '');
+  MC.setActiveCal = id => { MC.settings.activeCal = id || ''; MC.saveSettings(); MC.reindex(); };
+  MC.inCal = (e, id) => (e.cal || '') === (id || '');
+  MC.mainEvents = () => MC.data.events.filter(e => !e.cal);
+  MC.byDate = new Map();    // 当前日历
+  MC.mainByDate = new Map(); // 主日历
+  function indexOf(list) {
+    const m = new Map();
+    for (const e of list) {
       const n = e.days > 1 ? e.days : 1, d0 = parse(e.date);
       for (let k = 0; k < n; k++) { // 多天的全天事件出现在跨越的每一天
         const ds = k ? ymd(MC.addDays(d0, k)) : e.date;
-        if (!MC.byDate.has(ds)) MC.byDate.set(ds, []);
-        MC.byDate.get(ds).push(e);
+        if (!m.has(ds)) m.set(ds, []);
+        m.get(ds).push(e);
       }
     }
-    for (const arr of MC.byDate.values()) arr.sort(cmp);
+    for (const arr of m.values()) arr.sort(cmp);
+    return m;
+  }
+  MC.reindex = () => {
+    const act = MC.activeCal();
+    MC.mainByDate = indexOf(MC.data.events.filter(e => !e.cal));
+    MC.byDate = act ? indexOf(MC.data.events.filter(e => e.cal === act)) : MC.mainByDate;
   };
   MC.reindex();
-  MC.eventsOn = ds => MC.byDate.get(ds) || [];
+  MC.eventsOn = ds => MC.byDate.get(ds) || [];      // 当前日历
+  MC.mainOn = ds => MC.mainByDate.get(ds) || [];    // 主日历
+  MC.countIn = id => MC.data.events.reduce((n, e) => n + (MC.inCal(e, id) ? 1 : 0), 0);
 
   MC.onChange = () => {};
   MC.dirty = false;
@@ -182,6 +208,20 @@
   };
   MC.setProfile = fields => { Object.assign(MC.data.profile, fields, { updatedAt: Date.now() }); MC.commit(); };
   MC.setCourses = list => { MC.data.courses = list; MC.data.coursesAt = Date.now(); MC.commit(); };
+  MC.addCal = (name, color) => {
+    const c = normCal({ id: 'c' + MC.uid(), name, color });
+    MC.data.cals.push(c); MC.commit(); return c;
+  };
+  MC.updateCal = (c, fields) => { Object.assign(c, fields, { updatedAt: Date.now() }); MC.commit(); };
+  MC.deleteCal = id => { // 连同里面的事件一起删除
+    const t = Date.now();
+    for (const e of MC.data.events) if (e.cal === id) MC.data.deleted[e.id] = t;
+    MC.data.events = MC.data.events.filter(e => e.cal !== id);
+    MC.data.cals = MC.data.cals.filter(c => c.id !== id);
+    MC.data.deleted['cal:' + id] = t;
+    if (MC.settings.activeCal === id) { MC.settings.activeCal = ''; MC.saveSettings(); }
+    MC.commit();
+  };
   MC.setDaily = fields => { Object.assign(MC.data.daily, fields, { updatedAt: Date.now() }); MC.commit(); };
   MC.currentTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; } };
 
@@ -202,13 +242,23 @@
     const da = a.daily || {}, db = b.daily || {};
     const daily = (db.updatedAt || 0) > (da.updatedAt || 0) ? { ...db } : { ...(a.daily || blank().daily) };
     const newerCourses = (b.coursesAt || 0) > (a.coursesAt || 0) ? b : a;
-    return { version: 3, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0), events, deleted, profile, daily,
-      courses: (newerCourses.courses || []).map(c => ({ ...c })), coursesAt: newerCourses.coursesAt || 0 };
+    const cmap = new Map();
+    for (const c of [...(a.cals || []), ...(b.cals || [])]) {
+      const old = cmap.get(c.id);
+      if (!old || (c.updatedAt || 0) > (old.updatedAt || 0)) cmap.set(c.id, { ...c });
+    }
+    const cals = [...cmap.values()].filter(c => !(deleted['cal:' + c.id] && deleted['cal:' + c.id] >= (c.updatedAt || 0)))
+      .sort((x, y) => (x.createdAt || 0) - (y.createdAt || 0));
+    const calIds = new Set(cals.map(c => c.id));
+    const kept = events.filter(e => !e.cal || calIds.has(e.cal) || !deleted['cal:' + e.cal]); // 已删除的日历里不留事件
+    return { version: 3, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0), events: kept, deleted, profile, daily,
+      courses: (newerCourses.courses || []).map(c => ({ ...c })), coursesAt: newerCourses.coursesAt || 0, cals };
   };
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
-      .map(e => [e.id, e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
-    return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, d.coursesAt || 0]);
+      .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
+    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, c.updatedAt]);
+    return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, d.coursesAt || 0, cs]);
   }
 
   // ---------- 加密保存令牌 ----------

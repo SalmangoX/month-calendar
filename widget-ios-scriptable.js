@@ -86,6 +86,7 @@ async function loadData() {
 function indexEvents(events) {
   const by = {};
   for (const e of events) {
+    if (e.cal) continue; // 只显示主日历
     const n = e.days > 1 && !e.time ? e.days : 1, [y, m, d] = e.date.split("-").map(Number);
     for (let k = 0; k < n; k++) { const ds = ymd(new Date(y, m - 1, d + k)); (by[ds] = by[ds] || []).push(e); }
   }

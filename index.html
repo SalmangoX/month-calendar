@@ -25,7 +25,7 @@
     } catch (e) { document.documentElement.dataset.theme = 'light'; }
   })();
 </script>
-<link rel="stylesheet" href="styles.css?v=0.9.6">
+<link rel="stylesheet" href="styles.css?v=0.10.0">
 </head>
 <body>
 
@@ -131,6 +131,17 @@
 <button class="fab glass accent" id="fab" aria-label="添加事件">
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
   </button>
+
+<!-- 左侧日历栏：在日历页从左往右滑动拉出 -->
+<div class="drawer-scrim" id="drawerScrim"></div>
+<aside class="drawer" id="calDrawer" aria-label="选择日历" aria-hidden="true">
+  <header class="dr-head"><h2>日历</h2><p>每个日历的内容分开显示</p></header>
+  <div class="dr-list" id="drawerList"></div>
+  <button class="dr-add" id="drawerAdd">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke-width="2.2"/></svg>
+    新建记录日历
+  </button>
+</aside>
 
 <div class="backdrop" id="backdrop"></div>
 
@@ -263,13 +274,14 @@
 <input type="file" id="avatarFile" accept="image/*" hidden>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
-<script src="js/store.js?v=0.9.6"></script>
-<script src="js/native.js?v=0.9.6"></script>
-<script src="js/ui.js?v=0.9.6"></script>
-<script src="js/calendar.js?v=0.9.6"></script>
-<script src="js/editor.js?v=0.9.6"></script>
-<script src="js/push.js?v=0.9.6"></script>
-<script src="js/sched.js?v=0.9.6"></script>
-<script src="js/app.js?v=0.9.6"></script>
+<script src="js/store.js?v=0.10.0"></script>
+<script src="js/native.js?v=0.10.0"></script>
+<script src="js/ui.js?v=0.10.0"></script>
+<script src="js/calendar.js?v=0.10.0"></script>
+<script src="js/editor.js?v=0.10.0"></script>
+<script src="js/push.js?v=0.10.0"></script>
+<script src="js/sched.js?v=0.10.0"></script>
+<script src="js/drawer.js?v=0.10.0"></script>
+<script src="js/app.js?v=0.10.0"></script>
 </body>
 </html>

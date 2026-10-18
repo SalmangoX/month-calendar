@@ -209,7 +209,7 @@
   const LKEY = 'mcal.localSent';
   // 每日未完成提醒的内容
   Push.digest = ds => {
-    const n = MC.eventsOn(ds).filter(e => !e.done).length;
+    const n = MC.mainOn(ds).filter(e => !e.done).length; // 每日提醒只统计主日历
     return n ? { title: '查看今日未完成事件', body: `今天还有 ${n} 件事未完成，点开查看。` }
              : { title: '今日事件已完成', body: '今天的事件都完成了。' };
   };

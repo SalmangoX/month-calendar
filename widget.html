@@ -92,6 +92,7 @@
     const now = new Date(), y = now.getFullYear(), m = now.getMonth(), t = ymd(now);
     const by = {};
     for (const e of data.events || []) {
+      if (e.cal) continue; // 只显示主日历
       const n = e.days > 1 && !e.time ? e.days : 1, [yy, mm, dd] = e.date.split('-').map(Number);
       for (let k = 0; k < n; k++) { const ds = ymd(new Date(yy, mm - 1, dd + k)); (by[ds] = by[ds] || []).push(e); }
     }

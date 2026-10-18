@@ -22,15 +22,66 @@
   const tabbar = $('#tabbar'), ind = $('#tabInd');
   const tabs = () => [...tabbar.querySelectorAll('button[data-page]')];
   const tabOf = p => tabs().find(b => b.dataset.page === p);
+  // 指示块用弹簧物理驱动：拖动时跟手并按速度拉长压扁（体积守恒），顶到两端被压扁、整条菜单被轻轻拽动；
+  // 松手后带一点回弹落到目标格子。按住时指示块「浮起」成一块磨砂玻璃，经过的图标被放大，像透镜。
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const J = { x: 0, v: 0, tx: 0, w: 0, lift: 0, lv: 0, tl: 0, wall: 0, bx: 0, bv: 0, tbx: 0, raf: 0, last: 0, centers: [] };
+  const measureCenters = () => { J.centers = tabs().filter(b => !b.hidden).map(b => [b, b.offsetLeft + b.offsetWidth / 2]); };
+  const rubber = (x, d) => (1 - 1 / (x * .55 / d + 1)) * d;
+  function paintInd() {
+    const speed = Math.min(1, Math.abs(J.v) / 2400);
+    let sx = 1 + speed * .34, sy = 1 - speed * .2;            // 越快拉得越长、越扁
+    const sq = Math.min(1, Math.abs(J.wall) / 40);              // 顶墙压扁
+    sx *= 1 - sq * .17; sy *= 1 + sq * .1;
+    const lift = Math.max(0, J.lift);
+    const lx = 1 + J.lift * .07, ly = 1 + J.lift * .13;          // 浮起时略微鼓起
+    ind.style.width = J.w + 'px';
+    ind.style.transformOrigin = J.wall < -.5 ? '0% 50%' : J.wall > .5 ? '100% 50%' : '50% 50%';
+    ind.style.transform = `translate3d(${J.x.toFixed(2)}px,0,0) scale(${(sx * lx).toFixed(4)},${(sy * ly).toFixed(4)})`;
+    ind.style.setProperty('--lift', Math.min(1, lift).toFixed(3));
+    tabbar.style.transform = Math.abs(J.bx) > .05 ? `translate3d(${J.bx.toFixed(2)}px,0,0)` : '';
+    // 透镜：离指示块中心越近的图标放得越大
+    const c = J.x + J.w / 2;
+    for (const [b, bc] of J.centers) {
+      const d = Math.abs(bc - c) / (J.w || 1);
+      const k = lift > .01 ? 1 + lift * .16 * Math.max(0, 1 - d) : 1;
+      const t = k > 1.001 ? `scale(${k.toFixed(3)})` : '';
+      if (b.style.transform !== t) b.style.transform = t;
+    }
+  }
+  function jellyFrame(now) {
+    const dt = Math.min(.034, Math.max(.001, (now - J.last) / 1000)); J.last = now;
+    const held = !!(pd && pd.dragging);
+    const k = held ? 1150 : 560, c = held ? 56 : 31;            // 拖动时紧跟手指；松手时轻微过冲再回弹
+    const kl = 640, cl = held ? 42 : 20;                          // 浮起 / 落下
+    const kb = 700, cb = 26;                                      // 菜单栏被拽动后弹回
+    const n = 4, h = dt / n;
+    for (let i = 0; i < n; i++) {
+      J.v += (-k * (J.x - J.tx) - c * J.v) * h; J.x += J.v * h;
+      J.lv += (-kl * (J.lift - J.tl) - cl * J.lv) * h; J.lift += J.lv * h;
+      J.bv += (-kb * (J.bx - J.tbx) - cb * J.bv) * h; J.bx += J.bv * h;
+    }
+    if (!held) J.wall *= Math.pow(.0005, dt);                     // 松手后压扁迅速恢复
+    const rest = !held && Math.abs(J.x - J.tx) < .15 && Math.abs(J.v) < 4 && Math.abs(J.lift - J.tl) < .003 && Math.abs(J.lv) < .03
+      && Math.abs(J.bx - J.tbx) < .05 && Math.abs(J.bv) < 2;
+    if (rest) { J.x = J.tx; J.v = 0; J.lift = J.tl; J.lv = 0; J.bx = J.tbx; J.bv = 0; J.wall = 0; paintInd(); J.raf = 0; return; }
+    paintInd();
+    J.raf = requestAnimationFrame(jellyFrame);
+  }
+  function kick() {
+    if (reduceMotion.matches) { J.x = J.tx; J.v = 0; J.lift = J.tl; J.bx = J.tbx; J.wall = 0; paintInd(); return; }
+    if (!J.raf) { J.last = performance.now(); J.raf = requestAnimationFrame(jellyFrame); }
+  }
   function placeInd(animate = true) {
     const btn = tabOf(page); if (!btn) return;
-    if (!animate) ind.style.transition = 'none';
-    ind.style.width = btn.offsetWidth + 'px';
-    ind.style.transform = `translate3d(${btn.offsetLeft}px,0,0)`;
-    if (!animate) { void ind.offsetWidth; ind.style.transition = ''; }
+    J.tx = btn.offsetLeft; J.w = btn.offsetWidth; J.tl = 0; J.tbx = 0;
+    measureCenters();
+    if (!animate || !J.w) { if (J.raf) { cancelAnimationFrame(J.raf); J.raf = 0; } J.x = J.tx; J.v = 0; J.lift = 0; J.lv = 0; J.bx = 0; J.bv = 0; J.wall = 0; paintInd(); return; }
+    kick();
   }
   function showPage(p) {
     page = p;
+    document.body.dataset.page = p;
     document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.id === 'page-' + p));
     tabs().forEach(b => b.classList.toggle('on', b.dataset.page === p));
     placeInd();
@@ -65,47 +116,47 @@
   }
   let pd = null;
   const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
-  let geo = null, rafId = 0, pendingX = null;
+  let geo = null;
   function measureTabs() {
     const r = tabbar.getBoundingClientRect();
     const list = tabs();
-    geo = { left: r.left, width: tabbar.offsetWidth, w: list[0].offsetWidth, pad: list[0].offsetLeft,
-      rects: list.map(b => { const br = b.getBoundingClientRect(); return [br.left, br.right, b]; }) };
+    geo = { left: r.left - J.bx, width: tabbar.offsetWidth, w: list[0].offsetWidth, pad: list[0].offsetLeft,
+      rects: list.map(b => [b.offsetLeft, b.offsetLeft + b.offsetWidth, b]) };
+    measureCenters();
   }
-  function tabAt(x) {
+  function tabAt(x) { // x：页面坐标
     if (!geo) measureTabs();
-    for (const [l, r, b] of geo.rects) if (x >= l && x <= r) return b;
-    return x < geo.rects[0][0] ? geo.rects[0][2] : geo.rects[geo.rects.length - 1][2];
+    const lx = x - geo.left;
+    for (const [l, r, b] of geo.rects) if (lx >= l && lx <= r) return b;
+    return lx < geo.rects[0][0] ? geo.rects[0][2] : geo.rects[geo.rects.length - 1][2];
   }
-  function moveDrag(x) { // 每帧最多更新一次
-    pendingX = x;
-    if (rafId) return;
-    rafId = requestAnimationFrame(() => {
-      rafId = 0;
-      if (!pd || pendingX == null) return;
-      const { left: L, width, w, pad } = geo;
-      const left = Math.max(pad, Math.min(width - pad - w, pendingX - L - w / 2));
-      ind.style.width = w + 'px';
-      ind.style.transform = `translate3d(${left}px,0,0) scale(1.06, 1.1)`;
-      const h = tabAt(pendingX);
-      if (h !== pd.hover) {
-        if (pd.hover) { pd.hover.classList.remove('hover'); buzz(4); }
-        h.classList.add('hover'); pd.hover = h;
-      }
-    });
+  function moveDrag(x) {
+    if (!pd || !geo) return;
+    const { left: L, width, w, pad } = geo;
+    const want = x - L - w / 2, lo = pad, hi = width - pad - w;
+    const clamped = Math.max(lo, Math.min(hi, want)), over = want - clamped;
+    J.tx = clamped;
+    J.wall = Math.sign(over) * rubber(Math.abs(over), 40);       // 顶墙压扁
+    J.tbx = Math.sign(over) * rubber(Math.abs(over), 9);         // 整条菜单被轻轻拽过去
+    kick();
+    const h = tabAt(x);
+    if (h !== pd.hover) {
+      if (pd.hover) { pd.hover.classList.remove('hover'); buzz(4); }
+      h.classList.add('hover'); pd.hover = h;
+    }
   }
   function startDrag(x) {
     if (!pd || pd.dragging) return;
     measureTabs();
     pd.dragging = true;
     tabbar.classList.add('dragging');
+    J.tl = 1; J.lv += 6;                                          // 浮起时先轻轻「噗」地鼓一下
     buzz(10);
     moveDrag(x);
   }
   function endDrag(x, commit) {
     if (!pd) return;
     clearTimeout(pd.timer);
-    if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
     const wasDrag = pd.dragging, btn = pd.btn;
     pd = null;
     tabbar.classList.remove('dragging');
@@ -135,9 +186,13 @@
   if (window.ResizeObserver) new ResizeObserver(() => { if (!pd) placeInd(false); }).observe(tabbar);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeInd(false));
 
-  $('#fab').onclick = () => MC.Editor.openNew(page === 'today' ? MC.todayStr() : MC.Cal.selected());
+  $('#fab').onclick = () => page === 'today'
+    ? MC.Editor.openNew(MC.todayStr(), '')
+    : MC.Editor.openNew(MC.Cal.selected(), page === 'cal' ? MC.activeCal() : '');
+  document.body.dataset.page = page;
 
   MC.onChange = () => {
+    MC.Drawer.paint();
     if (page === 'cal') MC.Cal.refresh(); else renderPage();
     paintTabAvatar();
   };
@@ -146,8 +201,8 @@
   function renderToday() {
     const d = new Date(), t = MC.todayStr();
     $('#todayDate').textContent = `${d.getMonth() + 1}月${d.getDate()}日 周${MC.WD[d.getDay()]}`;
-    const overdue = MC.data.events.filter(e => !e.done && MC.endDate(e) < t).sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b));
-    const today = MC.eventsOn(t);
+    const overdue = MC.mainEvents().filter(e => !e.done && MC.endDate(e) < t).sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b));
+    const today = MC.mainOn(t);
     const open = today.filter(e => !e.done), done = today.filter(e => e.done);
     let h = '';
     if (overdue.length) h += `<section class="sec"><h3 class="over"><span>已逾期</span><span>${overdue.length}</span></h3><ul class="card glass-panel">${overdue.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
@@ -167,7 +222,7 @@
     $('#btnQuadDone').classList.toggle('on', showDone);
     $('#btnQuadDone').textContent = showDone ? '隐藏已完成' : '显示已完成';
     $('#quadBody').innerHTML = MC.PRI.map(p => {
-      const list = MC.data.events.filter(e => e.priority === p.v && (showDone || !e.done))
+      const list = MC.mainEvents().filter(e => e.priority === p.v && (showDone || !e.done))
         .sort((a, b) => (a.done - b.done) || a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
       return `<div class="qcard glass-panel" style="--c:${p.color}">
         <div class="qhead"><span class="roman">${p.roman}</span>${p.quad}<span class="cnt">${list.length || ''}</span></div>
@@ -482,15 +537,16 @@
 
   // ---------- 表单 ----------
   let formHandler = null;
-  function openForm({ title, fields, note, submit, onSubmit }) {
+  function openForm({ title, fields, note, extra, submit, onSubmit }) {
     $('#formTitle').textContent = title;
     $('#formSubmit').textContent = submit || '确定';
     $('#formBody').innerHTML = fields.map(f =>
-      `<label class="field"><span>${f.label}</span><input id="ff_${f.id}" type="${f.type || 'text'}" placeholder="${esc(f.ph || '')}" autocomplete="${f.ac || 'off'}" autocapitalize="off" spellcheck="false"></label>`).join('')
-      + (note ? `<p class="form-note">${note}</p>` : '') + '<p class="form-err" id="formErr"></p>';
+      `<label class="field"><span>${f.label}</span><input id="ff_${f.id}" type="${f.type || 'text'}" value="${esc(f.val || '')}" placeholder="${esc(f.ph || '')}" autocomplete="${f.ac || 'off'}" autocapitalize="off" spellcheck="false"${f.max ? ` maxlength="${f.max}"` : ''}></label>`).join('')
+      + (extra || '') + (note ? `<p class="form-note">${note}</p>` : '') + '<p class="form-err" id="formErr"></p>';
     formHandler = { onSubmit, fields };
     UI.open('formSheet');
   }
+  MC.openForm = openForm;
   async function submitForm(e) {
     e && e.preventDefault();
     if (!formHandler) return;
@@ -929,6 +985,7 @@
     if (document.documentElement.classList.contains('locked')) return false;
     if (UI.menuOpen()) { UI.closeMenu(); return true; }
     if (UI.anyOpen()) { UI.close(); return true; }
+    if (MC.Drawer.isOpen()) { MC.Drawer.close(); return true; }
     if (page !== 'cal') { showPage('cal'); return true; }
     return false;
   };

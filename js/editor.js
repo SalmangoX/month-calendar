@@ -13,7 +13,8 @@
   const SVG_END = '<svg viewBox="0 0 24 24"><path d="M5 12h11M13 7l5 5-5 5M20 5v14"/></svg>';
 
   // ======================= 添加 / 编辑 =======================
-  let mode = 'new', editing = null;
+  let mode = 'new', editing = null, newCal = ''; // newCal：新事件放进哪个日历（'' = 主日历）
+  const newHeading = () => (newCal && MC.cal(newCal) ? `添加到「${MC.cal(newCal).name}」` : '新建事件');
   const draft = {};
   function resetDraft(date) {
     Object.assign(draft, { title: '', note: '', priority: 0, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', done: false });
@@ -128,15 +129,16 @@
   function closeComposer(save) { skipCloseSave = !save; UI.close('composer'); }
   Editor.closeComposerSilently = () => closeComposer(false);
 
-  Editor.openNew = date => {
+  Editor.openNew = (date, cal) => {
     mode = 'new'; editing = null;
+    newCal = cal && MC.cal(cal) ? cal : '';
     resetDraft(date || MC.Cal.selected() || MC.todayStr());
     const saved = readDraft();
     if (saved) {
       Object.assign(draft, saved);
       $('#cmpTitle').value = saved.title || ''; $('#cmpNote').value = saved.note || '';
     } else { $('#cmpTitle').value = ''; $('#cmpNote').value = ''; }
-    $('#cmpHeading').textContent = saved ? '继续编辑草稿' : '新建事件';
+    $('#cmpHeading').textContent = saved ? '继续编辑草稿' : newHeading();
     $('#cmpClear').hidden = !saved;
     $('#cmpSave').textContent = '添加';
     $('#cmpEditBar').hidden = true;
@@ -166,7 +168,7 @@
     const d = draft.date;
     resetDraft(d);
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';
-    $('#cmpHeading').textContent = '新建事件'; $('#cmpClear').hidden = true;
+    $('#cmpHeading').textContent = newHeading(); $('#cmpClear').hidden = true;
     growTitle(); paintComposer();
   };
 
@@ -239,12 +241,12 @@
       rep = { freq: draft.repeat, forever };
     }
     const series = rep ? MC.uid() : '';
-    MC.addEvents(dates.map(ds => MC.makeEvent({ ...fields, date: ds, series, rep, id: series ? `${series}-${ds}` : MC.uid() })));
+    MC.addEvents(dates.map(ds => MC.makeEvent({ ...fields, cal: newCal, date: ds, series, rep, id: series ? `${series}-${ds}` : MC.uid() })));
     UI.toast(rep ? (rep.forever ? `已添加，${MC.repeatLabel(rep.freq)}重复` : `已添加 ${dates.length} 个重复事件`) : `已添加到${MC.dayDiff(draft.date) === 0 ? '今天' : ' ' + MC.dateLabel(draft.date)}`);
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';
     draft.repeat = 'none'; draft.until = '';
     localStorage.removeItem(DRAFT_KEY);
-    $('#cmpHeading').textContent = '新建事件'; $('#cmpClear').hidden = true;
+    $('#cmpHeading').textContent = newHeading(); $('#cmpClear').hidden = true;
     growTitle(); paintComposer();
     MC.onNotifyCheck && MC.onNotifyCheck();
   }
@@ -591,7 +593,7 @@
     if (bad >= 0) { UI.toast(`第 ${bad + 1} 行缺少名称`); return; }
     const valid = rows.filter(r => r.title.trim());
     if (!valid.length) { UI.toast('至少填写一个名称'); return; }
-    MC.addEvents(valid.map(r => MC.newEvent({ title: r.title.trim(), note: r.note.trim(), priority: r.priority, date: r.date })));
+    MC.addEvents(valid.map(r => MC.newEvent({ title: r.title.trim(), note: r.note.trim(), priority: r.priority, date: r.date, cal: newCal })));
     UI.close('batchSheet');
     localStorage.removeItem(DRAFT_KEY);
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';

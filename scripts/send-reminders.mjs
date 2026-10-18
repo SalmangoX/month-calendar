@@ -116,7 +116,7 @@ if (daily.on) {
   const [h, mi] = (daily.time || '13:00').split(':').map(Number);
   const ft = localToUtc(+p.year, +p.month, +p.day, h, mi, tz);
   if (ft <= now && ft > now - LOOKBACK) {
-    const open = (data.events || []).filter(e => e.date === ds && !e.done);
+    const open = (data.events || []).filter(e => e.date === ds && !e.done && !e.cal);
     const msg = open.length
       ? { title: '查看今日未完成事件', body: `今天还有 ${open.length} 件事未完成，点开查看。` }
       : { title: '今日事件已完成', body: '今天的事件都完成了。' };
