@@ -3,7 +3,6 @@
   --p3: #E05A55;   /* 高 */
   --p2: #E3A040;   /* 中 */
   --p1: #4B82E8;   /* 低 */
-  --p4: #41B08F;   /* 最低：薄荷绿（OKLCH 0.685 0.112 170，明度与其他优先级色同档，彩度略收） */
   --p0: #8D929B;   /* 无 */
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -42,6 +41,12 @@
   --sel-bg: rgba(86, 120, 154, .09);
   --sel-veil: rgba(86, 120, 154, .10);
   --sel-veil-top: rgba(255, 255, 255, .0);
+  --glass-blur: .7px;
+  --glass-sheen: rgba(255, 255, 255, .6);
+  --glass-hi: rgba(255, 255, 255, .9);
+  --glass-glow: rgba(255, 255, 255, .45);
+  --glass-edge: rgba(40, 60, 90, .08);
+  --glass-depth: rgba(86, 120, 154, .08);
   --frost: rgba(249, 250, 252, .74);
   --frost-strong: rgba(250, 251, 253, .9);
   --frost-edge: rgba(16, 26, 44, .08);
@@ -76,6 +81,12 @@
   --sel-bg: rgba(122, 154, 188, .14);
   --sel-veil: rgba(130, 160, 192, .16);
   --sel-veil-top: rgba(130, 160, 192, .04);
+  --glass-blur: .7px;
+  --glass-sheen: rgba(255, 255, 255, .13);
+  --glass-hi: rgba(255, 255, 255, .22);
+  --glass-glow: rgba(160, 190, 222, .10);
+  --glass-edge: rgba(0, 0, 0, .35);
+  --glass-depth: rgba(0, 0, 0, .28);
   --frost: rgba(30, 32, 37, .66);
   --frost-strong: rgba(22, 24, 28, .9);
   --frost-edge: rgba(255, 255, 255, .07);
@@ -196,8 +207,18 @@ svg.filled { fill: currentColor; stroke: none; }
   background: transparent; box-shadow: none; transition: background .2s, box-shadow .2s;
 }
 .cell.sel::after, .wcol.sel::after {
-  background: linear-gradient(180deg, var(--sel-veil-top), var(--sel-veil));
-  box-shadow: inset 0 0 0 1.5px var(--sel-line);
+  /* 选中框：一块带一点厚度的磨砂玻璃盖在当天上面，没有外圈线条；
+     下面的横条和事件还在，只是透过玻璃被柔化。顶部一抹高光、底部一点厚度阴影，看起来微微鼓起 */
+  background:
+    radial-gradient(120% 55% at 30% 0%, var(--glass-sheen), transparent 70%),
+    linear-gradient(180deg, var(--sel-veil-top), var(--sel-veil));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  box-shadow:
+    inset 0 1.5px 1px var(--glass-hi),          /* 顶边受光 */
+    inset 0 0 8px var(--glass-glow),            /* 玻璃内部的柔光，代替外圈线条 */
+    inset 0 -2px 2px var(--glass-edge),         /* 底边的厚度 */
+    inset 0 -10px 16px var(--glass-depth);
 }
 .num, .wnum { z-index: 3; }
 .mlabel { position: absolute; top: 3px; left: 5px; font-size: 8.5px; color: var(--accent-text); font-weight: 650; white-space: nowrap; z-index: 3; }
@@ -454,7 +475,7 @@ html.kb-open .sheet.tall.show {
 .cmp-edit { display: flex; align-items: center; gap: 16px; }
 .cmp-check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text2); padding: 4px 0; }
 .cmp-check i { width: 20px; height: 20px; border-radius: 6px; border: 1.8px solid var(--text3); display: grid; place-items: center; }
-.cmp-check[aria-pressed="true"] i { background: var(--accent); border-color: var(--accent); } /* 不用绿色，免得和薄荷绿优先级混淆 */
+.cmp-check[aria-pressed="true"] i { background: #5BA77F; border-color: #5BA77F; }
 .cmp-check[aria-pressed="true"] i::after { content: ""; width: 9px; height: 5px; border: solid #fff; border-width: 0 0 2.2px 2.2px; transform: rotate(-45deg) translate(1px, -1px); }
 .spacer { flex: 1; }
 .cmp-card { background: var(--surface); border-radius: var(--r-l); padding: 12px 14px 6px; box-shadow: inset 0 0 0 .5px var(--group-line); }
@@ -884,7 +905,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .wrow { position: relative; --ct: 39px; } /* --ct：格子里第一条事件的顶部（数字下方） */
 .cal-body.previewing .wrow { --ct: 34px; }
 .chip.gap { visibility: hidden; }
-.mbar, .wbar { position: absolute; z-index: 1; pointer-events: none; --il: 3px; --ir: 3px; text-overflow: ellipsis; }
+.mbar, .wbar { position: absolute; z-index: 1; /* 在选中框（玻璃）下面 */ pointer-events: none; --il: 3px; --ir: 3px; text-overflow: ellipsis; }
 .mbar.ol, .wbar.ol { --il: 0px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .mbar.or, .wbar.or { --ir: 0px; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .mbar {
@@ -900,3 +921,14 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
   height: 20px; line-height: 20px; padding: 0 6px; font-size: 10.5px;
 }
 .wlanes { height: calc(var(--lanes) * 23px); }
+
+
+/* 选中时玻璃盖「啵」地落下：先被压扁一点，再弹回，像果冻 */
+.cell.sel.pop::after, .wcol.sel.pop::after { animation: glassIn .46s cubic-bezier(.3, .7, .3, 1) both; }
+@keyframes glassIn {
+  0%   { transform: scale(.82, .86); opacity: .2; }
+  45%  { transform: scale(1.045, .965); opacity: 1; }
+  70%  { transform: scale(.985, 1.015); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .cell.sel.pop::after, .wcol.sel.pop::after { animation: none; } }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 整月小组件（由脚本生成：42 个日期格，每格最多 3 条事件或 3 个圆点） -->
+<!-- 整月小组件（由脚本生成：42 个日期格，每格最多 3 条事件或 3 个圆点；每周一张跨天横条图 b0–b5） -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layout_width="match_parent"
@@ -46,7 +46,9 @@
 
     <LinearLayout android:id="@+id/m_grid" android:layout_width="match_parent" android:layout_height="0dp"
         android:layout_weight="1" android:orientation="vertical" android:background="@color/w_line" android:paddingTop="0.6dp">
-        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        <!-- 第 1 周：格子 + 盖在上面的跨天横条（整行画成一张图，横条在格子之间连续） -->
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
             android:orientation="horizontal">
             <LinearLayout android:id="@+id/c0" android:layout_width="0dp" android:layout_height="match_parent"
                 android:layout_weight="1" android:orientation="vertical" android:paddingTop="1.5dp"
@@ -294,7 +296,13 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        <ImageView android:id="@+id/b0" android:layout_width="match_parent" android:layout_height="14dp"
+            android:layout_marginTop="19.5dp" android:scaleType="fitXY" android:importantForAccessibility="no"
+            android:visibility="gone" />
+        </FrameLayout>
+        <!-- 第 2 周：格子 + 盖在上面的跨天横条（整行画成一张图，横条在格子之间连续） -->
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
             android:orientation="horizontal">
             <LinearLayout android:id="@+id/c7" android:layout_width="0dp" android:layout_height="match_parent"
                 android:layout_weight="1" android:orientation="vertical" android:paddingTop="1.5dp"
@@ -542,7 +550,13 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        <ImageView android:id="@+id/b1" android:layout_width="match_parent" android:layout_height="14dp"
+            android:layout_marginTop="19.5dp" android:scaleType="fitXY" android:importantForAccessibility="no"
+            android:visibility="gone" />
+        </FrameLayout>
+        <!-- 第 3 周：格子 + 盖在上面的跨天横条（整行画成一张图，横条在格子之间连续） -->
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
             android:orientation="horizontal">
             <LinearLayout android:id="@+id/c14" android:layout_width="0dp" android:layout_height="match_parent"
                 android:layout_weight="1" android:orientation="vertical" android:paddingTop="1.5dp"
@@ -790,7 +804,13 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        <ImageView android:id="@+id/b2" android:layout_width="match_parent" android:layout_height="14dp"
+            android:layout_marginTop="19.5dp" android:scaleType="fitXY" android:importantForAccessibility="no"
+            android:visibility="gone" />
+        </FrameLayout>
+        <!-- 第 4 周：格子 + 盖在上面的跨天横条（整行画成一张图，横条在格子之间连续） -->
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
             android:orientation="horizontal">
             <LinearLayout android:id="@+id/c21" android:layout_width="0dp" android:layout_height="match_parent"
                 android:layout_weight="1" android:orientation="vertical" android:paddingTop="1.5dp"
@@ -1038,7 +1058,13 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        <ImageView android:id="@+id/b3" android:layout_width="match_parent" android:layout_height="14dp"
+            android:layout_marginTop="19.5dp" android:scaleType="fitXY" android:importantForAccessibility="no"
+            android:visibility="gone" />
+        </FrameLayout>
+        <!-- 第 5 周：格子 + 盖在上面的跨天横条（整行画成一张图，横条在格子之间连续） -->
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
             android:orientation="horizontal">
             <LinearLayout android:id="@+id/c28" android:layout_width="0dp" android:layout_height="match_parent"
                 android:layout_weight="1" android:orientation="vertical" android:paddingTop="1.5dp"
@@ -1286,7 +1312,13 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        <ImageView android:id="@+id/b4" android:layout_width="match_parent" android:layout_height="14dp"
+            android:layout_marginTop="19.5dp" android:scaleType="fitXY" android:importantForAccessibility="no"
+            android:visibility="gone" />
+        </FrameLayout>
+        <!-- 第 6 周：格子 + 盖在上面的跨天横条（整行画成一张图，横条在格子之间连续） -->
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
             android:orientation="horizontal">
             <LinearLayout android:id="@+id/c35" android:layout_width="0dp" android:layout_height="match_parent"
                 android:layout_weight="1" android:orientation="vertical" android:paddingTop="1.5dp"
@@ -1534,5 +1566,9 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
+        <ImageView android:id="@+id/b5" android:layout_width="match_parent" android:layout_height="14dp"
+            android:layout_marginTop="19.5dp" android:scaleType="fitXY" android:importantForAccessibility="no"
+            android:visibility="gone" />
+        </FrameLayout>
     </LinearLayout>
 </LinearLayout>

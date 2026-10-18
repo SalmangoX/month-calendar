@@ -16,8 +16,8 @@ const CONFIG = {
 };
 
 const FILE = "mcal-calendar.json";
-const PHEX = { 3: "#E05A55", 2: "#E3A040", 1: "#4B82E8", 4: "#41B08F", 0: "#8D929B" };
-const RANK = p => ({ 3: 4, 2: 3, 1: 2, 4: 1 })[p] || 0;
+const PHEX = { 3: "#E05A55", 2: "#E3A040", 1: "#4B82E8", 0: "#8D929B" };
+const RANK = p => (p >= 0 && p <= 3 ? p : 0); // 只认 0–3
 const WD = ["日", "一", "二", "三", "四", "五", "六"];
 const ACCENT_HEX = ["#56789A", "#6A8AAB"]; // 浅色 / 深色
 
@@ -197,22 +197,29 @@ function largeLayout(w, idx, offline) {
 
   const gridH = S.lh - padT - padB - 15 - 1 - 11 - 1;
   const rowH = Math.floor(gridH / rows);
-  const numH = 15, chipH = 13, gap = 1;
+  const numH = 15, chipH = 13, gap = 1, padTop = 2.5, SEP = 0.5;
+  const top0 = padTop + numH + 1; // 格子里第一条事件的顶部
   const maxChips = Math.max(1, Math.floor((rowH - numH - 2) / (chipH + gap)));
+  const cellW = (S.mw - SEP * 6) / 7, cellX = c => c * (cellW + SEP);
   const grid = w.addStack();
   grid.layoutVertically();
-  // 不固定总高度：每一行都可伸缩，桌面上小组件实际多高就铺多高
-  // 不画外框，交给小组件自身的圆角
+  addLine(grid, 0);
   for (let r = 0; r < rows; r++) {
+    const wk = days.slice(r * 7, r * 7 + 7);
+    const lay = layWeek(wk.map(ymd), idx);
+    const lim = lay.occ.map(o => (o.length <= maxChips ? o.length : maxChips - 1));
+    const segs = barSegments(lay, wk.map(ymd), lim, m);
     const row = grid.addStack();
-    row.size = new Size(0, 0);
+    row.size = new Size(0, rowH);
+    // 跨天事件：整行画成一张透明图当背景，横条在格子之间连续不断
+    if (segs.length) row.backgroundImage = barsImage(segs, S.mw, rowH, cellX, cellW, top0, chipH + gap, chipH);
     for (let c = 0; c < 7; c++) {
-      const d = days[r * 7 + c], ds = ymd(d), out = d.getMonth() !== m, isToday = ds === t;
+      const d = wk[c], ds = ymd(d), out = d.getMonth() !== m, isToday = ds === t;
+      if (c) sepLine(row, segs, c, top0, chipH + gap, Math.max(...lim, 0));
       const cell = row.addStack();
-      cell.size = new Size(0, 0); // 宽高都可伸缩：桌面上小组件多大就铺多大
+      cell.size = new Size(0, 0); // 宽度平分；高度跟随行高
       cell.layoutVertically();
-      cell.borderColor = C.line; cell.borderWidth = 0.25;
-      cell.setPadding(2.5, 1, 0, 1);
+      cell.setPadding(padTop, 1, 0, 1);
       // 日期：靠左上；今天用主色实心圆
       const nr = cell.addStack();
       nr.size = new Size(0, numH);
@@ -229,16 +236,99 @@ function largeLayout(w, idx, offline) {
       }
       nr.addSpacer();
       cell.addSpacer(1);
-      const evs = idx[ds] || [];
-      const fit = evs.length <= maxChips ? evs.length : maxChips - 1;
-      for (let k = 0; k < fit; k++) { addChip(cell, evs[k], 0, chipH, 9, out); cell.addSpacer(gap); }
-      if (fit < evs.length) {
+      const o = lay.occ[c];
+      for (let k = 0; k < Math.min(lim[c], o.length); k++) {
+        if (o[k] && !o[k].bar) addChip(cell, o[k].e, 0, chipH, 9, out);
+        else cell.addSpacer(chipH); // 横条经过的位置留空
+        cell.addSpacer(gap);
+      }
+      const hidden = o.slice(lim[c]).filter(Boolean).length;
+      if (hidden) {
         const mr = cell.addStack(); mr.size = new Size(0, chipH - 2);
-        addText(mr, `+${evs.length - fit}`, Font.mediumSystemFont(7.5), C.text2); mr.addSpacer();
+        addText(mr, `+${hidden}`, Font.mediumSystemFont(7.5), C.text2); mr.addSpacer();
       }
       cell.addSpacer();
     }
+    addLine(grid, 0);
   }
+}
+
+// ---------- 跨天的全天事件：一周里连成一条横条 ----------
+const spans = e => e.days > 1 && !e.time;
+const endOf = e => { const [y, m, d] = e.date.split("-").map(Number); return ymd(new Date(y, m - 1, d + e.days - 1)); };
+// 排位：跨天事件先占上面几行（开始早、跨得长的在上），单天事件依次填进空位
+function layWeek(dss, idx) {
+  const evsBy = dss.map(ds => idx[ds] || []);
+  const multi = new Map();
+  evsBy.forEach((evs, c) => evs.forEach(e => {
+    if (!spans(e)) return;
+    const b = multi.get(e); if (b) b.c1 = c; else multi.set(e, { bar: true, e, c0: c, c1: c });
+  }));
+  const occ = dss.map(() => []);
+  const bars = [...multi.values()].sort((a, b) => (a.c0 - b.c0) || ((b.c1 - b.c0) - (a.c1 - a.c0)));
+  for (const b of bars) {
+    let s = 0; while (occ.slice(b.c0, b.c1 + 1).some(o => o[s])) s++;
+    b.s = s; for (let c = b.c0; c <= b.c1; c++) occ[c][s] = b;
+  }
+  evsBy.forEach((evs, c) => evs.forEach(e => { if (multi.has(e)) return; let s = 0; while (occ[c][s]) s++; occ[c][s] = { e }; }));
+  return { bars, occ };
+}
+// 横条在「+n」挡住的日子断开；延续到上一周 / 下一周的一端是平的
+function barSegments(lay, dss, lim, month) {
+  const out = [];
+  for (const b of lay.bars) {
+    for (let c = b.c0; c <= b.c1;) {
+      if (b.s >= lim[c]) { c++; continue; }
+      let d = c; while (d + 1 <= b.c1 && b.s < lim[d + 1]) d++;
+      const allOut = dss.slice(c, d + 1).every(ds => Number(ds.slice(5, 7)) - 1 !== month);
+      out.push({ e: b.e, s: b.s, a: c, b: d, ol: dss[c] !== b.e.date, or: dss[d] !== endOf(b.e), out: allOut });
+      c = d + 1;
+    }
+  }
+  return out;
+}
+// 只有一边圆角的矩形
+function barPath(x, y, w, h, r, ol, or) {
+  const p = new Path(), rl = ol ? 0 : r, rr = or ? 0 : r;
+  p.move(new Point(x + rl, y));
+  p.addLine(new Point(x + w - rr, y));
+  if (rr) p.addQuadCurve(new Point(x + w, y + rr), new Point(x + w, y));
+  p.addLine(new Point(x + w, y + h - rr));
+  if (rr) p.addQuadCurve(new Point(x + w - rr, y + h), new Point(x + w, y + h));
+  p.addLine(new Point(x + rl, y + h));
+  if (rl) p.addQuadCurve(new Point(x, y + h - rl), new Point(x, y + h));
+  p.addLine(new Point(x, y + rl));
+  if (rl) p.addQuadCurve(new Point(x + rl, y), new Point(x, y));
+  p.closeSubpath();
+  return p;
+}
+function barsImage(segs, W, H, cellX, cellW, top0, step, chipH) {
+  const dc = new DrawContext();
+  dc.size = new Size(W, H); dc.opaque = false; dc.respectScreenScale = true;
+  for (const g of segs) {
+    const e = g.e, x0 = cellX(g.a) + (g.ol ? 0 : 1), x1 = cellX(g.b) + cellW - (g.or ? 0 : 1), y = top0 + g.s * step;
+    const hx = PHEX[e.priority] || PHEX[0];
+    // 已完成：同色淡底 + 同色文字；整段都不在本月：变淡。都是半透明叠在小组件背景上，浅色深色都合适
+    dc.setFillColor(e.done ? hex(hx, 0.21) : hex(hx, g.out ? 0.5 : 1));
+    dc.addPath(barPath(x0, y, x1 - x0, chipH, 3, g.ol, g.or)); dc.fillPath();
+    let label = e.title;
+    if (e.done) label = Array.from(label).map(ch => ch + "\u0336").join("");
+    dc.setFont(Font.semiboldSystemFont(9));
+    dc.setTextColor(e.done ? hex(hx, g.out ? 0.45 : 0.75) : Color.white());
+    dc.drawTextInRect(label, new Rect(x0 + 3, y + 1, x1 - x0 - 5, chipH - 1));
+  }
+  return dc.getImage();
+}
+// 竖分隔线：横条穿过的那一段断开
+function sepLine(row, segs, c, top0, step, slots) {
+  const col = row.addStack();
+  col.layoutVertically();
+  col.size = new Size(0.5, 0);
+  const crossed = s => segs.some(g => g.s === s && g.a < c && g.b >= c);
+  const piece = (h, on) => { const p = col.addStack(); p.size = new Size(0.5, h); if (on) p.backgroundColor = C.line; };
+  piece(top0, true);
+  for (let s = 0; s < slots; s++) piece(step, !crossed(s));
+  const rest = col.addStack(); rest.size = new Size(0.5, 0); rest.backgroundColor = C.line; rest.layoutVertically(); rest.addSpacer();
 }
 
 // ---------- 中号：迷你月历 + 今日 ----------

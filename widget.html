@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>月历小组件</title>
 <style>
-  :root { --accent:#56789A; --p3:#E05A55; --p2:#E3A040; --p1:#4B82E8; --p4:#41B08F; --p0:#8D929B; }
+  :root { --accent:#56789A; --p3:#E05A55; --p2:#E3A040; --p1:#4B82E8; --p0:#8D929B; }
   :root[data-theme="dark"] { --accent:#6A8AAB; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#6A8AAB; } }
   :root, :root[data-theme="light"] { color-scheme:light; --bg:#F1F2F5; --line:#DEE0E6; --text:#1C1C1E; --text2:#86868C; --text3:#C3C3C8; --mix:20%; }
@@ -24,7 +24,7 @@
   .grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border-top:.5px solid var(--line); overflow:hidden; }
   .c { border-right:.5px solid var(--line); border-bottom:.5px solid var(--line); overflow:hidden; padding:2px 1px 0; min-width:0; }
   .c:nth-child(7n) { border-right:0; }
-  .c:nth-last-child(-n+7) { border-bottom:0; }
+  .c.last { border-bottom:0; } /* 最后一行（格子后面还跟着横条，不能用 nth-last-child） */
   .n { min-width:18px; height:18px; padding:0 3px; margin:2px 0 2px 3px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; }
   .out .n { color:var(--text3); } .out .chip { opacity:.55; }
   .today .n { background:var(--accent); color:#fff; font-weight:700; }
@@ -32,6 +32,12 @@
     white-space:nowrap; overflow:hidden; background:var(--c); color:#fff; }
   .chip.done { background:color-mix(in srgb, var(--c) var(--mix), transparent); color:color-mix(in srgb, var(--c) 72%, var(--text2)); text-decoration:line-through; }
   .more { font-size:8px; color:var(--text2); padding-left:2px; }
+  .chip.gap { visibility:hidden; }
+  /* 跨天的全天事件：作为网格里横跨几列的一项，叠在格子上面连成一条 */
+  .bar { z-index:1; align-self:start; pointer-events:none; margin:calc(24px + var(--s) * 15px) 2px 0; }
+  .bar.ol { margin-left:0; border-top-left-radius:0; border-bottom-left-radius:0; }
+  .bar.or { margin-right:0; border-top-right-radius:0; border-bottom-right-radius:0; }
+  .bar.out { opacity:.55; }
   .msg { margin:auto; text-align:center; font-size:13px; color:var(--text2); padding:16px; line-height:1.6; }
   .sr { display:flex; align-items:center; gap:8px; padding:6px 8px; margin:0 6px 4px; border-radius:10px; }
   .sr.live { background:color-mix(in srgb, var(--accent) 16%, transparent); }
@@ -51,8 +57,8 @@
   const WS = Number(q.get('ws') || 0) === 1 ? 1 : 0;
   const theme = q.get('theme');
   if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-  const COLORS = { 3:'var(--p3)', 2:'var(--p2)', 1:'var(--p1)', 4:'var(--p4)', 0:'var(--p0)' };
-  const RANK = p => ({ 3: 4, 2: 3, 1: 2, 4: 1 })[p] || 0;
+  const COLORS = { 3:'var(--p3)', 2:'var(--p2)', 1:'var(--p1)', 0:'var(--p0)' };
+  const RANK = p => (p >= 0 && p <= 3 ? p : 0);
   const WD = ['日','一','二','三','四','五','六'];
   const pad = n => String(n).padStart(2,'0');
   const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -108,17 +114,46 @@
     const gridH = window.innerHeight - 30;
     const rowH = gridH / rows;
     const max = Math.max(1, Math.floor((rowH - 24) / 15));
-    let cells = '';
-    for (let i = 0; i < rows * 7; i++) {
-      const d = new Date(y, m, 1 - off + i), ds = ymd(d);
-      const evs = by[ds] || [];
-      const fit = evs.length <= max ? evs.length : max - 1;
-      let chips = '';
-      for (let k = 0; k < fit; k++) { const mm = String(evs[k].title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/); const lb = mm ? `${mm[1].toUpperCase()} ${mm[2]}` : evs[k].title;
-        chips += `<div class="chip${evs[k].done ? ' done' : ''}" style="--c:${COLORS[evs[k].priority] || COLORS[0]}">${esc(lb)}</div>`; }
-      if (fit < evs.length) chips += `<div class="more">+${evs.length - fit}</div>`;
-      cells += `<div class="c${d.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}"><div class="n">${d.getDate()}</div>${chips}</div>`;
+    const label = e => { const mm = String(e.title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/); return mm ? `${mm[1].toUpperCase()} ${mm[2]}` : e.title; };
+    const chip = (e, cls = '', st = '') => `<div class="chip${cls}${e.done ? ' done' : ''}" style="--c:${COLORS[e.priority] || COLORS[0]}${st}">${esc(label(e))}</div>`;
+    const endOf = e => { const [a, b, c] = e.date.split('-').map(Number); return ymd(new Date(a, b - 1, c + e.days - 1)); };
+    let cells = '', bars = '';
+    for (let r = 0; r < rows; r++) {
+      // 一周的排位：跨天事件先占上面几行（开始早、跨得长的在上），单天事件填进空位
+      const days = [], evsBy = [];
+      for (let c = 0; c < 7; c++) { const d = new Date(y, m, 1 - off + r * 7 + c); days.push(d); evsBy.push(by[ymd(d)] || []); }
+      const multi = new Map();
+      evsBy.forEach((evs, c) => evs.forEach(e => { if (!(e.days > 1 && !e.time)) return; const b = multi.get(e); if (b) b.c1 = c; else multi.set(e, { e, c0: c, c1: c }); }));
+      const occ = days.map(() => []);
+      const list = [...multi.values()].sort((a, b) => (a.c0 - b.c0) || ((b.c1 - b.c0) - (a.c1 - a.c0)));
+      for (const b of list) {
+        let s = 0; while (occ.slice(b.c0, b.c1 + 1).some(o => o[s])) s++;
+        b.s = s; for (let c = b.c0; c <= b.c1; c++) occ[c][s] = b;
+      }
+      evsBy.forEach((evs, c) => evs.forEach(e => { if (multi.has(e)) return; let s = 0; while (occ[c][s]) s++; occ[c][s] = { e }; }));
+      const lim = occ.map(o => (o.length <= max ? o.length : max - 1));
+      for (let c = 0; c < 7; c++) {
+        const d = days[c], ds = ymd(d), o = occ[c];
+        let chips = '';
+        for (let s = 0; s < Math.min(lim[c], o.length); s++) chips += o[s] && !('s' in o[s]) ? chip(o[s].e) : '<div class="chip gap"></div>';
+        const hidden = o.slice(lim[c]).filter(Boolean).length;
+        if (hidden) chips += `<div class="more">+${hidden}</div>`;
+        // 格子显式摆放：否则自动排列会绕开横条占的位置，整个网格错位
+        cells += `<div class="c${d.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}${r === rows - 1 ? ' last' : ''}" style="grid-row:${r + 1};grid-column:${c + 1}"><div class="n">${d.getDate()}</div>${chips}</div>`;
+      }
+      // 横条：在「+n」挡住的日子断开，其余连成一整条；延续到上一周 / 下一周的一端是平的
+      for (const b of list) {
+        for (let c = b.c0; c <= b.c1;) {
+          if (b.s >= lim[c]) { c++; continue; }
+          let d = c; while (d + 1 <= b.c1 && b.s < lim[d + 1]) d++;
+          const out = days.slice(c, d + 1).every(x => x.getMonth() !== m);
+          bars += chip(b.e, ` bar${ymd(days[c]) !== b.e.date ? ' ol' : ''}${ymd(days[d]) !== endOf(b.e) ? ' or' : ''}${out ? ' out' : ''}`,
+            `;--s:${b.s};grid-row:${r + 1};grid-column:${c + 1} / span ${d - c + 1}`);
+          c = d + 1;
+        }
+      }
     }
+    cells += bars;
     let wd = '';
     for (let i = 0; i < 7; i++) wd += `<div>${WD[(i + WS) % 7]}</div>`;
     root.innerHTML = `<div class="head"><b>${m+1}月</b><span>${total ? `完成 ${done}/${total}` : '本月暂无事件'}</span></div>

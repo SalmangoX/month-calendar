@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.12.0';
+  MC.VERSION = '0.13.0';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -14,19 +14,9 @@
     { v: 3, name: '高', full: '高优先级', quad: '重要且紧急', roman: 'Ⅰ', color: 'var(--p3)' },
     { v: 2, name: '中', full: '中优先级', quad: '重要不紧急', roman: 'Ⅱ', color: 'var(--p2)' },
     { v: 1, name: '低', full: '低优先级', quad: '不重要但紧急', roman: 'Ⅲ', color: 'var(--p1)' },
-    // 绿色排在蓝色和灰色之间。数值用 4 是为了兼容旧数据（0–3 不变），排序看 rank
-    { v: 4, name: '最低', full: '最低优先级', quad: '不重要不紧急', roman: 'Ⅳ', color: 'var(--p4)' },
     { v: 0, name: '无', full: '无优先级', quad: '不重要不紧急', roman: 'Ⅳ', color: 'var(--p0)' },
   ];
-  MC.priOf = v => MC.PRI.find(p => p.v === v) || MC.PRI[MC.PRI.length - 1];
-  MC.rank = v => ({ 3: 4, 2: 3, 1: 2, 4: 1 })[v] || 0; // 高 > 中 > 低 > 最低（绿）> 无
-  // 四象限：最低（绿）和无优先级一起放在第 Ⅳ 象限
-  MC.QUADS = [
-    { roman: 'Ⅰ', name: '重要且紧急', pri: [3], color: 'var(--p3)' },
-    { roman: 'Ⅱ', name: '重要不紧急', pri: [2], color: 'var(--p2)' },
-    { roman: 'Ⅲ', name: '不重要但紧急', pri: [1], color: 'var(--p1)' },
-    { roman: 'Ⅳ', name: '不重要不紧急', pri: [4, 0], color: 'var(--p0)' },
-  ];
+  MC.priOf = v => MC.PRI.find(p => p.v === v) || MC.PRI[3];
 
   // ---------- 工具 ----------
   const pad = (MC.pad = n => String(n).padStart(2, '0'));
@@ -127,7 +117,7 @@
     const t = Date.now();
     return {
       id: e.id || MC.uid(), date: e.date, title: String(e.title || '').slice(0, 200),
-      priority: [0, 1, 2, 3, 4].includes(Number(e.priority)) ? Number(e.priority) : 0,
+      priority: [0, 1, 2, 3].includes(Number(e.priority)) ? Number(e.priority) : (Number(e.priority) === 4 && (MC.fixPri = true), 0), // 4 = 已取消的绿色优先级，改为无
       done: !!e.done, note: String(e.note || ''),
       time: /^\d{2}:\d{2}$/.test(e.time || '') ? e.time : '',
       endTime: /^\d{2}:\d{2}$/.test(e.endTime || '') && e.time ? e.endTime : '',
@@ -200,7 +190,7 @@
   MC.saveSettings = () => localStorage.setItem(SET_KEY, JSON.stringify(MC.settings));
   MC.saveSettings();
 
-  const cmp = (a, b) => (a.done - b.done) || (MC.rank(b.priority) - MC.rank(a.priority)) || ((a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0) || (a.createdAt - b.createdAt);
+  const cmp = (a, b) => (a.done - b.done) || (b.priority - a.priority) || ((a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0) || (a.createdAt - b.createdAt);
   MC.cmp = cmp;
   // 当前在日历页显示的是哪个日历（'' = 主日历）。每个日历的事件各自独立：
   // 日历页只显示当前日历；主日历还会带上打开了「在主日历显示」的记录日历；
@@ -497,7 +487,8 @@
       if (signature(merged) !== signature(MC.data)) {
         MC.data = merged; MC.saveData(); MC.reindex(); MC.onChange();
       }
-      if (!remote || signature(merged) !== signature(remote)) {
+      if (!remote || MC.fixPri || signature(merged) !== signature(remote)) {
+        MC.fixPri = false;
         const out = { ...merged, updatedAt: Date.now() };
         MC.dirty = false;
         await writeGist(out);

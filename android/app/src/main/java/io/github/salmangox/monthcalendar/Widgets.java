@@ -39,11 +39,11 @@ final class Widgets {
     /** 不在本月的日期：半透明灰，浅色和深色背景上都合适 */
     private static final int DIM = 0x80888890;
     private static final int[] PALETTE = {0xFF5D7895, 0xFF5F9479, 0xFFC38F45, 0xFFBE6662, 0xFF86769F, 0xFF4E8C92, 0xFF6170A3, 0xFF9A7B5C};
-    private static final int[] CHIP = {R.drawable.chip_p0, R.drawable.chip_p1, R.drawable.chip_p2, R.drawable.chip_p3, R.drawable.chip_p4};
-    private static final int[] SOFT = {R.drawable.chip_p0_soft, R.drawable.chip_p1_soft, R.drawable.chip_p2_soft, R.drawable.chip_p3_soft, R.drawable.chip_p4_soft};
-    private static final int[] DOT = {R.drawable.dot_p0, R.drawable.dot_p1, R.drawable.dot_p2, R.drawable.dot_p3, R.drawable.dot_p4};
-    private static final int[] BAR = {R.drawable.bar_p0, R.drawable.bar_p1, R.drawable.bar_p2, R.drawable.bar_p3, R.drawable.bar_p4};
-    private static final int[] PCOL = {R.color.p0, R.color.p1, R.color.p2, R.color.p3, R.color.p4}; // 下标 = 优先级数值，4 = 最低（绿）
+    private static final int[] CHIP = {R.drawable.chip_p0, R.drawable.chip_p1, R.drawable.chip_p2, R.drawable.chip_p3};
+    private static final int[] SOFT = {R.drawable.chip_p0_soft, R.drawable.chip_p1_soft, R.drawable.chip_p2_soft, R.drawable.chip_p3_soft};
+    private static final int[] DOT = {R.drawable.dot_p0, R.drawable.dot_p1, R.drawable.dot_p2, R.drawable.dot_p3};
+    private static final int[] BAR = {R.drawable.bar_p0, R.drawable.bar_p1, R.drawable.bar_p2, R.drawable.bar_p3};
+    private static final int[] PCOL = {R.color.p0, R.color.p1, R.color.p2, R.color.p3};
 
     private Widgets() { }
 
@@ -63,7 +63,7 @@ final class Widgets {
     }
 
     // ---------- 资源 id（42 个格子，按名字查一次后缓存） ----------
-    private static int[] N, CELL, MORE, DOTS, WDAY;
+    private static int[] N, CELL, MORE, DOTS, WDAY, BARS;
     private static int[][] EV, OD;
 
     private static synchronized void ids(Context c) {
@@ -83,6 +83,8 @@ final class Widgets {
             }
         }
         for (int k = 0; k < 7; k++) WDAY[k] = r.getIdentifier("wd" + k, "id", pkg);
+        BARS = new int[6];
+        for (int k = 0; k < 6; k++) BARS[k] = r.getIdentifier("b" + k, "id", pkg);
     }
 
     // ---------- 整月 ----------
@@ -108,14 +110,17 @@ final class Widgets {
         }
         if (sizes.isEmpty()) {
             int h = opts == null ? 0 : opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0);
-            return monthViews(c, id, capacity(h > 0 ? h : 300));
+            int w = opts == null ? 0 : opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
+            return monthViews(c, id, capacity(h > 0 ? h : 300), w > 0 ? w : 320);
         }
-        Map<Integer, RemoteViews> byCap = new HashMap<>();
+        // 跨天横条要按实际宽度画，所以按「每格条数 + 宽度」分别生成
+        Map<String, RemoteViews> byCap = new HashMap<>();
         Map<SizeF, RemoteViews> map = new HashMap<>();
         for (SizeF s : sizes) {
             int cap = capacity(s.getHeight());
-            RemoteViews rv = byCap.get(cap);
-            if (rv == null) { rv = monthViews(c, id, cap); byCap.put(cap, rv); }
+            String key = cap + "x" + Math.round(s.getWidth());
+            RemoteViews rv = byCap.get(key);
+            if (rv == null) { rv = monthViews(c, id, cap, s.getWidth()); byCap.put(key, rv); }
             map.put(s, rv);
         }
         if (byCap.size() == 1) return byCap.values().iterator().next();
@@ -131,7 +136,7 @@ final class Widgets {
         return room >= 7 ? 0 : -1;
     }
 
-    private static RemoteViews monthViews(Context c, int id, int cap) {
+    private static RemoteViews monthViews(Context c, int id, int cap, float widthDp) {
         RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_month);
         Data d = Store.data(c);
         int ws = Store.prefs(c).getInt("weekStart", 0) == 1 ? 1 : 0;
@@ -158,15 +163,8 @@ final class Widgets {
                 rv.setTextColor(N[i], DIM);
             }
             List<Data.Event> evs = d.on(day);
-            if (evs.isEmpty()) continue;
-            if (cap >= 1) {
-                int show = evs.size() > cap ? cap - 1 : evs.size();
-                for (int k = 0; k < show; k++) chip(c, rv, EV[i][k], evs.get(k), in);
-                if (evs.size() > cap) {
-                    rv.setViewVisibility(MORE[i], android.view.View.VISIBLE);
-                    rv.setTextViewText(MORE[i], "+" + (evs.size() - show));
-                }
-            } else if (cap == 0) {
+            if (evs.isEmpty() || cap >= 1) continue; // 有色条时按周排位，见下面
+            if (cap == 0) {
                 int k = 0;
                 for (Data.Event e : evs) {
                     if (e.done || k >= 3) continue;
@@ -178,11 +176,95 @@ final class Widgets {
             }
         }
 
+        // 色条：按周排位。跨天的全天事件画成一整条横条（盖在格子上面，跨过格子之间的线），单天事件放进自己那一行
+        if (cap >= 1) {
+            for (int r = 0; r < 6; r++) {
+                List<List<Data.Event>> evsBy = new ArrayList<>();
+                for (int k = 0; k < 7; k++) evsBy.add(d.on(start.plusDays(r * 7 + k)));
+                WeekLanes<Data.Event> lay = WeekLanes.lay(evsBy, e -> e.days > 1 && e.time.isEmpty(), Data.ORDER);
+                int[] lim = new int[7];
+                for (int k = 0; k < 7; k++) {
+                    int i = r * 7 + k;
+                    List<Object> o = lay.occ.get(k);
+                    lim[k] = o.size() <= cap ? o.size() : cap - 1;
+                    boolean in = start.plusDays(i).getMonthValue() == ym.getMonthValue();
+                    for (int s = 0; s < lim[k]; s++) {
+                        Object it = o.get(s);
+                        if (it == null || WeekLanes.isBar(it)) rv.setViewVisibility(EV[i][s], android.view.View.INVISIBLE); // 占位，让下面的事件和横条对齐
+                        else chip(c, rv, EV[i][s], (Data.Event) it, in);
+                    }
+                    int hidden = 0;
+                    for (int s = lim[k]; s < o.size(); s++) if (o.get(s) != null) hidden++;
+                    if (hidden > 0) {
+                        rv.setViewVisibility(MORE[i], android.view.View.VISIBLE);
+                        rv.setTextViewText(MORE[i], "+" + hidden);
+                    }
+                }
+                final LocalDate wk0 = start.plusDays(r * 7L);
+                List<WeekLanes.Seg<Data.Event>> segs = lay.segments(lim,
+                        (e, col) -> e.date.equals(wk0.plusDays(col)), (e, col) -> e.end().equals(wk0.plusDays(col)));
+                if (segs.isEmpty()) continue;
+                int lanes = 0;
+                for (WeekLanes.Seg<Data.Event> g : segs) lanes = Math.max(lanes, g.slot + 1);
+                rv.setImageViewBitmap(BARS[r], barsBitmap(c, segs, widthDp, lanes, wk0, ym));
+                rv.setViewLayoutHeight(BARS[r], lanes * SLOT_DP - 1f, android.util.TypedValue.COMPLEX_UNIT_DIP);
+                rv.setViewVisibility(BARS[r], android.view.View.VISIBLE);
+            }
+        }
+
         rv.setOnClickPendingIntent(android.R.id.background, Engine.openApp(c, "", 100 + id));
         rv.setOnClickPendingIntent(R.id.m_prev, action(c, id, ACT_PREV, 1));
         rv.setOnClickPendingIntent(R.id.m_next, action(c, id, ACT_NEXT, 2));
         rv.setOnClickPendingIntent(R.id.m_today, action(c, id, ACT_HOME, 3));
         return rv;
+    }
+
+    /** 格子里一行的高度：色条 13.5dp + 上间距 1dp（与 widget_month.xml 一致） */
+    private static final float SLOT_DP = 14.5f;
+
+    /**
+     * 一周的跨天横条画成一张透明图：和格子里的色条同样的颜色、圆角、字号；
+     * 延续到上一周 / 下一周的一端是平的。图片宽度 = 小组件宽度，7 等分对应 7 个格子。
+     */
+    private static Bitmap barsBitmap(Context c, List<WeekLanes.Seg<Data.Event>> segs, float widthDp, int lanes, LocalDate wk0, YearMonth ym) {
+        // 最多按 2.5 倍画：折叠屏内屏很宽、又有好几种尺寸，太大的图会超过小组件的内存上限
+        float sc = Math.min(2.5f, c.getResources().getDisplayMetrics().density);
+        int W = Math.max(1, Math.round(widthDp * sc)), H = Math.max(1, Math.round((lanes * SLOT_DP - 1f) * sc));
+        Bitmap bm = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
+        Canvas cv = new Canvas(bm);
+        cv.scale(sc, sc);
+        float cw = widthDp / 7f, h = 13.5f, rad = 3.5f;
+        Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+        text.setTextSize(9f);
+        text.setTypeface(Typeface.DEFAULT_BOLD);
+        Paint.FontMetrics fm = text.getFontMetrics();
+        int[] soft = {R.color.p0_soft, R.color.p1_soft, R.color.p2_soft, R.color.p3_soft};
+        for (WeekLanes.Seg<Data.Event> g : segs) {
+            Data.Event e = g.e;
+            boolean out = true; // 整段都不在本月：和格子里的色条一样变淡
+            for (int k = g.a; k <= g.b; k++) if (wk0.plusDays(k).getMonthValue() == ym.getMonthValue()) { out = false; break; }
+            boolean softy = e.done || out;
+            float x0 = g.a * cw + (g.openL ? 0 : 1), x1 = (g.b + 1) * cw - (g.openR ? 0 : 1), y = g.slot * SLOT_DP;
+            fill.setColor(c.getColor(softy ? soft[e.priority] : PCOL[e.priority]));
+            cv.drawPath(barPath(x0, y, x1 - x0, h, rad, g.openL, g.openR), fill);
+            text.setColor(softy ? c.getColor(PCOL[e.priority]) : WHITE);
+            text.setStrikeThruText(e.done);
+            cv.save();
+            cv.clipRect(x0 + 1.5f, y, x1 - 1f, y + h);
+            String title = e.title.isEmpty() ? "（无标题）" : e.title;
+            cv.drawText(title, x0 + 2.5f, y + h / 2f - (fm.ascent + fm.descent) / 2f, text);
+            cv.restore();
+        }
+        return bm;
+    }
+
+    /** 只在没有延续的一端做圆角 */
+    private static android.graphics.Path barPath(float x, float y, float w, float h, float r, boolean openL, boolean openR) {
+        float rl = openL ? 0 : r, rr = openR ? 0 : r;
+        android.graphics.Path p = new android.graphics.Path();
+        p.addRoundRect(new RectF(x, y, x + w, y + h), new float[]{rl, rl, rr, rr, rr, rr, rl, rl}, android.graphics.Path.Direction.CW);
+        return p;
     }
 
     private static void chip(Context c, RemoteViews rv, int vid, Data.Event e, boolean inMonth) {

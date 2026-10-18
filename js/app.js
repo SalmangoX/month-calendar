@@ -221,11 +221,11 @@
     const showDone = !!MC.settings.quadShowDone;
     $('#btnQuadDone').classList.toggle('on', showDone);
     $('#btnQuadDone').textContent = showDone ? '隐藏已完成' : '显示已完成';
-    $('#quadBody').innerHTML = MC.QUADS.map(p => {
-      const list = MC.mainEvents().filter(e => p.pri.includes(e.priority) && (showDone || !e.done))
-        .sort((a, b) => (a.done - b.done) || (MC.rank(b.priority) - MC.rank(a.priority)) || a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
+    $('#quadBody').innerHTML = MC.PRI.map(p => {
+      const list = MC.mainEvents().filter(e => e.priority === p.v && (showDone || !e.done))
+        .sort((a, b) => (a.done - b.done) || a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
       return `<div class="qcard glass-panel" style="--c:${p.color}">
-        <div class="qhead"><span class="roman">${p.roman}</span>${p.name}<span class="cnt">${list.length || ''}</span></div>
+        <div class="qhead"><span class="roman">${p.roman}</span>${p.quad}<span class="cnt">${list.length || ''}</span></div>
         ${list.length ? `<ul class="qlist">${list.map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>` : `<div class="qempty">没有事件</div>`}
       </div>`;
     }).join('');

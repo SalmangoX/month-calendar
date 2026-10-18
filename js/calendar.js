@@ -427,12 +427,15 @@
     preview.addEventListener('click', e => { if (swallow) { swallow = false; e.stopPropagation(); e.preventDefault(); } }, true);
   })();
 
+  // 只在点选的那一下播放玻璃盖落下的动画（滚动、刷新时重新渲染不播）
+  const popGlass = () => track.querySelectorAll('.sel').forEach(c => { c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); });
   function select(ds) {
     if (ds === selected && previewOpen) { previewOpen = false; render(); return; }
     selected = ds;
-    if (!previewOpen) { previewOpen = true; render(); return; }
-    track.querySelectorAll('.sel').forEach(c => c.classList.remove('sel'));
+    if (!previewOpen) { previewOpen = true; render(); popGlass(); return; }
+    track.querySelectorAll('.sel').forEach(c => c.classList.remove('sel', 'pop'));
     track.querySelectorAll(`[data-date="${ds}"]`).forEach(c => c.classList.add('sel'));
+    popGlass();
     renderPreview();
   }
   Cal.select = ds => { selected = ds; };
