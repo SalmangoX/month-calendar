@@ -265,7 +265,7 @@ function largeLayout(w, idx, offline) {
       }
       if (!maxChips && hidden[c]) { nr.addSpacer(2); addText(nr, `+${hidden[c]}`, Font.mediumSystemFont(7.5), C.text2); }
       nr.addSpacer();
-      cell.addSpacer();
+      // 不要在固定高度的格子里放 addSpacer()：它最少占 8pt，会把日期圆圈压扁
     }
     // 事件行
     for (let k = 0; k < lanes; k++) {
@@ -277,12 +277,12 @@ function largeLayout(w, idx, offline) {
         const cell = box(lb, colW, STEP);
         cell.setPadding(0, 1, 0, 1);
         const o = lay.occ[c][k], out = wk[c].getMonth() !== m;
+        cell.topAlignContent();
         if (k < lim[c] && o && !o.bar) addChip(cell, o.e, 0, chipH, 9, out);
         else if (k === lim[c] && hidden[c]) {
           const mr = cell.addStack(); mr.size = new Size(0, chipH - 2);
           addText(mr, `+${hidden[c]}`, Font.mediumSystemFont(7.5), C.text2); mr.addSpacer();
         }
-        cell.addSpacer();
         c++;
       }
     }
@@ -305,7 +305,7 @@ function addBar(parent, g, width) {
   const bar = outer.addStack();
   bar.size = new Size(width, h);
   bar.setPadding(0, g.ol ? 0 : 1, 0, g.or ? 0 : 1);
-  outer.addSpacer();
+  outer.topAlignContent(); // 不用 addSpacer()（最少 8pt，会把横条压扁）
   const flat = () => { const f = bar.addStack(); f.size = new Size(R + 1, h); f.backgroundColor = bg; };
   if (g.ol !== g.or) bar.spacing = -R; // 平的一段和圆角段重叠 R，盖住圆角那一侧
   if (g.ol && !g.or) flat();

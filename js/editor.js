@@ -234,14 +234,8 @@
       UI.toast('已保存');
       return;
     }
-    let dates = [draft.date], rep = null;
-    if (draft.repeat && draft.repeat !== 'none') {
-      const forever = !draft.until; // 不设「直到」= 一直重复（先生成一段，之后自动续上）
-      dates = MC.repeatDates(draft.date, draft.repeat, draft.until || MC.ymd(MC.addDays(new Date(), MC.HORIZON[draft.repeat] || 730)));
-      rep = { freq: draft.repeat, forever };
-    }
-    const series = rep ? MC.uid() : '';
-    MC.addEvents(dates.map(ds => MC.makeEvent({ ...fields, cal: newCal, date: ds, series, rep, id: series ? `${series}-${ds}` : MC.uid() })));
+    const { dates, rep, events } = buildEvents(fields, draft.repeat, draft.until);
+    MC.addEvents(events);
     const quiet = draft.remind !== null && draft.remind !== undefined && newCal && !MC.notifies({ cal: newCal });
     UI.toast((rep ? (rep.forever ? `已添加，${MC.repeatLabel(rep.freq)}重复` : `已添加 ${dates.length} 个重复事件`) : `已添加到${MC.dayDiff(draft.date) === 0 ? '今天' : ' ' + MC.dateLabel(draft.date)}`)
       + (quiet ? `。「${MC.cal(newCal).name}」的通知没有打开，不会提醒` : ''));
@@ -513,9 +507,29 @@
     else if (act === 'clear') { pk.time = ''; pk.endTime = ''; pk.days = 1; pk.remind = null; pk.repeat = 'none'; pk.until = ''; pk.expanded = null; renderPicker(); }
   });
 
+  // 按重复规则生成一个或一串事件（单个添加和批量添加共用）
+  function buildEvents(fields, repeat, until) {
+    let dates = [fields.date], rep = null;
+    if (repeat && repeat !== 'none') {
+      const forever = !until; // 不设「直到」= 一直重复（先生成一段，之后自动续上）
+      dates = MC.repeatDates(fields.date, repeat, until || MC.ymd(MC.addDays(new Date(), MC.HORIZON[repeat] || 730)));
+      rep = { freq: repeat, forever };
+    }
+    const series = rep ? MC.uid() : '';
+    return { dates, rep, events: dates.map(ds => MC.makeEvent({ ...fields, cal: newCal, date: ds, series, rep, id: series ? `${series}-${ds}` : MC.uid() })) };
+  }
+
   // ======================= 批量添加 =======================
   let rows = [];
-  const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, date, ...extra });
+  const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', ...extra });
+  // 行里日期按钮上的摘要：日期 + 时间，有提醒 / 重复时各加一个小图标
+  const I_BELL = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="有提醒"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
+  const I_REP = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="重复"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"/></svg>';
+  const whenHTML = r => {
+    const d = MC.dayDiff(r.date) === 0 ? '今天' : MC.dateLabel(r.date);
+    const t = r.time ? ` ${esc(MC.fmtTime(r.time))}` : r.days > 1 ? ` · ${r.days} 天` : '';
+    return `<span>${esc(d)}${t}</span>${r.remind !== null && r.remind !== undefined ? I_BELL : ''}${r.repeat && r.repeat !== 'none' ? I_REP : ''}`;
+  };
   function openBatch() {
     const t = $('#cmpTitle').value.trim(), n = $('#cmpNote').value.trim();
     rows = [blankRow(draft.date, { title: t, note: n, priority: draft.priority }), blankRow(draft.date), blankRow(draft.date)];
@@ -534,7 +548,7 @@
         </div>
         <div class="b-tools">
           <button class="tool icon-tool glass" data-act="flag" aria-label="优先级"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M6 21V4h11l-2.2 4.2L17 12.5H6"/></svg></button>
-          <button class="tool date-tool glass" data-act="date">${MC.dayDiff(r.date) === 0 ? '今天' : MC.dateLabel(r.date)}</button>
+          <button class="tool date-tool glass" data-act="date" aria-label="日期、时间、提醒与重复">${whenHTML(r)}</button>
           <input class="b-note" value="${esc(r.note)}" placeholder="备注（选填）">
         </div>
       </div>`).join('');
@@ -574,7 +588,8 @@
     else if (a.dataset.act === 'flag') UI.menu(a, UI.priMenuItems(r.priority), v => { r.priority = v; paintFlag(a, v); });
     else if (a.dataset.act === 'date') {
       document.activeElement && document.activeElement.blur();
-      Editor.openPicker({ date: r.date, dateOnly: true }, s => { r.date = s.date; a.textContent = MC.dayDiff(r.date) === 0 ? '今天' : MC.dateLabel(r.date); });
+      // 和单个添加一样的完整选择：日期、时间段、多天、提醒、重复
+      Editor.openPicker({ ...r, allowRepeat: true }, s => { Object.assign(r, s); a.innerHTML = whenHTML(r); });
     }
   });
   function addRow() {
@@ -595,11 +610,19 @@
     if (bad >= 0) { UI.toast(`第 ${bad + 1} 行缺少名称`); return; }
     const valid = rows.filter(r => r.title.trim());
     if (!valid.length) { UI.toast('至少填写一个名称'); return; }
-    MC.addEvents(valid.map(r => MC.newEvent({ title: r.title.trim(), note: r.note.trim(), priority: r.priority, date: r.date, cal: newCal })));
+    let all = [], repeated = 0;
+    for (const r of valid) {
+      const fields = { title: r.title.trim(), note: r.note.trim(), priority: r.priority, date: r.date, days: r.time ? 1 : (r.days || 1), time: r.time, endTime: r.endTime, remind: r.remind };
+      const b = buildEvents(fields, r.repeat, r.until);
+      if (b.rep) repeated++;
+      all = all.concat(b.events);
+    }
+    MC.addEvents(all);
+    const quiet = newCal && !MC.notifies({ cal: newCal }) && valid.some(r => r.remind !== null && r.remind !== undefined);
     UI.close('batchSheet');
     localStorage.removeItem(DRAFT_KEY);
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';
     if (UI.isOpen('composer')) closeComposer(false);
-    UI.toast(`已添加 ${valid.length} 个事件`);
+    UI.toast(`已添加 ${valid.length} 个事件${repeated ? `，其中 ${repeated} 个会重复` : ''}` + (quiet ? `。「${MC.cal(newCal).name}」的通知没有打开，不会提醒` : ''));
   };
 })();
