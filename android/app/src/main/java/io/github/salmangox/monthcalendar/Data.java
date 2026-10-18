@@ -13,10 +13,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -32,7 +34,7 @@ final class Data {
 
     static final class Event {
         String id = "", title = "", note = "", time = "", endTime = "";
-        String cal = ""; // 所属日历：空 = 主日历；其余是特殊记录日历（小组件不显示，提醒照常）
+        String cal = ""; // 所属日历：空 = 主日历；其余是特殊记录日历
         LocalDate date;
         int priority, days = 1;
         boolean done, hasRemind;
@@ -68,6 +70,13 @@ final class Data {
     LocalTime dailyTime = LocalTime.of(13, 0);
     int version;
     private final Map<LocalDate, List<Event>> byDate = new HashMap<>();
+    /** 打开了「在主日历显示」的记录日历（小组件里和主日历一起显示） */
+    final Set<String> shownCals = new HashSet<>();
+    /** 打开了「通知」的记录日历 */
+    final Set<String> notifyCals = new HashSet<>();
+
+    /** 这个事件到点要不要提醒：主日历永远提醒，记录日历看自己的开关 */
+    boolean notifies(Event e) { return e.cal.isEmpty() || notifyCals.contains(e.cal); }
 
     // ---------- 解析 ----------
     static JSONObject obj(String s) {
@@ -85,6 +94,17 @@ final class Data {
             for (int i = 0; i < ev.length(); i++) {
                 Event x = event(ev.optJSONObject(i));
                 if (x != null) d.events.add(x);
+            }
+        }
+        JSONArray cals = o.optJSONArray("cals");
+        if (cals != null) {
+            for (int i = 0; i < cals.length(); i++) {
+                JSONObject c = cals.optJSONObject(i);
+                if (c == null) continue;
+                String id = c.optString("id");
+                if (id.isEmpty()) continue;
+                if (c.optBoolean("showInMain")) d.shownCals.add(id);
+                if (c.optBoolean("notify")) d.notifyCals.add(id);
             }
         }
         JSONObject daily = o.optJSONObject("daily");
@@ -171,7 +191,7 @@ final class Data {
 
     private void index() {
         for (Event e : events) {
-            if (!e.cal.isEmpty()) continue; // 小组件和每日提醒只看主日历
+            if (!e.cal.isEmpty() && !shownCals.contains(e.cal)) continue; // 小组件 = 主日历（加上设为在主日历显示的记录日历）
             for (int k = 0; k < e.days; k++) { // 多天的全天事件出现在跨越的每一天
                 byDate.computeIfAbsent(e.date.plusDays(k), x -> new ArrayList<>()).add(e);
             }

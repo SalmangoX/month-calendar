@@ -55,7 +55,7 @@ final class Engine {
         if (sent == null) sent = new JSONObject();
         if (notifyOn && canNotify(c)) {
             for (Data.Event e : d.events) {
-                if (e.done) continue;
+                if (e.done || !d.notifies(e)) continue;
                 long ft = Data.fireTime(e, z);
                 if (ft <= from || ft > now) continue;
                 String key = e.id + "@" + ft;
@@ -84,7 +84,7 @@ final class Engine {
         long next = today.plusDays(1).atStartOfDay(z).toInstant().toEpochMilli() + 2000; // 午夜换日
         if (notifyOn) {
             for (Data.Event e : d.events) {
-                if (e.done) continue;
+                if (e.done || !d.notifies(e)) continue;
                 long ft = Data.fireTime(e, z);
                 if (ft > now && ft < next) next = ft;
             }
@@ -198,7 +198,7 @@ final class Engine {
 
     private static void showDaily(Context c, Data d, LocalDate day) {
         int open = 0;
-        for (Data.Event e : d.on(day)) if (!e.done) open++;
+        for (Data.Event e : d.on(day)) if (!e.done && e.cal.isEmpty()) open++; // 每日提醒只数主日历的待办
         String title = open > 0 ? "查看今日未完成事件" : "今日事件已完成";
         String body = open > 0 ? "今天还有 " + open + " 件事未完成，点开查看。" : "今天的事件都完成了。";
         Notification n = builder(c, CH_DAILY)
