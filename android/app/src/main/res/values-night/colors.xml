@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="accent">#8E9DCA</color>
+    <color name="accent">#8BA8DE</color>
     <color name="app_bg">#050608</color>
     <color name="w_bg">#1B1C21</color>
     <color name="w_line">#292A2F</color>
     <color name="w_text">#EEEEF1</color>
     <color name="w_text2">#8C8E97</color>
-    <color name="w_live">#3D8E9DCA</color>
+    <color name="w_live">#3D8BA8DE</color>
     <color name="p3_soft">#4DD9453E</color>
     <color name="p2_soft">#4DD88018</color>
     <color name="p1_soft">#4D3C7DC2</color>
@@ -20,5 +20,5 @@
     <color name="chip_p0">#383B3F</color>
 
     <!-- 今天格子的淡主色底（浅色 12%、深色 20%，和应用里选中日期一致） -->
-    <color name="w_today">#338E9DCA</color>
+    <color name="w_today">#338BA8DE</color>
 </resources>

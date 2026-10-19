@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 与网页 styles.css / widget.html 相同的配色 -->
-    <color name="accent">#52618E</color>
-    <color name="app_bg">#F8F7F4</color>
-    <color name="w_bg">#F4F2EF</color>
-    <color name="w_line">#E2E0DD</color>
-    <color name="w_text">#1B1D22</color>
-    <color name="w_text2">#84868E</color>
-    <color name="w_live">#2952618E</color>
+    <color name="accent">#4C6EAC</color>
+    <color name="app_bg">#F7FAFC</color>
+    <color name="w_bg">#ECF2F5</color>
+    <color name="w_line">#DAE1E5</color>
+    <color name="w_text">#171B20</color>
+    <color name="w_text2">#747B83</color>
+    <color name="w_live">#294C6EAC</color>
     <color name="p3">#D9453E</color>
     <color name="p2">#D88018</color>
     <color name="p1">#3C7DC2</color>
@@ -28,5 +28,5 @@
     <color name="chip_p0">#979CA2</color>
 
     <!-- 今天格子的淡主色底（浅色 12%、深色 20%，和应用里选中日期一致） -->
-    <color name="w_today">#1F52618E</color>
+    <color name="w_today">#1F4C6EAC</color>
 </resources>

@@ -192,7 +192,7 @@ final class Widgets {
                 for (int k = 0; k < 7; k++) {
                     int i = r * 7 + k;
                     List<Object> o = lay.occ.get(k);
-                    lim[k] = o.size() <= cap ? o.size() : cap - 1;
+                    lim[k] = Math.min(o.size(), cap); // 「+n」放在日期右边，事件行全部留给事件
                     boolean in = start.plusDays(i).getMonthValue() == ym.getMonthValue();
                     for (int s = 0; s < lim[k]; s++) {
                         Object it = o.get(s);
@@ -559,7 +559,7 @@ final class Widgets {
             List<Data.Course> l = new ArrayList<>();
             for (Data.Course co : d.courses) if (co.on(day)) l.add(co);
             if (l.isEmpty()) continue;
-            int show = l.size() > perCell ? perCell - 1 : l.size();
+            int show = Math.min(l.size(), perCell); // 「+n」在日期右边，不占事件行
             for (int k = 0; k < Math.min(show, 3); k++) {
                 Data.Course co = l.get(k);
                 rv.setViewVisibility(EV[i][k], android.view.View.VISIBLE);
@@ -602,7 +602,7 @@ final class Widgets {
         Canvas cv = new Canvas(bm);
         boolean dark = (c.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
         int text = c.getColor(R.color.w_text), text2 = c.getColor(R.color.w_text2), line = c.getColor(R.color.w_line), accent = c.getColor(R.color.accent);
-        int bg = dark ? 0xFF1B1C21 : 0xFFF4F2EF;
+        int bg = dark ? 0xFF1B1C21 : 0xFFECF2F5;
 
         Data d = Store.data(c);
         LocalDate today = LocalDate.now(ZoneId.systemDefault());

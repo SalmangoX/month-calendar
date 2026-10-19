@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>节律小组件</title>
 <style>
-  :root { --accent:#52618E; --p3:#D9453E; --p2:#D88018; --p1:#3C7DC2; --p0:#979CA2;
+  :root { --accent:#4C6EAC; --p3:#D9453E; --p2:#D88018; --p1:#3C7DC2; --p0:#979CA2;
     --p3f:#AC312C; --p3i:#FFE2DE; --p2f:#BB6800; --p2i:#FCE5D3; --p1f:#255593; --p1i:#DDEBFD; --p0f:#383B3F; --p0i:#E8E9EB; }
-  :root[data-theme="dark"] { --accent:#8E9DCA; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#8E9DCA; } }
-  :root, :root[data-theme="light"] { color-scheme:light; --bg:#F4F2EF; --line:#E2E0DD; --text:#1B1D22; --text2:#84868E; --text3:#C5C3C0; --mix:20%;
+  :root[data-theme="dark"] { --accent:#8BA8DE; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#8BA8DE; } }
+  :root, :root[data-theme="light"] { color-scheme:light; --bg:#ECF2F5; --line:#DAE1E5; --text:#171B20; --text2:#747B83; --text3:#B9BFC3; --mix:20%;
     --chip-weight:600; }
   .chip { --chip-bg:var(--c); --chip-fg:#fff; }
   @media (prefers-color-scheme: dark) {
@@ -43,9 +43,13 @@
   .more { font-size:8px; color:var(--text2); padding-left:2px; }
   .chip.gap { visibility:hidden; }
   /* 今天：整格叠一层淡主色；还有放不下的事件时，「+n」用主色小标签 */
-  .c.today { background:color-mix(in srgb, var(--accent) 12%, transparent); }
-  :root[data-theme="dark"] .c.today { background:color-mix(in srgb, var(--accent) 20%, transparent); }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .c.today { background:color-mix(in srgb, var(--accent) 20%, transparent); } }
+  /* 今天：一块带小圆角的淡主色，四周留一点边 */
+  .c { position:relative; }
+  .c.today::before { content:''; position:absolute; inset:1.5px 1.5px 2px; border-radius:4px; background:color-mix(in srgb, var(--accent) 12%, transparent); pointer-events:none; }
+  :root[data-theme="dark"] .c.today::before { background:color-mix(in srgb, var(--accent) 20%, transparent); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .c.today::before { background:color-mix(in srgb, var(--accent) 20%, transparent); } }
+  .c > * { position:relative; }
+  .nr { display:flex; align-items:center; justify-content:space-between; padding-right:2px; }
   .c.today .more { display:inline-block; color:#fff; background:var(--accent); border-radius:4px; padding:0 3px; font-weight:700; margin-left:2px; }
   /* 跨天的全天事件：作为网格里横跨几列的一项，叠在格子上面连成一条 */
   .bar { z-index:1; align-self:start; pointer-events:none; margin:calc(24px + var(--s) * 15px) 2px 0; }
@@ -149,15 +153,15 @@
         b.s = s; for (let c = b.c0; c <= b.c1; c++) occ[c][s] = b;
       }
       evsBy.forEach((evs, c) => evs.forEach(e => { if (multi.has(e)) return; let s = 0; while (occ[c][s]) s++; occ[c][s] = { e }; }));
-      const lim = occ.map(o => (o.length <= max ? o.length : max - 1));
+      const lim = occ.map(o => Math.min(o.length, max)); // 「+n」放在日期右边，事件行全部留给事件
       for (let c = 0; c < 7; c++) {
         const d = days[c], ds = ymd(d), o = occ[c];
         let chips = '';
         for (let s = 0; s < Math.min(lim[c], o.length); s++) chips += o[s] && !('s' in o[s]) ? chip(o[s].e) : '<div class="chip gap"></div>';
         const hidden = o.slice(lim[c]).filter(Boolean).length;
-        if (hidden) chips += `<div class="more">+${hidden}</div>`;
+
         // 格子显式摆放：否则自动排列会绕开横条占的位置，整个网格错位
-        cells += `<div class="c${d.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}${r === rows - 1 ? ' last' : ''}" style="grid-row:${r + 1};grid-column:${c + 1}"><div class="n">${d.getDate()}</div>${chips}</div>`;
+        cells += `<div class="c${d.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}${r === rows - 1 ? ' last' : ''}" style="grid-row:${r + 1};grid-column:${c + 1}"><div class="nr"><div class="n">${d.getDate()}</div>${hidden ? `<span class="more">+${hidden}</span>` : ''}</div>${chips}</div>`;
       }
       // 横条：在「+n」挡住的日子断开，其余连成一整条；延续到上一周 / 下一周的一端是平的
       for (const b of list) {

@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.20.0';
+  MC.VERSION = '0.21.0';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -54,7 +54,7 @@
   MC.suggestCalColor = (used = []) => {
     const lab = h => { const [L, C, H] = toOklch(h); return [L, C * Math.cos(H * Math.PI / 180), C * Math.sin(H * Math.PI / 180)]; };
     const dist = (a, b) => { const p = lab(a), q = lab(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) * 100; };
-    const main = [...Object.values(MC.PAL.light), '#52618E'];      // 四个优先级色 + 主色（固定值，不随深浅色变）
+    const main = [...Object.values(MC.PAL.light), '#4C6EAC'];      // 四个优先级色 + 主色（固定值，不随深浅色变）
     const free = MC.CAL_COLORS.filter(c => !used.includes(c));
     const pool = free.length ? free : MC.CAL_COLORS;
     // 先排除离主日历颜色太近的（ΔE < 11），再在剩下的里挑离主日历和已有记录日历都最远的

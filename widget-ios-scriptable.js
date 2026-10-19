@@ -21,7 +21,7 @@ const PHEX = { 3: "#D9453E", 2: "#D88018", 1: "#3C7DC2", 0: "#979CA2" };
 const PDARK = { 3: ["#AC312C", "#FFE2DE"], 2: ["#BB6800", "#FCE5D3"], 1: ["#255593", "#DDEBFD"], 0: ["#383B3F", "#E8E9EB"] };
 const RANK = p => (p >= 0 && p <= 3 ? p : 0); // 只认 0–3
 const WD = ["日", "一", "二", "三", "四", "五", "六"];
-const ACCENT_HEX = ["#52618E", "#8E9DCA"]; // 浅色 / 深色
+const ACCENT_HEX = ["#4C6EAC", "#8BA8DE"]; // 浅色 / 深色
 
 // ---------- 参数 ----------
 let gistId = CONFIG.GIST_ID;
@@ -40,11 +40,11 @@ function dyn(light, dark) {
 const hex = (h, a) => (a == null ? new Color(h) : new Color(h, a));
 const ACCENT = dyn(hex(ACCENT_HEX[0]), hex(ACCENT_HEX[1]));
 const C = {
-  bg: dyn(hex("#F4F2EF"), hex("#1B1C21")), // 浅色用柔和的灰白，不刺眼（横条的实色按这两个底色算，改这里要一起改 BG_L / BG_D）
-  text: dyn(hex("#1B1D22"), hex("#EEEEF1")),
-  text2: dyn(hex("#84868E"), hex("#8C8E97")),
-  text3: dyn(hex("#C5C3C0"), hex("#494A50")),
-  line: dyn(hex("#E2E0DD"), hex("#2F3035")),
+  bg: dyn(hex("#ECF2F5"), hex("#1B1C21")), // 浅色用柔和的灰白，不刺眼（横条的实色按这两个底色算，改这里要一起改 BG_L / BG_D）
+  text: dyn(hex("#171B20"), hex("#EEEEF1")),
+  text2: dyn(hex("#747B83"), hex("#8C8E97")),
+  text3: dyn(hex("#B9BFC3"), hex("#494A50")),
+  line: dyn(hex("#DAE1E5"), hex("#2F3035")),
 };
 // 事件色条，和应用里一致：浅色 = 实色底 + 白字；深色 = 专门的深色调 + 带同色的柔白字（不刺眼）
 // 半透明色叠在小组件底色上的实际颜色（不透明）。横条由两段拼成、会有重叠，用不透明色重叠处才不会变亮
@@ -52,7 +52,7 @@ function over(h, a, base) {
   const n = parseInt(h.slice(1), 16), b = parseInt(base.slice(1), 16), mix = (x, y) => Math.round(x * a + y * (1 - a));
   return "#" + [mix(n >> 16, b >> 16), mix((n >> 8) & 255, (b >> 8) & 255), mix(n & 255, b & 255)].map(v => v.toString(16).padStart(2, "0")).join("");
 }
-const BG_L = "#F4F2EF", BG_D = "#1B1C21";
+const BG_L = "#ECF2F5", BG_D = "#1B1C21";
 // 记录日历的颜色（和应用一致：没设优先级的记录日历事件用日历自己的颜色，深色用同一套算法生成的深色调）
 let CALC = new Map();
 const lin = v => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4), gam = v => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
@@ -260,29 +260,33 @@ function largeLayout(w, idx, offline) {
   const band = (parent, h) => { const b = parent.addStack(); b.size = new Size(S.mw, h); b.layoutHorizontally(); return b; };
   const sep = (b, h) => { const x = b.addStack(); x.size = new Size(SEP, h); x.backgroundColor = C.line; };
   const box = (b, w, h) => { const x = b.addStack(); x.size = new Size(w, h); x.layoutVertically(); return x; };
-  // 今天整列叠一层淡主色（和应用里选中日期的淡底一样），一眼看到今天
-  const TODAY_TINT = dyn(hex(ACCENT_HEX[0], 0.12), hex(ACCENT_HEX[1], 0.20));
-  const todayCol = dss => dss.indexOf(t);
+  // 今天：这一列画一块带小圆角的淡主色（四周留一点边），作为这一周的背景，浅色深色都合适
+  const todayImage = c => {
+    const dc = new DrawContext(); dc.size = new Size(S.mw, rowH); dc.opaque = false; dc.respectScreenScale = true;
+    const p = new Path(); p.addRoundedRect(new Rect(c * (colW + SEP) + 1.5, 1.5, colW - 3, rowH - 3), 4, 4);
+    dc.addPath(p); dc.setFillColor(new Color("#6F8DC6", 0.16)); dc.fillPath();
+    return dc.getImage();
+  };
   const grid = w.addStack();
   grid.layoutVertically();
   addLine(grid, 0);
   for (let r = 0; r < rows; r++) {
     const wk = days.slice(r * 7, r * 7 + 7), dss = wk.map(ymd);
     const lay = layWeek(dss, idx);
-    const lim = lay.occ.map(o => (o.length <= maxChips ? o.length : Math.max(0, maxChips - 1)));
+    const lim = lay.occ.map(o => Math.min(o.length, maxChips)); // 「+n」放在日期右边，事件行全部留给事件
     const hidden = lay.occ.map((o, c) => o.slice(lim[c]).filter(Boolean).length);
     const segs = barSegments(lay, dss, lim, m);
-    const lanes = Math.min(maxChips, Math.max(0, ...lim.map((l, c) => l + (hidden[c] ? 1 : 0))));
+    const lanes = Math.min(maxChips, Math.max(0, ...lim));
     const row = grid.addStack();
     row.layoutVertically();
     row.size = new Size(S.mw, rowH);
+    if (dss.includes(t)) row.backgroundImage = todayImage(dss.indexOf(t));
     // 日期
     const nb = band(row, top0);
     for (let c = 0; c < 7; c++) {
       if (c) sep(nb, top0);
       const d = wk[c], out = d.getMonth() !== m, isToday = dss[c] === t;
       const cell = box(nb, colW, top0);
-      if (isToday) cell.backgroundColor = TODAY_TINT;
       cell.setPadding(padTop, 1, 0, 1);
       const nr = cell.addStack();
       nr.size = new Size(0, numH);
@@ -297,8 +301,14 @@ function largeLayout(w, idx, offline) {
         nr.addSpacer(3.5);
         addText(nr, String(d.getDate()), Font.mediumSystemFont(11), out ? C.text3 : C.text);
       }
-      if (!maxChips && hidden[c]) { nr.addSpacer(2); addText(nr, `+${hidden[c]}`, isToday ? Font.boldSystemFont(8) : Font.mediumSystemFont(7.5), isToday ? ACCENT : C.text2); }
       nr.addSpacer();
+      if (hidden[c]) { // 放不下的事件数，放在日期右边；今天用主色小标签，更醒目
+        if (isToday) {
+          const pill = nr.addStack(); pill.backgroundColor = ACCENT; pill.cornerRadius = 3; pill.setPadding(0, 3, 0, 3); pill.centerAlignContent();
+          addText(pill, `+${hidden[c]}`, Font.boldSystemFont(8), Color.white());
+        } else addText(nr, `+${hidden[c]}`, Font.mediumSystemFont(7.5), C.text2);
+        nr.addSpacer(2);
+      }
       // 不要在固定高度的格子里放 addSpacer()：它最少占 8pt，会把日期圆圈压扁
     }
     // 事件行
@@ -309,19 +319,10 @@ function largeLayout(w, idx, offline) {
         const g = segs.find(x => x.s === k && x.a === c);
         if (g) { addBar(lb, g, (g.b - g.a + 1) * colW + (g.b - g.a) * SEP); c = g.b + 1; continue; }
         const cell = box(lb, colW, STEP);
-        if (dss[c] === t) cell.backgroundColor = TODAY_TINT;
         cell.setPadding(0, 1, 0, 1);
         const o = lay.occ[c][k], out = wk[c].getMonth() !== m;
         cell.topAlignContent();
         if (k < lim[c] && o && !o.bar) addChip(cell, o.e, 0, chipH, 9, out);
-        else if (k === lim[c] && hidden[c]) {
-          const mr = cell.addStack(); mr.size = new Size(0, chipH - 2);
-          if (dss[c] === t) { // 今天还有放不下的事：主色小标签，比其他日子的灰色「+n」醒目
-            const pill = mr.addStack(); pill.backgroundColor = ACCENT; pill.cornerRadius = 4; pill.setPadding(0, 3, 0, 3); pill.centerAlignContent();
-            addText(pill, `+${hidden[c]}`, Font.boldSystemFont(8), Color.white());
-          } else addText(mr, `+${hidden[c]}`, Font.mediumSystemFont(7.5), C.text2);
-          mr.addSpacer();
-        }
         c++;
       }
     }
@@ -329,7 +330,7 @@ function largeLayout(w, idx, offline) {
     const rest = rowH - top0 - lanes * STEP;
     if (rest > 0) {
       const fb = band(row, rest);
-      for (let c = 0; c < 7; c++) { if (c) sep(fb, rest); const bx = box(fb, colW, rest); if (dss[c] === t) bx.backgroundColor = TODAY_TINT; }
+      for (let c = 0; c < 7; c++) { if (c) sep(fb, rest); box(fb, colW, rest); }
     }
     addLine(grid, 0);
   }

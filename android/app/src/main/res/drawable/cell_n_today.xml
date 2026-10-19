@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 今天的格子（无边框那一格）：底色上叠一层淡主色 -->
+<!-- 今天的格子：边框同 cell_n.xml，里面叠一块带小圆角的淡主色（四周留一点边） -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item><shape><solid android:color="@color/w_bg" /></shape></item>
-    <item><shape><solid android:color="@color/w_today" /></shape></item>
+    <item android:right="0dp" android:bottom="0dp"><shape><solid android:color="@color/w_bg" /></shape></item>
+    <item android:left="1.5dp" android:top="1.5dp" android:right="2.1dp" android:bottom="2.1dp"><shape><solid android:color="@color/w_today" /><corners android:radius="4dp" /></shape></item>
 </layer-list>
