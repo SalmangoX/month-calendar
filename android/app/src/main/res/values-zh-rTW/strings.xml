@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 繁體中文（台湾用语） -->
+<resources>
+    <string name="app_name">節律</string>
+    <string name="w_month">節律 · 整月</string>
+    <string name="w_month_desc">整月日曆，彩色顯示每天的事件</string>
+    <string name="w_today">節律 · 今日</string>
+    <string name="w_today_desc">今天和接下來一週的事件</string>
+    <string name="w_sched">節律 · 課表</string>
+    <string name="w_sched_desc">今天的課，正在上和下一節會突出顯示</string>
+</resources>

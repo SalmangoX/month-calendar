@@ -146,18 +146,18 @@ final class Engine {
     static void ensureChannels(Context c) {
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm.getNotificationChannel(CH_EVENT) == null) {
-            NotificationChannel ch = new NotificationChannel(CH_EVENT, "事件提醒", NotificationManager.IMPORTANCE_HIGH);
-            ch.setDescription("设置了提醒的事件到点通知");
+            NotificationChannel ch = new NotificationChannel(CH_EVENT, I18n.t("事件提醒"), NotificationManager.IMPORTANCE_HIGH);
+            ch.setDescription(I18n.t("设置了提醒的事件到点通知"));
             ch.enableVibration(true);
             nm.createNotificationChannel(ch);
         }
         if (nm.getNotificationChannel(CH_DAILY) == null) {
-            NotificationChannel ch = new NotificationChannel(CH_DAILY, "每日未完成提醒", NotificationManager.IMPORTANCE_DEFAULT);
-            ch.setDescription("每天在设定的时间提醒查看当天未完成的事件");
+            NotificationChannel ch = new NotificationChannel(CH_DAILY, I18n.t("每日未完成提醒"), NotificationManager.IMPORTANCE_DEFAULT);
+            ch.setDescription(I18n.t("每天在设定的时间提醒查看当天未完成的事件"));
             nm.createNotificationChannel(ch);
         }
         if (nm.getNotificationChannel(CH_TEST) == null) {
-            NotificationChannel ch = new NotificationChannel(CH_TEST, "测试通知", NotificationManager.IMPORTANCE_HIGH);
+            NotificationChannel ch = new NotificationChannel(CH_TEST, I18n.t("测试通知"), NotificationManager.IMPORTANCE_HIGH);
             nm.createNotificationChannel(ch);
         }
     }
@@ -179,14 +179,14 @@ final class Engine {
 
     static String bodyFor(Context c, Data.Event e) {
         String t = e.timeLabel(Data.h12(c));
-        return e.date.getMonthValue() + "月" + e.date.getDayOfMonth() + "日 " + (t.isEmpty() ? "全天" : t)
+        return I18n.md(e.date.getMonthValue(), e.date.getDayOfMonth()) + " " + (t.isEmpty() ? I18n.t("全天") : t)
                 + (e.note.isEmpty() ? "" : " · " + e.note);
     }
 
     private static void showEvent(Context c, Data.Event e, String key, long when) {
         String body = bodyFor(c, e);
         Notification n = builder(c, CH_EVENT)
-                .setContentTitle(e.title.isEmpty() ? "（无标题）" : e.title)
+                .setContentTitle(e.title.isEmpty() ? I18n.t("（无标题）") : e.title)
                 .setContentText(body)
                 .setStyle(new Notification.BigTextStyle().bigText(body))
                 .setCategory(Notification.CATEGORY_REMINDER)
@@ -198,9 +198,9 @@ final class Engine {
 
     private static void showDaily(Context c, Data d, LocalDate day) {
         int open = 0;
-        for (Data.Event e : d.on(day)) if (!e.done && e.cal.isEmpty()) open++; // 每日提醒只数主日历的待办
-        String title = open > 0 ? "查看今日未完成事件" : "今日事件已完成";
-        String body = open > 0 ? "今天还有 " + open + " 件事未完成，点开查看。" : "今天的事件都完成了。";
+        for (Data.Event e : d.on(day)) if (!e.done) open++; // 今日任务：主日历 + 设为在主日历显示的记录日历（d.on 已按这个规则）
+        String title = open > 0 ? I18n.t("查看今日未完成事件") : I18n.t("今日事件已完成");
+        String body = open > 0 ? I18n.t("今天还有 {0} 件事未完成，点开查看。", open) : I18n.t("今天的事件都完成了。");
         Notification n = builder(c, CH_DAILY)
                 .setContentTitle(title)
                 .setContentText(body)
@@ -212,8 +212,8 @@ final class Engine {
 
     static void showTest(Context c, boolean background) {
         Notification n = builder(c, CH_TEST)
-                .setContentTitle(background ? "节律 · 后台提醒测试" : "节律 · 测试通知")
-                .setContentText(background ? "App 关着也能准时收到提醒。" : "通知可以正常显示了")
+                .setContentTitle(background ? I18n.t("节律 · 后台提醒测试") : I18n.t("节律 · 测试通知"))
+                .setContentText(background ? I18n.t("App 关着也能准时收到提醒。") : I18n.t("通知可以正常显示了"))
                 .setContentIntent(openApp(c, "", 9))
                 .build();
         c.getSystemService(NotificationManager.class).notify(background ? 9002 : 9001, n);

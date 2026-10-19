@@ -530,8 +530,9 @@
   };
   vp.addEventListener('touchstart', e => {
     if (e.touches.length === 2) {
+      // 注意：这里不能重画（settle / render 会换掉手指下面的元素，之后的 touchmove 就传不到日历，捏合失效）；
+      // 先只停住动画，等手指抬起、确定没有切换视图时再对齐
       stopAnim();
-      if (view === 'month') settle(); else { pagePos = 0; render(); }
       tracking = false; dragging = false;
       const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2, cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const r = vp.getBoundingClientRect();
@@ -588,7 +589,10 @@
       suppress = true; setTimeout(() => (suppress = false), 120);
       if (sc < .82) zoomStep('out', target);
       else if (sc > 1.22) zoomStep('in', target);
-      else { zoomEl.style.transition = 'transform .3s var(--ease-spring), opacity .2s'; zoomEl.style.transform = ''; zoomEl.style.opacity = ''; }
+      else {
+        zoomEl.style.transition = 'transform .3s var(--ease-spring), opacity .2s'; zoomEl.style.transform = ''; zoomEl.style.opacity = '';
+        if (view === 'month') snapMonth(0); else page(pageTarget(pagePos, 0, view === 'week' ? W : H)); // 没切换视图：回到整周 / 整页
+      }
       return;
     }
     if (!tracking) return;

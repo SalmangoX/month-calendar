@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Français -->
+<resources>
+    <string name="app_name">Cadence</string>
+    <string name="w_month">Cadence · Mois</string>
+    <string name="w_month_desc">Le mois entier, avec les événements de chaque jour en couleur</string>
+    <string name="w_today">Cadence · Aujourd’hui</string>
+    <string name="w_today_desc">Aujourd’hui et la semaine à venir</string>
+    <string name="w_sched">Cadence · Horaire</string>
+    <string name="w_sched_desc">Les cours du jour, le cours actuel et le suivant mis en avant</string>
+</resources>

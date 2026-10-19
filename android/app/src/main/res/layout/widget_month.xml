@@ -57,7 +57,7 @@
                     <TextView android:id="@+id/n0" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -94,7 +94,7 @@
                     <TextView android:id="@+id/n1" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -131,7 +131,7 @@
                     <TextView android:id="@+id/n2" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -168,7 +168,7 @@
                     <TextView android:id="@+id/n3" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -205,7 +205,7 @@
                     <TextView android:id="@+id/n4" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -242,7 +242,7 @@
                     <TextView android:id="@+id/n5" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -279,7 +279,7 @@
                     <TextView android:id="@+id/n6" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -325,7 +325,7 @@
                     <TextView android:id="@+id/n7" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m7" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -362,7 +362,7 @@
                     <TextView android:id="@+id/n8" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m8" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -399,7 +399,7 @@
                     <TextView android:id="@+id/n9" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m9" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -436,7 +436,7 @@
                     <TextView android:id="@+id/n10" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m10" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -473,7 +473,7 @@
                     <TextView android:id="@+id/n11" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m11" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -510,7 +510,7 @@
                     <TextView android:id="@+id/n12" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m12" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -547,7 +547,7 @@
                     <TextView android:id="@+id/n13" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m13" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -593,7 +593,7 @@
                     <TextView android:id="@+id/n14" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m14" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -630,7 +630,7 @@
                     <TextView android:id="@+id/n15" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m15" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -667,7 +667,7 @@
                     <TextView android:id="@+id/n16" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m16" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -704,7 +704,7 @@
                     <TextView android:id="@+id/n17" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m17" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -741,7 +741,7 @@
                     <TextView android:id="@+id/n18" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m18" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -778,7 +778,7 @@
                     <TextView android:id="@+id/n19" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m19" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -815,7 +815,7 @@
                     <TextView android:id="@+id/n20" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m20" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -861,7 +861,7 @@
                     <TextView android:id="@+id/n21" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m21" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -898,7 +898,7 @@
                     <TextView android:id="@+id/n22" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m22" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -935,7 +935,7 @@
                     <TextView android:id="@+id/n23" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m23" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -972,7 +972,7 @@
                     <TextView android:id="@+id/n24" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m24" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1009,7 +1009,7 @@
                     <TextView android:id="@+id/n25" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m25" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1046,7 +1046,7 @@
                     <TextView android:id="@+id/n26" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m26" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1083,7 +1083,7 @@
                     <TextView android:id="@+id/n27" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m27" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1129,7 +1129,7 @@
                     <TextView android:id="@+id/n28" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m28" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1166,7 +1166,7 @@
                     <TextView android:id="@+id/n29" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m29" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1203,7 +1203,7 @@
                     <TextView android:id="@+id/n30" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m30" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1240,7 +1240,7 @@
                     <TextView android:id="@+id/n31" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m31" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1277,7 +1277,7 @@
                     <TextView android:id="@+id/n32" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m32" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1314,7 +1314,7 @@
                     <TextView android:id="@+id/n33" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m33" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1351,7 +1351,7 @@
                     <TextView android:id="@+id/n34" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m34" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1397,7 +1397,7 @@
                     <TextView android:id="@+id/n35" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m35" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1434,7 +1434,7 @@
                     <TextView android:id="@+id/n36" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m36" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1471,7 +1471,7 @@
                     <TextView android:id="@+id/n37" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m37" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1508,7 +1508,7 @@
                     <TextView android:id="@+id/n38" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m38" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1545,7 +1545,7 @@
                     <TextView android:id="@+id/n39" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m39" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1582,7 +1582,7 @@
                     <TextView android:id="@+id/n40" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m40" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>
@@ -1619,7 +1619,7 @@
                     <TextView android:id="@+id/n41" android:layout_width="wrap_content" android:layout_height="17dp"
                     android:minWidth="17dp" android:layout_marginLeft="2dp" android:paddingLeft="3dp" android:paddingRight="3dp"
                     android:gravity="center" android:textSize="11.5dp" android:textColor="@color/w_text" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <FrameLayout android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                     <TextView android:id="@+id/m41" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginRight="2dp"
                         android:textSize="8dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
                 </LinearLayout>

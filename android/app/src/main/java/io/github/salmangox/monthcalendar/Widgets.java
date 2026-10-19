@@ -36,7 +36,6 @@ final class Widgets {
     static final String ACT_PREV = "io.github.salmangox.monthcalendar.PREV";
     static final String ACT_NEXT = "io.github.salmangox.monthcalendar.NEXT";
     static final String ACT_HOME = "io.github.salmangox.monthcalendar.HOME";
-    private static final String[] WD = {"日", "一", "二", "三", "四", "五", "六"};
     private static final int WHITE = 0xFFFFFFFF;
     /** 不在本月的日期：半透明灰，浅色和深色背景上都合适 */
     private static final int DIM = 0x80888890;
@@ -148,10 +147,10 @@ final class Widgets {
         int jsDay = first.getDayOfWeek().getValue() % 7; // 周日 = 0，与网页一致
         LocalDate start = first.minusDays((jsDay - ws + 7) % 7);
 
-        rv.setTextViewText(R.id.m_title, ym.getMonthValue() + "月");
+        rv.setTextViewText(R.id.m_title, I18n.mon(ym.getMonthValue()));
         rv.setTextViewText(R.id.m_year, String.valueOf(ym.getYear()));
         rv.setViewVisibility(R.id.m_today, off == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
-        for (int k = 0; k < 7; k++) rv.setTextViewText(WDAY[k], WD[(k + ws) % 7]);
+        for (int k = 0; k < 7; k++) rv.setTextViewText(WDAY[k], I18n.wdHead((k + ws) % 7));
 
         for (int i = 0; i < 42; i++) {
             LocalDate day = start.plusDays(i);
@@ -277,7 +276,7 @@ final class Widgets {
             text.setStrikeThruText(e.done);
             cv.save();
             cv.clipRect(x0 + 1.5f, y, x1 - 1f, y + h);
-            String title = e.title.isEmpty() ? "（无标题）" : e.title;
+            String title = e.title.isEmpty() ? I18n.t("（无标题）") : e.title;
             cv.drawText(title, x0 + 2.5f, y + h / 2f - (fm.ascent + fm.descent) / 2f, text);
             cv.restore();
         }
@@ -293,7 +292,7 @@ final class Widgets {
     }
 
     private static void chip(Context c, RemoteViews rv, int vid, Data.Event e, boolean inMonth) {
-        String title = e.title.isEmpty() ? "（无标题）" : e.title;
+        String title = e.title.isEmpty() ? I18n.t("（无标题）") : e.title;
         rv.setViewVisibility(vid, android.view.View.VISIBLE);
         if (e.done) {
             SpannableString s = new SpannableString(title);
@@ -333,24 +332,24 @@ final class Widgets {
     // ---------- 今日 ----------
     static String dayLabel(LocalDate d, LocalDate today) {
         long n = ChronoUnit.DAYS.between(today, d);
-        String md = d.getMonthValue() + "月" + d.getDayOfMonth() + "日 周" + WD[d.getDayOfWeek().getValue() % 7];
-        if (n == 0) return "今天 · " + md;
-        if (n == 1) return "明天 · " + md;
-        if (n == 2) return "后天 · " + md;
+        String md = I18n.zh() ? d.getMonthValue() + "月" + d.getDayOfMonth() + "日 " + I18n.wk(d.getDayOfWeek().getValue() % 7) : I18n.wk(d.getDayOfWeek().getValue() % 7) + ", " + I18n.md(d.getMonthValue(), d.getDayOfMonth());
+        if (n == 0) return I18n.t("今天 · {0}", md);
+        if (n == 1) return I18n.t("明天 · {0}", md);
+        if (n == 2) return I18n.t("后天 · {0}", md);
         return md;
     }
 
     private static String rel(LocalDate d, LocalDate today) {
         long n = ChronoUnit.DAYS.between(today, d);
-        return n == 0 ? "今天" : n == 1 ? "明天" : n == -1 ? "昨天" : n > 0 ? n + " 天后" : (-n) + " 天前";
+        return n == 0 ? I18n.t("今天") : n == 1 ? I18n.t("明天") : n == -1 ? I18n.t("昨天") : n > 0 ? I18n.t("{0} 天后", n) : I18n.t("{0} 天前", -n);
     }
 
     static RemoteViews today(Context c) {
         RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_list);
         Data d = Store.data(c);
         LocalDate today = LocalDate.now(ZoneId.systemDefault());
-        rv.setTextViewText(R.id.l_title, "今天");
-        rv.setTextViewText(R.id.l_sub, today.getMonthValue() + "月" + today.getDayOfMonth() + "日 周" + WD[today.getDayOfWeek().getValue() % 7]);
+        rv.setTextViewText(R.id.l_title, I18n.t("今天"));
+        rv.setTextViewText(R.id.l_sub, I18n.zh() ? today.getMonthValue() + "月" + today.getDayOfMonth() + "日 " + I18n.wk(today.getDayOfWeek().getValue() % 7) : I18n.wk(today.getDayOfWeek().getValue() % 7) + ", " + I18n.md(today.getMonthValue(), today.getDayOfMonth()));
 
         RemoteViews.RemoteCollectionItems.Builder b = new RemoteViews.RemoteCollectionItems.Builder()
                 .setHasStableIds(false).setViewTypeCount(2);
@@ -359,13 +358,13 @@ final class Widgets {
         // 已逾期：最近 30 天内结束、还没完成的
         List<Data.Event> over = new ArrayList<>();
         for (Data.Event e : d.events) {
-            if (e.done || !e.cal.isEmpty()) continue;
+            if (e.done || (!e.cal.isEmpty() && !d.shownCals.contains(e.cal))) continue; // 记录日历：设为在主日历显示的才算
             LocalDate end = e.end();
             if (end.isBefore(today) && !end.isBefore(today.minusDays(30))) over.add(e);
         }
         over.sort((x, y) -> y.date.compareTo(x.date));
         if (!over.isEmpty()) {
-            b.addItem(key++, header(c, "已逾期", c.getColor(R.color.p3)));
+            b.addItem(key++, header(c, I18n.t("已逾期"), c.getColor(R.color.p3)));
             for (Data.Event e : over) {
                 if (n++ >= 10) break;
                 b.addItem(key++, eventRow(c, e, rel(e.date, today)));
@@ -373,7 +372,7 @@ final class Widgets {
         }
         List<Data.Event> todays = d.on(today);
         if (!todays.isEmpty()) {
-            if (!over.isEmpty()) b.addItem(key++, header(c, "今天", 0));
+            if (!over.isEmpty()) b.addItem(key++, header(c, I18n.t("今天"), 0));
             for (Data.Event e : todays) b.addItem(key++, eventRow(c, e, null));
         }
         int later = 0;
@@ -388,7 +387,7 @@ final class Widgets {
         boolean empty = over.isEmpty() && todays.isEmpty() && later == 0;
         rv.setViewVisibility(R.id.l_empty, empty ? android.view.View.VISIBLE : android.view.View.GONE);
         rv.setViewVisibility(R.id.l_list, empty ? android.view.View.GONE : android.view.View.VISIBLE);
-        if (empty) rv.setTextViewText(R.id.l_empty, Store.hasData(c) ? "今天没有事件\n接下来一周也很空闲" : "打开节律 App\n同步一次后这里会显示事件");
+        if (empty) rv.setTextViewText(R.id.l_empty, Store.hasData(c) ? I18n.t("今天没有事件\n接下来一周也很空闲") : I18n.t("打开节律 App\n同步一次后这里会显示事件"));
         rv.setRemoteAdapter(R.id.l_list, b.build());
         rv.setPendingIntentTemplate(R.id.l_list, template(c, 201));
         rv.setOnClickPendingIntent(android.R.id.background, Engine.openApp(c, "#today", 202));
@@ -405,7 +404,7 @@ final class Widgets {
 
     private static RemoteViews eventRow(Context c, Data.Event e, String prefix) {
         RemoteViews r = new RemoteViews(c.getPackageName(), R.layout.item_event);
-        String title = e.title.isEmpty() ? "（无标题）" : e.title;
+        String title = e.title.isEmpty() ? I18n.t("（无标题）") : e.title;
         if (e.done) {
             SpannableString s = new SpannableString(title);
             s.setSpan(new StrikethroughSpan(), 0, s.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -418,8 +417,8 @@ final class Widgets {
         Integer bc = Data.CUR != null ? Data.CUR.calColorOf(e) : null;
         if (bc != null) r.setColorStateList(R.id.it_bar, "setBackgroundTintList", ColorStateList.valueOf(bc), ColorStateList.valueOf(bc));
         String t = e.timeLabel(Data.h12(c));
-        String sub = (prefix != null ? prefix + " · " : "") + (t.isEmpty() ? "全天" : t);
-        if (e.days > 1) sub += " · " + e.days + " 天";
+        String sub = (prefix != null ? prefix + " · " : "") + (t.isEmpty() ? I18n.t("全天") : t);
+        if (e.days > 1) sub += " · " + I18n.t("{0} 天", e.days);
         if (!e.note.isEmpty()) sub += " · " + e.note.replace('\n', ' ');
         r.setTextViewText(R.id.it_sub, sub);
         r.setOnClickFillInIntent(R.id.it_root, new Intent().putExtra(MainActivity.EXTRA_HASH, "#today"));
@@ -510,7 +509,7 @@ final class Widgets {
             rv.setViewVisibility(WKC[i], show ? android.view.View.VISIBLE : android.view.View.GONE);
             if (!show) continue;
             boolean isToday = date.equals(today);
-            rv.setTextViewText(WKH[i], "周" + WD[(i + 1) % 7] + "\n" + date.getDayOfMonth());
+            rv.setTextViewText(WKH[i], I18n.wk((i + 1) % 7) + "\n" + date.getDayOfMonth());
             rv.setTextColor(WKH[i], isToday ? c.getColor(R.color.accent) : c.getColor(R.color.w_text2));
             if (isToday) rv.setInt(WKC[i], "setBackgroundResource", R.drawable.wk_today);
             int shown = l.size() > 5 ? 4 : l.size();
@@ -540,10 +539,10 @@ final class Widgets {
         LocalDate first = ym.atDay(1);
         int jsDay = first.getDayOfWeek().getValue() % 7;
         LocalDate start = first.minusDays((jsDay - ws + 7) % 7);
-        rv.setTextViewText(R.id.m_title, ym.getMonthValue() + "月课表");
+        rv.setTextViewText(R.id.m_title, I18n.monthSched(ym.getMonthValue()));
         rv.setTextViewText(R.id.m_year, String.valueOf(ym.getYear()));
         rv.setViewVisibility(R.id.m_today, off == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
-        for (int k = 0; k < 7; k++) rv.setTextViewText(WDAY[k], WD[(k + ws) % 7]);
+        for (int k = 0; k < 7; k++) rv.setTextViewText(WDAY[k], I18n.wdHead((k + ws) % 7));
         int perCell = Math.max(1, cap);
         for (int i = 0; i < 42; i++) {
             LocalDate day = start.plusDays(i);
@@ -624,8 +623,8 @@ final class Widgets {
 
         // 标题
         p.setTypeface(Typeface.DEFAULT_BOLD); p.setTextSize(13 * dp); p.setColor(accent);
-        cv.drawText("本周课表", pad + 4 * dp, pad + 14 * dp, p);
-        float tw = p.measureText("本周课表");
+        cv.drawText(I18n.t("本周课表"), pad + 4 * dp, pad + 14 * dp, p);
+        float tw = p.measureText(I18n.t("本周课表"));
         p.setTypeface(Typeface.DEFAULT); p.setTextSize(10.5f * dp); p.setColor(text2);
         LocalDate sun = mon.plusDays(6);
         cv.drawText(mon.getMonthValue() + "/" + mon.getDayOfMonth() + " – " + sun.getMonthValue() + "/" + sun.getDayOfMonth(), pad + 10 * dp + tw, pad + 14 * dp, p);
@@ -643,7 +642,7 @@ final class Widgets {
             boolean isT = dd.equals(today);
             p.setTypeface(isT ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT); p.setTextSize(10 * dp);
             p.setColor(isT ? accent : text2);
-            cv.drawText("周" + WD[(days.get(ci) + 1) % 7] + " " + dd.getDayOfMonth(), gx + ci * colW + colW / 2, pad + headH + 13 * dp, p);
+            cv.drawText(I18n.wk((days.get(ci) + 1) % 7) + " " + dd.getDayOfMonth(), gx + ci * colW + colW / 2, pad + headH + 13 * dp, p);
         }
         // 时间轴和横线
         p.setTextAlign(Paint.Align.RIGHT); p.setTypeface(Typeface.DEFAULT); p.setTextSize(9 * dp); p.setColor(text2);
@@ -687,7 +686,7 @@ final class Widgets {
                 cv.drawRoundRect(new RectF(x0, y0, x0 + 3 * dp, y1), 1.5f * dp, 1.5f * dp, p);
                 float tx = x0 + 6 * dp, maxW = x1 - tx - 2 * dp, y = y0 + 2 * dp;
                 boolean h12 = Data.h12(c);
-                String[] lines = { co.code, co.type, h12 ? Data.fmt(co.start, true, true) + "–" + Data.fmt(co.end, true, true) : co.start + "–" + co.end, co.room };
+                String[] lines = { co.code, I18n.t(co.type), h12 ? Data.fmt(co.start, true, true) + "–" + Data.fmt(co.end, true, true) : co.start + "–" + co.end, co.room };
                 float[] sizes = { 11f, 9.5f, 9f, 9f };
                 for (int li = 0; li < lines.length; li++) {
                     String t = lines[li];
@@ -709,7 +708,7 @@ final class Widgets {
         }
         if (d.courses.isEmpty()) {
             p.setTextAlign(Paint.Align.CENTER); p.setTextSize(13 * dp); p.setColor(text2);
-            cv.drawText("还没有导入课表", W / 2f, H / 2f, p);
+            cv.drawText(I18n.t("还没有导入课表"), W / 2f, H / 2f, p);
         }
         rv.setImageViewBitmap(R.id.wi_img, bm);
         rv.setOnClickPendingIntent(android.R.id.background, Engine.openApp(c, "#sched", 306));
@@ -746,22 +745,22 @@ final class Widgets {
             if (k == 0) {
                 boolean left = false;
                 for (Data.Course co : l) if (co.endMin > nm) left = true;
-                if (left) { label = "今天"; pickDay = day; isToday = true; for (Data.Course co : l) if (co.endMin > nm) list.add(co); }
+                if (left) { label = I18n.t("今天"); pickDay = day; isToday = true; for (Data.Course co : l) if (co.endMin > nm) list.add(co); }
                 continue;
             }
-            if (!l.isEmpty()) { label = k == 1 ? "明天" : k < 7 ? "周" + WD[day % 7] : date.getMonthValue() + "月" + date.getDayOfMonth() + "日"; pickDay = day; list = l; }
+            if (!l.isEmpty()) { label = k == 1 ? I18n.t("明天") : k < 7 ? I18n.wk(day % 7) : I18n.md(date.getMonthValue(), date.getDayOfMonth()); pickDay = day; list = l; }
         }
         if (d.courses.isEmpty() || label == null) {
-            rv.setTextViewText(R.id.l_title, "课表");
+            rv.setTextViewText(R.id.l_title, I18n.t("课表"));
             rv.setTextViewText(R.id.l_sub, "");
             rv.setViewVisibility(R.id.l_list, android.view.View.GONE);
             rv.setViewVisibility(R.id.l_empty, android.view.View.VISIBLE);
-            rv.setTextViewText(R.id.l_empty, d.courses.isEmpty() ? "还没有导入课表" : "这周没有课");
+            rv.setTextViewText(R.id.l_empty, d.courses.isEmpty() ? I18n.t("还没有导入课表") : I18n.t("这周没有课"));
             rv.setRemoteAdapter(R.id.l_list, new RemoteViews.RemoteCollectionItems.Builder().build());
             return rv;
         }
         rv.setTextViewText(R.id.l_title, label);
-        rv.setTextViewText(R.id.l_sub, "周" + WD[pickDay % 7]);
+        rv.setTextViewText(R.id.l_sub, I18n.wk(pickDay % 7));
         rv.setViewVisibility(R.id.l_empty, android.view.View.GONE);
         rv.setViewVisibility(R.id.l_list, android.view.View.VISIBLE);
 
@@ -773,14 +772,14 @@ final class Widgets {
             RemoteViews r = new RemoteViews(c.getPackageName(), R.layout.item_course);
             int[] ct = d.toneOf(co.code);
             r.setColorInt(R.id.cs_bar, "setBackgroundColor", ct[CourseColors.BASE], ct[CourseColors.BAR_D]);
-            r.setTextViewText(R.id.cs_title, co.type.isEmpty() ? co.code : co.code + "  " + co.type);
+            r.setTextViewText(R.id.cs_title, co.type.isEmpty() ? co.code : co.code + "  " + I18n.t(co.type));
             r.setTextViewText(R.id.cs_sub, Data.range(co.start, co.end, Data.h12(c)) + (co.room.isEmpty() ? "" : " · " + co.room));
             String state = "";
             if (isToday && nm >= co.startMin) {
-                state = "上课中";
+                state = I18n.t("上课中");
                 r.setInt(R.id.cs_root, "setBackgroundResource", R.drawable.live_bg);
             } else if (!nextMarked) {
-                state = isToday ? "下一节" : "第一节";
+                state = isToday ? I18n.t("下一节") : I18n.t("第一节");
                 nextMarked = true;
             }
             r.setTextViewText(R.id.cs_state, state);

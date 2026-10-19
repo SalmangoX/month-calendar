@@ -113,7 +113,7 @@
   };
   Push.test = async () => {
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('节律 · 测试通知', { body: '通知可以正常显示了', tag: 'mcal-test', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
+    await reg.showNotification(MC.t('节律 · 测试通知'), { body: MC.t('通知可以正常显示了'), tag: 'mcal-test', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
   };
 
   if (NATIVE) {
@@ -211,11 +211,11 @@
   const LKEY = 'mcal.localSent';
   // 每日未完成提醒的内容
   Push.digest = ds => {
-    const n = MC.mainOn(ds).filter(e => !e.done).length; // 每日提醒只统计主日历
-    return n ? { title: '查看今日未完成事件', body: `今天还有 ${n} 件事未完成，点开查看。` }
-             : { title: '今日事件已完成', body: '今天的事件都完成了。' };
+    const n = MC.mainViewOn(ds).filter(e => !e.done).length; // 今日任务：主日历 + 设为在主日历显示的记录日历
+    return n ? { title: MC.t('查看今日未完成事件'), body: MC.t(`今天还有 ${n} 件事未完成，点开查看。`) }
+             : { title: MC.t('今日事件已完成'), body: MC.t('今天的事件都完成了。') };
   };
-  Push.bodyFor = e => `${MC.dateLabel(e.date)} ${MC.timeLabel(e) || '全天'}${e.note ? ' · ' + e.note : ''}`;
+  Push.bodyFor = e => `${MC.t(MC.dateLabel(e.date))} ${MC.timeLabel(e) || MC.t('全天')}${e.note ? ' · ' + e.note : ''}`;
   async function checkLocal() {
     if (NATIVE) return; // 安卓 App 由原生端提醒
     if (!Push.enabled() || !('serviceWorker' in navigator)) return;

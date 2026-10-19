@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const MC = (window.MC = {});
-  MC.VERSION = '0.21.0';
+  MC.VERSION = '0.22.0';
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
@@ -155,21 +155,26 @@
   MC.use12 = () => { const c = MC.clockPref(); return c === '12' ? true : c === '24' ? false : MC.region12(); };
   const half = h => (h < 12 ? '上午' : '下午');
   // '14:30' → '下午2:30'（12 小时制）或 '14:30'；noHalf：省略上午 / 下午
+  // 中文：「下午2:30」；英文 / 法文：「2:30 PM」（noHalf：省略上午 / 下午或 AM / PM）
+  const zh = () => MC.isZh !== false;
   MC.fmtTime = (t, noHalf) => {
     if (!t || !MC.use12()) return t || '';
-    const [h, m] = t.split(':').map(Number);
-    return (noHalf ? '' : half(h)) + (h % 12 || 12) + ':' + pad(m);
+    const [h, m] = t.split(':').map(Number), hm = (h % 12 || 12) + ':' + pad(m);
+    if (noHalf) return hm;
+    return zh() ? half(h) + hm : `${hm} ${h < 12 ? 'AM' : 'PM'}`;
   };
   MC.fmtRange = (a, b, sep = '–') => {
     if (!b) return MC.fmtTime(a);
     if (!MC.use12()) return `${a}${sep}${b}`;
     const same = half(+a.slice(0, 2)) === half(+b.slice(0, 2));
-    return `${MC.fmtTime(a)}${sep}${MC.fmtTime(b, same)}`;
+    return zh() ? `${MC.fmtTime(a)}${sep}${MC.fmtTime(b, same)}` : `${MC.fmtTime(a, same)}${sep}${MC.fmtTime(b)}`;
   };
+  // 课表时间轴、时间滚轮上的「上午 9」/「9 AM」
+  MC.hourLabel = (h, small) => (zh() ? (small ? `<small>${half(h)}</small>${h % 12 || 12}` : `${half(h)} ${h % 12 || 12}`) : (small ? `${h % 12 || 12}<small> ${h < 12 ? 'AM' : 'PM'}</small>` : `${h % 12 || 12} ${h < 12 ? 'AM' : 'PM'}`));
   MC.timeLabel = e => e.time ? MC.fmtRange(e.time, e.endTime) : '';
 
   // ---------- 数据 ----------
-  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', clock: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [] }; }
+  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', clock: '', lang: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [] }; }
   function normEvent(e) {
     const t = Date.now();
     return {
@@ -191,7 +196,7 @@
     out.updatedAt = d.updatedAt || 0;
     out.deleted = d.deleted || {};
     out.events = (d.events || []).filter(e => /^\d{4}-\d{2}-\d{2}$/.test(e.date || '')).map(normEvent);
-    if (d.profile) out.profile = { name: d.profile.name || '', avatar: d.profile.avatar || '', clock: ['auto', '12', '24'].includes(d.profile.clock) ? d.profile.clock : '', updatedAt: d.profile.updatedAt || 0 };
+    if (d.profile) out.profile = { name: d.profile.name || '', avatar: d.profile.avatar || '', clock: ['auto', '12', '24'].includes(d.profile.clock) ? d.profile.clock : '', lang: ['auto', 'zh-Hans', 'zh-Hant', 'en', 'fr'].includes(d.profile.lang) ? d.profile.lang : '', updatedAt: d.profile.updatedAt || 0 };
     if (Array.isArray(d.courses)) out.courses = d.courses.filter(c => c && c.code && c.day >= 1 && c.day <= 7 && /^\d{2}:\d{2}$/.test(c.start) && /^\d{2}:\d{2}$/.test(c.end))
       .map(c => ({ id: c.id || MC.uid(), code: String(c.code).slice(0, 40), type: c.type || '', day: Number(c.day), start: c.start, end: c.end, room: c.room || '',
         from: /^\d{4}-\d{2}-\d{2}$/.test(c.from || '') ? c.from : '', to: /^\d{4}-\d{2}-\d{2}$/.test(c.to || '') ? c.to : '', every: c.every === 2 ? 2 : 1 }));
@@ -281,13 +286,15 @@
   MC.reindex = () => {
     const act = MC.activeCal();
     const shown = new Set(MC.data.cals.filter(c => c.showInMain).map(c => c.id));
+    MC.inMainView = e => !e.cal || shown.has(e.cal);   // 主日历看到的：主日历自己的 + 设为「在主日历显示」的记录日历
     MC.mainByDate = indexOf(MC.data.events.filter(e => !e.cal));
-    MC.byDate = act ? indexOf(MC.data.events.filter(e => e.cal === act))
-      : shown.size ? indexOf(MC.data.events.filter(e => !e.cal || shown.has(e.cal))) : MC.mainByDate;
+    MC.mainViewByDate = shown.size ? indexOf(MC.data.events.filter(MC.inMainView)) : MC.mainByDate;
+    MC.byDate = act ? indexOf(MC.data.events.filter(e => e.cal === act)) : MC.mainViewByDate;
   };
   MC.reindex();
   MC.eventsOn = ds => MC.byDate.get(ds) || [];      // 当前日历
-  MC.mainOn = ds => MC.mainByDate.get(ds) || [];    // 主日历
+  MC.mainOn = ds => MC.mainByDate.get(ds) || [];    // 主日历自己的事件
+  MC.mainViewOn = ds => MC.mainViewByDate.get(ds) || []; // 主日历看到的（含设为在主日历显示的记录日历）
   MC.countIn = id => MC.data.events.reduce((n, e) => n + (MC.inCal(e, id) ? 1 : 0), 0);
 
   MC.onChange = () => {};

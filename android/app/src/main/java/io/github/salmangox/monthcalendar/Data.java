@@ -79,14 +79,15 @@ final class Data {
     static String fmt(String hhmm, boolean h12, boolean noHalf) {
         if (hhmm == null || hhmm.isEmpty() || !h12) return hhmm == null ? "" : hhmm;
         int h = Integer.parseInt(hhmm.substring(0, 2)), m = Integer.parseInt(hhmm.substring(3, 5));
-        return (noHalf ? "" : h < 12 ? "上午" : "下午") + (h % 12 == 0 ? 12 : h % 12) + ":" + (m < 10 ? "0" : "") + m;
+        String hm = (h % 12 == 0 ? 12 : h % 12) + ":" + (m < 10 ? "0" : "") + m;
+        return noHalf ? hm : I18n.zh() ? (h < 12 ? "上午" : "下午") + hm : hm + (h < 12 ? " AM" : " PM");
     }
     static String range(String a, String b, boolean h12) {
         if (!h12) return a + "–" + b;
         boolean same = (Integer.parseInt(a.substring(0, 2)) < 12) == (Integer.parseInt(b.substring(0, 2)) < 12);
-        return fmt(a, true, false) + "–" + fmt(b, true, same);
+        return I18n.zh() ? fmt(a, true, false) + "–" + fmt(b, true, same) : fmt(a, true, same) + "–" + fmt(b, true, false);
     }
-    static String hourLabel(int h, boolean h12) { return h12 ? (h < 12 ? "上午" : "下午") + (h % 12 == 0 ? 12 : h % 12) : h + ":00"; }
+    static String hourLabel(int h, boolean h12) { int hh = h % 12 == 0 ? 12 : h % 12; return !h12 ? h + ":00" : I18n.zh() ? (h < 12 ? "上午" : "下午") + hh : hh + (h < 12 ? " AM" : " PM"); }
 
     final List<Course> courses = new ArrayList<>();
     /** 课程代码 → 这门课的一整套颜色（CourseColors.BASE…BAR_D） */
@@ -129,6 +130,7 @@ final class Data {
         CUR = d; // 最近一次读到的数据（小组件取记录日历颜色等）
         JSONObject prof = o.optJSONObject("profile");
         clock = prof == null ? "auto" : prof.optString("clock", "auto");
+        I18n.set(prof == null ? "auto" : prof.optString("lang", "auto")); // 语言和应用一致
         JSONArray cals = o.optJSONArray("cals");
         if (cals != null) {
             for (int i = 0; i < cals.length(); i++) {

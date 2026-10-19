@@ -168,12 +168,12 @@
     if (opts.showDate) {
       const cls = e.done ? '' : MC.dayDiff(MC.endDate(e)) < 0 ? 'over' : 'due';
       bits.push(`<span class="${cls}">${MC.dateLabel(e.date)}${multi ? '–' + MC.dateLabel(MC.endDate(e)) : ''}</span>`);
-    } else if (multi) bits.push(`${MC.dateLabel(e.date)}–${MC.dateLabel(MC.endDate(e))} · 共 ${e.days} 天`);
+    } else if (multi) bits.push(`<span>${MC.dateLabel(e.date)}–${MC.dateLabel(MC.endDate(e))} · 共 ${e.days} 天</span>`);
     const tl = MC.timeLabel(e);
-    if (tl) bits.push(esc(tl));
+    if (tl) bits.push(`<span>${esc(tl)}</span>`);
     const ec = e.cal && e.cal !== MC.activeCal() && MC.cal(e.cal); // 主日历里显示的记录日历事件：标出来自哪个日历
-    if (ec) bits.unshift(`<span class="cal-tag" style="--cc:${ec.color}">${esc(ec.name)}</span>`);
-    if (e.note) bits.push(esc(e.note));
+    if (ec) bits.unshift(`<span class="cal-tag" data-uc style="--cc:${ec.color}">${esc(ec.name)}</span>`);
+    if (e.note) bits.push(`<span class="note">${esc(e.note)}</span>`); // 备注是用户写的，不翻译
     return `<li class="item${e.done ? ' done' : ''}${e.done && UI.justDone === e.id ? ' just-done' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)}">
       <button class="check" data-act="toggle" aria-label="${e.done ? '标为未完成' : '标为完成'}">${checkSVG}</button>
       <div class="item-main" data-act="open">
@@ -183,6 +183,45 @@
       ${e.priority && !opts.noFlag ? UI.flagSVG(e.priority) : ''}
     </li>`;
   };
+  // ---------- 完成反馈：清脆的一声 + 一点点触感 ----------
+  // 声音用 Web Audio 现场合成（两个很短的高音，像玻璃轻碰）。iPhone：音频设为 ambient，静音键打开时自动不出声；
+  // 安卓 App：由原生判断铃声模式，只有响铃时才出声（振动 / 静音都不出声）
+  let actx = null;
+  try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (e) {}
+  const chime = () => {
+    if (MC.Native.on && !MC.Native.soundAllowed()) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      const t0 = actx.currentTime + 0.005, out = actx.createGain();
+      out.gain.value = 0.16; out.connect(actx.destination);
+      [[1568, 0, 0.11], [2349, 0.055, 0.16]].forEach(([f, dt, len]) => { // G6 → D7，上扬的两下
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(f, t0 + dt); o.frequency.exponentialRampToValueAtTime(f * 0.985, t0 + dt + len);
+        g.gain.setValueAtTime(0.0001, t0 + dt); g.gain.exponentialRampToValueAtTime(1, t0 + dt + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + len);
+        o.connect(g); g.connect(out); o.start(t0 + dt); o.stop(t0 + dt + len + 0.02);
+      });
+    } catch (e) {}
+  };
+  // 触感：安卓 App 用系统的确认触感；iPhone（iOS 18 起）借系统开关控件的触感；其他浏览器用很短的振动
+  let hapticSwitch = null;
+  const haptic = () => {
+    if (MC.Native.on && MC.Native.haptic()) return;
+    if (/iPhone|iPad/.test(navigator.userAgent)) {
+      if (!hapticSwitch) {
+        hapticSwitch = document.createElement('label');
+        hapticSwitch.setAttribute('aria-hidden', 'true');
+        hapticSwitch.style.cssText = 'position:fixed;left:-99px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+        hapticSwitch.innerHTML = '<input type="checkbox" switch tabindex="-1">';
+        document.body.appendChild(hapticSwitch);
+      }
+      hapticSwitch.click();
+      return;
+    }
+    try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}
+  };
+  UI.doneFeedback = () => { haptic(); chime(); };
+
   // 统一处理列表点击：勾选 / 打开编辑
   UI.bindList = el => {
     el.addEventListener('click', ev => {
@@ -191,6 +230,7 @@
       const act = ev.target.closest('[data-act]')?.dataset.act;
       if (act === 'toggle') {
         UI.justDone = e.done ? null : e.id;  // 刚勾选完成的那一条播放划线动画
+        if (!e.done) UI.doneFeedback();      // 只在勾上完成时：一声 + 一点点触感
         MC.updateEvent(e, { done: !e.done });
         setTimeout(() => { if (UI.justDone === e.id) UI.justDone = null; }, 700);
       }
@@ -279,7 +319,7 @@
   // 时间滚轮：时 : 分（可选结束时间）
   UI.timeWheel = (host, start, end, onChange) => {
     const h12 = MC.use12();
-    const hours = []; for (let h = 0; h < 24; h++) hours.push({ label: h12 ? `${h < 12 ? '上午' : '下午'} ${h % 12 || 12}` : MC.pad(h), value: h });
+    const hours = []; for (let h = 0; h < 24; h++) hours.push({ label: h12 ? MC.hourLabel(h) : MC.pad(h), value: h });
     const mins = m0 => {
       const out = []; for (let m = 0; m < 60; m += 5) out.push({ label: MC.pad(m), value: m });
       if (m0 % 5) { out.push({ label: MC.pad(m0), value: m0 }); out.sort((a, b) => a.value - b.value); }

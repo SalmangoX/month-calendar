@@ -292,7 +292,14 @@ svg.filled { fill: currentColor; stroke: none; }
 .item.done .item-title { color: var(--text2); }
 .item.done .ttxt { background-size: 100% 1.5px; }
 .item.just-done .ttxt { animation: strike .45s cubic-bezier(.4, 0, .2, 1) both; }
-.item.just-done .check { animation: pop .32s var(--ease-spring); }
+.item.just-done .check { animation: pop .32s var(--ease-spring); position: relative; }
+/* 勾选完成：对勾一笔画出来，外面泛出一圈淡淡的涟漪 */
+.item.just-done .check svg { opacity: 1; }
+.item.just-done .check svg path, .item.just-done .check svg polyline { stroke-dasharray: 24; stroke-dashoffset: 24; animation: drawTick .3s .06s cubic-bezier(.3, .7, .3, 1) forwards; }
+.item.just-done .check::after { content: ""; position: absolute; inset: -2px; border-radius: 9px; border: 2px solid var(--c); pointer-events: none; animation: doneRing .55s cubic-bezier(.2, .7, .3, 1) forwards; }
+@keyframes drawTick { to { stroke-dashoffset: 0; } }
+@keyframes doneRing { from { opacity: .5; transform: scale(1); } to { opacity: 0; transform: scale(1.85); } }
+@media (prefers-reduced-motion: reduce) { .item.just-done .check::after { display: none; } .item.just-done .check svg path, .item.just-done .check svg polyline { animation: none; stroke-dashoffset: 0; } }
 @keyframes strike { from { background-size: 0 1.5px; } to { background-size: 100% 1.5px; } }
 .flag { flex: none; width: 16px; height: 16px; color: var(--c); }
 .flag path { fill: var(--c); stroke: var(--c); stroke-width: 1.4; }

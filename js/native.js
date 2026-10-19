@@ -52,6 +52,9 @@
   Native.pinWidget = kind => !!call('pinWidget', kind);
   Native.saveFile = (name, mime, text) => Native.ask('saveFile', name, mime, text);
   Native.syncNow = () => call('syncNow');
+  // 完成反馈：响铃模式才允许出声；旧版 App 判断不了，就不出声
+  Native.soundAllowed = () => (feats.has('feedback') ? !!call('soundAllowed') : false);
+  Native.haptic = () => (feats.has('feedback') ? (call('haptic'), true) : false);
 
   // ---------- 数据：每次保存后（稍等一下合并多次改动）交给原生端 ----------
   let dataTimer = 0;

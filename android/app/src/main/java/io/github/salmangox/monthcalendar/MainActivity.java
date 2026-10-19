@@ -169,7 +169,7 @@ public class MainActivity extends Activity {
         try {
             startActivity(new Intent(Intent.ACTION_VIEW, u).addCategory(Intent.CATEGORY_BROWSABLE));
         } catch (ActivityNotFoundException e) {
-            Toast.makeText(this, "没有可以打开这个链接的应用", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, I18n.t("没有可以打开这个链接的应用"), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -178,9 +178,9 @@ public class MainActivity extends Activity {
         String bg = dark ? "#050608" : "#F7FAFC", fg = dark ? "#EEEEF1" : "#171B20", sub = dark ? "#8F929B" : "#6E757E", acc = dark ? "#5A77AD" : "#4C6EAC";
         String html = "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
                 + "<body style='margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:" + bg
-                + ";color:" + fg + ";font-family:sans-serif;text-align:center'><div><div style='font-size:19px;font-weight:600'>连不上网络</div>"
-                + "<div style='margin:10px 24px 22px;color:" + sub + ";font-size:14px;line-height:1.6'>第一次打开需要联网下载节律，之后断网也能用。</div>"
-                + "<a href='" + BuildConfig.APP_URL + "' style='display:inline-block;padding:10px 26px;border-radius:20px;background:" + acc + ";color:#fff;text-decoration:none'>重试</a></div>";
+                + ";color:" + fg + ";font-family:sans-serif;text-align:center'><div><div style='font-size:19px;font-weight:600'>" + I18n.t("连不上网络") + "</div>"
+                + "<div style='margin:10px 24px 22px;color:" + sub + ";font-size:14px;line-height:1.6'>" + I18n.t("第一次打开需要联网下载节律，之后断网也能用。") + "</div>"
+                + "<a href='" + BuildConfig.APP_URL + "' style='display:inline-block;padding:10px 26px;border-radius:20px;background:" + acc + ";color:#fff;text-decoration:none'>" + I18n.t("重试") + "</a></div>";
         web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
     }
 

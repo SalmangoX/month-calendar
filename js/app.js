@@ -201,8 +201,8 @@
   function renderToday() {
     const d = new Date(), t = MC.todayStr();
     $('#todayDate').textContent = `${d.getMonth() + 1}月${d.getDate()}日 周${MC.WD[d.getDay()]}`;
-    const overdue = MC.mainEvents().filter(e => !e.done && MC.endDate(e) < t).sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b));
-    const today = MC.mainOn(t);
+    const overdue = MC.data.events.filter(e => MC.inMainView(e) && !e.done && MC.endDate(e) < t) // 含设为在主日历显示的记录日历.sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b));
+    const today = MC.mainViewOn(t);
     const open = today.filter(e => !e.done), done = today.filter(e => e.done);
     let h = '';
     if (overdue.length) h += `<section class="sec"><h3 class="over"><span>已逾期</span><span>${overdue.length}</span></h3><ul class="card glass-panel">${overdue.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
@@ -277,6 +277,7 @@
   // ---------- 设置 ----------
   let iosScript = '', workflowYml = '';
   const IC = {
+    globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.4 2.3 3.6 5 3.6 8s-1.2 5.7-3.6 8c-2.4-2.3-3.6-5-3.6-8s1.2-5.7 3.6-8z"/></svg>',
     theme: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M12 4.5a7.5 7.5 0 0 1 0 15z" fill="currentColor"/></svg>',
     week: '<svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="3.5"/><path d="M4 10h16M8.5 3.5v3.5M15.5 3.5v3.5"/></svg>',
     link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>',
@@ -361,6 +362,7 @@
     const gDisplay = group('显示与时间', [
       srow({ act: 'theme', icon: 'theme', tone: 'periwinkle', label: '外观', val: { auto: '跟随系统', light: '浅色', dark: '深色' }[S.theme] }),
       srow({ act: 'week', icon: 'week', tone: 'rose', label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
+      srow({ act: 'lang', icon: 'globe', tone: 'lavender', label: '语言', val: MC.langPref() === 'auto' ? '跟随系统语言' : (MC.LANGS.find(l => l.v === MC.langPref()) || {}).label }),
       srow({ act: 'clock', icon: 'clock', tone: 'teal', label: '时间格式', val: MC.clockPref() === '12' ? '12 小时制' : MC.clockPref() === '24' ? '24 小时制' : `跟随地区（${MC.region12() ? 12 : 24} 小时）` }),
     ]);
     if (!MC.vault.connected()) {
@@ -454,6 +456,8 @@
       { label: '周日', value: 0, on: MC.settings.weekStart === 0 },
       { label: '周一', value: 1, on: MC.settings.weekStart === 1 },
     ], v => { MC.settings.weekStart = v; MC.saveSettings(); MC.Cal.realign(); renderSettings(); });
+    else if (act === 'lang') UI.menu(row.querySelector('.sval'), [{ v: 'auto', label: '跟随系统语言' }, ...MC.LANGS].map(l => ({ label: l.label, value: l.v, on: MC.langPref() === l.v })),
+      v => { if (v !== MC.langPref()) MC.setLang(v); });   // 收起的一行，点开是小菜单
     else if (act === 'clock') UI.menu(row.querySelector('.sval'), [
       { label: `跟随地区（${MC.region12() ? 12 : 24} 小时）`, value: 'auto', on: MC.clockPref() === 'auto' },
       { label: '12 小时制', value: '12', on: MC.clockPref() === '12' },

@@ -64,22 +64,35 @@ function fireTime(e, tz) {
   const [h, mi] = (e.time || '09:00').split(':').map(Number);
   return localToUtc(y, m, d, h, mi, tz) - Number(e.remind) * 60000;
 }
+// ---------- 语言（应用里的设置：同步数据 profile.lang；没设 / 跟随系统时用简体中文） ----------
+let LANG = 'zh-Hans';
+const TXT = {
+  'zh-Hans': { allDay: '全天', openT: '查看今日未完成事件', openB: n => `今天还有 ${n} 件事未完成，点开查看。`, doneT: '今日事件已完成', doneB: '今天的事件都完成了。' },
+  'zh-Hant': { allDay: '全天', openT: '查看今日未完成事件', openB: n => `今天還有 ${n} 件事未完成，點開查看。`, doneT: '今日事件已完成', doneB: '今天的事件都完成了。' },
+  en: { allDay: 'All day', openT: 'Check today’s open events', openB: n => `${n} things are still open today — tap to see them.`, doneT: 'All done today', doneB: 'Everything for today is done.' },
+  fr: { allDay: 'Toute la journée', openT: 'Voir les tâches du jour', openB: n => `Encore ${n} choses à faire aujourd’hui — touchez pour les voir.`, doneT: 'Tout est fait aujourd’hui', doneB: 'Tout est fait pour aujourd’hui.' },
+};
+const L = () => TXT[LANG] || TXT['zh-Hans'];
+const MON = { en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], fr: ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'] };
+const isZh = () => LANG.startsWith('zh');
 function fmt(t, h12, noHalf) {
   if (!h12) return t;
-  const [h, m] = t.split(':').map(Number);
-  return (noHalf ? '' : h < 12 ? '上午' : '下午') + (h % 12 || 12) + ':' + String(m).padStart(2, '0');
+  const [h, m] = t.split(':').map(Number), hm = (h % 12 || 12) + ':' + String(m).padStart(2, '0');
+  return noHalf ? hm : isZh() ? (h < 12 ? '上午' : '下午') + hm : `${hm} ${h < 12 ? 'AM' : 'PM'}`;
 }
 function body(e, h12) {
   const [, m, d] = e.date.split('-').map(Number);
   const same = e.endTime && (+e.time.slice(0, 2) < 12) === (+e.endTime.slice(0, 2) < 12);
-  const t = e.time ? (e.endTime ? `${fmt(e.time, h12)}–${fmt(e.endTime, h12, same)}` : fmt(e.time, h12)) : '全天';
-  return `${m}月${d}日 ${t}${e.note ? ' · ' + e.note : ''}`;
+  const t = e.time ? (e.endTime ? (isZh() ? `${fmt(e.time, h12)}–${fmt(e.endTime, h12, same)}` : `${fmt(e.time, h12, same)}–${fmt(e.endTime, h12)}`) : fmt(e.time, h12)) : L().allDay;
+  const date = LANG === 'en' ? `${MON.en[m - 1]} ${d}` : LANG === 'fr' ? `${d} ${MON.fr[m - 1]}` : `${m}月${d}日`;
+  return `${date} ${t}${e.note ? ' · ' + e.note : ''}`;
 }
 
 const id = await findGist();
 if (!id) { console.log('没有找到节律数据。'); process.exit(0); }
 const gist = await gh('/gists/' + id);
 const data = await readJSON(gist.files[DATA_FILE], { events: [] });
+{ const l = data.profile && data.profile.lang; if (['zh-Hans', 'zh-Hant', 'en', 'fr'].includes(l)) LANG = l; }
 const info = await readJSON(gist.files[SUBS_FILE], null);
 if (!info || !info.publicKey || !(info.subs || []).length) { console.log('还没有设备开启提醒通知。'); process.exit(0); }
 const sentDoc = await readJSON(gist.files[SENT_FILE], { sent: {} });
@@ -123,10 +136,10 @@ if (daily.on) {
   const [h, mi] = (daily.time || '13:00').split(':').map(Number);
   const ft = localToUtc(+p.year, +p.month, +p.day, h, mi, tz);
   if (ft <= now && ft > now - LOOKBACK) {
-    const open = (data.events || []).filter(e => e.date === ds && !e.done && !e.cal);
-    const msg = open.length
-      ? { title: '查看今日未完成事件', body: `今天还有 ${open.length} 件事未完成，点开查看。` }
-      : { title: '今日事件已完成', body: '今天的事件都完成了。' };
+    // 今日任务：主日历 + 设为在主日历显示的记录日历（和应用今日页一致）
+    const shownCals = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id));
+    const open = (data.events || []).filter(e => e.date === ds && !e.done && (!e.cal || shownCals.has(e.cal)));
+    const msg = open.length ? { title: L().openT, body: L().openB(open.length) } : { title: L().doneT, body: L().doneB };
     const tag = `daily@${ds}`;
     for (const sub of info.subs) {
       if (dead.has(sub.endpoint) || ft < (sub.addedAt || 0)) continue;

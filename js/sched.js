@@ -320,7 +320,7 @@
       head += `<div class="sc-dh${isToday ? ' today' : ''}${d > 5 ? ' we' : ''}${thin ? ' thin' : ''}"><span>${thin ? DAYS[d] : '周' + DAYS[d]}</span><b>${thin ? date.getDate() : `${date.getMonth() + 1}/${date.getDate()}`}</b></div>`;
     });
     let hours = '';
-    for (let h = minH; h < maxH; h++) hours += `<div class="sc-hr" style="top:${(h - minH) * HOUR}px">${h12 ? `<small>${h < 12 ? '上午' : '下午'}</small>${h % 12 || 12}` : `${h}:00`}</div>`;
+    for (let h = minH; h < maxH; h++) hours += `<div class="sc-hr" style="top:${(h - minH) * HOUR}px">${h12 ? MC.hourLabel(h, true) : `${h}:00`}</div>`;
     const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
     let cols = '';
     days.forEach((d, idx) => {
@@ -630,9 +630,9 @@
     pop.style.setProperty('--c', col);
     pop.innerHTML = `
       <div class="cp-top"><div class="cp-tag">${esc(c.type || '课程')}${c.every === 2 ? ' · 隔周' : ''}</div><button class="round cp-x" aria-label="关闭"><svg viewBox="0 0 24 24" width="15" height="15"><path d="M6 6l12 12M18 6L6 18" stroke-width="2.4"/></svg></button></div>
-      <h3>${esc(c.code)}</h3>
+      <h3 data-uc>${esc(c.code)}</h3>
       <div class="cp-row"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg><span>周${DAYS[c.day]} ${MC.fmtRange(c.start, c.end, ' – ')}<small>${dur} 分钟</small></span></div>
-      ${c.room ? `<div class="cp-row"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg><span>${esc(c.room)}</span></div>` : ''}
+      ${c.room ? `<div class="cp-row"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg><span data-uc>${esc(c.room)}</span></div>` : ''}
       <div class="cp-row"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="3.5"/><path d="M4 10h16M8.5 3.5v3.5M15.5 3.5v3.5"/></svg><span>${c.from || c.to ? `${c.from ? fmtD(c.from) : '开学'} – ${c.to ? fmtD(c.to) : '结课'}` : '每周都上'}<small>${c.every === 2 ? '隔一周上一次' : '每周'}</small></span></div>
       <div class="cp-next${nx && nx.live ? ' live' : ''}">下一次：${nxText}</div>
       <div class="cp-acts"><button class="cp-edit">编辑</button></div>`;

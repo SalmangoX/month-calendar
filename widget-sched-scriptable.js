@@ -14,7 +14,27 @@ const CONFIG = {
   TOKEN: "",
 };
 const FILE = "mcal-calendar.json";
-const WD = ["", "一", "二", "三", "四", "五", "六", "日"];
+const WD = ["", "一", "二", "三", "四", "五", "六", "日"]; // 课程的 day：1 = 周一 … 7 = 周日
+// ---------- 语言（和应用一致：同步数据里的 profile.lang；auto = 跟随设备语言） ----------
+let LANG = "zh-Hans";
+function setLang(p) {
+  let l = p && p !== "auto" ? p : "";
+  if (!l) {
+    const s = String((typeof Device !== "undefined" && Device.language ? Device.language() : (typeof navigator !== "undefined" ? navigator.language : "")) || "").toLowerCase();
+    l = s.startsWith("zh") ? (/tw|hk|mo|hant/.test(s) ? "zh-Hant" : "zh-Hans") : s.startsWith("fr") ? "fr" : s ? "en" : "zh-Hans";
+  }
+  LANG = ["zh-Hans", "zh-Hant", "en", "fr"].includes(l) ? l : "zh-Hans";
+}
+const W_TR = {"zh-Hant": {"还没有设置 Gist ID。\n请在节律 App 设置里「复制 iOS 小组件脚本」后重新粘贴，或在小组件参数中填写。": "還沒有設定 Gist ID。\n請在節律 App 設定裡「複製 iOS 小元件指令碼」後重新貼上，或在小元件引數中填寫。", "Gist 中没有节律数据": "Gist 中沒有節律資料", "没有找到节律数据": "沒有找到節律資料", "离线": "離線", "离线 · 显示缓存": "離線 · 顯示快取", "今天还有 {0} 项": "今天還有 {0} 項", "今天没有事件": "今天沒有事件", "接下来": "接下來", "今天无事件": "今天無事件", "节律": "節律", "预览哪种尺寸？": "預覽哪種尺寸？", "大号": "大號", "中号": "中號", "小号": "小號", "请在节律 设置 → 桌面小组件 里复制「iOS 课表小组件」脚本后重新粘贴。": "請在節律 設定 → 桌面小元件 裡複製「iOS 課表小元件」指令碼後重新貼上。", "课表": "課表", "还没有导入课表": "還沒有匯入課表", "最近两周没有课": "最近兩週沒有課", "上课中": "上課中", "{0} 小时后": "{0} 小時後", "{0} 分钟后": "{0} 分鐘後", "第一节": "第一節", "下一节": "下一節", "还有 {0} 节": "還有 {0} 節", "本周课表": "本週課表", "{0}课表": "{0}課表", "链接里缺少 gist 参数。请在节律 App 的设置中「复制安卓小组件链接」。": "連結裡缺少 gist 引數。請在節律 App 的設定中「複製安卓小元件連結」。", "本月暂无事件": "本月暫無事件", "这周没有课": "這周沒有課", "加载中…": "載入中…", "讲座": "講座", "实验": "實驗", "辅导": "輔導", "讨论课": "討論課", "研讨": "研討"}, "en": {"还没有设置 Gist ID。\n请在节律 App 设置里「复制 iOS 小组件脚本」后重新粘贴，或在小组件参数中填写。": "No Gist ID yet.\nIn Cadence Settings, use “Copy iOS widget script” and paste it again, or set it in the widget parameter.", "Gist 中没有节律数据": "No Cadence data in this Gist", "没有找到节律数据": "Cadence data not found", "离线": "Offline", "离线 · 显示缓存": "Offline · showing cached data", "今天 · {0}": "Today · {0}", "今天还有 {0} 项": "{0} more today", "今天没有事件": "Nothing today", "接下来": "Up next", "今天 {0}/{1} 完成": "Today {0}/{1} done", "今天无事件": "Nothing today", "节律": "Cadence", "预览哪种尺寸？": "Preview which size?", "大号": "Large", "中号": "Medium", "小号": "Small", "取消": "Cancel", "请在节律 设置 → 桌面小组件 里复制「iOS 课表小组件」脚本后重新粘贴。": "In Cadence Settings → Widgets, copy the “iOS timetable widget” script and paste it again.", "今天": "Today", "明天": "Tomorrow", "课表": "Timetable", "还没有导入课表": "No timetable imported yet", "最近两周没有课": "No classes in the next two weeks", "上课中": "In class", "{0} 小时后": "in {0} h", "{0} 分钟后": "in {0} min", "第一节": "First class", "下一节": "Next class", "还有 {0} 节": "{0} more", "本周课表": "This week", "{0}课表": "{0} timetable", "链接里缺少 gist 参数。请在节律 App 的设置中「复制安卓小组件链接」。": "The link is missing the gist parameter. In Cadence Settings, use “Copy Android widget link”.", "GitHub 返回 {0}": "GitHub returned {0}", "本月暂无事件": "No events this month", "完成 {0}/{1}": "{0}/{1} done", "这周没有课": "No classes this week", "加载中…": "Loading…", "讲座": "Lecture", "实验": "Lab", "辅导": "Tutorial", "讨论课": "Discussion", "研讨": "Seminar", "全天": "All day"}, "fr": {"还没有设置 Gist ID。\n请在节律 App 设置里「复制 iOS 小组件脚本」后重新粘贴，或在小组件参数中填写。": "Pas encore d’identifiant Gist.\nDans les Réglages de Cadence, utilisez « Copier le script du widget iOS » et recollez-le, ou renseignez-le dans le paramètre du widget.", "Gist 中没有节律数据": "Aucune donnée Cadence dans ce Gist", "没有找到节律数据": "Données Cadence introuvables", "离线": "Hors ligne", "离线 · 显示缓存": "Hors ligne · données en cache", "今天 · {0}": "Aujourd’hui · {0}", "今天还有 {0} 项": "Encore {0} aujourd’hui", "今天没有事件": "Rien aujourd’hui", "接下来": "À venir", "今天 {0}/{1} 完成": "Aujourd’hui {0}/{1} faits", "今天无事件": "Rien aujourd’hui", "节律": "Cadence", "预览哪种尺寸？": "Quelle taille prévisualiser ?", "大号": "Grand", "中号": "Moyen", "小号": "Petit", "取消": "Annuler", "请在节律 设置 → 桌面小组件 里复制「iOS 课表小组件」脚本后重新粘贴。": "Dans Cadence, Réglages → Widgets, copiez le script « Widget horaire iOS » et recollez-le.", "今天": "Aujourd’hui", "明天": "Demain", "课表": "Horaire", "还没有导入课表": "Aucun horaire importé", "最近两周没有课": "Aucun cours ces deux prochaines semaines", "上课中": "En cours", "{0} 小时后": "dans {0} h", "{0} 分钟后": "dans {0} min", "第一节": "Premier cours", "下一节": "Cours suivant", "还有 {0} 节": "Encore {0}", "本周课表": "Cette semaine", "{0}课表": "Horaire de {0}", "链接里缺少 gist 参数。请在节律 App 的设置中「复制安卓小组件链接」。": "Le lien n’a pas de paramètre gist. Dans les Réglages de Cadence, utilisez « Copier le lien du widget Android ».", "GitHub 返回 {0}": "GitHub a répondu {0}", "本月暂无事件": "Aucun événement ce mois-ci", "完成 {0}/{1}": "{0}/{1} faits", "这周没有课": "Aucun cours cette semaine", "加载中…": "Chargement…", "讲座": "Cours magistral", "实验": "TP", "辅导": "TD", "讨论课": "Discussion", "研讨": "Séminaire", "全天": "Toute la journée"}};
+const tr = (s, ...a) => String((W_TR[LANG] && W_TR[LANG][s]) || s).replace(/\{(\d)\}/g, (m, n) => (a[n] !== undefined ? a[n] : m));
+const isZh = () => LANG === "zh-Hans" || LANG === "zh-Hant";
+const wdShort = i => (LANG === "en" ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i] : LANG === "fr" ? ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."][i] : "日一二三四五六"[i]);
+const wdHead = i => (LANG === "en" ? ["S", "M", "T", "W", "T", "F", "S"][i] : LANG === "fr" ? ["D", "L", "M", "M", "J", "V", "S"][i] : "日一二三四五六"[i]);
+const wkName = i => (isZh() ? "周" + "日一二三四五六"[i] : wdShort(i));
+const monName = m => (LANG === "en" ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m] : LANG === "fr" ? ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."][m] : `${m + 1}月`);
+const mdName = (m, d) => (LANG === "en" ? `${monName(m)} ${d}` : LANG === "fr" ? `${d} ${monName(m)}` : `${m + 1}月${d}日`);
+const wkD = d => wkName(d % 7); // 课程 day（1–7）→ 星期名
+
 // ---------- 课程配色（应用 / 小组件共用同一套算法） ----------
 // 科目定「锚点色相」（数学 = 晴空蓝、经济 = 玉青、语言 = 杏……），再把这学期的所有课程在色环上推开：
 // 有含义（同科目颜色相近），又整体均匀（任意两门至少隔开一段距离）；跳过黄绿一带（深色下会发橄榄色）。
@@ -104,13 +124,13 @@ const region12 = () => {
   } catch (e) { return false; }
 };
 const use12 = () => (CLOCK === "12" ? true : CLOCK === "24" ? false : region12());
-const fmtT = (t, noHalf) => { if (!t || !use12()) return t || ""; const [h, m] = t.split(":").map(Number); return (noHalf ? "" : h < 12 ? "上午" : "下午") + (h % 12 || 12) + ":" + String(m).padStart(2, "0"); };
-const fmtR = (a, b) => { if (!use12()) return `${a}–${b}`; const same = (+a.slice(0, 2) < 12) === (+b.slice(0, 2) < 12); return `${fmtT(a)}–${fmtT(b, same)}`; };
-const hourLabel = h => (use12() ? `${h < 12 ? "上午" : "下午"}${h % 12 || 12}` : `${h}:00`);
+const fmtT = (t, noHalf) => { if (!t || !use12()) return t || ""; const [h, m] = t.split(":").map(Number), hm = (h % 12 || 12) + ":" + String(m).padStart(2, "0"); return noHalf ? hm : isZh() ? (h < 12 ? "上午" : "下午") + hm : `${hm} ${h < 12 ? "AM" : "PM"}`; };
+const fmtR = (a, b) => { if (!use12()) return `${a}–${b}`; const same = (+a.slice(0, 2) < 12) === (+b.slice(0, 2) < 12); return isZh() ? `${fmtT(a)}–${fmtT(b, same)}` : `${fmtT(a, same)}–${fmtT(b)}`; };
+const hourLabel = h => (use12() ? (isZh() ? `${h < 12 ? "上午" : "下午"}${h % 12 || 12}` : `${h % 12 || 12} ${h < 12 ? "AM" : "PM"}`) : `${h}:00`);
 async function loadCourses() {
   const fm = FileManager.local();
   const cache = fm.joinPath(fm.cacheDirectory(), "mcal-sched-cache.json");
-  if (!CONFIG.GIST_ID || CONFIG.GIST_ID.startsWith("__")) throw new Error("请在节律 设置 → 桌面小组件 里复制「iOS 课表小组件」脚本后重新粘贴。");
+  if (!CONFIG.GIST_ID || CONFIG.GIST_ID.startsWith("__")) throw new Error(tr("请在节律 设置 → 桌面小组件 里复制「iOS 课表小组件」脚本后重新粘贴。"));
   try {
     const req = new Request("https://api.github.com/gists/" + CONFIG.GIST_ID);
     const h = { Accept: "application/vnd.github+json", "User-Agent": "mcal-scriptable" };
@@ -118,11 +138,11 @@ async function loadCourses() {
     req.headers = h; req.timeoutInterval = 12;
     const g = await req.loadJSON();
     const f = g.files && g.files[FILE];
-    if (!f) throw new Error("没有找到节律数据");
+    if (!f) throw new Error(tr("没有找到节律数据"));
     const text = f.truncated ? await new Request(f.raw_url).loadString() : f.content;
-    const data = JSON.parse(text), courses = (data.courses || []), clock = (data.profile && data.profile.clock) || "auto";
-    fm.writeString(cache, JSON.stringify({ courses, clock }));
-    return { courses, clock, offline: false };
+    const data = JSON.parse(text), courses = (data.courses || []), clock = (data.profile && data.profile.clock) || "auto", lang = (data.profile && data.profile.lang) || "auto";
+    fm.writeString(cache, JSON.stringify({ courses, clock, lang }));
+    return { courses, clock, lang, offline: false };
   } catch (e) {
     if (fm.fileExists(cache)) { const c = JSON.parse(fm.readString(cache)); return Array.isArray(c) ? { courses: c, clock: "auto", offline: true } : { ...c, offline: true }; }
     throw e;
@@ -135,8 +155,8 @@ function pickDay(courses, now) {
   for (let k = 0; k < 15; k++) {
     const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + k), d = isoDay(date);
     let list = courses.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
-    if (k === 0) { if (list.some(c => toMin(c.end) > nm)) return { label: "今天", day: d, list, isToday: true }; continue; }
-    if (list.length) return { label: k === 1 ? "明天" : k < 7 ? `周${WD[d]}` : `${date.getMonth() + 1}月${date.getDate()}日`, day: d, list, isToday: false };
+    if (k === 0) { if (list.some(c => toMin(c.end) > nm)) return { label: tr("今天"), day: d, list, isToday: true }; continue; }
+    if (list.length) return { label: k === 1 ? tr("明天") : k < 7 ? wkD(d) : mdName(date.getMonth(), date.getDate()), day: d, list, isToday: false };
   }
   return null;
 }
@@ -154,7 +174,7 @@ function row(parent, c, state, compact) {
   const mid = r.addStack(); mid.layoutVertically();
   const top = mid.addStack(); top.centerAlignContent();
   addText(top, c.code, Font.semiboldSystemFont(compact ? 12 : 13.5), C.text, 1);
-  if (c.type && !compact) { top.addSpacer(5); addText(top, c.type, Font.systemFont(11), C.text2, 1); }
+  if (c.type && !compact) { top.addSpacer(5); addText(top, tr(c.type), Font.systemFont(11), C.text2, 1); }
   addText(mid, `${fmtR(c.start, c.end)}${c.room && !compact ? " · " + c.room : ""}`, Font.mediumSystemFont(compact ? 10 : 11), C.text2, 1);
   r.addSpacer();
   if (state) addText(r, state, Font.semiboldSystemFont(10), C.accent);
@@ -172,15 +192,15 @@ function build(family, courses, offline) {
   const w = new ListWidget();
   w.backgroundColor = C.bg;
   const now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
-  if (!courses.length) { w.setPadding(14, 14, 14, 14); addText(w, "课表", Font.boldSystemFont(15), C.text); w.addSpacer(6); addText(w, "还没有导入课表", Font.systemFont(12), C.text2); return w; }
+  if (!courses.length) { w.setPadding(14, 14, 14, 14); addText(w, tr("课表"), Font.boldSystemFont(15), C.text); w.addSpacer(6); addText(w, tr("还没有导入课表"), Font.systemFont(12), C.text2); return w; }
 
   if (family === "medium") return weekLayout(w, courses, now, offline);
   if (family === "large") return gridLayout(w, courses, now, offline);
 
   const pick = pickDay(courses, now);
   w.setPadding(12, 12, 10, 12);
-  if (!pick) { addText(w, "最近两周没有课", Font.systemFont(13), C.text2); return w; }
-  header(w, pick.label, `周${WD[pick.day]}${offline ? " · 离线" : ""}`);
+  if (!pick) { addText(w, tr("最近两周没有课"), Font.systemFont(13), C.text2); return w; }
+  header(w, pick.label, `${wkD(pick.day)}${offline ? " · " + tr("离线") : ""}`);
   w.addSpacer(6);
   let list = pick.list;
   if (pick.isToday) list = list.filter(c => toMin(c.end) > nm); // 已经结束的不再显示
@@ -188,12 +208,12 @@ function build(family, courses, offline) {
   let nextMarked = false;
   for (const c of list.slice(0, max)) {
     let state = "";
-    if (pick.isToday && nm >= toMin(c.start)) state = "上课中";
-    else if (!nextMarked) { state = pick.isToday ? `${Math.max(1, toMin(c.start) - nm) >= 60 ? Math.floor((toMin(c.start) - nm) / 60) + " 小时后" : (toMin(c.start) - nm) + " 分钟后"}` : "第一节"; nextMarked = true; }
+    if (pick.isToday && nm >= toMin(c.start)) state = tr("上课中");
+    else if (!nextMarked) { state = pick.isToday ? (Math.max(1, toMin(c.start) - nm) >= 60 ? tr("{0} 小时后", Math.floor((toMin(c.start) - nm) / 60)) : tr("{0} 分钟后", toMin(c.start) - nm)) : tr("第一节"); nextMarked = true; }
     row(w, c, family === "small" ? "" : state, family === "small");
     w.addSpacer(3);
   }
-  if (list.length > max) addText(w, `还有 ${list.length - max} 节`, Font.systemFont(10), C.text2);
+  if (list.length > max) addText(w, tr("还有 {0} 节", list.length - max), Font.systemFont(10), C.text2);
   w.addSpacer();
   return w;
 }
@@ -209,9 +229,9 @@ function weekLayout(w, courses, now, offline) {
     if (d <= 5 || list.length) days.push({ d, date, list });
   }
   const h = w.addStack(); h.centerAlignContent(); h.addSpacer(4);
-  addText(h, "本周课表", Font.boldSystemFont(13), C.accent); h.addSpacer(6);
+  addText(h, tr("本周课表"), Font.boldSystemFont(13), C.accent); h.addSpacer(6);
   const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
-  addText(h, `${mon.getMonth() + 1}/${mon.getDate()} – ${sun.getMonth() + 1}/${sun.getDate()}${offline ? " · 离线" : ""}`, Font.mediumSystemFont(10), C.text2);
+  addText(h, `${mon.getMonth() + 1}/${mon.getDate()} – ${sun.getMonth() + 1}/${sun.getDate()}${offline ? " · " + tr("离线") : ""}`, Font.mediumSystemFont(10), C.text2);
   h.addSpacer();
   w.addSpacer(4);
   const row = w.addStack();
@@ -220,7 +240,7 @@ function weekLayout(w, courses, now, offline) {
     const isToday = ymdL(date) === today;
     if (isToday) { col.backgroundColor = dyn("#E2E9F1", "#2B3644"); col.cornerRadius = 9; }
     const hd = col.addStack(); hd.addSpacer();
-    addText(hd, `周${WD[d]} ${date.getDate()}`, Font.semiboldSystemFont(9.5), isToday ? C.accent : C.text2); hd.addSpacer();
+    addText(hd, `${wkD(d)} ${date.getDate()}`, Font.semiboldSystemFont(9.5), isToday ? C.accent : C.text2); hd.addSpacer();
     col.addSpacer(3);
     for (const c of list.slice(0, list.length > 4 ? 3 : 4)) {
       const ch = col.addStack(); ch.layoutVertically(); ch.size = new Size(0, 0);
@@ -270,12 +290,12 @@ function gridLayout(w, courses, now, offline) {
   const mix = (a, b, t) => { const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16); const c = s => [(s >> 16) & 255, (s >> 8) & 255, s & 255]; const [ar, ag, ab] = c(A), [br, bg, bb] = c(B); return "#" + [br + (ar - br) * t, bg + (ag - bg) * t, bb + (ab - bb) * t].map(v => Math.round(v).toString(16).padStart(2, "0")).join(""); };
 
   const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
-  text("本周课表", pad + 4, pad, 80, 18, Font.boldSystemFont(13), P.accent);
-  text(`${mon.getMonth() + 1}/${mon.getDate()} – ${sun.getMonth() + 1}/${sun.getDate()}${offline ? " · 离线" : ""}`, pad + 70, pad + 2, 160, 16, Font.mediumSystemFont(10), P.text2);
+  text(tr("本周课表"), pad + 4, pad, isZh() ? 80 : 120, 18, Font.boldSystemFont(13), P.accent);
+  text(`${mon.getMonth() + 1}/${mon.getDate()} – ${sun.getMonth() + 1}/${sun.getDate()}${offline ? " · " + tr("离线") : ""}`, pad + (isZh() ? 70 : 112), pad + 2, 160, 16, Font.mediumSystemFont(10), P.text2);
   days.forEach((x, i) => { if (ymdL(x.date) === todayS) round(gx + i * colW + 1, pad + headH, colW - 2, H - pad - (pad + headH), 8, P.today); });
   days.forEach((x, i) => {
     const t = ymdL(x.date) === todayS;
-    text(`周${WD[x.d]} ${x.date.getDate()}`, gx + i * colW, pad + headH + 3, colW, 14, t ? Font.boldSystemFont(9.5) : Font.mediumSystemFont(9.5), t ? P.accent : P.text2, "c");
+    text(`${wkD(x.d)} ${x.date.getDate()}`, gx + i * colW, pad + headH + 3, colW, 14, t ? Font.boldSystemFont(9.5) : Font.mediumSystemFont(9.5), t ? P.accent : P.text2, "c");
   });
   for (let h = minH; h <= maxH; h++) {
     const y = gy + (h - minH) * hourH;
@@ -300,7 +320,7 @@ function gridLayout(w, courses, now, offline) {
       round(x0, y0, 3, bh, 1.5, dark ? tn.barD : tn.base);
       let y = y0 + 2;
       const rows = [[c.code, Font.boldSystemFont(10 * fk), dark ? tn.inkD : tn.inkL],
-        [c.type, Font.systemFont(8.5 * fk), P.text], [use12() ? `${fmtT(c.start, true)}–${fmtT(c.end, true)}` : `${c.start}–${c.end}`, Font.systemFont(8 * fk), P.text2], [c.room, Font.systemFont(8 * fk), P.text]];
+        [tr(c.type), Font.systemFont(8.5 * fk), P.text], [use12() ? `${fmtT(c.start, true)}–${fmtT(c.end, true)}` : `${c.start}–${c.end}`, Font.systemFont(8 * fk), P.text2], [c.room, Font.systemFont(8 * fk), P.text]];
       for (const [t, f, color] of rows) {
         if (!t) continue;
         const lh = f.pointSize ? f.pointSize * 1.25 : 11;
@@ -323,11 +343,11 @@ function monthLayout(w, courses, now, offline) {
   const first = new Date(y, m, 1), off = (first.getDay() + 6) % 7;
   const rows = Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7);
   const h = w.addStack(); h.centerAlignContent(); h.addSpacer(8);
-  addText(h, `${m + 1}月课表`, Font.boldSystemFont(13), C.accent); h.addSpacer(6);
-  addText(h, String(y) + (offline ? " · 离线" : ""), Font.mediumSystemFont(10), C.text2); h.addSpacer();
+  addText(h, isZh() ? `${m + 1}月课表` : tr("{0}课表", monName(m)), Font.boldSystemFont(13), C.accent); h.addSpacer(6);
+  addText(h, String(y) + (offline ? " · " + tr("离线") : ""), Font.mediumSystemFont(10), C.text2); h.addSpacer();
   w.addSpacer(2);
   const wr = w.addStack();
-  for (let i = 1; i <= 7; i++) { const c = wr.addStack(); c.size = new Size(0, 12); c.addSpacer(); addText(c, WD[i], Font.mediumSystemFont(8.5), C.text2); c.addSpacer(); }
+  for (let i = 1; i <= 7; i++) { const c = wr.addStack(); c.size = new Size(0, 12); c.addSpacer(); addText(c, wdHead(i % 7), Font.mediumSystemFont(8.5), C.text2); c.addSpacer(); }
   const grid = w.addStack(); grid.layoutVertically();
   for (let r = 0; r < rows; r++) {
     const row = grid.addStack(); row.size = new Size(0, 0);
@@ -366,11 +386,12 @@ try {
   const r = await loadCourses();
   courses = r.courses;
   CLOCK = r.clock || "auto";
+  setLang(r.lang);
   setSlots(courses);
   widget = build(family, courses, r.offline);
 } catch (e) {
   widget = new ListWidget(); widget.backgroundColor = C.bg; widget.setPadding(14, 14, 14, 14);
-  addText(widget, "课表", Font.boldSystemFont(15), C.text); widget.addSpacer(6);
+  addText(widget, tr("课表"), Font.boldSystemFont(15), C.text); widget.addSpacer(6);
   addText(widget, String(e.message || e), Font.systemFont(11), C.text2);
 }
 widget.url = `scriptable:///run/${encodeURIComponent(Script.name())}?tap=1`;
@@ -383,8 +404,8 @@ if (args.queryParameters && args.queryParameters.tap === "1") {
 } else if (config.runsInWidget) {
   Script.setWidget(widget);
 } else {
-  const a = new Alert(); a.title = "预览哪种尺寸？";
-  a.addAction("小号"); a.addAction("中号"); a.addAction("大号"); a.addCancelAction("取消");
+  const a = new Alert(); a.title = tr("预览哪种尺寸？");
+  a.addAction(tr("小号")); a.addAction(tr("中号")); a.addAction(tr("大号")); a.addCancelAction(tr("取消"));
   const i = await a.presentSheet();
   if (i >= 0) {
     const fam = ["small", "medium", "large"][i];

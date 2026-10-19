@@ -18,7 +18,7 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback"
     };
 
     private final MainActivity a;
@@ -96,6 +96,19 @@ final class Bridge {
         Store.prefs(c).edit().remove("gistId").remove("etag").remove("pullAt").remove("pullErr").apply();
         if (wipe) Store.clearData(c);
         Engine.refreshAsync(c);
+    }
+
+    /** 完成事件的音效：只有手机在「响铃」模式时才允许出声（振动、静音都不出声） */
+    @JavascriptInterface
+    public boolean soundAllowed() {
+        android.media.AudioManager am = (android.media.AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+        return am != null && am.getRingerMode() == android.media.AudioManager.RINGER_MODE_NORMAL;
+    }
+
+    /** 轻微的确认触感（跟随系统的触感反馈设置） */
+    @JavascriptInterface
+    public void haptic() {
+        a.runOnUiThread(() -> a.getWindow().getDecorView().performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM));
     }
 
     @JavascriptInterface
