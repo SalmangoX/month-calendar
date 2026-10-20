@@ -1,6 +1,7 @@
-/* 月历 · 安卓 App 桥接
- * 只在安卓 App（仓库 android 文件夹编译出的 APK）里生效：把数据和设置交给原生端，
+/* 月历 · 原生 App 桥接（安卓 App 和 Mac App 共用）
+ * 只在原生 App（仓库 android / macos 文件夹编译出的 App）里生效：把数据和设置交给原生端，
  * 用于桌面小组件和系统级的准时提醒。浏览器和 iPhone 上没有 window.MCNative，这个文件什么都不做。
+ * info().platform：'android'（旧版 App 没有这个字段，也当安卓）或 'mac'。
  *
  * 版本适配：App 通过 info() 报告自己的版本、接口版本和支持的功能。
  *   - 新功能用 MC.Native.has('功能名') 判断，旧版 App 没有就自动不显示。
@@ -17,14 +18,17 @@
   let info = {};
   try { info = JSON.parse(N.info()) || {}; } catch (e) {}
   const feats = new Set(info.features || []);
+  const platform = info.platform || 'android';
   Object.assign(Native, {
     on: true,
     info,
+    platform,
+    mac: platform === 'mac',
     has: f => feats.has(f),
     outdated: (info.bridge || 0) < NEED_BRIDGE,
     repo: info.repo || '',
   });
-  document.documentElement.classList.add('in-android');
+  document.documentElement.classList.add(platform === 'mac' ? 'in-mac' : 'in-android');
 
   const call = (name, ...args) => {
     try { return typeof N[name] === 'function' ? N[name](...args) : undefined; } catch (e) { return undefined; }
@@ -97,7 +101,7 @@
   pushToken();
   pushData();
 
-  // ---------- App 更新：APK 发布在仓库的 Releases，版本号就是 Actions 的运行序号 ----------
+  // ---------- App 更新：APK 发布在仓库的 Releases，版本号就是 Actions 的运行序号（Mac App 在本机编译，不检查） ----------
   const UKEY = 'mcal.apkCheck';
   Native.apkUrl = () => `https://github.com/${Native.repo}/releases/latest/download/month-calendar.apk`;
   Native.releasesUrl = () => `https://github.com/${Native.repo}/releases`;

@@ -289,6 +289,7 @@
     unlink: '<svg viewBox="0 0 24 24"><path d="M10 14l-1 1a3 3 0 0 1-4.2-4.2l2-2M14 10l1-1a3 3 0 0 1 4.2 4.2l-2 2M5 5l14 14"/></svg>',
     bell: '<svg viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>',
     send: '<svg viewBox="0 0 24 24"><path d="M4.5 11.5l15-6.5-5.5 15-2.6-6z"/><path d="M11.4 14l3.1-3.1"/></svg>',
+    laptop: '<svg viewBox="0 0 24 24"><rect x="5" y="5.5" width="14" height="10" rx="2"/><path d="M3 18.5h18"/></svg>',
     phone: '<svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.8"/><path d="M11 18h2"/></svg>',
     android: '<svg viewBox="0 0 24 24"><rect x="5.5" y="9" width="13" height="10" rx="2.5"/><path d="M8.5 9a3.5 3.5 0 0 1 7 0M8 4.5l1.5 2M16 4.5l-1.5 2"/><circle cx="10" cy="13" r=".6" fill="currentColor"/><circle cx="14" cy="13" r=".6" fill="currentColor"/></svg>',
     export: '<svg viewBox="0 0 24 24"><path d="M12 14.5V4M8 8l4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
@@ -393,7 +394,15 @@
       if (S.remoteSetup) nrows.splice(2, 0, srow({ act: 'boost', icon: 'clock', tone: 'lavender', label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
     }
     const gRemind = group('提醒', nrows, notifyHint());
-    if (MC.Native.on) {
+    if (MC.Native.mac) {
+      const I = MC.Native.info;
+      gWidgets += group('桌面小组件', [
+        srow({ act: 'mwidget', icon: 'grid', tone: 'periwinkle', label: '添加桌面小组件', sub: '整月、今日、课表', help: 'mwidget', chev: false }),
+      ], '菜单栏右上角的日历图标也能随时查看本月和当天的事件。');
+      gWidgets += group('Mac App', [
+        srow({ act: 'macapp', icon: 'laptop', tone: 'sage', label: 'Mac App', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
+      ], '改网页不需要重新编译，打开就是最新的；只有原生部分（菜单栏、小组件、提醒）改了才需要在 Mac 上重新运行 macos/build.sh。');
+    } else if (MC.Native.on) {
       gWidgets += group('桌面小组件', [
         srow({ act: 'pin:month', icon: 'grid', tone: 'periwinkle', label: '整月小组件', sub: '点一下添加到桌面', help: 'nwidget', chev: false }),
         srow({ act: 'pin:today', icon: 'sun', tone: 'apricot', label: '今日小组件', sub: '今天、已逾期和接下来一周', chev: false }),
@@ -436,6 +445,8 @@
       return;
     }
     if (act === 'nperm') { openHelp('nperm'); return; }
+    if (act === 'mwidget') { openHelp('mwidget'); return; }
+    if (act === 'macapp') return;
     if (act === 'apk') {
       UI.toast('正在检查 App 更新…');
       try {
@@ -729,21 +740,32 @@
         ? `<b style="color:var(--accent-text)">✓ ${yes}</b>`
         : `<b style="color:var(--p3)">${no}</b>　<button class="chip-btn glass" data-copy="nreq:${key}">去设置</button>`;
       const when = st.pullAt ? new Date(st.pullAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-      const sync = !st.token ? '未连接 GitHub（只显示这台手机上的数据）'
+      const mac = MC.Native.mac;
+      const sync = !st.token ? (mac ? '未连接 GitHub（只显示这台 Mac 上的数据）' : '未连接 GitHub（只显示这台手机上的数据）')
         : st.pullErr ? `<b style="color:var(--p3)">${esc(st.pullErr)}</b>` : `<b style="color:var(--accent-text)">✓ ${when ? '上次 ' + when : '已连接'}</b>`;
       return {
         title: '提醒权限检查',
-        html: `<p class="hint" style="margin:0 2px 14px">App 关着也要准时提醒，下面前三项都要是 ✓。</p>
+        html: `<p class="hint" style="margin:0 2px 14px">${mac ? '提醒由 macOS 按时弹出，退出节律后也会提醒；下面第一项要是 ✓。' : 'App 关着也要准时提醒，下面前三项都要是 ✓。'}</p>
         <ol class="steps">
           <li>通知：${ok(st.notif === 'granted', '已允许', '未允许', 'notif')}</li>
-          <li>精确闹钟：${ok(st.exact, '已允许', '未允许', 'exact')}</li>
-          <li>电池不受限制：${ok(st.battery, '已设置', '未设置', 'battery')}<br><small>三星手机再确认一下：设置 → 电池 → 后台使用限制，「休眠应用」和「深度休眠应用」里<b>不能有</b>节律，最好把节律加进「从不休眠的应用」。</small></li>
+          ${mac ? '' : `<li>精确闹钟：${ok(st.exact, '已允许', '未允许', 'exact')}</li>
+          <li>电池不受限制：${ok(st.battery, '已设置', '未设置', 'battery')}<br><small>三星手机再确认一下：设置 → 电池 → 后台使用限制，「休眠应用」和「深度休眠应用」里<b>不能有</b>节律，最好把节律加进「从不休眠的应用」。</small></li>`}
           <li>后台同步其他设备的改动：${sync}</li>
         </ol>
         <div class="help-copy"><button class="chip-btn glass" data-copy="ntest">立即测试</button><button class="chip-btn glass" data-copy="ntestBg">10 秒后测试</button><button class="chip-btn glass" data-copy="nreq:channels">通知样式</button></div>
-        <div class="help-tip">点「10 秒后测试」后马上回到桌面并锁屏，10 秒左右收到「后台提醒测试」，就说明 App 关着也能准时提醒。<br>想让提醒在锁屏显示、响铃或弹出横幅，点「通知样式」分别设置「事件提醒」和「每日未完成提醒」。</div>`,
+        ${mac ? `<div class="help-tip">点「10 秒后测试」后可以退出节律，10 秒左右收到「后台提醒测试」，就说明退出后也能准时提醒。<br>想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。</div>`
+        : `<div class="help-tip">点「10 秒后测试」后马上回到桌面并锁屏，10 秒左右收到「后台提醒测试」，就说明 App 关着也能准时提醒。<br>想让提醒在锁屏显示、响铃或弹出横幅，点「通知样式」分别设置「事件提醒」和「每日未完成提醒」。</div>`}`,
       };
     },
+    mwidget: () => ({
+      title: 'Mac 桌面小组件',
+      html: `<ol class="steps">
+        <li>在桌面空白处右键 → 编辑小组件…</li>
+        <li>在小组件库里搜索「节律」，把整月、今日或课表拖到桌面或通知中心。</li>
+        <li>课表小组件：小尺寸显示今天的课，中尺寸显示本周，大尺寸显示本周课表。</li>
+      </ol>
+      <div class="help-tip">整月小组件右上角的 ‹ › 可以翻月，30 分钟后自动回到本月。<br>在这台 Mac 上改的事件会立刻更新到小组件；其他设备上改的，连接 GitHub 后约 15 分钟内同步过来。</div>`,
+    }),
     nwidget: () => ({
       title: '安卓桌面小组件',
       html: `<ol class="steps">
@@ -1012,8 +1034,8 @@
     if (page !== 'cal') { showPage('cal'); return true; }
     return false;
   };
-  // 安卓 App：提示更新
-  if (MC.Native.on) {
+  // 安卓 App：提示更新（Mac App 在本机编译，不提示）
+  if (MC.Native.on && !MC.Native.mac) {
     if (MC.Native.outdated) setTimeout(() => UI.toast('这个版本的安卓 App 太旧了，请到 设置 → 安卓 App 更新'), 2500);
     setTimeout(() => MC.Native.checkUpdate(false).then(up => {
       if (!up || sessionStorage.getItem('mcal.apkTold') === String(up.latest)) return;

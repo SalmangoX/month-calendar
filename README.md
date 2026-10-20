@@ -1,6 +1,6 @@
 # 节律 · Cadence 0.19
 
-（原名「月历」）带优先级颜色的日历网页 App（PWA），外加一个安卓原生 App。
+（原名「月历」）带优先级颜色的日历网页 App（PWA），外加安卓和 Mac 原生 App。
 
 - **视图**：年 / 月 / 周三种视图（双指捏合切换），月视图逐周滚动、始终 6 行；跨天的全天事件连成一整条横条；底部菜单栏可点击也可长按拖动切换。
 - **事件**：单个或批量添加，都支持时间段、多天、重复和提醒；四档优先级（高 / 中 / 低 / 无）按色彩心理设计，色弱也能分辨。
@@ -8,7 +8,7 @@
 - **今日列表、四象限、课表**：课程按科目自动配色（数学偏蓝、经济偏绿、语言偏杏……），同时在色环上均匀分开。
 - **外观**：浅色 / 深色，配色取自图标；12 / 24 小时制默认跟随地区。
 - **同步**：用自己的 GitHub 令牌多设备同步。
-- **桌面小组件**：iOS（Scriptable）/ 安卓原生 / 网页版，样式和颜色与 App 一致。
+- **桌面小组件**：iOS（Scriptable）/ 安卓原生 / Mac 原生 / 网页版，样式和颜色与 App 一致。
 
 设置页里每一项旁边的 **?** 都有完整步骤，下面是概要。
 
@@ -17,11 +17,12 @@
 | 文件 | 作用 |
 | --- | --- |
 | `index.html` `styles.css` `js/` | App 本体（网页） |
-| `js/native.js` | 安卓 App 桥接，只在 App 里生效，浏览器和 iPhone 上什么都不做 |
+| `js/native.js` | 原生 App 桥接（安卓、Mac 共用），只在 App 里生效，浏览器和 iPhone 上什么都不做 |
 | `manifest.webmanifest` `sw.js` `icons/` | 添加到主屏幕、离线打开、接收推送 |
 | `widget-ios-scriptable.js` `widget-sched-scriptable.js` | iOS 小组件脚本（Scriptable） |
 | `widget.html` | 网页版安卓小组件（不装 App 时用） |
 | `android/` | 安卓原生 App：网页外壳 + 原生小组件 + 系统精确闹钟提醒 |
+| `macos/` | Mac 原生 App：网页外壳 + 菜单栏月历 + 桌面小组件 + 系统通知（在自己的 Mac 上用 `macos/build.sh` 编译） |
 | `.github/workflows/pages.yml` | 发布网页，并自动生成版本号 |
 | `.github/workflows/android.yml` | 编译、签名并发布安卓 App 到 Releases |
 | `.github/workflows/reminders.yml` `scripts/` | 网页版在 App 关闭时的提醒推送（iPhone 用） |
@@ -103,6 +104,16 @@ App 的界面就是上面这个网页，每次打开都加载最新版，**改�
 - App 通过 `MCNative.info()` 报告自己的版本、接口版本 `bridge` 和支持的功能列表。网页用 `MC.Native.has('功能名')` 判断，旧版 App 没有的功能就不显示，不会出错。
 - 只有删改了已有的原生方法时，才需要把 `android/.../Bridge.java` 的 `BRIDGE` 和 `js/native.js` 的 `NEED_BRIDGE` 一起加一，旧版 App 会提示更新。新增方法不用改版本号。
 - **数据格式**：原生端直接读取 Gist 里的 `mcal-calendar.json` 来画小组件、排提醒。以后改网页时，`events` / `courses` / `daily` 里的字段**只新增，不改名、不删除**；原生端会忽略不认识的字段，合并时原样保留。
+
+### Mac App
+
+需要 macOS 14 以上、Xcode（App Store 免费）和 Homebrew；Apple ID 免费账号就够。第一次先在 Xcode → 设置 → Accounts 登录 Apple ID，然后在终端运行：
+
+```
+cd month-calendar/macos && ./build.sh
+```
+
+脚本会生成工程、编译、装进「应用程序」并打开。窗口里就是网页版（改网页不用重新编译）；关掉窗口后留在菜单栏，点日历图标看本月和当天的事件；桌面小组件在桌面空白处右键 → 编辑小组件 → 搜索「节律」。macOS 26 上菜单栏的按钮和面板是液态玻璃，小组件的「清透 / 着色」样式由系统处理。只有改了 `macos/` 里的代码才需要重新运行 `build.sh`。
 
 ## 4. 网页版的提醒通知（iPhone）
 

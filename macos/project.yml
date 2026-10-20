@@ -1,0 +1,76 @@
+# 节律 Mac 版的 Xcode 工程描述。不用手改 Xcode 工程：运行 ./build.sh 会用 XcodeGen 从这里生成。
+name: Cadence
+options:
+  bundleIdPrefix: io.github.salmangox
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+configFiles:
+  Debug: Team.xcconfig
+  Release: Team.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_HARDENED_RUNTIME: YES
+    DEAD_CODE_STRIPPING: YES
+targets:
+  Cadence:
+    type: application
+    platform: macOS
+    sources:
+      - App
+      - Shared
+    settings:
+      base:
+        PRODUCT_NAME: Cadence
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.salmangox.cadence
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: 节律
+        CFBundleName: 节律
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHumanReadableCopyright: 节律 · Cadence
+        CadenceAppURL: https://salmangox.github.io/month-calendar/
+        CadenceAppGroup: $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
+        CFBundleURLTypes:
+          - CFBundleURLName: io.github.salmangox.cadence
+            CFBundleURLSchemes: [cadence]
+    entitlements:
+      path: App/Cadence.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.files.user-selected.read-write: true
+        com.apple.security.application-groups:
+          - $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
+    dependencies:
+      - target: CadenceWidgets
+        embed: true
+  CadenceWidgets:
+    type: app-extension
+    platform: macOS
+    sources:
+      - Widgets
+      - Shared
+    settings:
+      base:
+        PRODUCT_NAME: CadenceWidgets
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.salmangox.cadence.widgets
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: 节律
+        CadenceAppGroup: $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widgets/CadenceWidgets.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups:
+          - $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
