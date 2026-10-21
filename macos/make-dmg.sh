@@ -3,9 +3,9 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
-APP="build/Release/Cadence.app"
+APP="/Applications/Cadence.app" # 用「应用程序」里装好的那一份（编译目录里的副本装完就删掉了）
 if [ ! -d "$APP" ]; then
-  echo "→ 还没编译过，先编译…"; bash build.sh || exit 1
+  echo "→ 还没装过节律，先编译安装…"; bash build.sh || exit 1
 fi
 
 WORK=$(mktemp -d)

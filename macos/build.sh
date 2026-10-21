@@ -51,6 +51,7 @@ osascript -e 'tell application id "io.github.salmangox.cadence" to quit' >/dev/n
 sleep 1
 rm -rf /Applications/Cadence.app
 ditto "$APP" /Applications/Cadence.app
-killall chronod 2>/dev/null || true # 让系统重新加载小组件（不然桌面上可能还是旧样子）
+echo "→ 清理多余的副本…"
+bash ./cleanup.sh # 编译出来的那份也会删掉：电脑里只留「应用程序」里这一个节律
 open /Applications/Cadence.app
 echo "✅ 已安装到「应用程序」并打开。桌面小组件：在桌面空白处右键 → 编辑小组件 → 搜索「节律」。"
