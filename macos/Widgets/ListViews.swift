@@ -258,16 +258,20 @@ struct SchedGrid: View {
     private func content(W: CGFloat, H: CGFloat) -> some View {
         let d = entry.data, today = entry.today, mon = today.monday, sun = mon.adding(6), h12 = d.h12
         var days: [Int] = [], per: [[Course]] = []
-        var minH = 8, maxH = 18
+        var minH = 24, maxH = 0
         for i in 0..<7 {
             let l = d.courses(on: mon.adding(i))
             if i < 5 || !l.isEmpty { days.append(i); per.append(l) }
             for c in l { minH = min(minH, c.startMin / 60); maxH = max(maxH, (c.endMin + 59) / 60) }
         }
-        let pad: CGFloat = 8, axis: CGFloat = 30, headH: CGFloat = 22, dayH: CGFloat = 20
+        // 时间轴只覆盖这周真正有课的时段（没有课时显示 8–18 点），这样每小时更高、课程色块里能写下更多字
+        if minH >= maxH { minH = 8; maxH = 18 }
+        if maxH - minH < 4 { maxH = min(24, minH + 4) }
+        let pad: CGFloat = 8, axis: CGFloat = 34, headH: CGFloat = 22, dayH: CGFloat = 20
         let gx = pad + axis, gy = pad + headH + dayH, gw = W - gx - pad, gh = H - gy - pad
         let colW = gw / CGFloat(days.count), hourH = gh / CGFloat(maxH - minH)
-        let fk = max(0.72, min(1.1, colW / 64))
+        let fk = max(0.85, min(1.15, colW / 56))
+        let hourStep = hourH < 18 ? 2 : 1 // 太挤时隔一小时标一次
         let todayCol = days.firstIndex { mon.adding($0) == today }
         // 现在几点（和应用课表一样）：整周一条半透明的线压在课程上面，时间轴上一个时间标签
         let nm = YMD.cal.component(.hour, from: entry.date) * 60 + YMD.cal.component(.minute, from: entry.date)
@@ -307,8 +311,8 @@ struct SchedGrid: View {
                 }
             }
             .stroke(pal.line, lineWidth: 0.6)
-            ForEach(minH..<maxH, id: \.self) { h in
-                Text(hourLabel(h, h12)).font(.system(size: 9)).foregroundStyle(pal.text2).lineLimit(1)
+            ForEach(Array(stride(from: minH, to: maxH, by: hourStep)), id: \.self) { h in
+                Text(hourLabel(h, h12)).font(.system(size: 9)).foregroundStyle(pal.text2).lineLimit(1).minimumScaleFactor(0.6)
                     .frame(width: axis - 4, alignment: .trailing)
                     .offset(x: pad, y: gy + CGFloat(h - minH) * hourH + 1)
             }
@@ -363,16 +367,16 @@ struct SchedGrid: View {
         let x0 = x + 1.5, x1 = x0 + w - 3, y0 = top + 1, y1 = bottom - 1
         // 放得下几行就显示几行：代码、类型、时间、教室
         var lines: [(String, CGFloat, Font.Weight, Color)] = [
-            (c.code, 11, .bold, Color(argb: t[pal.dark ? CourseColors.INK_D : CourseColors.INK_L])),
+            (c.code, 11.5, .bold, Color(argb: t[pal.dark ? CourseColors.INK_D : CourseColors.INK_L])),
             (I18n.t(c.type), 9.5, .regular, pal.text),
             (h12 ? fmtTime(c.start, true, true) + "–" + fmtTime(c.end, true, true) : c.start + "–" + c.end, 9, .regular, pal.text2),
             (c.room, 9, .regular, pal.text),
         ]
         lines = lines.filter { !$0.0.isEmpty }
         var used: CGFloat = 2, fit: [(String, CGFloat, Font.Weight, Color)] = []
-        for ln in lines {
+        for (i, ln) in lines.enumerated() {
             let h = ln.1 * fk * 1.22
-            if used + h > y1 - y0 { break }
+            if i > 0 && used + h > y1 - y0 { break } // 第一行（课程代码）不管多矮都显示
             used += h; fit.append(ln)
         }
         return ZStack(alignment: .topLeading) {
@@ -382,9 +386,10 @@ struct SchedGrid: View {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(fit.enumerated()), id: \.offset) { _, ln in
                     Text(ln.0).font(.system(size: ln.1 * fk, weight: ln.2)).foregroundStyle(ln.3).lineLimit(1)
+                        .minimumScaleFactor(0.55) // 宁可字小一点，也要显示完整的课程代码，不要「MAT 2…」
                 }
             }
-            .padding(.leading, 6).padding(.top, 2).padding(.trailing, 2)
+            .padding(.leading, 5.5).padding(.top, 2).padding(.trailing, 1.5)
         }
         .frame(width: max(0, x1 - x0), height: max(0, y1 - y0), alignment: .topLeading)
         .clipped()

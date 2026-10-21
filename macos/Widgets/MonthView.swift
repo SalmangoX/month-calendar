@@ -9,7 +9,8 @@ struct MonthView: View {
     let entry: CalEntry
 
     private static let headH: CGFloat = 26, wdH: CGFloat = 15, topPad: CGFloat = 4, sp: CGFloat = 0.6
-    private static let slot: CGFloat = 14.5, chipH: CGFloat = 13.5, dateH: CGFloat = 17, cellTop: CGFloat = 1.5
+    // Mac 桌面上看得比手机远，字和色条比 iOS / 安卓大一档（样式不变）
+    private static let slot: CGFloat = 16.5, chipH: CGFloat = 15.5, dateH: CGFloat = 18, cellTop: CGFloat = 1.5
 
     /// 每格能放几条事件：≥1 显示色条；0 显示圆点；-1 只显示日期
     private static func capacity(_ cell: CGFloat) -> Int {
@@ -34,7 +35,7 @@ struct MonthView: View {
                     header(ym, pal)
                     HStack(spacing: MonthView.sp) {
                         ForEach(0..<7, id: \.self) { k in
-                            Text(I18n.wdHead((k + entry.weekStart) % 7)).font(.system(size: 9)).foregroundStyle(pal.text2).frame(width: cw)
+                            Text(I18n.wdHead((k + entry.weekStart) % 7)).font(.system(size: 10)).foregroundStyle(pal.text2).frame(width: cw)
                         }
                     }
                     .frame(height: MonthView.wdH)
@@ -108,17 +109,17 @@ struct MonthView: View {
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
                 Text("\(day.d)")
-                    .font(.system(size: 11.5))
+                    .font(.system(size: 12.5))
                     .foregroundStyle(isToday ? Color.white : inMonth ? pal.text : pal.dim)
                     .padding(.horizontal, 3)
-                    .frame(minWidth: 17, minHeight: MonthView.dateH, maxHeight: MonthView.dateH)
-                    .background { if isToday { RoundedRectangle(cornerRadius: 8.5).fill(pal.accent).widgetAccentable() } }
+                    .frame(minWidth: 18, minHeight: MonthView.dateH, maxHeight: MonthView.dateH)
+                    .background { if isToday { RoundedRectangle(cornerRadius: 9).fill(pal.accent).widgetAccentable() } }
                     .padding(.leading, 2)
                 Spacer(minLength: 0)
                 if hidden > 0 {
                     // 今天还有放不下的事：用主色小标签，比其他日子的灰色「+n」醒目
                     Text(isToday ? " +\(hidden) " : "+\(hidden)")
-                        .font(.system(size: 8))
+                        .font(.system(size: 9))
                         .foregroundStyle(isToday ? Color.white : pal.text2)
                         .background { if isToday { RoundedRectangle(cornerRadius: 5).fill(pal.accent) } }
                         .padding(.trailing, 2)
@@ -150,7 +151,7 @@ struct MonthView: View {
     private func chip(_ e: CEvent, soft: Bool, width: CGFloat, pal: Pal) -> some View {
         let (fill, ink) = pal.chip(e, entry.data, soft: soft)
         return Text(e.displayTitle)
-            .font(.system(size: 9, weight: pal.dark ? .medium : .bold))
+            .font(.system(size: 10.5, weight: pal.dark ? .medium : .bold))
             .strikethrough(e.done)
             .foregroundStyle(ink)
             .lineLimit(1)
@@ -172,7 +173,7 @@ struct MonthView: View {
         let y = MonthView.cellTop + MonthView.dateH + 1 + CGFloat(s.slot) * MonthView.slot
         let rl: CGFloat = s.openL ? 0 : 3.5, rr: CGFloat = s.openR ? 0 : 3.5
         return Text(s.e.displayTitle)
-            .font(.system(size: 9, weight: pal.dark ? .medium : .bold))
+            .font(.system(size: 10.5, weight: pal.dark ? .medium : .bold))
             .strikethrough(s.e.done)
             .foregroundStyle(ink)
             .lineLimit(1)
