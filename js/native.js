@@ -104,46 +104,27 @@
   // ---------- Mac App ----------
   if (Native.mac) {
     const UI = () => MC.UI || {};
-    // 底部菜单栏和加号由原生液态玻璃绘制：把当前页、各个标签、头像、是否有面板盖住告诉原生端
-    if (feats.has('chrome')) {
-      document.documentElement.classList.add('in-mac-chrome');
-      let last = '', queued = false;
-      const report = () => {
-        queued = false;
-        const u = UI(), q = s => document.querySelector(s);
-        const tabs = [...document.querySelectorAll('#tabbar button[data-page]')].filter(b => !b.hidden)
-          .map(b => ({ page: b.dataset.page, label: (b.querySelector('span:not(.tab-avatar)') || {}).textContent || '' }));
-        const av = q('#tabAvatar');
-        const avatar = av && !av.hidden ? ((av.style.backgroundImage || '').match(/url\("?(.*?)"?\)$/) || [])[1] || '' : '';
-        const covered = !!((u.anyOpen && u.anyOpen()) || (u.menuOpen && u.menuOpen()) || (MC.Drawer && MC.Drawer.isOpen && MC.Drawer.isOpen())
-          || document.documentElement.classList.contains('locked') || q('.cpop.show, .wkpick.show'));
-        const st = JSON.stringify({ page: document.body.dataset.page || 'cal', tabs, avatar, covered });
-        if (st !== last) { last = st; call('chrome', st); }
-      };
-      const kick = () => { if (!queued) { queued = true; requestAnimationFrame(report); } };
-      window.addEventListener('load', () => {
-        new MutationObserver(kick).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class', 'data-page'] });
-        const tb = document.querySelector('#tabbar');
-        if (tb) new MutationObserver(kick).observe(tb, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'style', 'data-page'] });
-        kick();
-      });
-      // 原生菜单栏点了某个标签 / 加号
-      Native.tap = p => { const b = document.querySelector(`#tabbar button[data-page="${p}"]`); if (b) b.click(); };
-      Native.add = () => { const f = document.querySelector('#fab'); if (f) f.click(); };
-    }
-
     // 触控板捏合（原生转过来）：在手指下面的元素上派发和 Safari 一样的 gesture 事件；
     // 万一网页内核自己也发了 gesture 事件，就拦掉，只走原生这一路，避免一次捏合切换两次
     ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => {
       if (!e.mcNative) { e.preventDefault(); e.stopImmediatePropagation(); }
     }, true));
+    // 捏合要落到日历或课表上：手指在标题、空白处时也交给当前页面的日历 / 课表；有面板盖住时不处理
+    const pinchHost = (x, y) => {
+      const u = UI();
+      if ((u.anyOpen && u.anyOpen()) || (MC.Drawer && MC.Drawer.isOpen())) return null;
+      const page = document.body.dataset.page, el = document.elementFromPoint(x, y);
+      const host = page === 'sched' ? document.querySelector('#schedBody .sc-grid') : page === 'cal' ? document.getElementById('calViewport') : null;
+      return host && el && host.contains(el) ? el : host;
+    };
     let pinchTarget = null;
     Native.pinch = (phase, scale, x, y) => {
       const type = phase === 'began' ? 'gesturestart' : phase === 'changed' ? 'gesturechange' : 'gestureend';
-      if (phase === 'began') pinchTarget = document.elementFromPoint(x, y);
+      if (phase === 'began') pinchTarget = pinchHost(x, y);
+      if (!pinchTarget || !pinchTarget.isConnected) { if (phase === 'ended') pinchTarget = null; return; }
       const ev = new Event(type, { bubbles: true, cancelable: true });
       ev.scale = scale; ev.clientX = x; ev.clientY = y; ev.mcNative = true;
-      (pinchTarget || document.body).dispatchEvent(ev);
+      pinchTarget.dispatchEvent(ev);
       if (phase === 'ended') pinchTarget = null;
     };
 

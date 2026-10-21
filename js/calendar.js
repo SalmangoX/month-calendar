@@ -615,8 +615,8 @@
   let gz = null;
   vp.addEventListener('gesturestart', e => {
     e.preventDefault();
-    if (!finePtr || pinch || animating) return;
-    gz = { s: 1, target: targetAt(e.clientX, e.clientY) };
+    if (!finePtr || pinch) return;
+    gz = { s: 1, target: targetAt(e.clientX, e.clientY) }; // 上一次切换的动画还没完也照样接住，松手时再判断
     zoomEl.style.transition = 'none';
   });
   vp.addEventListener('gesturechange', e => {
@@ -632,8 +632,9 @@
     const { s: sc, target } = gz;
     gz = null;
     suppress = true; setTimeout(() => (suppress = false), 120);
-    if (sc < .82) zoomStep('out', target);
-    else if (sc > 1.22) zoomStep('in', target);
+    if (animating) { zoomEl.style.transform = ''; zoomEl.style.opacity = ''; }
+    else if (sc < .86) zoomStep('out', target); // 触控板捏合幅度比手指小，阈值放宽一点
+    else if (sc > 1.16) zoomStep('in', target);
     else { zoomEl.style.transition = 'transform .3s var(--ease-spring), opacity .2s'; zoomEl.style.transform = ''; zoomEl.style.opacity = ''; }
   });
   vp.addEventListener('touchend', end);

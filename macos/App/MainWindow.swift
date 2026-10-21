@@ -6,7 +6,7 @@ import WebKit
 @MainActor
 final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
     static let bridgeVersion = 1
-    static let features = ["data", "prefs", "token", "notify", "test", "widgets", "saveFile", "openUrl", "sync", "feedback", "chrome"]
+    static let features = ["data", "prefs", "token", "notify", "test", "widgets", "saveFile", "openUrl", "sync", "feedback"]
 
     private let window: NSWindow
     private let web: WKWebView
@@ -15,7 +15,6 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
     private var pendingHash = ""
     private var triedCache = false
     private let engine = Engine.shared
-    private let chrome = ChromeModel()
 
     override init() {
         let s = Bundle.main.object(forInfoDictionaryKey: "CadenceAppURL") as? String ?? "https://salmangox.github.io/month-calendar/"
@@ -53,32 +52,12 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         cfg.userContentController.add(WeakHandler(self), name: "mc")
         installShim()
         engine.onStatus = { [weak self] in self?.pushStatus() }
-        installChrome(in: root)
         web.load(URLRequest(url: appURL))
-    }
-
-    /// 原生液态玻璃的底部菜单栏和加号，盖在网页底部
-    private func installChrome(in root: NSView) {
-        let model = chrome
-        let host = ChromeHostingView(rootView: ChromeBar(model: model,
-            select: { [weak self] p in self?.web.evaluateJavaScript("MC.Native&&MC.Native.tap&&MC.Native.tap(\(jsQuote(p)))") },
-            add: { [weak self] in self?.newEvent() }))
-        host.enabled = { [weak model] in model?.visible ?? false }
-        host.translatesAutoresizingMaskIntoConstraints = false
-        root.addSubview(host)
-        let wide = host.widthAnchor.constraint(equalToConstant: 600)
-        wide.priority = .defaultLow
-        NSLayoutConstraint.activate([
-            host.centerXAnchor.constraint(equalTo: root.centerXAnchor),
-            host.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -8),
-            host.widthAnchor.constraint(lessThanOrEqualTo: root.widthAnchor, constant: -16),
-            wide,
-        ])
     }
 
     @objc func newEvent() {
         show()
-        web.evaluateJavaScript("MC.Native&&MC.Native.add&&MC.Native.add()")
+        web.evaluateJavaScript("(function(){var f=document.getElementById('fab');if(f)f.click();})()")
     }
 
     /// 和网页一致的底色，窗口标题栏、网页加载前都不会闪白
@@ -137,8 +116,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             openUrl: function (u) { post('openUrl', [String(u)]); },
             pinWidget: function () { return false; },
             saveFile: function (n, m, c, cb) { post('saveFile', [String(n), String(m), String(c), String(cb)]); },
-            syncNow: function () { post('syncNow'); },
-            chrome: function (j) { post('chrome', [String(j)]); }
+            syncNow: function () { post('syncNow'); }
           };
         })();
         """
@@ -174,7 +152,6 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         case "openUrl": if let u = URL(string: s(0)) { NSWorkspace.shared.open(u) }
         case "saveFile": saveFile(name: s(0), content: s(2), cb: s(3))
         case "syncNow": Task { await engine.pull() }
-        case "chrome": chrome.update(s(0))
         case "retry": reload()
         default: break
         }
@@ -226,7 +203,6 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         if e.domain == NSURLErrorDomain && e.code == NSURLErrorCancelled { return }
         if e.domain == "WebKitErrorDomain" && e.code == 102 { return } // 交给浏览器打开的链接
         loaded = false
-        chrome.reset()
         if !triedCache {
             triedCache = true
             web.load(URLRequest(url: appURL, cachePolicy: .returnCacheDataDontLoad))
