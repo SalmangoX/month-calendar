@@ -730,10 +730,10 @@ final class Widgets {
             cv.drawRect(gx, ny - 0.75f * dp, W - pad, ny + 0.75f * dp, np);
             String lbl = Data.fmt(String.format(java.util.Locale.ROOT, "%02d:%02d", nowMin / 60, nowMin % 60), Data.h12(c), true);
             np.setColor(red); np.setTypeface(Typeface.DEFAULT_BOLD); np.setTextSize(8 * dp); np.setTextAlign(Paint.Align.CENTER);
-            float tw = Math.max(axis - 4 * dp, np.measureText(lbl) + 5 * dp);
-            cv.drawRoundRect(new RectF(gx - tw, ny - 6 * dp, gx, ny + 6 * dp), 3.5f * dp, 3.5f * dp, np);
+            float tagW = Math.max(axis - 4 * dp, np.measureText(lbl) + 5 * dp); // 不能叫 tw：上面标题已经用了这个名字
+            cv.drawRoundRect(new RectF(gx - tagW, ny - 6 * dp, gx, ny + 6 * dp), 3.5f * dp, 3.5f * dp, np);
             np.setColor(0xFFFFFFFF);
-            cv.drawText(lbl, gx - tw / 2, ny + 3 * dp, np);
+            cv.drawText(lbl, gx - tagW / 2, ny + 3 * dp, np);
         }
         if (d.courses.isEmpty()) {
             p.setTextAlign(Paint.Align.CENTER); p.setTextSize(13 * dp); p.setColor(text2);
