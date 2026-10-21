@@ -400,7 +400,7 @@
         srow({ act: 'mwidget', icon: 'grid', tone: 'periwinkle', label: '添加桌面小组件', sub: '整月、今日、课表', help: 'mwidget', chev: false }),
       ], '菜单栏右上角的日历图标也能随时查看本月和当天的事件。');
       gWidgets += group('Mac App', [
-        srow({ act: 'macapp', icon: 'laptop', tone: 'sage', label: 'Mac App', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
+        srow({ act: 'macapp', icon: 'laptop', tone: 'sage', label: 'Mac App', sub: '点一下检查更新', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
       ], '改网页不需要重新编译，打开就是最新的；只有原生部分（菜单栏、小组件、提醒）改了才需要在 Mac 上重新运行 macos/build.sh。');
     } else if (MC.Native.on) {
       gWidgets += group('桌面小组件', [
@@ -446,7 +446,10 @@
     }
     if (act === 'nperm') { openHelp('nperm'); return; }
     if (act === 'mwidget') { openHelp('mwidget'); return; }
-    if (act === 'macapp') return;
+    if (act === 'macapp') {
+      if (window.MCNative && window.MCNative.checkUpdate) { UI.toast('正在检查 Mac 版更新…'); window.MCNative.checkUpdate(); }
+      return;
+    }
     if (act === 'apk') {
       UI.toast('正在检查 App 更新…');
       try {
@@ -533,6 +536,8 @@
         await Promise.all(regs.map(r => r.unregister()));
         if (window.caches) await Promise.all((await caches.keys()).map(k => caches.delete(k)));
       } catch (err) {}
+      // Mac App：同时检查原生部分（菜单栏、小组件、提醒）有没有新版本，结果由 App 弹窗显示
+      if (MC.Native.mac && window.MCNative && window.MCNative.checkUpdate) window.MCNative.checkUpdate();
       location.replace(location.pathname + '?u=' + Date.now());
     }
   });

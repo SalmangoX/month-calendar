@@ -429,6 +429,8 @@
         inner.style.transform = `scale(${p.s})`;
       });
       grid.addEventListener('gestureend', e => { e.preventDefault(); if (p && p.g) end(); });
+      // 保险：万一没收到捏合结束，鼠标一按下就复原
+      grid.addEventListener('pointerdown', () => { if (p && p.g) { p = null; inner.style.transition = ''; inner.style.transform = ''; } }, true);
     }
     // 触控板左右轻扫翻周（全览时；放大后左右滑是滚动内容）
     let hx = 0, hLock = false, hT = null;

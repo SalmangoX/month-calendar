@@ -118,10 +118,11 @@
       return host && el && host.contains(el) ? el : host;
     };
     let pinchTarget = null;
+    document.addEventListener('pointerdown', () => { pinchTarget = null; }, true); // 万一没收到结束，点一下就复原
     Native.pinch = (phase, scale, x, y) => {
       const type = phase === 'began' ? 'gesturestart' : phase === 'changed' ? 'gesturechange' : 'gestureend';
       if (phase === 'began') pinchTarget = pinchHost(x, y);
-      if (!pinchTarget || !pinchTarget.isConnected) { if (phase === 'ended') pinchTarget = null; return; }
+      if (!pinchTarget || !pinchTarget.isConnected) return; // 没有「开始」的零散事件直接忽略
       const ev = new Event(type, { bubbles: true, cancelable: true });
       ev.scale = scale; ev.clientX = x; ev.clientY = y; ev.mcNative = true;
       pinchTarget.dispatchEvent(ev);

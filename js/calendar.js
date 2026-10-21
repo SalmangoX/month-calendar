@@ -506,13 +506,16 @@
     if (view === 'month') jumpToMonth(focus.y, focus.m + 1); else page(1);
   };
   $('#btnToday').onclick = () => {
-    const n = new Date();
+    const n = new Date(), from = view;
     selected = MC.todayStr();
     stopAnim(); scrollY = 0; pagePos = 0;
     anchor = MC.weekStartOf(new Date(n.getFullYear(), n.getMonth(), 1));
     weekAnchor = MC.weekStartOf(n);
     year = n.getFullYear();
+    // 不管现在是年 / 周 / 日视图，都回到今天所在的月视图
+    if (from !== 'month') { view = 'month'; MC.settings.view = 'month'; MC.saveSettings(); resetZoomStyle(); }
     render();
+    if (from !== 'month') playZoom(LEVELS.indexOf('month') > LEVELS.indexOf(from) ? 'in' : 'out');
   };
 
   // ---------- 手势 ----------
@@ -626,6 +629,12 @@
     zoomEl.style.transform = `scale(${gz.s})`;
     zoomEl.style.opacity = String(1 - Math.min(.45, Math.abs(gz.s - 1) * .9));
   });
+  // 保险：万一没收到捏合结束（比如手势中途切走了窗口），鼠标一按下就复原，不会一直当成在捏合
+  vp.addEventListener('pointerdown', () => {
+    if (!gz) return;
+    gz = null;
+    zoomEl.style.transition = 'transform .3s var(--ease-spring), opacity .2s'; zoomEl.style.transform = ''; zoomEl.style.opacity = '';
+  }, true);
   vp.addEventListener('gestureend', e => {
     e.preventDefault();
     if (!gz) return;

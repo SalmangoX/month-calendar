@@ -52,7 +52,31 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         cfg.userContentController.add(WeakHandler(self), name: "mc")
         installShim()
         engine.onStatus = { [weak self] in self?.pushStatus() }
+        installPinch()
         web.load(URLRequest(url: appURL))
+    }
+
+    /// 触控板双指捏合：用应用级的事件监听接住（不管鼠标下面是网页的哪一层都能收到），
+    /// 转成网页里的 gesturestart / gesturechange / gestureend，日历切换年 / 月 / 周、课表缩放都靠它
+    private var pinchMonitor: Any?
+    private var pinchScale: CGFloat = 1
+    private func installPinch() {
+        pinchMonitor = NSEvent.addLocalMonitorForEvents(matching: .magnify) { [weak self] e in
+            guard let self, e.window === self.window else { return e }
+            let p = self.web.convert(e.locationInWindow, from: nil)
+            guard self.web.bounds.contains(p) || e.phase != .began else { return e }
+            let phase: String
+            switch e.phase {
+            case .began: phase = "began"; self.pinchScale = 1
+            case .changed: phase = "changed"
+            case .ended, .cancelled: phase = "ended"
+            default: return e
+            }
+            self.pinchScale = max(0.3, self.pinchScale + e.magnification)
+            let y = self.web.isFlipped ? p.y : self.web.bounds.height - p.y
+            self.web.evaluateJavaScript("window.MC&&MC.Native&&MC.Native.pinch&&MC.Native.pinch('\(phase)',\(self.pinchScale),\(p.x),\(y))")
+            return e // 不能吞掉：网页内核要收到完整的开始 / 结束，否则会以为手指一直按着
+        }
     }
 
     @objc func newEvent() {
@@ -116,7 +140,8 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             openUrl: function (u) { post('openUrl', [String(u)]); },
             pinWidget: function () { return false; },
             saveFile: function (n, m, c, cb) { post('saveFile', [String(n), String(m), String(c), String(cb)]); },
-            syncNow: function () { post('syncNow'); }
+            syncNow: function () { post('syncNow'); },
+            checkUpdate: function () { post('checkUpdate'); }
           };
         })();
         """
@@ -152,6 +177,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         case "openUrl": if let u = URL(string: s(0)) { NSWorkspace.shared.open(u) }
         case "saveFile": saveFile(name: s(0), content: s(2), cb: s(3))
         case "syncNow": Task { await engine.pull() }
+        case "checkUpdate": Task { await Updater.shared.check(manual: true) }
         case "retry": reload()
         default: break
         }
@@ -288,30 +314,7 @@ func jsQuote(_ s: String) -> String {
     return q
 }
 
-/// 触控板双指捏合：WKWebView 默认不会把它交给网页。这里用手势识别器接住（不管鼠标下面是网页的哪一层都能收到），
-/// 转成网页里的 gesturestart / gesturechange / gestureend，日历（切换年 / 月 / 周）和课表（缩放）直接就能用
+/// 网页视图：触控板捏合不让网页内核自己处理（下面的 MainWindowController 用应用级事件监听统一接住）
 final class CadenceWebView: WKWebView {
-    override init(frame: CGRect, configuration: WKWebViewConfiguration) {
-        super.init(frame: frame, configuration: configuration)
-        addGestureRecognizer(NSMagnificationGestureRecognizer(target: self, action: #selector(onPinch(_:))))
-    }
-
-    required init?(coder: NSCoder) { super.init(coder: coder) }
-
-    /// 捏合交给上面的识别器处理，网页自己不再缩放
     override func magnify(with event: NSEvent) {}
-
-    @objc private func onPinch(_ g: NSMagnificationGestureRecognizer) {
-        let phase: String
-        switch g.state {
-        case .began: phase = "began"
-        case .changed: phase = "changed"
-        case .ended, .cancelled, .failed: phase = "ended"
-        default: return
-        }
-        let p = g.location(in: self)
-        let y = isFlipped ? p.y : bounds.height - p.y
-        let scale = max(0.3, 1 + g.magnification)
-        evaluateJavaScript("window.MC&&MC.Native&&MC.Native.pinch&&MC.Native.pinch('\(phase)',\(scale),\(p.x),\(y))")
-    }
 }

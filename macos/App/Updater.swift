@@ -30,7 +30,7 @@ final class Updater: ObservableObject {
     }
 
     func check(manual: Bool) async {
-        guard !checking else { return }
+        guard manual || !checking else { return } // 手动检查总是执行，不被后台那次挡住
         checking = true
         defer { checking = false }
         let url = URL(string: "https://raw.githubusercontent.com/\(repo)/main/macos/version.json")!
