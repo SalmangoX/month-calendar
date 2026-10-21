@@ -72,6 +72,8 @@ struct GlassGroup<Content: View>: View {
 
 struct MenuBarView: View {
     @EnvironmentObject var engine: Engine
+    @ObservedObject private var backup = Backup.shared
+    @ObservedObject private var updater = Updater.shared
     @Environment(\.colorScheme) private var scheme
     @State private var off = 0
     @State private var selected = YMD.today
@@ -84,6 +86,16 @@ struct MenuBarView: View {
         let ws = Shared.weekStart
         let days = monthGrid(ym, weekStart: ws)
         VStack(alignment: .leading, spacing: 10) {
+            if updater.available, let v = updater.latest {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down.circle").foregroundStyle(pal.accentText)
+                    Text(I18n.t("Mac 版有新版本 {0}", v.version)).font(.system(size: 12, weight: .medium)).foregroundStyle(pal.text)
+                    Spacer(minLength: 0)
+                    Button(I18n.t("更新…")) { updater.install() }.glassButton(prominent: true).tint(pal.accent).controlSize(.small)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 8)
+                .glassPanel(12)
+            }
             header(ym)
             VStack(spacing: 2) {
                 HStack(spacing: 0) {
@@ -185,6 +197,11 @@ struct MenuBarView: View {
         }
     }
 
+    private func chooseBackup() {
+        (NSApp.delegate as? AppDelegate)?.closePopover()
+        Task { @MainActor in Backup.shared.choose() }
+    }
+
     private var footer: some View {
         HStack(spacing: 8) {
             GlassGroup {
@@ -199,6 +216,19 @@ struct MenuBarView: View {
                     .help(I18n.t("立即同步"))
                     Menu {
                         Toggle(I18n.t("开机时自动启动"), isOn: Binding(get: { engine.launchAtLogin }, set: { engine.launchAtLogin = $0 }))
+                        Divider()
+                        if backup.enabled {
+                            Section(I18n.t("iCloud 备份：{0}", backup.folderName)) {
+                                if !backup.error.isEmpty { Text(backup.error) }
+                                else if let t = backup.lastAt { Text(I18n.t("上次备份 {0}", t.formatted(date: .omitted, time: .shortened))) }
+                                Button(I18n.t("在访达中显示")) { backup.reveal() }
+                                Button(I18n.t("更换备份文件夹…")) { chooseBackup() }
+                                Button(I18n.t("停止备份")) { backup.stop() }
+                            }
+                        } else {
+                            Button(I18n.t("备份到 iCloud 云盘…")) { chooseBackup() }
+                        }
+                        Button(I18n.t("检查更新…")) { Task { await updater.check(manual: true) } }
                         Divider()
                         Button(I18n.t("退出节律")) { NSApp.terminate(nil) }
                     } label: { Image(systemName: "ellipsis") }

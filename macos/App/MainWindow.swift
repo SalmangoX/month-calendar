@@ -6,7 +6,7 @@ import WebKit
 @MainActor
 final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
     static let bridgeVersion = 1
-    static let features = ["data", "prefs", "token", "notify", "test", "widgets", "saveFile", "openUrl", "sync", "feedback"]
+    static let features = ["data", "prefs", "token", "notify", "test", "widgets", "saveFile", "openUrl", "sync", "feedback", "chrome"]
 
     private let window: NSWindow
     private let web: WKWebView
@@ -15,6 +15,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
     private var pendingHash = ""
     private var triedCache = false
     private let engine = Engine.shared
+    private let chrome = ChromeModel()
 
     override init() {
         let s = Bundle.main.object(forInfoDictionaryKey: "CadenceAppURL") as? String ?? "https://salmangox.github.io/month-calendar/"
@@ -24,7 +25,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         cfg.websiteDataStore = .default()
         cfg.applicationNameForUserAgent = "Cadence-Mac/" + (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1")
         cfg.preferences.javaScriptCanOpenWindowsAutomatically = false
-        web = WKWebView(frame: .zero, configuration: cfg)
+        web = CadenceWebView(frame: .zero, configuration: cfg)
         web.allowsBackForwardNavigationGestures = false
         web.underPageBackgroundColor = MainWindowController.appBg
         if #available(macOS 13.3, *) { web.isInspectable = true }
@@ -37,7 +38,11 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         window.backgroundColor = MainWindowController.appBg
         window.minSize = NSSize(width: 380, height: 560)
         window.isReleasedWhenClosed = false
-        window.contentView = web
+        let root = NSView()
+        web.frame = root.bounds
+        web.autoresizingMask = [.width, .height]
+        root.addSubview(web)
+        window.contentView = root
         window.center()
         _ = window.setFrameAutosaveName("CadenceMain")
         super.init()
@@ -48,7 +53,32 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         cfg.userContentController.add(WeakHandler(self), name: "mc")
         installShim()
         engine.onStatus = { [weak self] in self?.pushStatus() }
+        installChrome(in: root)
         web.load(URLRequest(url: appURL))
+    }
+
+    /// 原生液态玻璃的底部菜单栏和加号，盖在网页底部
+    private func installChrome(in root: NSView) {
+        let model = chrome
+        let host = ChromeHostingView(rootView: ChromeBar(model: model,
+            select: { [weak self] p in self?.web.evaluateJavaScript("MC.Native&&MC.Native.tap&&MC.Native.tap(\(jsQuote(p)))") },
+            add: { [weak self] in self?.newEvent() }))
+        host.enabled = { [weak model] in model?.visible ?? false }
+        host.translatesAutoresizingMaskIntoConstraints = false
+        root.addSubview(host)
+        let wide = host.widthAnchor.constraint(equalToConstant: 600)
+        wide.priority = .defaultLow
+        NSLayoutConstraint.activate([
+            host.centerXAnchor.constraint(equalTo: root.centerXAnchor),
+            host.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -8),
+            host.widthAnchor.constraint(lessThanOrEqualTo: root.widthAnchor, constant: -16),
+            wide,
+        ])
+    }
+
+    @objc func newEvent() {
+        show()
+        web.evaluateJavaScript("MC.Native&&MC.Native.add&&MC.Native.add()")
     }
 
     /// 和网页一致的底色，窗口标题栏、网页加载前都不会闪白
@@ -107,7 +137,8 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             openUrl: function (u) { post('openUrl', [String(u)]); },
             pinWidget: function () { return false; },
             saveFile: function (n, m, c, cb) { post('saveFile', [String(n), String(m), String(c), String(cb)]); },
-            syncNow: function () { post('syncNow'); }
+            syncNow: function () { post('syncNow'); },
+            chrome: function (j) { post('chrome', [String(j)]); }
           };
         })();
         """
@@ -143,6 +174,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         case "openUrl": if let u = URL(string: s(0)) { NSWorkspace.shared.open(u) }
         case "saveFile": saveFile(name: s(0), content: s(2), cb: s(3))
         case "syncNow": Task { await engine.pull() }
+        case "chrome": chrome.update(s(0))
         case "retry": reload()
         default: break
         }
@@ -194,6 +226,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         if e.domain == NSURLErrorDomain && e.code == NSURLErrorCancelled { return }
         if e.domain == "WebKitErrorDomain" && e.code == 102 { return } // 交给浏览器打开的链接
         loaded = false
+        chrome.reset()
         if !triedCache {
             triedCache = true
             web.load(URLRequest(url: appURL, cachePolicy: .returnCacheDataDontLoad))
@@ -231,6 +264,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         let a = NSAlert()
         a.messageText = msg
         buttons.forEach { a.addButton(withTitle: $0) }
+        if a.buttons.count > 1 { a.buttons[1].keyEquivalent = "\u{1b}" } // 回车 = 第一个按钮，Esc = 取消
         return a
     }
 
@@ -276,4 +310,32 @@ func jsQuote(_ s: String) -> String {
     guard let d = try? JSONSerialization.data(withJSONObject: s, options: .fragmentsAllowed),
           let q = String(data: d, encoding: .utf8) else { return "\"\"" }
     return q
+}
+
+/// 触控板双指捏合：WKWebView 默认不会把它交给网页。这里用手势识别器接住（不管鼠标下面是网页的哪一层都能收到），
+/// 转成网页里的 gesturestart / gesturechange / gestureend，日历（切换年 / 月 / 周）和课表（缩放）直接就能用
+final class CadenceWebView: WKWebView {
+    override init(frame: CGRect, configuration: WKWebViewConfiguration) {
+        super.init(frame: frame, configuration: configuration)
+        addGestureRecognizer(NSMagnificationGestureRecognizer(target: self, action: #selector(onPinch(_:))))
+    }
+
+    required init?(coder: NSCoder) { super.init(coder: coder) }
+
+    /// 捏合交给上面的识别器处理，网页自己不再缩放
+    override func magnify(with event: NSEvent) {}
+
+    @objc private func onPinch(_ g: NSMagnificationGestureRecognizer) {
+        let phase: String
+        switch g.state {
+        case .began: phase = "began"
+        case .changed: phase = "changed"
+        case .ended, .cancelled, .failed: phase = "ended"
+        default: return
+        }
+        let p = g.location(in: self)
+        let y = isFlipped ? p.y : bounds.height - p.y
+        let scale = max(0.3, 1 + g.magnification)
+        evaluateJavaScript("window.MC&&MC.Native&&MC.Native.pinch&&MC.Native.pinch('\(phase)',\(scale),\(p.x),\(y))")
+    }
 }

@@ -655,6 +655,14 @@ final class Widgets {
         for (int ci = 1; ci < days.size(); ci++) cv.drawLine(gx + ci * colW, gy, gx + ci * colW, H - pad, lp);
         p.setTextAlign(Paint.Align.LEFT);
 
+        // 现在几点（和应用课表一样）：整周一条半透明的线压在课程上面，时间轴上一个时间标签
+        LocalTime nowT = LocalTime.now(ZoneId.systemDefault());
+        int nowMin = nowT.getHour() * 60 + nowT.getMinute(), nowCol = -1;
+        for (int ci = 0; ci < days.size(); ci++) if (mon.plusDays(days.get(ci)).equals(today)) nowCol = ci;
+        if (nowMin < minH * 60 || nowMin > maxH * 60) nowCol = -1;
+        final int red = c.getColor(R.color.p3);
+        final float ny = gy + (nowMin / 60f - minH) * hourH;
+
         // 课程色块（同一时间有几节课就并排）
         for (int ci = 0; ci < days.size(); ci++) {
             List<Data.Course> l = new ArrayList<>(per.get(ci));
@@ -680,6 +688,15 @@ final class Widgets {
                 float y0 = gy + (co.startMin / 60f - minH) * hourH + 1 * dp, y1 = gy + (co.endMin / 60f - minH) * hourH - 1 * dp;
                 int[] tn = d.toneOf(co.code);
                 int col = tn[dark ? CourseColors.BAR_D : CourseColors.BASE];
+                if (ci == nowCol && nowMin >= co.startMin && nowMin < co.endMin) {
+                    // 正在上的课：微微放大一点，带一层很淡的阴影
+                    float gw2 = (x1 - x0) * .015f, gh2 = (y1 - y0) * .015f;
+                    x0 -= gw2; x1 += gw2; y0 -= gh2; y1 += gh2;
+                    Paint sh = new Paint(Paint.ANTI_ALIAS_FLAG);
+                    sh.setColor(tn[dark ? CourseColors.FILL_D : CourseColors.FILL_L]);
+                    sh.setShadowLayer(5 * dp, 0, 2.5f * dp, dark ? 0x73000000 : (tn[CourseColors.BASE] & 0x00FFFFFF) | 0x40000000);
+                    cv.drawRoundRect(new RectF(x0, y0, x1, y1), 6 * dp, 6 * dp, sh);
+                }
                 p.setColor(tn[dark ? CourseColors.FILL_D : CourseColors.FILL_L]);           // 和应用课表一样：淡底 / 深底
                 cv.drawRoundRect(new RectF(x0, y0, x1, y1), 6 * dp, 6 * dp, p);
                 p.setColor(col);
@@ -705,6 +722,18 @@ final class Widgets {
                     y += sz * .22f;
                 }
             }
+        }
+        if (nowCol >= 0) {
+            // 现在时间：整周一条半透明的线压在课程上面；左边一个实色的圆角时间标签，右边缘接上这条线
+            Paint np = new Paint(Paint.ANTI_ALIAS_FLAG);
+            np.setColor((red & 0x00FFFFFF) | 0x80000000);
+            cv.drawRect(gx, ny - 0.75f * dp, W - pad, ny + 0.75f * dp, np);
+            String lbl = Data.fmt(String.format(java.util.Locale.ROOT, "%02d:%02d", nowMin / 60, nowMin % 60), Data.h12(c), true);
+            np.setColor(red); np.setTypeface(Typeface.DEFAULT_BOLD); np.setTextSize(8 * dp); np.setTextAlign(Paint.Align.CENTER);
+            float tw = Math.max(axis - 4 * dp, np.measureText(lbl) + 5 * dp);
+            cv.drawRoundRect(new RectF(gx - tw, ny - 6 * dp, gx, ny + 6 * dp), 3.5f * dp, 3.5f * dp, np);
+            np.setColor(0xFFFFFFFF);
+            cv.drawText(lbl, gx - tw / 2, ny + 3 * dp, np);
         }
         if (d.courses.isEmpty()) {
             p.setTextAlign(Paint.Align.CENTER); p.setTextSize(13 * dp); p.setColor(text2);

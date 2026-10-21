@@ -610,7 +610,32 @@
       page(pageTarget(pagePos, v, size), v);
     }
   };
-  ['gesturestart', 'gesturechange'].forEach(t => vp.addEventListener(t, e => e.preventDefault()));
+  // 触控板捏合（Mac 上的 Safari 和节律 App 发的是 gesture 事件，不是触摸）：和手指捏合一样，缩小 / 放大切换年 / 月 / 周
+  const finePtr = !matchMedia('(pointer: coarse)').matches;
+  let gz = null;
+  vp.addEventListener('gesturestart', e => {
+    e.preventDefault();
+    if (!finePtr || pinch || animating) return;
+    gz = { s: 1, target: targetAt(e.clientX, e.clientY) };
+    zoomEl.style.transition = 'none';
+  });
+  vp.addEventListener('gesturechange', e => {
+    e.preventDefault();
+    if (!gz) return;
+    gz.s = Math.max(.55, Math.min(1.7, e.scale));
+    zoomEl.style.transform = `scale(${gz.s})`;
+    zoomEl.style.opacity = String(1 - Math.min(.45, Math.abs(gz.s - 1) * .9));
+  });
+  vp.addEventListener('gestureend', e => {
+    e.preventDefault();
+    if (!gz) return;
+    const { s: sc, target } = gz;
+    gz = null;
+    suppress = true; setTimeout(() => (suppress = false), 120);
+    if (sc < .82) zoomStep('out', target);
+    else if (sc > 1.22) zoomStep('in', target);
+    else { zoomEl.style.transition = 'transform .3s var(--ease-spring), opacity .2s'; zoomEl.style.transform = ''; zoomEl.style.opacity = ''; }
+  });
   vp.addEventListener('touchend', end);
   // 触摸被系统取消（比如上滑回到桌面）：回到按下前的位置，不按惯性滚动
   vp.addEventListener('touchcancel', () => {
@@ -627,10 +652,18 @@
 
   // 触控板 / 鼠标滚轮：月视图跟手滚动，停下后对齐整行
   let wAcc = 0, wLock = false, wTimer = null;
-  let zAcc = 0, zLock = false;
+  let zAcc = 0, zLock = false, hAcc = 0, hTimer = null;
   vp.addEventListener('wheel', e => {
     e.preventDefault();
-    if (e.ctrlKey) { // 触控板双指缩放
+    if (gz) return;
+    // 触控板双指往右轻扫：拉出侧栏（月 / 年视图；周视图左右滑是翻周）
+    if (!e.ctrlKey && view !== 'week' && Math.abs(e.deltaX) > Math.abs(e.deltaY) * 1.5) {
+      hAcc += e.webkitDirectionInvertedFromDevice ? e.deltaX : -e.deltaX; // 统一成：手指往右为负
+      clearTimeout(hTimer); hTimer = setTimeout(() => (hAcc = 0), 200);
+      if (hAcc < -60 && MC.Drawer && !MC.Drawer.isOpen()) { hAcc = 0; MC.Drawer.open(); }
+      return;
+    }
+    if (e.ctrlKey) { // 触控板双指缩放（Chrome 等浏览器）
       if (zLock) return;
       zAcc += e.deltaY;
       if (Math.abs(zAcc) > 24) {

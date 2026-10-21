@@ -303,6 +303,9 @@ function gridLayout(w, courses, now, offline) {
     if (h < maxH) text(hourLabel(h), pad, y + 1, axis - 4, 12, Font.systemFont(8.5), P.text2, "r");
   }
   for (let i = 1; i < days.length; i++) { ctx.setFillColor(new Color(P.line)); ctx.fillRect(new Rect(gx + i * colW, gy, 0.6, gh)); }
+  // 现在几点（和应用课表一样）：整周一条半透明的线压在课程上面，时间轴上一个时间标签
+  const RED = "#D9453E", nmNow = now.getHours() * 60 + now.getMinutes(), tIdx = days.findIndex(x => ymdL(x.date) === todayS);
+  const showNow = tIdx >= 0 && nmNow >= minH * 60 && nmNow <= maxH * 60, ny = gy + (nmNow / 60 - minH) * hourH;
   days.forEach((x, i) => {
     // 同一时间几节课并排
     const L = x.list.map(c => ({ ...c })); let ends = [], gEnd = -1, grp = [];
@@ -314,8 +317,15 @@ function gridLayout(w, courses, now, offline) {
     }
     flush();
     for (const c of L) {
-      const lw = colW / c._n, x0 = gx + i * colW + c._k * lw + 1.5, y0 = gy + (toMin(c.start) / 60 - minH) * hourH + 1;
-      const bw = lw - 3, bh = (toMin(c.end) - toMin(c.start)) / 60 * hourH - 2, tn = toneOf(c.code);
+      const lw = colW / c._n;
+      let x0 = gx + i * colW + c._k * lw + 1.5, y0 = gy + (toMin(c.start) / 60 - minH) * hourH + 1;
+      let bw = lw - 3, bh = (toMin(c.end) - toMin(c.start)) / 60 * hourH - 2, tn = toneOf(c.code);
+      if (showNow && i === tIdx && nmNow >= toMin(c.start) && nmNow < toMin(c.end)) {
+        // 正在上的课：微微放大一点，下面垫一层很淡的阴影
+        const gw2 = bw * .015, gh2 = bh * .015; x0 -= gw2; y0 -= gh2; bw += gw2 * 2; bh += gh2 * 2;
+        const sp = new Path(); sp.addRoundedRect(new Rect(x0 - 1, y0 + 2, bw + 2, bh + 1.5), 6, 6); ctx.addPath(sp);
+        ctx.setFillColor(dark ? new Color("#000000", .4) : new Color(tn.base, .22)); ctx.fillPath();
+      }
       round(x0, y0, bw, bh, 5, dark ? tn.fillD : tn.fillL);   // 和应用课表一样：淡底 / 深底 + 色条
       round(x0, y0, 3, bh, 1.5, dark ? tn.barD : tn.base);
       let y = y0 + 2;
@@ -331,6 +341,13 @@ function gridLayout(w, courses, now, offline) {
       }
     }
   });
+  if (showNow) {
+    // 现在时间：整周一条半透明的线压在课程上面；左边一个实色的圆角时间标签，右边缘接上这条线
+    ctx.setFillColor(new Color(RED, 0.5)); ctx.fillRect(new Rect(gx, ny - 0.75, W - pad - gx, 1.5));
+    const lbl = fmtT(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`, true), tw = axis - 4;
+    round(gx - tw, ny - 6, tw, 12, 3.5, RED);
+    text(lbl, gx - tw, ny - 6, tw, 12, Font.boldSystemFont(8), "#FFFFFF", "c");
+  }
   w.setPadding(0, 0, 0, 0);
   w.backgroundImage = ctx.getImage();
   return w;
@@ -376,7 +393,8 @@ function monthLayout(w, courses, now, offline) {
 function nextRefresh(courses) {
   const now = new Date(), nm = now.getHours() * 60 + now.getMinutes(), today = isoDay(now);
   const marks = courses.filter(c => onDate(c, now)).flatMap(c => [toMin(c.start), toMin(c.end)]).filter(m => m > nm).sort((a, b) => a - b);
-  const mins = marks.length ? Math.min(30, marks[0] - nm) : 30;
+  const cap = nm >= 7 * 60 && nm < 23 * 60 ? 10 : 30; // 白天每 10 分钟刷新一次，让「现在」线跟上
+  const mins = marks.length ? Math.min(cap, marks[0] - nm) : cap;
   return new Date(Date.now() + Math.max(1, mins) * 60000);
 }
 

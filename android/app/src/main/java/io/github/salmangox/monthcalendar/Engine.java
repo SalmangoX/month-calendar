@@ -102,6 +102,15 @@ final class Engine {
                 if (t > now && t < next) next = t;
             }
         }
+        // 课表小组件上的「现在」线：白天每 10 分钟挪一次
+        if (Widgets.count(c, SchedWidget.class) > 0) {
+            ZonedDateTime zn = ZonedDateTime.now(z);
+            int nmn = zn.getHour() * 60 + zn.getMinute();
+            if (nmn >= 7 * 60 && nmn < 23 * 60) {
+                long t = today.atStartOfDay(z).plusMinutes((nmn / 10 + 1) * 10L).toInstant().toEpochMilli() + 1000;
+                if (t > now && t < next) next = t;
+            }
+        }
         setAlarm(c, next);
 
         // 3. 刷新桌面小组件

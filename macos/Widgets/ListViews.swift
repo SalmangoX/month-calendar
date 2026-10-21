@@ -1,6 +1,19 @@
 import SwiftUI
 import WidgetKit
 
+/// 列表区域：占满剩下的空间，内容从顶部开始排，放不下的部分在底部截掉
+struct TopClip<Content: View>: View {
+    @ViewBuilder var content: Content
+    var body: some View {
+        GeometryReader { g in
+            VStack(alignment: .leading, spacing: 0) { content }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: g.size.width, height: g.size.height, alignment: .topLeading)
+        }
+        .clipped()
+    }
+}
+
 // ---------- 今日：已逾期、今天、接下来一周 ----------
 struct TodayView: View {
     let entry: CalEntry
@@ -57,7 +70,7 @@ struct TodayView: View {
                         .font(.system(size: 13)).foregroundStyle(pal.text2).multilineTextAlignment(.center).lineSpacing(3)
                         .frame(maxWidth: .infinity, maxHeight: .infinity).padding(.bottom, 10)
                 } else {
-                    VStack(alignment: .leading, spacing: 0) {
+                    TopClip {
                         ForEach(Array(list.enumerated()), id: \.offset) { _, r in
                             switch r {
                             case .head(let t, let overdue):
@@ -69,11 +82,10 @@ struct TodayView: View {
                             }
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .clipped()
                 }
             }
             .padding([.top, .horizontal], 10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 
@@ -140,7 +152,7 @@ struct SchedDay: View {
                     .font(.system(size: 13)).foregroundStyle(pal.text2).multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity, maxHeight: .infinity).padding(.bottom, 10)
             } else {
-                VStack(alignment: .leading, spacing: 0) {
+                TopClip {
                     ForEach(Array(list.enumerated()), id: \.offset) { i, c in
                         let live = isToday && nm >= c.startMin
                         let firstUpcoming = list.firstIndex { !(isToday && nm >= $0.startMin) }
@@ -148,11 +160,10 @@ struct SchedDay: View {
                         courseRow(c, state: state, live: live)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .clipped()
             }
         }
         .padding([.top, .horizontal], 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private func courseRow(_ c: Course, state: String, live: Bool) -> some View {
@@ -258,6 +269,11 @@ struct SchedGrid: View {
         let colW = gw / CGFloat(days.count), hourH = gh / CGFloat(maxH - minH)
         let fk = max(0.72, min(1.1, colW / 64))
         let todayCol = days.firstIndex { mon.adding($0) == today }
+        // 现在几点（和应用课表一样）：整周一条半透明的线压在课程上面，时间轴上一个时间标签
+        let nm = YMD.cal.component(.hour, from: entry.date) * 60 + YMD.cal.component(.minute, from: entry.date)
+        let nowCol: Int? = todayCol.flatMap { nm >= minH * 60 && nm <= maxH * 60 ? $0 : nil }
+        let ny = gy + (CGFloat(nm) / 60 - CGFloat(minH)) * hourH
+        let red = Color(argb: Pal.P[3])
 
         return ZStack(alignment: .topLeading) {
             // 今天那一列：淡淡的主色底
@@ -301,8 +317,19 @@ struct SchedGrid: View {
                 ForEach(Array(SchedGrid.lanes(l).enumerated()), id: \.offset) { _, b in
                     block(b.0, x: gx + CGFloat(ci) * colW + CGFloat(b.1) * colW / CGFloat(b.2), w: colW / CGFloat(b.2),
                           top: gy + (CGFloat(b.0.startMin) / 60 - CGFloat(minH)) * hourH,
-                          bottom: gy + (CGFloat(b.0.endMin) / 60 - CGFloat(minH)) * hourH, fk: fk, h12: h12)
+                          bottom: gy + (CGFloat(b.0.endMin) / 60 - CGFloat(minH)) * hourH, fk: fk, h12: h12,
+                          live: ci == nowCol && nm >= b.0.startMin && nm < b.0.endMin)
                 }
+            }
+            if nowCol != nil {
+                // 现在时间：整周一条半透明的线压在课程上面；左边一个实色的圆角时间标签，右边缘接上这条线
+                Rectangle().fill(red.opacity(0.5)).frame(width: W - pad - gx, height: 1.5).offset(x: gx, y: ny - 0.75)
+                Text(fmtTime(String(format: "%02d:%02d", nm / 60, nm % 60), h12, true))
+                    .font(.system(size: 8, weight: .bold)).monospacedDigit().foregroundStyle(.white).lineLimit(1)
+                    .padding(.horizontal, 2.5).frame(minWidth: axis - 4, minHeight: 12)
+                    .background(RoundedRectangle(cornerRadius: 3.5, style: .continuous).fill(red))
+                    .frame(width: axis + 2, alignment: .trailing)
+                    .offset(x: gx - axis - 2, y: ny - 6)
             }
             if d.courses.isEmpty {
                 Text(I18n.t("还没有导入课表")).font(.system(size: 13)).foregroundStyle(pal.text2)
@@ -331,7 +358,7 @@ struct SchedGrid: View {
         return l.indices.map { (l[$0], lane[$0], lanes[$0]) }
     }
 
-    private func block(_ c: Course, x: CGFloat, w: CGFloat, top: CGFloat, bottom: CGFloat, fk: CGFloat, h12: Bool) -> some View {
+    private func block(_ c: Course, x: CGFloat, w: CGFloat, top: CGFloat, bottom: CGFloat, fk: CGFloat, h12: Bool, live: Bool) -> some View {
         let t = entry.data.toneOf(c.code)
         let x0 = x + 1.5, x1 = x0 + w - 3, y0 = top + 1, y1 = bottom - 1
         // 放得下几行就显示几行：代码、类型、时间、教室
@@ -361,6 +388,9 @@ struct SchedGrid: View {
         }
         .frame(width: max(0, x1 - x0), height: max(0, y1 - y0), alignment: .topLeading)
         .clipped()
+        // 正在上的课：微微放大一点，带一层很淡的阴影
+        .scaleEffect(live ? 1.03 : 1)
+        .shadow(color: live ? (pal.dark ? Color.black.opacity(0.45) : Color(argb: t[CourseColors.BASE]).opacity(0.25)) : .clear, radius: 5, y: 2.5)
         .offset(x: x0, y: y0)
     }
 }

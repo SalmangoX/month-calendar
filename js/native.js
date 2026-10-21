@@ -101,6 +101,77 @@
   pushToken();
   pushData();
 
+  // ---------- Mac App ----------
+  if (Native.mac) {
+    const UI = () => MC.UI || {};
+    // 底部菜单栏和加号由原生液态玻璃绘制：把当前页、各个标签、头像、是否有面板盖住告诉原生端
+    if (feats.has('chrome')) {
+      document.documentElement.classList.add('in-mac-chrome');
+      let last = '', queued = false;
+      const report = () => {
+        queued = false;
+        const u = UI(), q = s => document.querySelector(s);
+        const tabs = [...document.querySelectorAll('#tabbar button[data-page]')].filter(b => !b.hidden)
+          .map(b => ({ page: b.dataset.page, label: (b.querySelector('span:not(.tab-avatar)') || {}).textContent || '' }));
+        const av = q('#tabAvatar');
+        const avatar = av && !av.hidden ? ((av.style.backgroundImage || '').match(/url\("?(.*?)"?\)$/) || [])[1] || '' : '';
+        const covered = !!((u.anyOpen && u.anyOpen()) || (u.menuOpen && u.menuOpen()) || (MC.Drawer && MC.Drawer.isOpen && MC.Drawer.isOpen())
+          || document.documentElement.classList.contains('locked') || q('.cpop.show, .wkpick.show'));
+        const st = JSON.stringify({ page: document.body.dataset.page || 'cal', tabs, avatar, covered });
+        if (st !== last) { last = st; call('chrome', st); }
+      };
+      const kick = () => { if (!queued) { queued = true; requestAnimationFrame(report); } };
+      window.addEventListener('load', () => {
+        new MutationObserver(kick).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class', 'data-page'] });
+        const tb = document.querySelector('#tabbar');
+        if (tb) new MutationObserver(kick).observe(tb, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'style', 'data-page'] });
+        kick();
+      });
+      // 原生菜单栏点了某个标签 / 加号
+      Native.tap = p => { const b = document.querySelector(`#tabbar button[data-page="${p}"]`); if (b) b.click(); };
+      Native.add = () => { const f = document.querySelector('#fab'); if (f) f.click(); };
+    }
+
+    // 触控板捏合（原生转过来）：在手指下面的元素上派发和 Safari 一样的 gesture 事件；
+    // 万一网页内核自己也发了 gesture 事件，就拦掉，只走原生这一路，避免一次捏合切换两次
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => {
+      if (!e.mcNative) { e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true));
+    let pinchTarget = null;
+    Native.pinch = (phase, scale, x, y) => {
+      const type = phase === 'began' ? 'gesturestart' : phase === 'changed' ? 'gesturechange' : 'gestureend';
+      if (phase === 'began') pinchTarget = document.elementFromPoint(x, y);
+      const ev = new Event(type, { bubbles: true, cancelable: true });
+      ev.scale = scale; ev.clientX = x; ev.clientY = y; ev.mcNative = true;
+      (pinchTarget || document.body).dispatchEvent(ev);
+      if (phase === 'ended') pinchTarget = null;
+    };
+
+    // 键盘：Esc 返回（面板、菜单、侧栏由各自关闭；什么都没开时回到日历页），Return 确认当前面板
+    const topSheet = () => {
+      let top = null, z = -1;
+      document.querySelectorAll('.sheet.show').forEach(el => { const v = parseInt(getComputedStyle(el).zIndex, 10) || 0; if (v >= z) { z = v; top = el; } });
+      return top;
+    };
+    document.addEventListener('keydown', e => {
+      if (e.isComposing || e.metaKey || e.ctrlKey || e.altKey) return;
+      const u = UI();
+      if (e.key === 'Escape') {
+        const busy = (u.anyOpen && u.anyOpen()) || (u.menuOpen && u.menuOpen()) || (MC.Drawer && MC.Drawer.isOpen()) || document.querySelector('.cpop.show, .wkpick.show');
+        if (!busy && MC.back) MC.back();
+        return;
+      }
+      if (e.key !== 'Enter' || e.shiftKey) return;
+      const a = document.activeElement || document.body;
+      // 这些地方回车有自己的作用：多行文字换行、批量添加跳下一行、按钮自己响应、标题回车直接添加、锁屏密码
+      if (a.tagName === 'TEXTAREA' && a.id !== 'cmpTitle') return;
+      if (a.id === 'cmpTitle' || a.tagName === 'BUTTON' || a.closest('#batchList, #lockForm')) return;
+      const top = topSheet(); if (!top) return;
+      const btn = top.querySelector('#cmpSave, .sheet-head .text-btn.strong, #pkOk');
+      if (btn && !btn.disabled && !btn.hidden && btn.offsetParent !== null) { e.preventDefault(); btn.click(); }
+    }, true);
+  }
+
   // ---------- App 更新：APK 发布在仓库的 Releases，版本号就是 Actions 的运行序号（Mac App 在本机编译，不检查） ----------
   const UKEY = 'mcal.apkCheck';
   Native.apkUrl = () => `https://github.com/${Native.repo}/releases/latest/download/month-calendar.apk`;

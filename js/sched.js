@@ -279,6 +279,22 @@
     return out;
   }
   let zoom = 1; // 1 = 全览（整周一屏显示）；>1 = 捏合放大
+  // 「现在」每分钟往下走：只挪线和时间标签；跨过上下课时间时更新「正在上」的课；换日或超出时间轴范围时整页重画
+  let nowState = null, lastMin = -1;
+  setInterval(() => {
+    if (!nowState || document.visibilityState !== 'visible' || document.body.dataset.page !== 'sched') return;
+    const now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
+    if (nm === lastMin) return;
+    lastMin = nm;
+    const S = nowState, show = nm >= S.minH * 60 && nm <= S.maxH * 60;
+    if (MC.todayStr() !== S.day || show !== S.show) { Sched.render(); return; }
+    if (!show) return;
+    const root = $('#schedBody'), top = `${(nm / 60 - S.minH) * S.HOUR}px`;
+    root.querySelectorAll('.sc-nowline, .sc-tri').forEach(el => (el.style.top = top));
+    const lbl = root.querySelector('.sc-tri span');
+    if (lbl) lbl.textContent = MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`);
+    root.querySelectorAll('.sc-col.today .sc-blk').forEach(b => b.classList.toggle('live', nm >= +b.dataset.s && nm < +b.dataset.e));
+  }, 15000);
   Sched.render = () => {
     const body = $('#schedBody');
     const all = MC.data.courses || [];
@@ -322,6 +338,10 @@
     let hours = '';
     for (let h = minH; h < maxH; h++) hours += `<div class="sc-hr" style="top:${(h - minH) * HOUR}px">${h12 ? MC.hourLabel(h, true) : `${h}:00`}</div>`;
     const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+    // 当前时间：整周一条半透明的线压在所有课程上面；左边时间轴上一个实色的时间标签，右边缘正好接上这条线
+    const showNow = nowMin >= minH * 60 && nowMin <= maxH * 60; // 换到别的周也显示「现在几点」
+    const nowTop = (nowMin / 60 - minH) * HOUR;
+    nowState = { minH, maxH, HOUR, day: todayStr, show: showNow };
     let cols = '';
     days.forEach((d, idx) => {
       const isToday = idx === todayIdx;
@@ -330,14 +350,11 @@
         const w = 100 / c._lanes, left = c._lane * w;
         const lines = Math.max(1, Math.floor((hgt - 48 * fs) / (13.5 * fs)));
         const live = isToday && nowMin >= toMin(c.start) && nowMin < toMin(c.end);
-        return `<button class="sc-blk${c._lanes > 1 ? ' narrow' : ''}${live ? ' live' : ''}" data-id="${c.id}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px);${toneVars(c.code)}">
+        return `<button class="sc-blk${c._lanes > 1 ? ' narrow' : ''}${live ? ' live' : ''}" data-id="${c.id}" data-s="${toMin(c.start)}" data-e="${toMin(c.end)}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px);${toneVars(c.code)}">
           ${c._lanes > 1 || hgt < 40 * fs ? '' : `<small class="t">${h12 ? `${MC.fmtTime(c.start, true)}–${MC.fmtTime(c.end, true)}` : `${c.start}–${c.end}`}</small>`}<b>${c._lanes > 1 ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>${c.type ? `<span class="k">${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}</span>` : (c.every === 2 ? '<span class="k">隔周</span>' : '')}${c.room && hgt > 60 * fs && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(c.room)}</span>` : ''}</button>`;
       }).join('');
       cols += `<div class="sc-col${isToday ? ' today' : ''}${wts[idx] < 1 ? ' thin' : ''}">${blocks}</div>`;
     });
-    // 当前时间：整周一条细线（在课程下面），左边时间轴上有一个三角
-    const showNow = nowMin >= minH * 60 && nowMin <= maxH * 60; // 换到别的周也显示「现在几点」
-    const nowTop = (nowMin / 60 - minH) * HOUR;
     const grid0 = body.querySelector('.sc-grid'), keepX = grid0 ? grid0.scrollLeft : 0, keepY = grid0 ? grid0.scrollTop : null;
     body.innerHTML = `<div class="sc-grid${zoom > 1 ? '' : ' fit'}${h12 ? ' h12' : ''}" style="--tpl:${tpl};--fs:${fs.toFixed(3)};--hw:${HW}px"><div class="sc-inner">
       <div class="sc-head">${head}</div>
@@ -395,6 +412,34 @@
     };
     grid.addEventListener('touchend', end);
     grid.addEventListener('touchcancel', end);
+    // 触控板捏合（Mac 上的 Safari 和节律 App 发的是 gesture 事件）：和手指捏合一样
+    if (!matchMedia('(pointer: coarse)').matches) {
+      grid.addEventListener('gesturestart', e => {
+        e.preventDefault();
+        if (p) return;
+        const r = grid.getBoundingClientRect(), cx = e.clientX - r.left, cy = e.clientY - r.top;
+        p = { s: 1, cx, cy, fx: grid.scrollLeft + cx, fy: grid.scrollTop + cy, g: true };
+        inner.style.transition = 'none';
+        inner.style.transformOrigin = `${p.fx}px ${p.fy}px`;
+      });
+      grid.addEventListener('gesturechange', e => {
+        e.preventDefault();
+        if (!p || !p.g) return;
+        p.s = Math.max(1 / zoom, Math.min(3.2 / zoom, e.scale));
+        inner.style.transform = `scale(${p.s})`;
+      });
+      grid.addEventListener('gestureend', e => { e.preventDefault(); if (p && p.g) end(); });
+    }
+    // 触控板左右轻扫翻周（全览时；放大后左右滑是滚动内容）
+    let hx = 0, hLock = false, hT = null;
+    grid.addEventListener('wheel', e => {
+      if (e.ctrlKey || zoom > 1 || Math.abs(e.deltaX) < Math.abs(e.deltaY) * 1.5) return;
+      e.preventDefault();
+      if (hLock) return;
+      hx += e.deltaX;
+      clearTimeout(hT); hT = setTimeout(() => (hx = 0), 200);
+      if (Math.abs(hx) > 60) { shiftWeek(hx > 0 ? 1 : -1); hx = 0; hLock = true; setTimeout(() => (hLock = false), 450); }
+    }, { passive: false });
     grid.addEventListener('wheel', e => { // 触控板捏合
       if (!e.ctrlKey) return;
       e.preventDefault();

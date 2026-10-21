@@ -32,6 +32,7 @@ final class Engine: ObservableObject {
 
     func start() {
         applyTheme(prefs.string(forKey: "theme") ?? "auto")
+        Backup.shared.save(json)
         timer = Timer.scheduledTimer(withTimeInterval: 15 * 60, repeats: true) { _ in
             Task { @MainActor in await Engine.shared.pull() }
         }
@@ -70,6 +71,7 @@ final class Engine: ObservableObject {
         guard out != json else { return }
         json = out
         Shared.writeJSON(out)
+        Backup.shared.save(out)
         data = CalData.parse(out)
         Task { await refresh() }
     }

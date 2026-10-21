@@ -216,6 +216,16 @@
   calPage.addEventListener('touchend', pageEnd, true);
   calPage.addEventListener('touchcancel', () => { if (g && g.mode === 1) { g = null; animateTo(0); } else g = null; }, true);
 
+  // 触控板：在侧栏或遮罩上双指往左轻扫收起
+  let wx = 0, wxT = null;
+  [el, scrim].forEach(n => n.addEventListener('wheel', e => {
+    if (!isOpen || Math.abs(e.deltaX) < Math.abs(e.deltaY) * 1.5) return;
+    e.preventDefault();
+    wx += e.webkitDirectionInvertedFromDevice ? e.deltaX : -e.deltaX; // 统一成：手指往左为正
+    clearTimeout(wxT); wxT = setTimeout(() => (wx = 0), 200);
+    if (wx > 60) { wx = 0; D.close(); }
+  }, { passive: false }));
+
   // 收起：在面板或遮罩上往左滑；面板内上下滑照常滚动列表
   let c2 = null;
   [el, scrim].forEach(n => {

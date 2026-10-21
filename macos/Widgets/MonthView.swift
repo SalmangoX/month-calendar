@@ -2,8 +2,9 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-/// 整月小组件（尺寸与安卓 widget_month.xml 一致）：格子够高时显示色条，跨天的全天事件画成一整条；
-/// 格子矮时显示彩色圆点；再矮只显示日期
+/// 整月小组件：和 iOS、安卓的整月小组件同一个样式。
+/// 只显示本月所在的几周（4–6 行），这几周里前后月份的日期显示为淡色；
+/// 格子够高时显示色条，跨天的全天事件画成一整条；格子矮时显示彩色圆点；再矮只显示日期
 struct MonthView: View {
     let entry: CalEntry
 
@@ -11,8 +12,7 @@ struct MonthView: View {
     private static let slot: CGFloat = 14.5, chipH: CGFloat = 13.5, dateH: CGFloat = 17, cellTop: CGFloat = 1.5
 
     /// 每格能放几条事件：≥1 显示色条；0 显示圆点；-1 只显示日期
-    private static func capacity(_ h: CGFloat) -> Int {
-        let cell = (h - topPad - headH - wdH - sp) / 6
+    private static func capacity(_ cell: CGFloat) -> Int {
         let room = cell - cellTop - dateH
         let cap = Int(((room - 0.5) / slot).rounded(.down))
         if cap >= 1 { return min(cap, 3) }
@@ -23,12 +23,13 @@ struct MonthView: View {
         WidgetShell { pal in
             GeometryReader { g in
                 let W = g.size.width, H = g.size.height
-                let cap = MonthView.capacity(H)
-                let cw = (W - 6 * MonthView.sp) / 7
-                let rowH = (H - MonthView.topPad - MonthView.headH - MonthView.wdH - MonthView.sp - 5 * MonthView.sp) / 6
                 let today = entry.today
                 let ym = today.firstOfMonth.addingMonths(entry.moff)
                 let days = monthGrid(ym, weekStart: entry.weekStart)
+                let rows = (days.lastIndex { $0.m == ym.m } ?? 34) / 7 + 1 // 本月占几周就显示几行
+                let cw = (W - 6 * MonthView.sp) / 7
+                let rowH = (H - MonthView.topPad - MonthView.headH - MonthView.wdH - CGFloat(rows) * MonthView.sp) / CGFloat(rows)
+                let cap = MonthView.capacity(rowH)
                 VStack(spacing: 0) {
                     header(ym, pal)
                     HStack(spacing: MonthView.sp) {
@@ -38,7 +39,7 @@ struct MonthView: View {
                     }
                     .frame(height: MonthView.wdH)
                     VStack(spacing: MonthView.sp) {
-                        ForEach(0..<6, id: \.self) { r in
+                        ForEach(0..<rows, id: \.self) { r in
                             week(Array(days[r * 7..<r * 7 + 7]), ym: ym, today: today, cap: cap, cw: cw, rowH: rowH, pal: pal)
                         }
                     }
@@ -86,6 +87,8 @@ struct MonthView: View {
                 ForEach(0..<7, id: \.self) { k in
                     cell(wk[k], occ: lay.occ[k], lim: lim[k], ym: ym, today: today, cap: cap, cw: cw, pal: pal)
                         .frame(width: cw, height: rowH, alignment: .topLeading)
+                        // 底色铺满整格（只盖住日期那一行时，下面会露出分隔线的灰色）
+                        .background { ZStack { pal.bg; if wk[k] == today { pal.todayCell } } }
                         .clipped()
                 }
             }
@@ -142,7 +145,6 @@ struct MonthView: View {
             }
         }
         .padding(.top, MonthView.cellTop)
-        .background { ZStack { pal.bg; if isToday { pal.todayCell } } }
     }
 
     private func chip(_ e: CEvent, soft: Bool, width: CGFloat, pal: Pal) -> some View {

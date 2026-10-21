@@ -34,10 +34,12 @@ echo "→ 团队 $TEAM"
 echo "→ 生成工程…"
 xcodegen generate --quiet || exit 1
 
-echo "→ 编译（第一次大约一两分钟）…"
+VER=$(plutil -extract version raw version.json 2>/dev/null || echo 1.0.0)
+BUILD=$(plutil -extract build raw version.json 2>/dev/null || echo 1)
+echo "→ 编译 ${VER}（${BUILD}）…（第一次大约一两分钟）"
 mkdir -p build
 if ! xcodebuild -project Cadence.xcodeproj -target Cadence -configuration Release -allowProvisioningUpdates \
-     DEVELOPMENT_TEAM="$TEAM" build > build/log.txt 2>&1; then
+     DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$VER" CURRENT_PROJECT_VERSION="$BUILD" build > build/log.txt 2>&1; then
   echo "❌ 编译失败，下面是错误（完整日志在 macos/build/log.txt）："
   grep -E "error:|错误" build/log.txt | sort -u | head -30
   exit 1
@@ -49,5 +51,6 @@ osascript -e 'tell application id "io.github.salmangox.cadence" to quit' >/dev/n
 sleep 1
 rm -rf /Applications/Cadence.app
 ditto "$APP" /Applications/Cadence.app
+killall chronod 2>/dev/null || true # 让系统重新加载小组件（不然桌面上可能还是旧样子）
 open /Applications/Cadence.app
 echo "✅ 已安装到「应用程序」并打开。桌面小组件：在桌面空白处右键 → 编辑小组件 → 搜索「节律」。"

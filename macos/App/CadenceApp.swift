@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         main = MainWindowController()
         bar = StatusBar(engine: engine)
         engine.start()
+        Updater.shared.start()
         main.show()
     }
 
@@ -47,7 +48,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     @objc func showMain(_ sender: Any?) { main.show() }
+    func closePopover() { bar.close() }
     @objc func reloadWeb(_ sender: Any?) { main.reload() }
+    @objc func newEvent(_ sender: Any?) { main.newEvent() }
+    @objc func checkUpdate(_ sender: Any?) { Task { await Updater.shared.check(manual: true) } }
 
     // ---------- 通知 ----------
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
@@ -82,6 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
         _ = sub("节律", [
             item(t("关于节律"), #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
+            item(t("检查更新…"), #selector(checkUpdate(_:)), target: self),
             .separator(),
             item(t("隐藏节律"), #selector(NSApplication.hide(_:)), "h"),
             item(t("隐藏其他"), #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]),
@@ -89,6 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             .separator(),
             item(t("退出节律"), #selector(NSApplication.terminate(_:)), "q"),
         ])
+        _ = sub(t("文件"), [item(t("新建事件"), #selector(newEvent(_:)), "n", target: self)])
         _ = sub(t("编辑"), [
             item(t("撤销"), Selector(("undo:")), "z"),
             item(t("重做"), Selector(("redo:")), "z", [.command, .shift]),

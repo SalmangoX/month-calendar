@@ -11,8 +11,8 @@ configFiles:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.1.0"      # 以 version.json 为准，build.sh 编译时会覆盖
+    CURRENT_PROJECT_VERSION: "2"
     CODE_SIGN_STYLE: Automatic
     ENABLE_HARDENED_RUNTIME: YES
     DEAD_CODE_STRIPPING: YES
@@ -33,9 +33,12 @@ targets:
       properties:
         CFBundleDisplayName: 节律
         CFBundleName: 节律
+        CFBundleShortVersionString: $(MARKETING_VERSION)   # XcodeGen 默认写死 1.0，这里改成跟着 version.json
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.productivity
         NSHumanReadableCopyright: 节律 · Cadence
         CadenceAppURL: https://salmangox.github.io/month-calendar/
+        CadenceRepo: SalmangoX/month-calendar
         CadenceAppGroup: $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
         CFBundleURLTypes:
           - CFBundleURLName: io.github.salmangox.cadence
@@ -46,6 +49,7 @@ targets:
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
         com.apple.security.files.user-selected.read-write: true
+        com.apple.security.files.bookmarks.app-scope: true
         com.apple.security.application-groups:
           - $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
     dependencies:
@@ -65,6 +69,8 @@ targets:
       path: Widgets/Info.plist
       properties:
         CFBundleDisplayName: 节律
+        CFBundleShortVersionString: $(MARKETING_VERSION)   # 小组件的版本号要和 App 一致
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CadenceAppGroup: $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension

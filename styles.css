@@ -709,7 +709,7 @@ html.locked .lock { display: grid; }
 .sc-dh.today b { display: inline-block; align-self: center; min-width: 34px; padding: 1px 6px; border-radius: 10px; background: var(--accent); color: #fff; }
 .sc-dh.today span { color: var(--accent-text); }
 .sc-main { position: relative; display: grid; grid-template-columns: var(--hw) 1fr; }
-.sc-hours { position: sticky; left: 0; z-index: 3; background: var(--surface); }
+.sc-hours { position: sticky; left: 0; z-index: 6; background: var(--surface); } /* 横向滚动时盖住滑过来的课程和时间线 */
 .sc-corner { position: sticky; left: 0; z-index: 2; background: var(--surface); }
 .sc-hr { position: absolute; left: 0; width: var(--hw); text-align: right; padding-right: 5px; font-size: 10px; color: var(--text3); transform: translateY(-6px); font-variant-numeric: tabular-nums; }
 .sc-hr:first-child { transform: none; }
@@ -746,16 +746,27 @@ html.locked .lock { display: grid; }
 .sc-blk.narrow { padding: 3px 1px 3px 4px; }
 .sc-blk.narrow b { font-size: calc(11px * var(--fs, 1)); letter-spacing: -.03em; word-break: keep-all; overflow-wrap: normal; }
 .sc-blk.narrow .k { display: none; }
-.sc-nowline { position: absolute; left: 0; right: 0; height: 1px; z-index: 0; pointer-events: none;
-  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--p3) 70%, transparent) 0 6px, transparent 6px 10px); }
+/* 现在时间：整周一条半透明的线，压在所有课程上面（经过课程时透出课程内容）；左边时间标签是实色的。
+   线和标签都以同一个 top 为中心；每分钟往下滑一点；出现时从左往右展开 */
+.sc-nowline { position: absolute; left: 0; right: 0; height: 1.5px; margin-top: -.75px; z-index: 5; pointer-events: none;
+  background: color-mix(in srgb, var(--p3) 50%, transparent); transform-origin: 0 50%;
+  transition: top .8s var(--ease); animation: nowIn .55s var(--ease) both; }
 .sc-col { z-index: 1; }
-.sc-blk.live { box-shadow: inset 3px 0 0 var(--c), 0 0 0 1.5px var(--c), 0 4px 12px color-mix(in srgb, var(--c) 35%, transparent); }
-:root[data-theme="dark"] .sc-blk.live { box-shadow: inset 3px 0 0 var(--cbd), 0 0 0 1.5px var(--cbd), 0 4px 14px color-mix(in srgb, var(--cbd) 30%, transparent); }
-/* 现在时间：标签从时间轴左边开始往右排，完整显示「21:36」或「下午9:36」，箭头伸进课表指着红线 */
-.sc-tri { position: absolute; left: 1px; z-index: 4; transform: translateY(-50%); display: flex; align-items: center; pointer-events: none; white-space: nowrap; }
-.sc-tri span { min-width: calc(var(--hw) - 7px); text-align: center; font-size: 9.5px; font-weight: 700; color: #fff; background: var(--p3); padding: 1px 3px 1px 4px; border-radius: 4px 0 0 4px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+@keyframes nowIn { from { transform: scaleX(0); opacity: 0; } }
+.sc-tri { transition: top .8s var(--ease); }
+/* 正在上的课：微微放大一点，带一层很淡的阴影；上课、下课时平滑地淡入淡出 */
+.sc-blk { transition: transform .5s var(--ease), box-shadow .5s var(--ease); }
+.sc-blk.live { z-index: 2; transform: scale(1.025);
+  box-shadow: inset 3px 0 0 var(--c), 0 5px 14px color-mix(in srgb, var(--c) 22%, transparent), 0 1px 3px rgba(20, 30, 45, .08); }
+:root[data-theme="dark"] .sc-blk.live { box-shadow: inset 3px 0 0 var(--cbd), 0 6px 16px rgba(0, 0, 0, .45); }
+.sc-blk.live:active { transform: scale(.99); }
+.sc-blk:active { transition-duration: .15s; }
+@media (prefers-reduced-motion: reduce) { .sc-nowline, .sc-tri { animation: none; transition: none; } .sc-blk.live { transform: none; } }
+/* 现在时间的标签：一个圆角小方块，贴着时间轴右边缘、和线同一高度居中，右边缘正好接上线；时间长（下午9:36）时向左延伸 */
+.sc-tri { position: absolute; right: 0; z-index: 5; transform: translateY(-50%); pointer-events: none; white-space: nowrap; }
+.sc-tri span { display: block; min-width: calc(var(--hw) - 6px); text-align: center; font-size: 9.5px; font-weight: 700; line-height: 15px; color: #fff;
+  background: var(--p3); padding: 0 3px; border-radius: 4.5px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .sc-hr small { font-size: 8px; font-weight: 500; margin-right: 1px; }
-.sc-tri::after { content: ""; width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 6px solid var(--p3); }
 #schedForm textarea { min-height: 130px; }
 #schedForm .steps li { font-size: 14px; padding-bottom: 12px; }
 .btn-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
@@ -948,3 +959,49 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .sc-tbtn { display: block; width: 100%; height: 44px; padding: 0 12px; border-radius: 12px; background: var(--field); color: var(--text); font-size: 16px; text-align: left; font-variant-numeric: tabular-nums; }
 .sc-tbtn.on { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .sc-wheel { margin-top: -4px; }
+
+/* ---------- Mac App ----------
+   底部菜单栏和加号由原生的液态玻璃绘制（macos/App/Chrome.swift），网页自己的隐藏；
+   侧栏、面板、菜单是网页画的，做成液态玻璃的质感：更通透、边缘有高光和厚度，后面的内容透得出来 */
+.in-mac-chrome .dock, .in-mac-chrome .fab { display: none !important; }
+.in-mac {
+  --lg-fill: rgba(248, 251, 253, .42);
+  --lg-fill-strong: rgba(250, 252, 254, .62);
+  --lg-sheen: linear-gradient(135deg, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, .12) 30%, rgba(255, 255, 255, 0) 58%);
+  --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(255, 255, 255, .28), inset 1px 0 0 rgba(255, 255, 255, .5),
+    inset -1px 0 0 rgba(255, 255, 255, .22), inset 0 0 0 .5px rgba(20, 40, 70, .1), inset 0 0 18px rgba(255, 255, 255, .18);
+  --lg-drop: 0 22px 56px rgba(14, 24, 40, .18), 0 2px 8px rgba(14, 24, 40, .08);
+  --lg-filter: blur(14px) saturate(190%) brightness(1.04);
+}
+.in-mac[data-theme="dark"] {
+  --lg-fill: rgba(28, 29, 36, .46);
+  --lg-fill-strong: rgba(30, 31, 38, .66);
+  --lg-sheen: linear-gradient(135deg, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, .04) 30%, rgba(255, 255, 255, 0) 58%);
+  --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(255, 255, 255, .06), inset 1px 0 0 rgba(255, 255, 255, .12),
+    inset -1px 0 0 rgba(255, 255, 255, .05), inset 0 0 0 .5px rgba(255, 255, 255, .08), inset 0 0 18px rgba(255, 255, 255, .04);
+  --lg-drop: 0 22px 56px rgba(0, 0, 0, .5), 0 2px 8px rgba(0, 0, 0, .3);
+  --lg-filter: blur(14px) saturate(170%) brightness(.92);
+}
+.in-mac .drawer {
+  background: var(--lg-sheen), var(--lg-fill);
+  -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter);
+  box-shadow: var(--lg-rim), var(--lg-drop);
+}
+.in-mac .sheet {
+  background: var(--lg-sheen), var(--lg-fill-strong);
+  -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter);
+  box-shadow: var(--lg-rim), 0 -12px 40px rgba(0, 0, 0, .12);
+}
+.in-mac .popover.glass-panel, .in-mac .wkpick, .in-mac .toast {
+  background: var(--lg-sheen), var(--lg-fill-strong);
+  -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter);
+  box-shadow: var(--lg-rim), var(--lg-drop);
+}
+.in-mac .glass:not(.accent):not(.tabbar) {
+  background: var(--lg-sheen), var(--lg-fill);
+  -webkit-backdrop-filter: var(--lg-filter); backdrop-filter: var(--lg-filter);
+  box-shadow: var(--lg-rim), 0 4px 14px rgba(14, 24, 40, .1);
+}
+.in-mac .sheet .glass:not(.accent), .in-mac .preview .glass:not(.accent), .in-mac .popover .glass:not(.accent) {
+  background: var(--field); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+}

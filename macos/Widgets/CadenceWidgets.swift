@@ -40,6 +40,14 @@ struct CalProvider: TimelineProvider {
                 if t > now && t < midnight { times.insert(t) }
             }
         }
+        // 课表上的「现在」线：白天每 10 分钟一格
+        var t = YMD.cal.date(bySetting: .second, value: 0, of: now) ?? now
+        while true {
+            t = t.addingTimeInterval(600)
+            if t >= midnight { break }
+            let h = YMD.cal.component(.hour, from: t)
+            if h >= 7 && h < 23 { times.insert(t) }
+        }
         let exp = Shared.offsetExpiry("moff"), off = Shared.offset("moff")
         if let e = exp, e < midnight { times.insert(e) }
         let entries = times.sorted().map { t in
@@ -67,8 +75,8 @@ struct ShiftMonthIntent: AppIntent {
 
 struct MonthWidget: Widget {
     var body: some WidgetConfiguration {
-        let _ = Shared.load() // 语言跟着同步数据
-        StaticConfiguration(kind: "CadenceMonth", provider: CalProvider()) { MonthView(entry: $0) }
+        _ = Shared.load() // 语言跟着同步数据
+        return StaticConfiguration(kind: "CadenceMonth", provider: CalProvider()) { MonthView(entry: $0) }
             .configurationDisplayName(I18n.t("整月"))
             .description(I18n.t("整月日历，右上角可以翻月"))
             .supportedFamilies([.systemMedium, .systemLarge, .systemExtraLarge])
@@ -78,8 +86,8 @@ struct MonthWidget: Widget {
 
 struct TodayWidget: Widget {
     var body: some WidgetConfiguration {
-        let _ = Shared.load()
-        StaticConfiguration(kind: "CadenceToday", provider: CalProvider()) { TodayView(entry: $0) }
+        _ = Shared.load()
+        return StaticConfiguration(kind: "CadenceToday", provider: CalProvider()) { TodayView(entry: $0) }
             .configurationDisplayName(I18n.t("今日"))
             .description(I18n.t("今天、已逾期和接下来一周"))
             .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
@@ -89,8 +97,8 @@ struct TodayWidget: Widget {
 
 struct SchedWidget: Widget {
     var body: some WidgetConfiguration {
-        let _ = Shared.load()
-        StaticConfiguration(kind: "CadenceSched", provider: CalProvider()) { SchedView(entry: $0) }
+        _ = Shared.load()
+        return StaticConfiguration(kind: "CadenceSched", provider: CalProvider()) { SchedView(entry: $0) }
             .configurationDisplayName(I18n.t("课表"))
             .description(I18n.t("小尺寸：今天的课；中尺寸：本周；大尺寸：本周课表"))
             .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge])

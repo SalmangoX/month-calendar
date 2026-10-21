@@ -128,6 +128,16 @@ extension Color {
 
 func withAlpha(_ v: UInt32, _ a: UInt32) -> UInt32 { (v & 0x00FF_FFFF) | (a << 24) }
 
+/// 两个颜色按比例混合（t = a 的占比），和 CSS color-mix(in srgb) 一样
+func mix(_ a: UInt32, _ b: UInt32, _ t: Double) -> UInt32 {
+    var out: UInt32 = 0xFF00_0000
+    for sh in [16, 8, 0] as [UInt32] {
+        let x = Double((a >> sh) & 255), y = Double((b >> sh) & 255)
+        out |= UInt32((x * t + y * (1 - t)).rounded()) << sh
+    }
+    return out
+}
+
 /// 与网页 styles.css、安卓 colors.xml 相同的配色；深色是专门设计的深色调（不是把浅色压暗）
 struct Pal {
     let dark: Bool
@@ -135,11 +145,18 @@ struct Pal {
     var accentV: UInt32 { dark ? 0xFF8B_A8DE : 0xFF4C_6EAC }
     var accent: Color { Color(argb: accentV) }
     var appBg: Color { Color(argb: dark ? 0xFF05_0608 : 0xFFF7_FAFC) }
+    // 和安卓 colors.xml、iOS 小组件同一套颜色
     var bg: Color { Color(argb: dark ? 0xFF1B_1C21 : 0xFFEC_F2F5) }
     var line: Color { Color(argb: dark ? 0xFF29_2A2F : 0xFFDA_E1E5) }
     var text: Color { Color(argb: dark ? 0xFFEE_EEF1 : 0xFF17_1B20) }
     var text2: Color { Color(argb: dark ? 0xFF8C_8E97 : 0xFF74_7B83) }
     var live: Color { Color(argb: withAlpha(accentV, dark ? 0x3D : 0x29)) }
+    /// 与网页一致：--accent-text、--today-dim（今天的淡主色圆）、--sel-bg（当前周的淡底）、--text2
+    var accentText: Color { Color(argb: dark ? 0xFFAD_C5EF : 0xFF3B_5993) }
+    var todayDim: Color { Color(argb: withAlpha(accentV, dark ? 0x47 : 0x33)) }
+    /// 当前周的底：中性的浅灰（网页 --field），不带蓝
+    var weekBand: Color { Color(argb: dark ? 0x13EC_EEFA : 0x176E_7D91) }
+    private var text2V: UInt32 { dark ? 0xFF8F_929B : 0xFF6E_757E }
     var todayCell: Color { Color(argb: withAlpha(accentV, dark ? 0x33 : 0x1F)) }
     var dim: Color { Color(argb: 0x8088_8890) }
 
@@ -150,10 +167,11 @@ struct Pal {
     /// 一个事件的颜色（记录日历没设优先级时用日历颜色）
     func base(_ e: CEvent, _ d: CalData) -> UInt32 { d.calColorOf(e) ?? Pal.P[e.priority] }
 
-    /// 月历色条：(底色, 字色)。浅色实色 + 白字；深色深色调 + 柔白字；已完成 / 不在本月用同色淡底
+    /// 月历色条：(底色, 字色)。浅色实色 + 白字；深色深色调 + 柔白字；
+    /// 已完成和网页 .chip.done 一样：同色淡底（浅色 18%、深色 28%）+ 同色偏灰的字
     func chip(_ e: CEvent, _ d: CalData, soft: Bool) -> (Color, Color) {
         let col = base(e, d)
-        if soft { return (Color(argb: withAlpha(col, dark ? 0x4D : 0x40)), Color(argb: col)) }
+        if soft { return (Color(argb: withAlpha(col, dark ? 0x4D : 0x40)), Color(argb: col)) } // 和安卓一样
         if !dark { return (Color(argb: col), .white) }
         if let cc = d.calColorOf(e) { let t = CourseColors.darkTone(cc); return (Color(argb: t.0), Color(argb: t.1)) }
         return (Color(argb: Pal.DARK_FILL[e.priority]), Color(argb: Pal.DARK_INK[e.priority]))
