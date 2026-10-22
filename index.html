@@ -26,6 +26,7 @@
   })();
 </script>
 <link rel="stylesheet" href="styles.css?v=0.22.0">
+<link rel="stylesheet" href="days.css?v=0.22.0">
 </head>
 <body>
 
@@ -55,6 +56,14 @@
     <div class="cal-body" id="calBody">
       <div id="calViewport"><div id="calZoom"><div id="calTrack"></div></div></div>
       <div class="preview glass-panel" id="preview" aria-live="polite"></div>
+    </div>
+    <!-- 纪念日历：倒数日 / 纪念日（js/days.js） -->
+    <div class="dv" id="daysView">
+      <header class="dv-head">
+        <button class="dv-title" id="dvTitleBtn" aria-label="选择日历"><h1 id="dvName" data-uc></h1><p id="dvSub"></p></button>
+        <button class="gbtn glass" id="dvMode" aria-label="日历"></button>
+      </header>
+      <div class="pscroll dv-scroll" id="dvBody"></div>
     </div>
   </section>
 
@@ -186,6 +195,58 @@
   </div>
 </section>
 
+<!-- 纪念日：详情 -->
+<section class="sheet tall dd" id="dayDetail" aria-label="纪念日">
+  <div class="handle"></div>
+  <div class="sheet-head">
+    <button class="text-btn muted" data-close>关闭</button>
+    <h2 id="ddHead"></h2>
+    <button class="text-btn strong" id="ddEdit">编辑</button>
+  </div>
+  <div class="list dd-body" id="ddBody"></div>
+</section>
+
+<!-- 纪念日：新建 / 编辑 -->
+<section class="sheet tall de" id="dayEditor" aria-label="编辑日子">
+  <div class="handle"></div>
+  <div class="sheet-head">
+    <button class="text-btn muted" data-close>取消</button>
+    <h2 id="deHead">新的日子</h2>
+    <button class="text-btn strong" id="deSave">添加</button>
+  </div>
+  <div class="list de-body" id="deBody"></div>
+</section>
+
+<!-- 纪念日：小纸条 -->
+<section class="sheet dn" id="dayNote" aria-label="小纸条">
+  <div class="handle"></div>
+  <div class="sheet-head">
+    <button class="text-btn muted" data-close>取消</button>
+    <h2 id="dnTitle">写一张小纸条</h2>
+    <button class="text-btn strong" id="dnSave">贴上</button>
+  </div>
+  <div class="dn-body">
+    <p class="dn-meta" id="dnMeta" data-uc></p>
+    <textarea id="dnText" rows="6" maxlength="2000" placeholder="今天想对这个日子说点什么？"></textarea>
+  </div>
+</section>
+
+<!-- 纪念日：分享图片 -->
+<section class="sheet tall ds" id="dayShare" aria-label="分享图片">
+  <div class="handle"></div>
+  <div class="sheet-head">
+    <button class="text-btn muted" data-close>完成</button>
+    <h2>分享图片</h2>
+    <button class="text-btn strong" id="dsSave">保存</button>
+  </div>
+  <div class="list ds-body" id="dsBody">
+    <div class="ds-stage" id="dsStage"><img id="dsImg" alt="分享图片预览"></div>
+    <div id="dsOpts"></div>
+  </div>
+</section>
+<input type="file" id="dayPhotoFile" accept="image/*" multiple hidden>
+<input type="file" id="dayBgFile" accept="image/*" hidden>
+
 <!-- 批量添加 -->
 <section class="sheet tall" id="batchSheet" aria-label="批量添加">
   <div class="handle"></div>
@@ -284,5 +345,6 @@
 <script src="js/sched.js?v=0.22.0"></script>
 <script src="js/drawer.js?v=0.22.0"></script>
 <script src="js/app.js?v=0.22.0"></script>
+<script src="js/days.js?v=0.22.0"></script>
 </body>
 </html>

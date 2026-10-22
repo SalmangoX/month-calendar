@@ -9,6 +9,7 @@ struct CadenceWidgets: WidgetBundle {
         MonthWidget()
         TodayWidget()
         SchedWidget()
+        DaysWidget()
     }
 }
 

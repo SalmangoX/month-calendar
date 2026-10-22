@@ -13,6 +13,9 @@
     <!-- 请求「电池不受限制」，避免提醒被省电延迟 -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 纪念日历的透明相机（不是必需的硬件） -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:label="@string/app_name"
@@ -75,6 +78,12 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_sched_info" />
+        </receiver>
+        <receiver android:name=".DaysWidget" android:exported="false" android:label="@string/w_days">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_days_info" />
         </receiver>
     </application>
 </manifest>

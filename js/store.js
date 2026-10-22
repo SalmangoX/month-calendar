@@ -174,7 +174,7 @@
   MC.timeLabel = e => e.time ? MC.fmtRange(e.time, e.endTime) : '';
 
   // ---------- 数据 ----------
-  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', clock: '', lang: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [] }; }
+  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', clock: '', lang: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [], days: [], books: [], album: { gist: '', owner: '' } }; }
   function normEvent(e) {
     const t = Date.now();
     return {
@@ -202,6 +202,9 @@
         from: /^\d{4}-\d{2}-\d{2}$/.test(c.from || '') ? c.from : '', to: /^\d{4}-\d{2}-\d{2}$/.test(c.to || '') ? c.to : '', every: c.every === 2 ? 2 : 1 }));
     out.coursesAt = d.coursesAt || 0;
     if (Array.isArray(d.cals)) out.cals = d.cals.filter(c => c && c.id && typeof c.id === 'string').map(normCal);
+    if (Array.isArray(d.days)) out.days = d.days.filter(x => x && x.id && /^\d{4}-\d{2}-\d{2}$/.test(x.date || '')).map(normDay);
+    if (Array.isArray(d.books)) out.books = d.books.filter(x => x && x.id).map(normBook);
+    if (d.album && d.album.gist) out.album = { gist: String(d.album.gist), owner: String(d.album.owner || '') };
     if (d.daily) out.daily = { on: !!d.daily.on, time: /^\d{2}:\d{2}$/.test(d.daily.time || '') ? d.daily.time : '13:00', tz: d.daily.tz || '', updatedAt: d.daily.updatedAt || 0 };
     return out;
   };
@@ -215,8 +218,35 @@
     return { id: String(c.id).slice(0, 40), name: String(c.name || '记录').slice(0, 24), color: /^#[0-9a-fA-F]{6}$/.test(c.color || '') ? c.color : MC.CAL_COLORS[0],
       showInMain: !!c.showInMain, // 事件也显示在主日历里
       notify: !!c.notify,         // 这个日历的事件到点提醒
+      kind: c.kind === 'days' ? 'days' : '', // 'days' = 纪念日历（倒数日 / 纪念日），其余为记录日历
       createdAt: c.createdAt || t, updatedAt: c.updatedAt || c.createdAt || t };
   }
+  // ---------- 纪念日历：日子、分类 ----------
+  // 日子：date 目标日 / 起始日；time 精确到分钟（选填）；rep 每周 / 每月 / 每年重复；book 分类；icon 图标（内置名或一个表情）；
+  // hl 高亮颜色；pin 置顶；unit 显示单位；from1 起始日算第 1 天；notes 小纸条；photos 相册（图片本身存在单独的 Gist，见 days.js）
+  const DAY_UNITS = ['d', 'w', 'm', 'y'];
+  function normDay(x) {
+    const t = Date.now();
+    return {
+      id: String(x.id).slice(0, 40), cal: String(x.cal || '').slice(0, 40), title: String(x.title || '').slice(0, 120),
+      date: x.date, time: /^\d{2}:\d{2}$/.test(x.time || '') ? x.time : '',
+      rep: ['week', 'month', 'year'].includes(x.rep) ? x.rep : '',
+      book: String(x.book || '').slice(0, 40), icon: String(x.icon || '').slice(0, 24),
+      hl: /^#[0-9a-fA-F]{6}$/.test(x.hl || '') ? x.hl : '', pin: !!x.pin,
+      unit: DAY_UNITS.includes(x.unit) ? x.unit : 'd', from1: !!x.from1,
+      notes: (Array.isArray(x.notes) ? x.notes : []).filter(n => n && n.id).slice(0, 300)
+        .map(n => ({ id: String(n.id).slice(0, 40), text: String(n.text || '').slice(0, 2000), at: Number(n.at) || t })),
+      photos: (Array.isArray(x.photos) ? x.photos : []).filter(p => p && p.id).slice(0, 300)
+        .map(p => ({ id: String(p.id).slice(0, 40), at: Number(p.at) || t, w: Number(p.w) || 0, h: Number(p.h) || 0 })),
+      createdAt: x.createdAt || t, updatedAt: x.updatedAt || x.createdAt || t,
+    };
+  }
+  function normBook(b) {
+    const t = Date.now();
+    return { id: String(b.id).slice(0, 40), cal: String(b.cal || '').slice(0, 40), name: String(b.name || '').slice(0, 24),
+      createdAt: b.createdAt || t, updatedAt: b.updatedAt || b.createdAt || t };
+  }
+  MC.normDay = normDay;
   function loadData() {
     try { const d = JSON.parse(localStorage.getItem(DATA_KEY)); if (d && Array.isArray(d.events)) return MC.normalize(d); } catch (e) {}
     return blank();
@@ -295,7 +325,9 @@
   MC.eventsOn = ds => MC.byDate.get(ds) || [];      // 当前日历
   MC.mainOn = ds => MC.mainByDate.get(ds) || [];    // 主日历自己的事件
   MC.mainViewOn = ds => MC.mainViewByDate.get(ds) || []; // 主日历看到的（含设为在主日历显示的记录日历）
-  MC.countIn = id => MC.data.events.reduce((n, e) => n + (MC.inCal(e, id) ? 1 : 0), 0);
+  MC.countIn = id => (id && (MC.cal(id) || {}).kind === 'days'
+    ? MC.data.days.filter(x => x.cal === id).length
+    : MC.data.events.reduce((n, e) => n + (MC.inCal(e, id) ? 1 : 0), 0));
 
   MC.onChange = () => {};
   MC.dirty = false;
@@ -324,9 +356,24 @@
     const t = Date.now();
     for (const e of MC.data.events) if (e.cal === id) MC.data.deleted[e.id] = t;
     MC.data.events = MC.data.events.filter(e => e.cal !== id);
+    for (const x of MC.data.days) if (x.cal === id) MC.data.deleted['day:' + x.id] = t;
+    for (const b of MC.data.books) if (b.cal === id) MC.data.deleted['book:' + b.id] = t;
+    MC.data.days = MC.data.days.filter(x => x.cal !== id);
+    MC.data.books = MC.data.books.filter(b => b.cal !== id);
     MC.data.cals = MC.data.cals.filter(c => c.id !== id);
     MC.data.deleted['cal:' + id] = t;
     if (MC.settings.activeCal === id) { MC.settings.activeCal = ''; MC.saveSettings(); }
+    MC.commit();
+  };
+  MC.addDay = fields => { const x = normDay({ ...fields, id: 'd' + MC.uid(), createdAt: Date.now(), updatedAt: Date.now() }); MC.data.days.push(x); MC.commit(); return x; };
+  MC.updateDay = (x, fields) => { Object.assign(x, fields, { updatedAt: Date.now() }); MC.commit(); };
+  MC.deleteDay = x => { MC.data.days = MC.data.days.filter(y => y.id !== x.id); MC.data.deleted['day:' + x.id] = Date.now(); MC.commit(); };
+  MC.addBook = (cal, name) => { const b = normBook({ id: 'b' + MC.uid(), cal, name }); MC.data.books.push(b); MC.commit(); return b; };
+  MC.updateBook = (b, fields) => { Object.assign(b, fields, { updatedAt: Date.now() }); MC.commit(); };
+  MC.deleteBook = b => { // 分类删掉后，里面的日子移到「未分类」
+    const t = Date.now();
+    MC.data.books = MC.data.books.filter(y => y.id !== b.id); MC.data.deleted['book:' + b.id] = t;
+    for (const x of MC.data.days) if (x.book === b.id) Object.assign(x, { book: '', updatedAt: t });
     MC.commit();
   };
   MC.setDaily = fields => { Object.assign(MC.data.daily, fields, { updatedAt: Date.now() }); MC.commit(); };
@@ -358,14 +405,23 @@
       .sort((x, y) => (x.createdAt || 0) - (y.createdAt || 0));
     const calIds = new Set(cals.map(c => c.id));
     const kept = events.filter(e => !e.cal || calIds.has(e.cal) || !deleted['cal:' + e.cal]); // 已删除的日历里不留事件
+    const byNewest = (la, lb, pre) => {
+      const m = new Map();
+      for (const x of [...(la || []), ...(lb || [])]) { const o = m.get(x.id); if (!o || (x.updatedAt || 0) > (o.updatedAt || 0)) m.set(x.id, { ...x }); }
+      return [...m.values()].filter(x => !(deleted[pre + x.id] && deleted[pre + x.id] >= (x.updatedAt || 0)) && (calIds.has(x.cal) || !deleted['cal:' + x.cal]))
+        .sort((x, y) => (x.createdAt || 0) - (y.createdAt || 0));
+    };
+    const days = byNewest(a.days, b.days, 'day:'), books = byNewest(a.books, b.books, 'book:');
+    const album = (a.album && a.album.gist) ? { ...a.album } : (b.album && b.album.gist) ? { ...b.album } : { gist: '', owner: '' };
     return { version: 3, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0), events: kept, deleted, profile, daily,
-      courses: (newerCourses.courses || []).map(c => ({ ...c })), coursesAt: newerCourses.coursesAt || 0, cals };
+      courses: (newerCourses.courses || []).map(c => ({ ...c })), coursesAt: newerCourses.coursesAt || 0, cals, days, books, album };
   };
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
       .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
-    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.updatedAt]);
-    return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, d.coursesAt || 0, cs]);
+    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', c.updatedAt]);
+    const ds = [...(d.days || []), ...(d.books || [])].map(x => x.id + ':' + (x.updatedAt || 0)).sort();
+    return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, d.coursesAt || 0, cs, ds, (d.album || {}).gist || '']);
   }
 
   // ---------- 加密保存令牌 ----------

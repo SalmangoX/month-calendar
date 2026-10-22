@@ -297,9 +297,11 @@
     grid: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="6.5" height="6.5" rx="1.8"/><rect x="13" y="4.5" width="6.5" height="6.5" rx="1.8"/><rect x="4.5" y="13" width="6.5" height="6.5" rx="1.8"/><rect x="13" y="13" width="6.5" height="6.5" rx="1.8"/></svg>',
     sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.6"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M6 18l1.4-1.4M16.6 7.4L18 6"/></svg>',
     clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>',
+    heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   };
   const CHEV = '<span class="chev"><svg viewBox="0 0 8 13"><path d="M1.5 1.5l5 5-5 5"/></svg></span>';
   const SET_TONES = { rose: ['#B15D69', '#ED9EA7'], coral: ['#B16148', '#EDA28B'], apricot: ['#A76B2A', '#E2AB76'], sage: ['#4D8B50', '#91C892'], jade: ['#0D8F73', '#73CBB0'], teal: ['#008C8F', '#64CACD'], sky: ['#1D85B0', '#75C2EA'], periwinkle: ['#5679BB', '#96B8F5'], lavender: ['#7C6DB6', '#B8ADF0'], orchid: ['#9C629D', '#D7A2D8'] }; // [浅色, 深色]
+  const DT = s => (MC.Days ? MC.Days.T(s) : s); // 纪念日历（js/days.js）的文字
   function srow(o) {
     const sub = o.sub ? `<small>${esc(o.sub)}</small>` : '';
     const val = o.val ? `<span class="sval">${esc(o.val)}</span>` : '';
@@ -397,7 +399,7 @@
     if (MC.Native.mac) {
       const I = MC.Native.info;
       gWidgets += group('桌面小组件', [
-        srow({ act: 'mwidget', icon: 'grid', tone: 'periwinkle', label: '添加桌面小组件', sub: '整月、今日、课表', help: 'mwidget', chev: false }),
+        srow({ act: 'mwidget', icon: 'grid', tone: 'periwinkle', label: '添加桌面小组件', sub: '整月、今日、课表、纪念日', help: 'mwidget', chev: false }),
       ], '菜单栏右上角的日历图标也能随时查看本月和当天的事件。');
       gWidgets += group('Mac App', [
         srow({ act: 'macapp', icon: 'laptop', tone: 'sage', label: 'Mac App', sub: '点一下检查更新', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
@@ -407,6 +409,7 @@
         srow({ act: 'pin:month', icon: 'grid', tone: 'periwinkle', label: '整月小组件', sub: '点一下添加到桌面', help: 'nwidget', chev: false }),
         srow({ act: 'pin:today', icon: 'sun', tone: 'apricot', label: '今日小组件', sub: '今天、已逾期和接下来一周', chev: false }),
         srow({ act: 'pin:sched', icon: 'clock', tone: 'teal', label: '课表小组件', sub: '今天的课，正在上的突出显示', chev: false }),
+        ...(MC.Native.has('daysWidget') ? [srow({ act: 'pin:days', icon: 'heart', tone: 'rose', label: DT('纪念日小组件'), sub: DT('置顶或最近的日子，以及接下来的几个'), chev: false })] : []),
       ], '也可以长按桌面空白处 → 小组件 → 节律，按住拖到桌面。');
       const up = MC.Native.updateAvailable(), I = MC.Native.info;
       gWidgets += group('安卓 App', [
@@ -417,6 +420,7 @@
       srow({ act: 'android', icon: 'android', tone: 'sage', label: '安卓小组件', sub: '复制小组件链接', help: 'android', chev: false }),
       srow({ act: 'iosSched', icon: 'phone', tone: 'orchid', label: 'iOS 课表小组件', sub: '今天的课 · 点一下即刷新', help: 'iosSched', chev: false }),
       srow({ act: 'androidSched', icon: 'android', tone: 'jade', label: '安卓课表小组件', sub: '复制课表小组件链接', chev: false }),
+      srow({ act: 'iosDays', icon: 'heart', tone: 'rose', label: DT('iOS 纪念日小组件'), sub: DT('复制 Scriptable 脚本'), help: 'iosDays', chev: false }),
     ]);
     const gData = group('数据', [
       srow({ act: 'export', icon: 'export', tone: 'jade', label: '导出备份', chev: false }),
@@ -521,6 +525,7 @@
     else if (act === 'ios') copyIOS();
     else if (act === 'android') copyAndroid();
     else if (act === 'iosSched') copySched();
+    else if (act === 'iosDays') copyDays();
     else if (act === 'androidSched') { if (!MC.settings.gistId) { UI.toast('请先连接 GitHub 并完成一次同步'); return; } copy(androidLink() + '&mode=sched', '已复制课表小组件链接'); }
     else if (act === 'export') exportData();
     else if (act === 'import') $('#importFile').click();
@@ -732,6 +737,14 @@
     if (!schedScript) { UI.toast('脚本还在加载，请稍后再点一次'); return; }
     copy(schedScript.replace('"__GIST_ID__"', JSON.stringify(MC.settings.gistId)).replace('"__APP_URL__"', JSON.stringify(appUrl())), '已复制课表小组件脚本');
   }
+  let daysScript = '';
+  fetch('widget-days-scriptable.js', { cache: 'no-cache' }).then(r => r.text()).then(t => (daysScript = t)).catch(() => {});
+  function copyDays() {
+    const T = DT;
+    if (!MC.settings.gistId) { UI.toast(T('请先连接 GitHub 并完成一次同步')); return; }
+    if (!daysScript) { UI.toast(T('脚本还在加载，请稍后再点一次')); return; }
+    copy(daysScript.replace('"__GIST_ID__"', JSON.stringify(MC.settings.gistId)).replace('"__APP_URL__"', JSON.stringify(appUrl())), T('已复制纪念日小组件脚本'));
+  }
   function copyAndroid() {
     if (!MC.settings.gistId) { UI.toast('请先连接 GitHub 并完成一次同步'); return; }
     copy(androidLink(), '已复制安卓小组件链接');
@@ -766,7 +779,7 @@
       title: 'Mac 桌面小组件',
       html: `<ol class="steps">
         <li>在桌面空白处右键 → 编辑小组件…</li>
-        <li>在小组件库里搜索「节律」，把整月、今日或课表拖到桌面或通知中心。</li>
+        <li>在小组件库里搜索「节律」，把整月、今日、课表或纪念日拖到桌面或通知中心。</li>
         <li>课表小组件：小尺寸显示今天的课，中尺寸显示本周，大尺寸显示本周课表。</li>
       </ol>
       <div class="help-tip">整月小组件右上角的 ‹ › 可以翻月，30 分钟后自动回到本月。<br>在这台 Mac 上改的事件会立刻更新到小组件；其他设备上改的，连接 GitHub 后约 15 分钟内同步过来。</div>`,
@@ -780,6 +793,21 @@
       </ol>
       <div class="help-tip">整月小组件右上角的 ‹ › 可以翻月，30 分钟后自动回到本月；点日期区域打开节律。<br>在这台手机上改的事件会立刻更新到小组件；在 iPhone 或电脑上改的，连接 GitHub 后大约 15 分钟内同步过来，打开节律则马上同步。</div>`,
     }),
+    iosDays: () => {
+      const T = DT;
+      return {
+        title: T('iOS 纪念日小组件'),
+        html: `<ol class="steps">
+        <li>${T('先在「账户与同步」连接 GitHub，并同步成功一次。')}</li>
+        <li>${T('点下方「复制纪念日小组件脚本」。')}</li>
+        <li>${T('打开 Scriptable → 右上角 ＋ → 粘贴 → 把标题改成「纪念日」→ Done。')}</li>
+        <li>${T('回到桌面长按 → 编辑 → 添加小组件 → Scriptable → 选小号、中号或大号。')}</li>
+        <li>${T('长按小组件 → 编辑小组件 → Script 选「纪念日」。')}</li>
+      </ol>
+      <div class="help-copy"><button class="chip-btn glass" data-copy="days">${T('复制纪念日小组件脚本')}</button></div>
+      <div class="help-tip">${T('小号显示置顶（没有置顶就是最近的）日子；中号和大号再列出接下来的几个。在 App 里置顶的日子会显示在这里。')}</div>`,
+      };
+    },
     iosSched: () => ({
       title: 'iOS 课表小组件',
       html: `<ol class="steps">
@@ -891,6 +919,7 @@
     const b = e.target.closest('[data-copy]'); if (!b) return;
     const k = b.dataset.copy;
     if (k.startsWith('nreq:')) { await MC.Native.request(k.slice(5)); if (UI.isOpen('helpSheet')) openHelp('nperm'); renderSettings(); return; }
+    if (k === 'days') { copyDays(); return; }
     if (k === 'ntest') { if (!Push.enabled()) { UI.toast('请先打开「提醒通知」开关'); return; } Push.test(); return; }
     if (k === 'ntestBg') {
       if (!Push.enabled()) { UI.toast('请先打开「提醒通知」开关'); return; }

@@ -53,6 +53,33 @@ func monthGrid(_ ym: YMD, weekStart: Int) -> [YMD] {
     return (0..<42).map { start.adding($0) }
 }
 
+/// 纪念日历里的一个日子（和网页 js/days.js、安卓 Data.Day 同一套算法）
+struct CDay {
+    var id = "", cal = "", title = "", time = "", rep = "", hl = "", unit = "d"
+    var date = YMD(y: 1970, m: 1, d: 1)
+    var pin = false, from1 = false
+    var updatedAt: Int64 = 0
+
+    private static func clamp(_ y: Int, _ m: Int, _ d: Int) -> YMD {
+        let t = y * 12 + (m - 1), yy = t / 12, mm = t % 12 + 1
+        let n = YMD.cal.range(of: .day, in: .month, for: YMD(y: yy, m: mm, d: 1).date)?.count ?? 28
+        return YMD(y: yy, m: mm, d: min(d, n))
+    }
+    /// 从 today 起的下一次（不重复的就是那一天）
+    func occ(_ today: YMD) -> YMD {
+        if rep.isEmpty || !(date < today) { return date }
+        if rep == "week" { return date.adding((date.days(to: today) + 6) / 7 * 7) }
+        if rep == "month" {
+            let d = CDay.clamp(today.y, today.m, date.d)
+            return d < today ? CDay.clamp(today.y, today.m + 1, date.d) : d
+        }
+        let d = CDay.clamp(today.y, date.m, date.d)
+        return d < today ? CDay.clamp(today.y + 1, date.m, date.d) : d
+    }
+    /// 正数 = 还有几天，负数 = 已经几天
+    func diff(_ today: YMD) -> Int { today.days(to: occ(today)) }
+}
+
 struct CEvent {
     var id = "", title = "", note = "", time = "", endTime = "", cal = ""
     var date = YMD(y: 1970, m: 1, d: 1)
@@ -168,6 +195,7 @@ final class CalData {
     var shownCals = Set<String>()
     var calColor: [String: UInt32] = [:]
     var notifyCals = Set<String>()
+    var days: [CDay] = []
     var isEmpty = true
     private var byDate: [YMD: [CEvent]] = [:]
 
@@ -201,6 +229,7 @@ final class CalData {
         let d = CalData()
         guard let o = jparse(json) else { I18n.set("auto"); return d }
         d.isEmpty = false
+        var dayCals = Set<String>()
         for e in o.arr("events") { if let x = event(e) { d.events.append(x) } }
         let prof = o.obj("profile") ?? [:]
         d.clock = prof.str("clock", "auto")
@@ -211,6 +240,17 @@ final class CalData {
             let col = c.str("color")
             if col.count == 7, col.hasPrefix("#"), let v = UInt32(col.dropFirst(), radix: 16) { d.calColor[id] = 0xFF00_0000 | v }
             if c.bool("notify") { d.notifyCals.insert(id) }
+            if c.str("kind") == "days" { dayCals.insert(id) }
+        }
+        for x in o.arr("days") {
+            guard let date = YMD(string: x.str("date")), dayCals.contains(x.str("cal")) else { continue }
+            var y = CDay()
+            y.date = date; y.id = x.str("id"); y.cal = x.str("cal"); y.title = x.str("title")
+            let t = x.str("time"); y.time = isTime(t) ? t : ""
+            let r = x.str("rep"); y.rep = ["week", "month", "year"].contains(r) ? r : ""
+            let h = x.str("hl"); y.hl = h.count == 7 && h.hasPrefix("#") && UInt32(h.dropFirst(), radix: 16) != nil ? h : ""
+            y.unit = x.str("unit", "d"); y.pin = x.bool("pin"); y.from1 = x.bool("from1"); y.updatedAt = x.long("updatedAt")
+            d.days.append(y)
         }
         if let daily = o.obj("daily") {
             d.dailyOn = daily.bool("on")
@@ -300,6 +340,15 @@ final class CalData {
         out["courses"] = nc["courses"] as? [Any] ?? []
         out["coursesAt"] = nc.long("coursesAt")
         out["cals"] = cals
+        // 纪念日历的日子、分类：同样按 id 取较新的一份（删除记录 "day:<id>" / "book:<id>"）
+        out["days"] = byId("days").compactMap { id, x in
+            if let t = deleted["day:" + id], t >= x.long("updatedAt") { return nil }
+            return x
+        }
+        out["books"] = byId("books").compactMap { id, x in
+            if let t = deleted["book:" + id], t >= x.long("updatedAt") { return nil }
+            return x
+        }
         return out
     }
 }

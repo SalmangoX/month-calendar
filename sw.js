@@ -5,8 +5,8 @@ const CACHE = 'mcal-' + VERSION;
 const V = '?v=' + VERSION;
 const ASSETS = [
   './index.html', './manifest.webmanifest',
-  './styles.css' + V,
-  './js/store.js' + V, './js/i18n.js' + V, './js/native.js' + V, './js/ui.js' + V, './js/calendar.js' + V, './js/editor.js' + V, './js/push.js' + V, './js/sched.js' + V, './js/drawer.js' + V, './js/app.js' + V,
+  './styles.css' + V, './days.css' + V,
+  './js/store.js' + V, './js/i18n.js' + V, './js/native.js' + V, './js/ui.js' + V, './js/calendar.js' + V, './js/editor.js' + V, './js/push.js' + V, './js/sched.js' + V, './js/drawer.js' + V, './js/app.js' + V, './js/days.js' + V,
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'
 ];
 

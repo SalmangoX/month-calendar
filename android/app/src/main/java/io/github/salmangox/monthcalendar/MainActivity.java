@@ -44,7 +44,8 @@ import java.util.List;
  */
 public class MainActivity extends Activity {
     static final String EXTRA_HASH = "hash";
-    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_PERM = 13;
+    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_PERM = 13, REQ_CAM = 14;
+    private android.webkit.PermissionRequest camReq;
 
     private WebView web;
     private FrameLayout root;
@@ -119,6 +120,20 @@ public class MainActivity extends Activity {
         });
 
         web.setWebChromeClient(new WebChromeClient() {
+            // 网页请求相机（纪念日历的透明相机）：先拿到系统的相机权限再交给网页
+            @Override
+            public void onPermissionRequest(android.webkit.PermissionRequest r) {
+                boolean cam = false;
+                for (String res : r.getResources()) if (android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(res)) cam = true;
+                if (!cam || r.getOrigin() == null || appUri.getHost() == null || !appUri.getHost().equalsIgnoreCase(r.getOrigin().getHost())) { r.deny(); return; }
+                if (checkSelfPermission(android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    r.grant(new String[]{android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+                } else {
+                    camReq = r;
+                    requestPermissions(new String[]{android.Manifest.permission.CAMERA}, REQ_CAM);
+                }
+            }
+
             @Override
             public boolean onShowFileChooser(WebView w, ValueCallback<Uri[]> cb, FileChooserParams p) {
                 if (fileCb != null) fileCb.onReceiveValue(null);
@@ -218,6 +233,7 @@ public class MainActivity extends Activity {
     // ---------- 从通知或小组件打开 ----------
     private static String hash(Intent i) {
         String h = i == null ? null : i.getStringExtra(EXTRA_HASH);
+        if (h != null && h.matches("#days(-[A-Za-z0-9]{1,40})?")) return h; // 纪念日小组件：打开纪念日历（或某个日子）
         return "#today".equals(h) || "#sched".equals(h) ? h : "";
     }
 
@@ -339,6 +355,13 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int req, String[] perms, int[] results) {
         super.onRequestPermissionsResult(req, perms, results);
+        if (req == REQ_CAM && camReq != null) {
+            android.webkit.PermissionRequest r = camReq;
+            camReq = null;
+            if (results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) r.grant(new String[]{android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            else r.deny();
+            return;
+        }
         if (req == REQ_PERM && pendingCb != null) {
             String cb = pendingCb;
             pendingCb = null;
@@ -349,7 +372,7 @@ public class MainActivity extends Activity {
 
     // ---------- 小组件：在 App 里直接添加到桌面 ----------
     boolean pinWidget(String kind) {
-        Class<?> cls = "today".equals(kind) ? TodayWidget.class : "sched".equals(kind) ? SchedWidget.class : MonthWidget.class;
+        Class<?> cls = "today".equals(kind) ? TodayWidget.class : "sched".equals(kind) ? SchedWidget.class : "days".equals(kind) ? DaysWidget.class : MonthWidget.class;
         AppWidgetManager m = AppWidgetManager.getInstance(this);
         return m.isRequestPinAppWidgetSupported() && m.requestPinAppWidget(new ComponentName(this, cls), null, null);
     }
@@ -389,7 +412,9 @@ public class MainActivity extends Activity {
             if (result == RESULT_OK && data != null && data.getData() != null && saveContent != null) {
                 try (OutputStream out = getContentResolver().openOutputStream(data.getData(), "wt")) {
                     if (out != null) {
-                        out.write(saveContent.getBytes(StandardCharsets.UTF_8));
+                        int b64 = saveContent.startsWith("data:") ? saveContent.indexOf(";base64,") : -1;
+                        if (b64 > 0 && b64 < 80) out.write(android.util.Base64.decode(saveContent.substring(b64 + 8), android.util.Base64.DEFAULT)); // 图片（分享图片、相机）
+                        else out.write(saveContent.getBytes(StandardCharsets.UTF_8));
                         ok = true;
                     }
                 } catch (Exception ignored) { }

@@ -8,4 +8,6 @@
     <string name="w_today_desc">Today and the week ahead</string>
     <string name="w_sched">Cadence · Timetable</string>
     <string name="w_sched_desc">Today’s classes, with the current and next one highlighted</string>
+    <string name="w_days">Cadence · Days</string>
+    <string name="w_days_desc">Your pinned or next day, plus the ones after it</string>
 </resources>

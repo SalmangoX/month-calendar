@@ -18,7 +18,7 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget"
     };
 
     private final MainActivity a;

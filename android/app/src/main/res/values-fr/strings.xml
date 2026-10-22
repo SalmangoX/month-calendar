@@ -8,4 +8,6 @@
     <string name="w_today_desc">Aujourd’hui et la semaine à venir</string>
     <string name="w_sched">Cadence · Horaire</string>
     <string name="w_sched_desc">Les cours du jour, le cours actuel et le suivant mis en avant</string>
+    <string name="w_days">Cadence · Jours</string>
+    <string name="w_days_desc">Votre jour épinglé ou le prochain, puis les suivants</string>
 </resources>

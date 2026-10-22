@@ -66,23 +66,28 @@
     const body = document.body;
     if (id) { body.dataset.cal = id; body.style.setProperty('--cc', c.color); $('#calSub').dataset.cal = c.name; }
     else { delete body.dataset.cal; body.style.removeProperty('--cc'); delete $('#calSub').dataset.cal; }
+    if (id && c.kind === 'days') body.dataset.kind = 'days'; else delete body.dataset.kind; // 纪念日历：日历页换成倒数日 / 纪念日的样子（days.js）
+    if (MC.Days) MC.Days.paint();
     if (isOpen) render();
   };
 
   // ---------- 列表 ----------
   const ICON_MAIN = '<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.2h17M8 2.8v3.4M16 2.8v3.4"/></svg>';
   const ICON_REC = '<svg viewBox="0 0 24 24"><path d="M6.5 3.5h11a2 2 0 0 1 2 2v15l-7.5-4-7.5 4v-15a2 2 0 0 1 2-2z"/></svg>';
+  const ICON_DAYS = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+  const T = s => (MC.Days ? MC.Days.T(s) : s);
   const TICK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   const BELL = '<svg viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
   const LAYERS = '<svg viewBox="0 0 24 24"><path d="M12 4l8.5 4.5L12 13 3.5 8.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg>';
   const MORE = '<svg viewBox="0 0 24 24" class="filled"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg>';
   function row(c, i) {
     const on = c.id === MC.activeCal(), n = MC.countIn(c.id);
-    const flags = c.id ? `${c.showInMain ? `<span title="显示在主日历">${LAYERS}</span>` : ''}${c.notify ? `<span title="通知已开">${BELL}</span>` : ''}` : '';
-    const sub = (c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日和四象限') + (flags ? `<span class="dr-flags">${flags}</span>` : '');
+    const days = c.kind === 'days';
+    const flags = c.id && !days ? `${c.showInMain ? `<span title="显示在主日历">${LAYERS}</span>` : ''}${c.notify ? `<span title="通知已开">${BELL}</span>` : ''}` : '';
+    const sub = (days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日和四象限') + (flags ? `<span class="dr-flags">${flags}</span>` : '');
     return `<div class="dr-row${on ? ' on' : ''}" style="--cc:${c.id ? c.color : 'var(--accent-base)'};--i:${i}" data-id="${esc(c.id)}">
       <button class="dr-pick" data-act="pick" aria-pressed="${on}">
-        <span class="dr-ico">${c.id ? ICON_REC : ICON_MAIN}</span>
+        <span class="dr-ico">${days ? ICON_DAYS : c.id ? ICON_REC : ICON_MAIN}</span>
         <span class="dr-txt"><b>${esc(c.name)}</b><small>${sub}</small></span>
         <span class="dr-tick" aria-hidden="true">${TICK}</span>
       </button>
@@ -92,9 +97,14 @@
   function render() {
     const cals = MC.data.cals;
     let h = row(MC.MAIN_CAL, 1);
+    const recs = cals.filter(c => c.kind !== 'days'), dayCals = cals.filter(c => c.kind === 'days');
     h += `<p class="dr-sec">记录日历</p>`;
-    if (cals.length) h += cals.map((c, i) => row(c, i + 2)).join('');
+    if (recs.length) h += recs.map((c, i) => row(c, i + 2)).join('');
     else h += `<p class="dr-empty" style="--i:2">记录日历和待办分开显示，可以分别设置是否显示在主日历、是否通知。</p>`;
+    if (dayCals.length) {
+      const k = recs.length + 3;
+      h += `<p class="dr-sec" style="--i:${k}">${T('纪念日历')}</p>` + dayCals.map((c, i) => row(c, k + i + 1)).join('');
+    }
     list.innerHTML = h;
   }
   list.addEventListener('click', e => {
@@ -109,6 +119,18 @@
       return;
     }
     const c = MC.cal(id); if (!c) return;
+    if (c.kind === 'days') {
+      UI.menu(b, [{ label: T('名称和颜色'), value: 'edit' }, { label: T('删除这个日历'), value: 'del' }], v => {
+        if (v === 'edit') calForm(c);
+        else {
+          const n = MC.countIn(c.id);
+          if (!confirm(T('删除「{0}」？').replace('{0}', c.name) + (n ? T('里面的 {0} 个日子、小纸条和相册会一起删除，').replace('{0}', n) : '') + T('其他设备同步后也会删除。'))) return;
+          MC.deleteCal(c.id); D.paint(); render(); MC.Cal.render();
+          UI.toast(T('已删除「{0}」').replace('{0}', c.name));
+        }
+      });
+      return;
+    }
     UI.menu(b, [
       { label: '在主日历显示', value: 'main', on: c.showInMain },
       { label: '通知', value: 'notify', on: c.notify },
@@ -126,28 +148,34 @@
       }
     });
   });
-  $('#drawerAdd').onclick = () => calForm(null);
+  // 新建：记录日历（和待办一样的事件）或纪念日历（倒数日 / 纪念日）
+  $('#drawerAdd').onclick = e => UI.menu(e.currentTarget, [
+    { label: T('新建记录日历'), value: 'rec', icon: ICON_REC.replace('<svg ', '<svg class="mi" ') },
+    { label: T('新建纪念日历'), value: 'days', icon: ICON_DAYS.replace('<svg ', '<svg class="mi" ') },
+  ], v => calForm(null, v === 'days' ? 'days' : ''));
 
   // 新建 / 编辑：名称 + 颜色
-  function calForm(c) {
+  function calForm(c, kind = c ? c.kind : '') {
+    const days = kind === 'days';
     const used = new Set(MC.data.cals.map(x => x.color));
     let color = c ? c.color : MC.suggestCalColor([...used]); // 没选颜色时：自动挑和主日历、其他记录日历都不冲突的
     const sw = () => `<div class="field"><span>颜色</span><div class="dr-swatches" id="calSw">${MC.CAL_COLORS.map(x =>
       `<button type="button" class="dr-sw${x === color ? ' on' : ''}" style="--cc:${x}" data-c="${x}" aria-label="颜色 ${x}" aria-pressed="${x === color}"></button>`).join('')}</div></div>`;
     MC.openForm({
-      title: c ? '编辑日历' : '新建记录日历',
+      title: c ? (days ? T('编辑纪念日历') : '编辑日历') : (days ? T('新建纪念日历') : '新建记录日历'),
       submit: c ? '保存' : '新建',
-      fields: [{ id: 'calName', label: '名称', ph: '日历名称', val: c ? c.name : '', max: 24 }],
-      extra: sw() + `<div class="group dr-switches">
+      fields: [{ id: 'calName', label: '名称', ph: days ? T('比如：我们、生日、考试') : '日历名称', val: c ? c.name : '', max: 24 }],
+      note: days && !c ? T('纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。') : '',
+      extra: sw() + (days ? '' : `<div class="group dr-switches">
         <label class="pk-row"><span>在主日历显示<small>这个日历的事件也出现在主日历里</small></span><input type="checkbox" class="switch" id="calMain"${c && c.showInMain ? ' checked' : ''}></label>
         <label class="pk-row"><span>通知<small>事件设了提醒时到点通知</small></span><input type="checkbox" class="switch" id="calNotify"${c && c.notify ? ' checked' : ''}></label>
-      </div>`,
+      </div>`),
       onSubmit: async v => {
         const name = v.calName.trim();
         if (!name) throw new Error('请填写名称');
-        const showInMain = $('#calMain').checked, notify = $('#calNotify').checked;
+        const showInMain = !days && $('#calMain').checked, notify = !days && $('#calNotify').checked;
         if (c) { MC.updateCal(c, { name, color, showInMain, notify }); MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast('已保存'); return; }
-        const nc = MC.addCal(name, color, { showInMain, notify });
+        const nc = MC.addCal(name, color, { showInMain, notify, kind: days ? 'days' : '' });
         MC.setActiveCal(nc.id); D.paint(); render(); MC.Cal.render();
         UI.toast(`已新建「${name}」，现在显示的就是它`);
         setTimeout(D.close, 260);
@@ -183,9 +211,9 @@
     if (isOpen || e.touches.length !== 1 || UI.anyOpen()) return;
     const t = e.touches[0];
     if (t.clientY > window.innerHeight - 44) return;                 // 底部系统手势区
-    if (e.target.closest('input, textarea, .wheel, .preview')) return;
+    if (e.target.closest('input, textarea, .wheel, .preview, .dv-noswipe')) return;
     const edge = t.clientX < 34, head = !!e.target.closest('.topbar, .weekdays');
-    if (MC.Cal.view() === 'week' && !edge && !head) return;
+    if (MC.Cal.view() === 'week' && !edge && !head && document.body.dataset.kind !== 'days') return;
     g = { x0: t.clientX, y0: t.clientY, mode: 0, s: [[performance.now(), t.clientX]] };
   }, { capture: true, passive: true });
   calPage.addEventListener('touchmove', e => {

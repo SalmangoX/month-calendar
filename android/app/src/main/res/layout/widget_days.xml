@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 纪念日小组件：上面一个大数字，下面是其他日子 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:clipToOutline="true"
+    android:paddingLeft="14dp"
+    android:paddingRight="12dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="6dp">
+
+    <LinearLayout android:id="@+id/dw_hero" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <TextView android:id="@+id/dw_title" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="14dp" android:textStyle="bold" android:textColor="@color/w_text" android:singleLine="true" android:ellipsize="end" />
+        <TextView android:id="@+id/dw_state" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp" android:textSize="12dp" android:textStyle="bold" android:singleLine="true" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal"
+            android:baselineAligned="true">
+            <TextView android:id="@+id/dw_num" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textSize="40dp" android:textStyle="bold" android:fontFamily="sans-serif-medium" android:letterSpacing="-0.03"
+                android:includeFontPadding="false" android:textColor="@color/w_text" android:singleLine="true" />
+            <TextView android:id="@+id/dw_unit" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp" android:textSize="13dp" android:textStyle="bold" android:textColor="@color/w_text2" android:singleLine="true" />
+        </LinearLayout>
+        <TextView android:id="@+id/dw_date" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="2dp" android:textSize="11dp" android:textColor="@color/w_text2" android:singleLine="true" android:ellipsize="end" />
+    </LinearLayout>
+
+    <ListView android:id="@+id/dw_list" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:layout_marginTop="8dp" android:divider="@null" android:dividerHeight="0dp" android:scrollbars="none" />
+
+    <TextView android:id="@+id/dw_empty" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:gravity="center" android:textSize="13dp" android:textColor="@color/w_text2" android:lineSpacingExtra="3dp" android:visibility="gone" />
+</LinearLayout>

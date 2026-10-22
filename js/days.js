@@ -1,0 +1,1289 @@
+/* 节律 · 纪念日历（倒数日 / 纪念日）
+ * 在左侧日历栏新建「纪念日历」后，日历页换成这个视图：未来的日子倒数，过去的日子累计。
+ * 每个日子：图标、分类、高亮、置顶、精确时间、小纸条、相册、分享图片、透明相机。
+ * 数据在 store.js（MC.data.days / books / album），照片本身放在单独的私密 Gist（不拖慢日历同步和小组件）。
+ */
+(() => {
+  'use strict';
+  const MC = window.MC, UI = MC.UI, $ = UI.$, esc = MC.esc;
+  const Days = (MC.Days = {});
+  const pad = MC.pad, ymd = MC.ymd, parse = MC.parse;
+
+  // ---------- 多语言：本模块的界面文字（繁体由 i18n.js 自动转换） ----------
+  const LANG = MC.lang ? MC.lang() : 'zh-Hans';
+  const DICT = { en: {"小号显示置顶（没有置顶就是最近的）日子；中号和大号再列出接下来的几个。在 App 里置顶的日子会显示在这里。": "Small shows your pinned day (or the next one); medium and large also list the ones after it. Pin a day in the app to show it here.", "复制纪念日小组件脚本": "Copy days widget script", "长按小组件 → 编辑小组件 → Script 选「纪念日」。": "Touch and hold the widget → Edit Widget → set Script to “Days”.", "回到桌面长按 → 编辑 → 添加小组件 → Scriptable → 选小号、中号或大号。": "On the Home Screen, touch and hold → Edit → Add Widget → Scriptable → pick small, medium or large.", "打开 Scriptable → 右上角 ＋ → 粘贴 → 把标题改成「纪念日」→ Done。": "Open Scriptable → ＋ at the top right → paste → rename it “Days” → Done.", "点下方「复制纪念日小组件脚本」。": "Tap “Copy days widget script” below.", "先在「账户与同步」连接 GitHub，并同步成功一次。": "First connect GitHub in Account & sync and sync once.", "新建日历": "New calendar", "按年": "Years", "按月": "Months", "按周": "Weeks", "按天": "Days", "{0} 个日子": "{0} days saved", "{0} 个日子 · 下一个「{1}」还有 {2} 天": "{0} days · “{1}” in {2} days", "{0} 个日子 · 今天是「{1}」": "{0} days · today is “{1}”", "{0} 个月": "{0} mo", "{0} 周年": "{0} yr anniversary", "{0} 天": "{0} d", "{0} 的小纸条": "A note from {0}", "上个月": "Previous month", "下个月": "Next month", "下一个里程碑": "Next milestone", "下一次": "Next", "不重复": "Once", "不高亮": "No highlight", "个月": "months", "今天": "Today", "从相册选择": "Choose a photo", "保存": "Save", "保存 / 分享": "Save / Share", "倒数精确到时、分、秒": "Count down to the second", "先写一个名称": "Add a name first", "全部": "All", "关闭": "Close", "其他设备同步后也会删除。": "It will also be removed from your other devices.", "写一张": "Write", "写一张小纸条": "New note", "出行": "Travel", "分": "min", "分享图片": "Share image", "分类": "Category", "切换镜头": "Switch camera", "列表": "List", "删除": "Delete", "删除「{0}」？": "Delete “{0}”? ", "删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。": "Delete “{0}”? Its notes and photos will be deleted too, on all your devices.", "删除分类": "Delete category", "删除分类「{0}」？里面的日子不会删除，会移到「未分类」。": "Delete category “{0}”? Its days stay and move to Uncategorized.", "删除照片": "Delete photo", "删除这个日历": "Delete this calendar", "删除这个日子": "Delete this day", "删除这张小纸条？": "Delete this note?", "删除这张照片？其他设备同步后也会删除。": "Delete this photo? It will also be removed from your other devices.", "即将到来": "Coming up", "又": "and", "可以允许使用相机后再试，或者从相册选一张照片当背景。": "Allow camera access and try again, or use a photo as the background.", "名称": "Name", "名称和颜色": "Name and color", "周": "weeks", "图标": "Icon", "图片已下载": "Image downloaded", "图片生成失败": "Couldn’t create the image", "圆体": "Rounded", "夜": "Night", "天": "days", "字": "A", "存进相册": "Add to album", "学习 · 工作": "Study & work", "宠物": "Pets", "小纸条": "Notes", "小纸条已贴上": "Note added", "就是今天": "It’s today", "尺寸": "Size", "已保存": "Saved", "已删除": "Deleted", "已删除「{0}」": "Deleted “{0}”", "已取消置顶": "Unpinned", "已添加 {0} 张照片": "Added {0} photo(s)", "已添加 {0} 张照片（连接 GitHub 后可在其他设备看到）": "Added {0} photo(s) (connect GitHub to see them on other devices)", "已添加「{0}」": "Added “{0}”", "已经": "It’s been", "已经过去": "Past", "已置顶": "Pinned", "已置顶，会显示在最上面和小组件里": "Pinned to the top and to widgets", "已高亮": "Highlighted", "年": "years", "我": "Me", "或输入一个表情": "or type an emoji", "把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。": "Keep this day’s photos together. They sync to your own GitHub, in a separate secret Gist.", "拍摄": "Take photo", "拖动卡片调整位置，双指缩放大小": "Drag the card to move it, pinch to resize", "放在最上面，也显示在小组件里": "Shown at the top and in widgets", "数字字体": "Number font", "新分类": "New category", "新建": "Create", "新建分类": "New category", "新建纪念日历": "New days calendar", "新建记录日历": "New record calendar", "新的日子": "New day", "日历": "Calendar", "日期": "Date", "日期在未来：倒数还有多少天。": "Date in the future: counts down the days left.", "日期在过去：累计已经过了多少天。": "Date in the past: counts the days since.", "时": "h", "时间": "Time", "显示单位": "Show in", "显示成「第 N 天」，比如在一起第 100 天": "Show as “Day N”, e.g. Day 100 together", "更多": "More", "月": "Months", "未分类": "Uncategorized", "未来": "Future", "查看照片": "View photo", "样式": "Style", "正在添加 {0} 张照片…": "Adding {0} photo(s)…", "每周": "Weekly", "每年": "Yearly", "每月": "Monthly", "每次过去后自动倒数到下一次。": "After each one passes, it counts down to the next.", "比如：去巴黎旅行、在一起、考研": "e.g. Paris trip, Together, Final exam", "比如：我们、生日、考试": "e.g. Us, Birthdays, Exams", "比如：生活、纪念日、考试、旅行": "e.g. Life, Anniversaries, Exams, Travel", "没有保存": "Not saved", "没法打开相机": "Camera unavailable", "浅色": "Light", "深色": "Dark", "添加": "Add", "添加照片": "Add photos", "湖蓝": "Lake", "点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。": "Tap ＋ to add your first day: future days count down, past days count up.", "照片": "Photo", "照片读取失败": "Couldn’t read the photo", "爱好": "Hobbies", "玫瑰": "Rose", "玻璃": "Glass", "琥珀": "Amber", "生成分享图片": "Make share image", "生日、纪念日这类每年都有的日子：一直倒数到下一次。": "For birthdays and anniversaries: always counts down to the next one.", "用名称的第一个字": "Use the first letter of the name", "用它做分享图片": "Use for share image", "留白": "Blank", "目标日": "Target date", "相册": "Album", "相机还没准备好": "Camera isn’t ready yet", "石墨": "Graphite", "秒": "s", "第": "Day", "第 {0} 天": "Day {0}", "等宽": "Mono", "精确时间": "Exact time", "素白": "Plain", "紫藤": "Wisteria", "纪念": "Moments", "纪念日历": "Days calendars", "纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。": "A days calendar keeps your important days: future ones count down, past ones count up. Each day can have notes, an album and share images.", "纸条": "Note", "编辑": "Edit", "编辑小纸条": "Edit note", "编辑日子": "Edit day", "编辑纪念日历": "Edit days calendar", "置顶": "Pin", "背景照片": "Background photo", "色块": "Color", "节律": "Cadence", "节日": "Holidays", "莓果": "Berry", "衬线": "Serif", "记下这一天的期待、心情，或者那天发生的小事。": "Write down what you’re looking forward to, how you feel, or what happened that day.", "记录重要的日子": "Keep your important days", "请填写名称": "Please enter a name", "起始于": "Since", "起始日": "Start date", "起始日算第 1 天": "Count the start date as day 1", "过去": "Past", "还有": "Coming up in", "还有 {0} 天": "in {0} days", "还没有小纸条，先在详情里写一张吧。": "No notes yet. Write one from the day’s details.", "还没有日子": "No days yet", "这一天没有标记的日子": "Nothing marked on this date", "这个分类还没有日子": "No days in this category yet", "这是第 {0} 次": "Occurrence {0}", "这里还没有未来的日子": "No upcoming days here", "这里还没有过去的日子": "No past days here", "选择照片": "Choose a photo", "透明": "Clear", "透明相机": "Camera", "那天就是这一天": "written on the day itself", "那天已经 {0} 天": "written on day {0}", "那天是第 {0} 天": "written on day {0}", "那天还有 {0} 天": "written {0} days before", "里程碑": "Milestone", "里面的 {0} 个日子、小纸条和相册会一起删除，": "Its {0} days, notes and photos will be deleted too. ", "重命名": "Rename", "重命名分类": "Rename category", "重复": "Repeat", "重拍": "Retake", "青绿": "Teal", "青草": "Grass", "高亮": "Highlight", "默认": "Default", "（无标题）": "(Untitled)", "取消": "Cancel", "完成": "Done", "贴上": "Add", "选择日历": "Choose calendar", "今天想对这个日子说点什么？": "What do you want to say about this day?", "纪念日": "Days", "还没有日子，打开节律添加": "No days yet. Open Cadence to add one.", "纪念日小组件": "Days widget", "置顶或最近的日子，以及接下来的几个": "Your pinned or next day, plus a few more", "iOS 纪念日小组件": "iOS days widget", "复制 Scriptable 脚本": "Copy Scriptable script", "已复制纪念日小组件脚本": "Days widget script copied", "脚本还在加载，请稍后再点一次": "The script is still loading. Tap again in a moment.", "请先连接 GitHub 并完成一次同步": "Connect GitHub and sync once first", "安卓纪念日小组件": "Android days widget", "复制小组件链接": "Copy widget link", "已复制纪念日小组件链接": "Days widget link copied"},
+    fr: {"小号显示置顶（没有置顶就是最近的）日子；中号和大号再列出接下来的几个。在 App 里置顶的日子会显示在这里。": "Le petit format montre le jour épinglé (ou le prochain) ; moyen et grand listent aussi les suivants. Épinglez un jour dans l’app pour l’afficher ici.", "复制纪念日小组件脚本": "Copier le script du widget", "长按小组件 → 编辑小组件 → Script 选「纪念日」。": "Maintenez le widget → Modifier le widget → Script : « Jours ».", "回到桌面长按 → 编辑 → 添加小组件 → Scriptable → 选小号、中号或大号。": "Sur l’écran d’accueil, maintenez → Modifier → Ajouter un widget → Scriptable → choisissez petit, moyen ou grand.", "打开 Scriptable → 右上角 ＋ → 粘贴 → 把标题改成「纪念日」→ Done。": "Ouvrez Scriptable → ＋ en haut à droite → collez → renommez-le « Jours » → Done.", "点下方「复制纪念日小组件脚本」。": "Touchez « Copier le script du widget » ci-dessous.", "先在「账户与同步」连接 GitHub，并同步成功一次。": "Connectez d’abord GitHub dans Compte et synchronisation, puis synchronisez une fois.", "新建日历": "Nouveau calendrier", "按年": "Années", "按月": "Mois", "按周": "Semaines", "按天": "Jours", "{0} 个日子": "{0} jours enregistrés", "{0} 个日子 · 下一个「{1}」还有 {2} 天": "{0} jours · « {1} » dans {2} jours", "{0} 个日子 · 今天是「{1}」": "{0} jours · aujourd’hui : « {1} »", "{0} 个月": "{0} mois", "{0} 周年": "{0} an(s)", "{0} 天": "{0} j", "{0} 的小纸条": "Un mot de {0}", "上个月": "Mois précédent", "下个月": "Mois suivant", "下一个里程碑": "Prochaine étape", "下一次": "Prochaine fois", "不重复": "Une fois", "不高亮": "Sans surlignage", "个月": "mois", "今天": "Aujourd’hui", "从相册选择": "Choisir une photo", "保存": "Enregistrer", "保存 / 分享": "Enregistrer / Partager", "倒数精确到时、分、秒": "Compte à rebours à la seconde", "先写一个名称": "Ajoutez d’abord un nom", "全部": "Tous", "关闭": "Fermer", "其他设备同步后也会删除。": "Il sera aussi supprimé sur vos autres appareils.", "写一张": "Écrire", "写一张小纸条": "Nouveau mot", "出行": "Voyages", "分": "min", "分享图片": "Image à partager", "分类": "Catégorie", "切换镜头": "Changer de caméra", "列表": "Liste", "删除": "Supprimer", "删除「{0}」？": "Supprimer « {0} » ? ", "删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。": "Supprimer « {0} » ? Ses mots et photos seront aussi supprimés, sur tous vos appareils.", "删除分类": "Supprimer la catégorie", "删除分类「{0}」？里面的日子不会删除，会移到「未分类」。": "Supprimer la catégorie « {0} » ? Ses jours restent, dans « Sans catégorie ».", "删除照片": "Supprimer la photo", "删除这个日历": "Supprimer ce calendrier", "删除这个日子": "Supprimer ce jour", "删除这张小纸条？": "Supprimer ce mot ?", "删除这张照片？其他设备同步后也会删除。": "Supprimer cette photo ? Elle sera aussi supprimée sur vos autres appareils.", "即将到来": "À venir", "又": "et", "可以允许使用相机后再试，或者从相册选一张照片当背景。": "Autorisez la caméra et réessayez, ou utilisez une photo en arrière-plan.", "名称": "Nom", "名称和颜色": "Nom et couleur", "周": "semaines", "图标": "Icône", "图片已下载": "Image téléchargée", "图片生成失败": "Impossible de créer l’image", "圆体": "Arrondie", "夜": "Nuit", "天": "jours", "字": "A", "存进相册": "Ajouter à l’album", "学习 · 工作": "Études et travail", "宠物": "Animaux", "小纸条": "Mots", "小纸条已贴上": "Mot ajouté", "就是今天": "C’est aujourd’hui", "尺寸": "Format", "已保存": "Enregistré", "已删除": "Supprimé", "已删除「{0}」": "« {0} » supprimé", "已取消置顶": "Désépinglé", "已添加 {0} 张照片": "{0} photo(s) ajoutée(s)", "已添加 {0} 张照片（连接 GitHub 后可在其他设备看到）": "{0} photo(s) ajoutée(s) (connectez GitHub pour les voir sur vos autres appareils)", "已添加「{0}」": "« {0} » ajouté", "已经": "Depuis", "已经过去": "Passés", "已置顶": "Épinglé", "已置顶，会显示在最上面和小组件里": "Épinglé en haut et dans les widgets", "已高亮": "Surligné", "年": "ans", "我": "Moi", "或输入一个表情": "ou tapez un emoji", "把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。": "Gardez les photos de ce jour ensemble. Elles se synchronisent sur votre GitHub, dans un Gist secret à part.", "拍摄": "Prendre la photo", "拖动卡片调整位置，双指缩放大小": "Faites glisser la carte, pincez pour la redimensionner", "放在最上面，也显示在小组件里": "Affiché en haut et dans les widgets", "数字字体": "Police des chiffres", "新分类": "Nouvelle catégorie", "新建": "Créer", "新建分类": "Nouvelle catégorie", "新建纪念日历": "Nouveau calendrier de jours", "新建记录日历": "Nouveau calendrier de suivi", "新的日子": "Nouveau jour", "日历": "Calendrier", "日期": "Date", "日期在未来：倒数还有多少天。": "Date future : compte à rebours des jours restants.", "日期在过去：累计已经过了多少天。": "Date passée : compte les jours écoulés.", "时": "h", "时间": "Heure", "显示单位": "Afficher en", "显示成「第 N 天」，比如在一起第 100 天": "Afficher « Jour N », p. ex. jour 100 ensemble", "更多": "Plus", "月": "Mois", "未分类": "Sans catégorie", "未来": "À venir", "查看照片": "Voir la photo", "样式": "Style", "正在添加 {0} 张照片…": "Ajout de {0} photo(s)…", "每周": "Chaque semaine", "每年": "Chaque année", "每月": "Chaque mois", "每次过去后自动倒数到下一次。": "Après chaque occurrence, le compte repart vers la suivante.", "比如：去巴黎旅行、在一起、考研": "p. ex. Voyage à Paris, Ensemble, Examen", "比如：我们、生日、考试": "p. ex. Nous, Anniversaires, Examens", "比如：生活、纪念日、考试、旅行": "p. ex. Vie, Anniversaires, Examens, Voyages", "没有保存": "Non enregistré", "没法打开相机": "Caméra indisponible", "浅色": "Clair", "深色": "Sombre", "添加": "Ajouter", "添加照片": "Ajouter des photos", "湖蓝": "Lac", "点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。": "Touchez ＋ pour ajouter un premier jour : les jours à venir se décomptent, les jours passés se comptent.", "照片": "Photo", "照片读取失败": "Impossible de lire la photo", "爱好": "Loisirs", "玫瑰": "Rose", "玻璃": "Verre", "琥珀": "Ambre", "生成分享图片": "Créer une image", "生日、纪念日这类每年都有的日子：一直倒数到下一次。": "Pour anniversaires et fêtes : compte toujours jusqu’au prochain.", "用名称的第一个字": "Utiliser la première lettre du nom", "用它做分享图片": "Utiliser pour l’image", "留白": "Épuré", "目标日": "Date cible", "相册": "Album", "相机还没准备好": "La caméra n’est pas prête", "石墨": "Graphite", "秒": "s", "第": "Jour", "第 {0} 天": "Jour {0}", "等宽": "Mono", "精确时间": "Heure précise", "素白": "Uni", "紫藤": "Glycine", "纪念": "Moments", "纪念日历": "Calendriers de jours", "纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。": "Un calendrier de jours garde vos dates importantes : les futures se décomptent, les passées se comptent. Chaque jour peut avoir des mots, un album et des images.", "纸条": "Mot", "编辑": "Modifier", "编辑小纸条": "Modifier le mot", "编辑日子": "Modifier le jour", "编辑纪念日历": "Modifier le calendrier", "置顶": "Épingler", "背景照片": "Photo de fond", "色块": "Couleur", "节律": "Cadence", "节日": "Fêtes", "莓果": "Baie", "衬线": "Serif", "记下这一天的期待、心情，或者那天发生的小事。": "Notez vos attentes, votre humeur, ou ce qui s’est passé ce jour-là.", "记录重要的日子": "Vos dates importantes", "请填写名称": "Indiquez un nom", "起始于": "Depuis le", "起始日": "Date de début", "起始日算第 1 天": "Compter le premier jour comme jour 1", "过去": "Passés", "还有": "Dans", "还有 {0} 天": "dans {0} jours", "还没有小纸条，先在详情里写一张吧。": "Pas encore de mot. Écrivez-en un dans les détails du jour.", "还没有日子": "Aucun jour", "这一天没有标记的日子": "Rien de marqué à cette date", "这个分类还没有日子": "Aucun jour dans cette catégorie", "这是第 {0} 次": "Occurrence {0}", "这里还没有未来的日子": "Aucun jour à venir ici", "这里还没有过去的日子": "Aucun jour passé ici", "选择照片": "Choisir une photo", "透明": "Transparent", "透明相机": "Caméra", "那天就是这一天": "écrit le jour même", "那天已经 {0} 天": "écrit au jour {0}", "那天是第 {0} 天": "écrit au jour {0}", "那天还有 {0} 天": "écrit {0} jours avant", "里程碑": "Étape", "里面的 {0} 个日子、小纸条和相册会一起删除，": "Ses {0} jours, mots et photos seront aussi supprimés. ", "重命名": "Renommer", "重命名分类": "Renommer la catégorie", "重复": "Répéter", "重拍": "Reprendre", "青绿": "Sarcelle", "青草": "Herbe", "高亮": "Surligner", "默认": "Par défaut", "（无标题）": "(Sans titre)", "取消": "Annuler", "完成": "Terminé", "贴上": "Ajouter", "选择日历": "Choisir un calendrier", "今天想对这个日子说点什么？": "Que voulez-vous dire sur ce jour ?", "纪念日": "Jours", "还没有日子，打开节律添加": "Aucun jour. Ouvrez Cadence pour en ajouter.", "纪念日小组件": "Widget des jours", "置顶或最近的日子，以及接下来的几个": "Votre jour épinglé ou le prochain, et quelques autres", "iOS 纪念日小组件": "Widget iOS des jours", "复制 Scriptable 脚本": "Copier le script Scriptable", "已复制纪念日小组件脚本": "Script du widget copié", "脚本还在加载，请稍后再点一次": "Le script se charge encore. Touchez à nouveau dans un instant.", "请先连接 GitHub 并完成一次同步": "Connectez GitHub et synchronisez une fois d’abord", "安卓纪念日小组件": "Widget Android des jours", "复制小组件链接": "Copier le lien du widget", "已复制纪念日小组件链接": "Lien du widget copié"} };
+  const T = (Days.T = s => { const d = DICT[LANG]; return d && d[s] != null ? d[s] : s; });
+  const F = (s, ...a) => T(s).replace(/\{(\d)\}/g, (m, n) => (a[n] !== undefined ? a[n] : m));
+  const TT = s => (MC.t ? MC.t(s) : s);     // 画在图片里的文字（繁体也要转）
+  const FT = (s, ...a) => TT(F(s, ...a));
+
+  // ---------- 日期 ----------
+  const DAY = 864e5;
+  const t0 = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const utcDays = d => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY;
+  const diffDays = (a, b) => Math.round(utcDays(b) - utcDays(a));
+  const clampDate = (y, m, d) => new Date(y, m, Math.min(d, new Date(y, m + 1, 0).getDate()));
+  const inMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+  // a ≤ b：相差几年几个月几天
+  function ymdDiff(a, b) {
+    let y = b.getFullYear() - a.getFullYear(), m = b.getMonth() - a.getMonth(), d = b.getDate() - a.getDate();
+    if (d < 0) { m--; d += inMonth(b.getFullYear(), b.getMonth() - 1); }
+    if (m < 0) { y--; m += 12; }
+    return { y, m, d };
+  }
+  // 重复的日子：从 from 起的下一次
+  function occurrence(x, from) {
+    const b = parse(x.date);
+    if (!x.rep || b >= from) return b;
+    if (x.rep === 'week') return MC.addDays(b, Math.ceil(diffDays(b, from) / 7) * 7);
+    if (x.rep === 'month') {
+      let d = clampDate(from.getFullYear(), from.getMonth(), b.getDate());
+      if (d < from) d = clampDate(from.getFullYear(), from.getMonth() + 1, b.getDate());
+      return d;
+    }
+    let d = clampDate(from.getFullYear(), b.getMonth(), b.getDate());
+    if (d < from) d = clampDate(from.getFullYear() + 1, b.getMonth(), b.getDate());
+    return d;
+  }
+  // 这一天是不是这个日子（日历里标记用）
+  function hits(x, d) {
+    const b = parse(x.date);
+    if (!x.rep) return diffDays(b, d) === 0;
+    if (d < b) return false;
+    if (x.rep === 'week') return diffDays(b, d) % 7 === 0;
+    if (x.rep === 'month') return clampDate(d.getFullYear(), d.getMonth(), b.getDate()).getDate() === d.getDate();
+    return d.getMonth() === b.getMonth() && clampDate(d.getFullYear(), b.getMonth(), b.getDate()).getDate() === d.getDate();
+  }
+  const withTime = (d, time) => { const r = new Date(d); if (time) { const [h, m] = time.split(':').map(Number); r.setHours(h, m, 0, 0); } return r; };
+
+  // 一个日子现在的状态
+  function info(x, now = new Date()) {
+    const today = t0(now), base = parse(x.date), occ = occurrence(x, today);
+    const diff = diffDays(today, occ);
+    const state = diff > 0 ? 'fut' : diff === 0 ? 'today' : 'past';
+    const at = withTime(occ, x.time);
+    let nth = 0;
+    if (x.rep === 'year') nth = occ.getFullYear() - base.getFullYear();
+    else if (x.rep === 'month') nth = (occ.getFullYear() - base.getFullYear()) * 12 + occ.getMonth() - base.getMonth();
+    else if (x.rep === 'week') nth = Math.round(diffDays(base, occ) / 7);
+    // 进度：距离上一次（或添加那天）走了多少
+    let prog = null;
+    if (state === 'fut') {
+      let from = new Date(x.createdAt || Date.now());
+      if (x.rep) {
+        const prev = x.rep === 'week' ? MC.addDays(occ, -7) : x.rep === 'month' ? clampDate(occ.getFullYear(), occ.getMonth() - 1, base.getDate()) : clampDate(occ.getFullYear() - 1, base.getMonth(), base.getDate());
+        if (prev >= base) from = prev;
+      }
+      const span = at - from;
+      prog = span > 0 ? Math.max(0, Math.min(1, (now - from) / span)) : null;
+    }
+    return { state, diff, occ, at, base, nth, prog };
+  }
+  Days.info = info;
+
+  // 显示的数字：天 / 周 / 月 / 年
+  function amount(x, inf, unit = x.unit) {
+    if (inf.state === 'today') return { num: TT(T('今天')), unit: '', rest: '', today: true };
+    const past = inf.state === 'past';
+    const n = Math.abs(inf.diff) + (past && x.from1 ? 1 : 0);
+    const a = past ? inf.occ : t0(), b = past ? t0() : inf.occ;
+    const dd = ymdDiff(a, b);
+    if (unit === 'w' && n >= 7) return { num: Math.floor(n / 7), unit: T('周'), rest: n % 7 ? F('{0} 天', n % 7) : '' };
+    if (unit === 'm' && dd.y * 12 + dd.m >= 1) return { num: dd.y * 12 + dd.m, unit: T('个月'), rest: dd.d ? F('{0} 天', dd.d) : '' };
+    if (unit === 'y' && dd.y >= 1) return { num: dd.y, unit: T('年'), rest: [dd.m ? F('{0} 个月', dd.m) : '', dd.d ? F('{0} 天', dd.d) : ''].filter(Boolean).join(' ') };
+    return { num: n, unit: past && x.from1 && !/^zh/.test(LANG) ? '' : T('天'), rest: '' };
+  }
+  const stateWord = (x, inf) => inf.state === 'today' ? T('就是今天') : inf.state === 'fut' ? T('还有') : x.from1 ? T('第') : T('已经');
+  const repLabel = r => ({ week: T('每周'), month: T('每月'), year: T('每年') })[r] || '';
+  const DATE_FMT = new Intl.DateTimeFormat(MC.locale ? MC.locale() : 'zh-CN', { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' });
+  const DATE_FMT_S = new Intl.DateTimeFormat(MC.locale ? MC.locale() : 'zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' });
+  const fmtDate = d => DATE_FMT.format(d);
+  const fmtTime = s => (MC.fmtTime ? MC.fmtTime(s) : s);
+  const fmtDateTime = (d, time) => fmtDate(d) + (time ? ' ' + fmtTime(time) : '');
+  // 精确时间：差多少天、时、分、秒
+  function clock(x, inf, now = new Date()) {
+    let ms = inf.at - now;
+    const fut = ms > 0;
+    if (!fut && inf.state !== 'past' && !x.time) ms = 0; // 今天的全天日子
+    ms = Math.abs(ms);
+    const s = Math.floor(ms / 1000);
+    return { fut, d: Math.floor(s / 86400), h: Math.floor(s / 3600) % 24, m: Math.floor(s / 60) % 60, s: s % 60 };
+  }
+  // 过去的日子：下一个里程碑（每 100 天 / 每满一年）
+  function milestone(x, inf) {
+    if (inf.state !== 'past' || x.rep) return null;
+    const n = -inf.diff + (x.from1 ? 1 : 0);
+    const next100 = (Math.floor(n / 100) + 1) * 100;
+    const d100 = MC.addDays(inf.occ, next100 - (x.from1 ? 1 : 0));
+    const yrs = ymdDiff(inf.occ, t0()).y + 1;
+    const dy = clampDate(inf.occ.getFullYear() + yrs, inf.occ.getMonth(), inf.occ.getDate());
+    return dy < d100 ? { label: F('{0} 周年', yrs), date: dy, left: diffDays(t0(), dy) } : { label: F('第 {0} 天', next100), date: d100, left: diffDays(t0(), d100) };
+  }
+  // 日历里要标出的里程碑
+  function milestonesIn(x, y, m) {
+    if (x.rep) return [];
+    const b = parse(x.date), out = [], first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
+    if (last < b) return out;
+    const off = x.from1 ? 1 : 0;
+    for (let k = Math.max(1, Math.ceil((diffDays(b, first) + off) / 100)); ; k++) {
+      const d = MC.addDays(b, k * 100 - off);
+      if (d > last) break;
+      if (d >= first) out.push({ d, label: F('第 {0} 天', k * 100) });
+    }
+    const yrs = y - b.getFullYear();
+    if (yrs >= 1 && b.getMonth() === m) out.push({ d: clampDate(y, m, b.getDate()), label: F('{0} 周年', yrs) });
+    return out;
+  }
+
+  // ---------- 颜色 ----------
+  const dark = () => document.documentElement.dataset.theme === 'dark';
+  const TONES = { fut: ['#4776B4', '#8EB0E6'], today: ['#4776B4', '#8EB0E6'], past: ['#B6733B', '#E2A673'] };
+  const toneHex = st => TONES[st][dark() ? 1 : 0];
+  // 高亮颜色（和记录日历同一套配色里挑 8 个）
+  const HL = [
+    { c: '#B76271', n: '玫瑰' }, { c: '#B06F35', n: '琥珀' }, { c: '#539156', n: '青草' }, { c: '#009390', n: '青绿' },
+    { c: '#4086BD', n: '湖蓝' }, { c: '#8074BD', n: '紫藤' }, { c: '#AE648F', n: '莓果' }, { c: '#656970', n: '石墨' },
+  ];
+  const hlTone = c => (dark() ? MC.darkTone(c)[0] : c);
+  const hlInk = c => (dark() ? MC.darkTone(c)[1] : '#fff');
+
+  // ---------- 图标（一套线条图标，网页和分享图片共用同一份路径） ----------
+  const C = (x, y, r) => `M${x - r} ${y}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
+  const R = (x, y, w, h, r) => `M${x + r} ${y}h${w - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${h - 2 * r}a${r} ${r} 0 0 1 ${-r} ${r}h${-(w - 2 * r)}a${r} ${r} 0 0 1 ${-r} ${-r}v${-(h - 2 * r)}a${r} ${r} 0 0 1 ${r} ${-r}z`;
+  const ICONS = {
+    heart: ['M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z'],
+    ring: [C(12, 14.5, 5.5), 'M9.2 3.8h5.6L12 8z'],
+    cake: ['M5 20h14v-6.5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z', 'M5 15.5c1.2 1 2.3 1 3.5 0s2.3-1 3.5 0 2.3 1 3.5 0 2.3-1 3.5 0', 'M12 11.5V8.5', 'M12 6.2c.9-.7.9-1.6 0-2.7-.9 1.1-.9 2 0 2.7z'],
+    gift: [R(4, 9, 16, 4.2, 1.2), 'M5.5 13.2V20h13v-6.8', 'M12 9v11', 'M12 9c-1.2-3-4.6-3.6-4.6-1.5C7.4 9 10 9 12 9zM12 9c1.2-3 4.6-3.6 4.6-1.5C16.6 9 14 9 12 9z'],
+    people: [C(9, 8.5, 3), 'M3.5 19c.5-3 2.8-5 5.5-5s5 2 5.5 5', C(16.5, 9, 2.4), 'M16.2 13.8c2.4 0 4 1.7 4.4 4.4'],
+    smile: [C(12, 12, 8.2), 'M8.8 14.2c1.8 1.9 4.6 1.9 6.4 0', C(9.3, 10, .55), C(14.7, 10, .55)],
+    home: ['M4.5 11L12 4.5l7.5 6.5', 'M6.5 9.5v10h11v-10', 'M10 19.5v-5h4v5'],
+    star: ['M12 4l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8z'],
+    plane: ['M10.4 13.6L4 11.2l1.6-1.6 6.9 1 4.1-4.1c.9-.9 2.4-1.2 2.9-.7s.2 2-.7 2.9l-4.1 4.1 1 6.9-1.6 1.6-2.4-6.4-3 3 .3 2.3-1.2 1.2-1.6-3-3-1.6 1.2-1.2 2.3.3z'],
+    train: [R(6, 3.5, 12, 13.5, 3.2), 'M6 10.5h12', 'M9 20.5l1.5-3.5M15 20.5l-1.5-3.5', C(9, 13.8, .6), C(15, 13.8, .6)],
+    car: ['M5.2 14.5l1.5-4.6A2 2 0 0 1 8.6 8.5h6.8a2 2 0 0 1 1.9 1.4l1.5 4.6', R(4, 14.5, 16, 4.5, 1.6), 'M6.5 19v1.5M17.5 19v1.5', C(7.6, 16.8, .5), C(16.4, 16.8, .5)],
+    bag: [R(4, 7.5, 16, 12, 2.5), 'M9 7.5V5.8a1.3 1.3 0 0 1 1.3-1.3h3.4A1.3 1.3 0 0 1 15 5.8v1.7', 'M8.5 7.5v12M15.5 7.5v12'],
+    mountain: ['M3.5 19l6-9 4 6 2.4-3.4L20.5 19z', 'M7.9 12.4l1.6 1.2 1.6-1.3'],
+    sea: [C(16.5, 7.5, 2.5), 'M3.5 15c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5', 'M3.5 19c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5'],
+    pin: ['M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z', C(12, 10, 2.3)],
+    cap: ['M3 9.5L12 5l9 4.5-9 4.5z', 'M7 11.6v3.9c1.5 1.4 3 2 5 2s3.5-.6 5-2v-3.9', 'M21 9.5v5'],
+    book: ['M5 5.5A1.5 1.5 0 0 1 6.5 4H19v14H6.5A1.5 1.5 0 0 0 5 19.5z', 'M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3'],
+    paper: [R(5, 3.5, 14, 17, 2.2), 'M8.5 8h7M8.5 12h7M8.5 16h4'],
+    case: [R(3.5, 7.5, 17, 12, 2.5), 'M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5', 'M3.5 12.5h17'],
+    clock: [C(12, 12, 8.2), 'M12 7.5V12l3 2'],
+    flag: ['M6 21V4h11l-2.2 4.2L17 12.5H6'],
+    music: ['M9 17.5V6l10-2v11.5', C(6.5, 17.5, 2.5), C(16.5, 15.5, 2.5)],
+    mic: [R(9, 3.5, 6, 10.5, 3), 'M6 11a6 6 0 0 0 12 0', 'M12 17v3.5'],
+    film: [R(3.5, 5.5, 17, 13, 2.5), 'M3.5 9.5h17M8 5.5l-1.5 4M13 5.5l-1.5 4M18 5.5l-1.5 4'],
+    game: ['M7 8.5h10a4 4 0 0 1 3.9 4.8l-.7 3.4a2 2 0 0 1-3.4 1l-2.3-2.2H9.5l-2.3 2.2a2 2 0 0 1-3.4-1l-.7-3.4A4 4 0 0 1 7 8.5z', 'M8 11v3M6.5 12.5h3', C(15.5, 11.6, .55), C(17, 13.2, .55)],
+    camera: ['M4 8.5a2 2 0 0 1 2-2h2l1.5-2h5l1.5 2h2a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z', C(12, 13, 3.4)],
+    gym: ['M6.5 8v8M17.5 8v8M4 10v4M20 10v4M6.5 12h11'],
+    plant: ['M12 20v-8', 'M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z', 'M12 14c0-3-2.5-5-5.5-5 0 3 2.5 5 5.5 5z', 'M8 20h8'],
+    coffee: ['M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z', 'M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16', 'M8.5 3.5v2.5M11.5 3.5v2.5'],
+    paw: [C(6.6, 11.2, 1.6), C(9.4, 7.3, 1.6), C(14.6, 7.3, 1.6), C(17.4, 11.2, 1.6), 'M12 12.5c2.6 0 5 2.8 5 5 0 1.6-1.3 2.3-2.6 2-1-.3-1.6-.6-2.4-.6s-1.4.3-2.4.6C8.3 19.8 7 19.1 7 17.5c0-2.2 2.4-5 5-5z'],
+    cat: ['M5 9.2L5.6 4l4 3.2h4.8L18.4 4l.6 5.2c.6 1.1 1 2.4 1 3.8 0 4.2-3.6 7-8 7s-8-2.8-8-7c0-1.4.4-2.7 1-3.8z', C(9.4, 13, .6), C(14.6, 13, .6), 'M11.2 15.6h1.6L12 16.5z'],
+    dog: ['M8.6 5.6L5 7.4l1 5', 'M15.4 5.6l3.6 1.8-1 5', 'M7 10c0-2.3 2.2-4.5 5-4.5s5 2.2 5 4.5v3.5c0 3.5-2.2 6-5 6s-5-2.5-5-6z', C(10, 12, .6), C(14, 12, .6), 'M11 15.4h2l-1 1.1z'],
+    lantern: ['M12 3v2', 'M8.5 5h7', 'M7.5 7.5c0-1.4 2-2.5 4.5-2.5s4.5 1.1 4.5 2.5v7c0 1.4-2 2.5-4.5 2.5s-4.5-1.1-4.5-2.5z', 'M10 5.3c-.8 3-.8 8.4 0 11.4M14 5.3c.8 3 .8 8.4 0 11.4', 'M12 17v3.5'],
+    tree: ['M12 3.5l5 6h-2.5l4 5h-3l3.5 4.5h-14l3.5-4.5h-3l4-5H7z', 'M12 19v2'],
+    moon: ['M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z'],
+    spark: ['M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6'],
+  };
+  const ICON_GROUPS = [
+    ['纪念', ['heart', 'ring', 'cake', 'gift', 'people', 'smile', 'home', 'star']],
+    ['出行', ['plane', 'train', 'car', 'bag', 'mountain', 'sea', 'pin']],
+    ['学习 · 工作', ['cap', 'book', 'paper', 'case', 'clock', 'flag']],
+    ['爱好', ['music', 'mic', 'film', 'game', 'camera', 'gym', 'plant', 'coffee']],
+    ['宠物', ['paw', 'cat', 'dog']],
+    ['节日', ['lantern', 'tree', 'moon', 'spark']],
+  ];
+  const svgOf = name => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name].map(d => `<path d="${d}"/>`).join('')}</svg>`;
+  const firstChar = s => (Array.from(String(s || '').trim())[0] || '·');
+  // 图块里的内容：内置图标 / 表情 / 标题第一个字
+  function glyph(x) {
+    if (x.icon && ICONS[x.icon]) return svgOf(x.icon);
+    if (x.icon) return `<span class="emo" data-uc>${esc(x.icon)}</span>`;
+    return `<span class="ini" data-uc>${esc(firstChar(x.title))}</span>`;
+  }
+  const UI_IC = {
+    list: '<svg viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r=".9"/><circle cx="4.8" cy="12" r=".9"/><circle cx="4.8" cy="17.5" r=".9"/></svg>',
+    cal: '<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.2h17M8 2.8v3.4M16 2.8v3.4"/></svg>',
+    share: '<svg viewBox="0 0 24 24"><path d="M12 15V3.5M7.5 8L12 3.5 16.5 8"/><path d="M5 12.5V18a2.5 2.5 0 0 0 2.5 2.5h9A2.5 2.5 0 0 0 19 18v-5.5"/></svg>',
+    cam: '<svg viewBox="0 0 24 24"><path d="M4 8.5a2 2 0 0 1 2-2h2l1.5-2h5l1.5 2h2a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.4"/></svg>',
+    hl: '<svg viewBox="0 0 24 24"><path d="M14.5 4.5l5 5-8.8 8.8H5.7v-5z"/><path d="M4 20.5h16"/></svg>',
+    pin: '<svg viewBox="0 0 24 24"><path d="M9 3.5h6l-1 5 3.5 3.5v1.5h-11V12L10 8.5z"/><path d="M12 13.5v7"/></svg>',
+    note: '<svg viewBox="0 0 24 24"><path d="M6.5 3.5h11a2 2 0 0 1 2 2v9l-6 6h-7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z"/><path d="M13.5 20.5v-4a2 2 0 0 1 2-2h4"/></svg>',
+    photo: '<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 15.5l-4.5-4.5-8.5 8.5"/></svg>',
+    plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+    more: '<svg viewBox="0 0 24 24" class="filled"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg>',
+    close: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    flip: '<svg viewBox="0 0 24 24"><path d="M4.5 9.5A7.5 7.5 0 0 1 18 6.5l1.5 1.5"/><path d="M19.5 4v4h-4"/><path d="M19.5 14.5A7.5 7.5 0 0 1 6 17.5L4.5 16"/><path d="M4.5 20v-4h4"/></svg>',
+    back: '<svg viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>',
+    trash: '<svg viewBox="0 0 24 24"><path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l1 13h9l1-13"/></svg>',
+    chev: '<svg viewBox="0 0 24 24"><path d="M9 5.5l6.5 6.5L9 18.5"/></svg>',
+  };
+
+  // ---------- 照片：本机存在 IndexedDB，同步到单独的私密 Gist ----------
+  const PDB = (() => {
+    let p = null;
+    const db = () => p || (p = new Promise((res, rej) => {
+      const r = indexedDB.open('cadence-album', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('p');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    }));
+    const tx = async (mode, fn) => { const d = await db(); return new Promise((res, rej) => { const t = d.transaction('p', mode), s = t.objectStore('p'); const q = fn(s); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }); };
+    return { get: id => tx('readonly', s => s.get(id)), put: (id, b) => tx('readwrite', s => s.put(b, id)), del: id => tx('readwrite', s => s.delete(id)) };
+  })();
+  const urls = new Map();
+  async function photoURL(id) {
+    if (urls.has(id)) return urls.get(id);
+    let b = null;
+    try { b = await PDB.get(id); } catch (e) {}
+    if (!b) { b = await Album.download(id); }
+    if (!b) return '';
+    const u = URL.createObjectURL(b); urls.set(id, u); return u;
+  }
+  // 选的照片压缩到长边 1600，避免 Gist 太大
+  function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+  async function compress(file, max = 1600, q = .84) {
+    const u = URL.createObjectURL(file);
+    try {
+      const img = await loadImg(u);
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', q));
+      return { blob, w, h };
+    } finally { URL.revokeObjectURL(u); }
+  }
+  const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = rej; r.readAsDataURL(b); });
+  const b64ToBlob = async (s, type = 'image/jpeg') => (await fetch(`data:${type};base64,${s.trim()}`)).blob();
+
+  const ALBUM_DESC = '节律 · 纪念日相册（由 App 自动管理，请勿手动修改）';
+  const QKEY = 'mcal.album.queue.v1';
+  const Album = {
+    file: id => `p-${id}.b64`,
+    queue() { try { const q = JSON.parse(localStorage.getItem(QKEY)) || {}; return { up: q.up || [], del: q.del || [] }; } catch (e) { return { up: [], del: [] }; } },
+    save(q) { localStorage.setItem(QKEY, JSON.stringify(q)); },
+    enqueue(kind, id) { const q = this.queue(); if (!q[kind].includes(id)) q[kind].push(id); if (kind === 'del') q.up = q.up.filter(x => x !== id); this.save(q); this.flush(); },
+    async ensure() {
+      const a = MC.data.album;
+      if (a && a.gist) return a;
+      if (!MC.session.token) return null;
+      let g = null;
+      try { const list = await MC.gh('/gists?per_page=100'); g = list.find(x => x.description === ALBUM_DESC) || null; } catch (e) {}
+      if (!g) g = await MC.gh('/gists', { method: 'POST', body: JSON.stringify({ description: ALBUM_DESC, public: false, files: { 'README.md': { content: '节律纪念日历的相册照片。每个文件是一张 JPEG（Base64）。' } } }) });
+      MC.data.album = { gist: g.id, owner: (g.owner && g.owner.login) || MC.settings.account || '' };
+      MC.commit();
+      return MC.data.album;
+    },
+    busy: false,
+    async flush() {
+      if (this.busy || !MC.session.token || !navigator.onLine) return;
+      const q = this.queue(); if (!q.up.length && !q.del.length) return;
+      this.busy = true;
+      try {
+        const a = await this.ensure(); if (!a) return;
+        for (const id of [...q.del]) {
+          try { await MC.gh('/gists/' + a.gist, { method: 'PATCH', body: JSON.stringify({ files: { [this.file(id)]: null } }) }); } catch (e) { if (!/404|422/.test(e.message)) throw e; }
+          const cur = this.queue(); cur.del = cur.del.filter(x => x !== id); this.save(cur);
+        }
+        for (const id of [...q.up]) {
+          const b = await PDB.get(id).catch(() => null);
+          if (b) await MC.gh('/gists/' + a.gist, { method: 'PATCH', body: JSON.stringify({ files: { [this.file(id)]: { content: await blobToB64(b) } } }) });
+          const cur = this.queue(); cur.up = cur.up.filter(x => x !== id); this.save(cur);
+        }
+      } catch (e) { /* 下次联网或同步时再传 */ } finally { this.busy = false; }
+    },
+    loading: new Map(),
+    download(id) {
+      if (this.loading.has(id)) return this.loading.get(id);
+      const p = (async () => {
+        const a = MC.data.album; if (!a || !a.gist) return null;
+        let text = '';
+        try {
+          if (a.owner) { const r = await fetch(`https://gist.githubusercontent.com/${a.owner}/${a.gist}/raw/${this.file(id)}`, { cache: 'no-cache' }); if (r.ok) text = await r.text(); }
+          if (!text && MC.session.token) { const g = await MC.gh('/gists/' + a.gist); const f = g.files && g.files[this.file(id)]; if (f) text = f.truncated ? await (await fetch(f.raw_url)).text() : f.content; }
+        } catch (e) {}
+        if (!text) return null;
+        const b = await b64ToBlob(text);
+        try { await PDB.put(id, b); } catch (e) {}
+        return b;
+      })();
+      this.loading.set(id, p);
+      p.finally(() => setTimeout(() => this.loading.delete(id), 30000));
+      return p;
+    },
+  };
+  Days.Album = Album;
+  window.addEventListener('online', () => Album.flush());
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') Album.flush(); });
+  setTimeout(() => Album.flush(), 4000);
+
+  async function addPhotos(x, files) {
+    const list = [...files].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|heic|webp|gif)$/i.test(f.name));
+    if (!list.length) return;
+    UI.toast(F('正在添加 {0} 张照片…', list.length));
+    const added = [];
+    for (const f of list) {
+      try {
+        const { blob, w, h } = await compress(f);
+        const id = 'p' + MC.uid();
+        await PDB.put(id, blob);
+        added.push({ id, at: Date.now(), w, h });
+      } catch (e) {}
+    }
+    if (!added.length) { UI.toast(T('照片读取失败')); return; }
+    MC.updateDay(x, { photos: [...added, ...x.photos] });
+    added.forEach(p => Album.enqueue('up', p.id));
+    UI.toast(MC.session.token ? F('已添加 {0} 张照片', added.length) : F('已添加 {0} 张照片（连接 GitHub 后可在其他设备看到）', added.length));
+  }
+  async function removePhoto(x, id) {
+    MC.updateDay(x, { photos: x.photos.filter(p => p.id !== id) });
+    try { await PDB.del(id); } catch (e) {}
+    if (urls.has(id)) { URL.revokeObjectURL(urls.get(id)); urls.delete(id); }
+    Album.enqueue('del', id);
+  }
+  Days.parts = { T, F, TT, FT, info, amount, stateWord, repLabel, fmtDate, fmtDateTime, clock, milestone, milestonesIn, hits, occurrence, diffDays, t0,
+    toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, firstChar, UI_IC, photoURL, addPhotos, removePhoto, PDB, loadImg, DICT, LANG, dark };
+})();
+
+/* ---------- 纪念日历视图：列表 / 日历、详情、编辑、小纸条 ---------- */
+(() => {
+  'use strict';
+  const MC = window.MC, UI = MC.UI, $ = UI.$, esc = MC.esc, Days = MC.Days;
+  const P = Days.parts;
+  const { T, F, info, amount, stateWord, repLabel, fmtDate, fmtDateTime, clock, milestone, milestonesIn, hits, diffDays, t0, toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, UI_IC } = P;
+  const body = document.body;
+  const isOn = () => body.dataset.kind === 'days';
+  const calId = () => MC.activeCal();
+  const daysOf = id => MC.data.days.filter(x => x.cal === id);
+  const booksOf = id => MC.data.books.filter(b => b.cal === id);
+  const find = id => MC.data.days.find(x => x.id === id);
+  const st = { filter: 'all', book: '', mode: MC.settings.daysMode === 'cal' ? 'cal' : 'list', ym: null, sel: MC.todayStr() };
+  const view = $('#daysView'), dvBody = $('#dvBody');
+  const UNIT_SEG = /^zh/.test(P.LANG) ? [['d', '天'], ['w', '周'], ['m', '月'], ['y', '年']] : [['d', '按天'], ['w', '按周'], ['m', '按月'], ['y', '按年']];
+  { const b = $('#drawerAdd'); const tn = b && [...b.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim()); if (tn) tn.nodeValue = ' ' + T('新建日历'); }
+  // 面板上写死在 index.html 里的文字
+  [['#ddBody', null], ['#dayDetail [data-close]', '关闭'], ['#ddEdit', '编辑'], ['#dayEditor [data-close]', '取消'], ['#dayNote [data-close]', '取消'], ['#dnTitle', '写一张小纸条'], ['#dnSave', '贴上'],
+    ['#dayShare [data-close]', '完成'], ['#dayShare h2', '分享图片'], ['#dsSave', '保存']].forEach(([s, l]) => { const el = l && $(s); if (el) el.textContent = T(l); });
+  $('#dnText').placeholder = T('今天想对这个日子说点什么？');
+  $('#dvTitleBtn').setAttribute('aria-label', T('选择日历'));
+  const vib = () => { try { navigator.vibrate && navigator.vibrate(6); } catch (e) {} };
+
+  // ---------- 小部件 ----------
+  // 颜色都用 CSS 变量，切换深浅色时不用重画：--fut / --past 在 days.css；高亮色给出浅色和深色两个值
+  const hlVars = c => `--hl-l:${c};--hl-d:${MC.darkTone(c)[0]};--hl-ink-d:${MC.darkTone(c)[1]}`;
+  const toneVar = (x, inf) => `--tone:var(--${inf.state === 'past' ? 'past' : 'fut'})${x.hl ? ';' + hlVars(x.hl) : ''}`;
+  const tile = (x, inf, cls = '') => `<span class="dv-ico ${cls}"${x.hl ? ' style="--tone:var(--hl)"' : ''}>${glyph(x)}</span>`;
+  function subLine(x, inf) {
+    const bits = [`<span class="dv-st">${stateWord(x, inf)}</span>`, esc(fmtDateTime(inf.state === 'past' ? inf.occ : inf.occ, x.time))];
+    if (x.rep) bits.push(repLabel(x.rep) + (x.rep === 'year' && inf.nth > 0 ? ' · ' + F('{0} 周年', inf.nth) : ''));
+    return bits.join('<i class="dot">·</i>');
+  }
+  function numHTML(x, inf, unit) {
+    const a = amount(x, inf, unit);
+    if (a.today) return `<span class="dv-n today"><b>${T('今天')}</b></span>`;
+    return `<span class="dv-n"><b>${a.num}</b><i>${a.unit}</i></span>`;
+  }
+  function rowHTML(x, now) {
+    const inf = info(x, now);
+    return `<button class="dv-row${x.hl ? ' hl' : ''}${inf.state === 'past' ? ' past' : ''}" data-id="${x.id}" style="${toneVar(x, inf)}">
+      ${tile(x, inf)}
+      <span class="dv-txt"><b data-uc>${esc(x.title || T('（无标题）'))}${x.pin ? `<span class="dv-pin" title="${T('置顶')}">${UI_IC.pin}</span>` : ''}</b><small>${subLine(x, inf)}</small></span>
+      ${numHTML(x, inf)}
+    </button>`;
+  }
+  const pad = MC.pad;
+  function tickHTML(x, inf, now) {
+    const c = clock(x, inf, now);
+    return `<span class="tk"><b>${c.d}</b><i>${T('天')}</i></span><span class="tk"><b>${pad(c.h)}</b><i>${T('时')}</i></span><span class="tk"><b>${pad(c.m)}</b><i>${T('分')}</i></span><span class="tk"><b>${pad(c.s)}</b><i>${T('秒')}</i></span>`;
+  }
+  function heroHTML(x, now, big) {
+    const inf = info(x, now), a = amount(x, inf), ms = milestone(x, inf);
+    const head = inf.state === 'today' ? T('就是今天') : stateWord(x, inf);
+    return `<div class="dv-hero${big ? ' big' : ''}${x.hl ? ' hl' : ''}" data-id="${x.id}" style="${toneVar(x, inf)}" role="button" tabindex="0">
+      <div class="dh-top">${tile(x, inf, 'lg')}<div class="dh-title"><b data-uc>${esc(x.title || T('（无标题）'))}</b><small>${esc(fmtDateTime(inf.occ, x.time))}${x.rep ? ' · ' + repLabel(x.rep) : ''}</small></div>${x.pin && !big ? `<span class="dv-pin">${UI_IC.pin}</span>` : ''}</div>
+      <div class="dh-mid">
+        <span class="dh-st">${head}</span>
+        ${a.today ? `<span class="dh-num today" data-cycle>${T('今天')}</span>` : `<span class="dh-num" data-cycle><b>${a.num}</b><i>${a.unit}</i></span>`}
+        ${a.rest ? `<span class="dh-rest">${T('又')} ${a.rest}</span>` : ''}
+      </div>
+      ${x.time || big ? `<div class="dh-tick" data-tick="${x.id}">${tickHTML(x, inf, now)}</div>` : ''}
+      ${inf.prog !== null ? `<div class="dh-prog" aria-hidden="true"><span style="width:${(inf.prog * 100).toFixed(1)}%"></span></div>` : ''}
+      ${big && ms ? `<div class="dh-ms">${T('下一个里程碑')} <b>${ms.label}</b> · ${esc(fmtDate(ms.date))} · ${F('还有 {0} 天', ms.left)}</div>` : ''}
+      ${big && x.rep === 'year' && inf.nth > 0 ? `<div class="dh-ms">${F('这是第 {0} 次', inf.nth)} · ${T('起始于')} ${esc(fmtDate(inf.base))}</div>` : ''}
+    </div>`;
+  }
+
+  // ---------- 列表 / 日历 ----------
+  function filtered(now) {
+    let list = daysOf(calId());
+    if (st.book) list = list.filter(x => (st.book === '-' ? !x.book : x.book === st.book));
+    return list.map(x => ({ x, inf: info(x, now) })).filter(o => st.filter === 'all' || (st.filter === 'fut' ? o.inf.state !== 'past' : o.inf.state === 'past'));
+  }
+  function render() {
+    if (!isOn()) return;
+    const c = MC.cal(calId()); if (!c) return;
+    const now = new Date(), all = daysOf(c.id);
+    $('#dvName').textContent = c.name;
+    const next = all.map(x => ({ x, inf: info(x, now) })).filter(o => o.inf.state !== 'past').sort((a, b) => a.inf.diff - b.inf.diff)[0];
+    $('#dvSub').textContent = !all.length ? T('记录重要的日子') : next
+      ? (next.inf.state === 'today' ? F('{0} 个日子 · 今天是「{1}」', all.length, next.x.title) : F('{0} 个日子 · 下一个「{1}」还有 {2} 天', all.length, next.x.title, next.inf.diff))
+      : F('{0} 个日子', all.length);
+    $('#dvMode').innerHTML = st.mode === 'cal' ? UI_IC.list : UI_IC.cal;
+    $('#dvMode').setAttribute('aria-label', st.mode === 'cal' ? T('列表') : T('日历'));
+    const books = booksOf(c.id);
+    if (st.book && st.book !== '-' && !books.some(b => b.id === st.book)) st.book = '';
+    let h = `<div class="dv-bar">
+      <div class="seg dv-seg" role="tablist">${[['all', '全部'], ['fut', '未来'], ['past', '过去']].map(([v, l]) => `<button data-filter="${v}" class="${st.filter === v ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
+      <div class="dv-books dv-noswipe">
+        <button class="dv-book${!st.book ? ' on' : ''}" data-book="">${T('全部')}</button>
+        ${books.map(b => `<button class="dv-book${st.book === b.id ? ' on' : ''}" data-book="${b.id}"><span data-uc>${esc(b.name)}</span><small>${all.filter(x => x.book === b.id).length}</small></button>`).join('')}
+        ${books.length && all.some(x => !x.book) ? `<button class="dv-book${st.book === '-' ? ' on' : ''}" data-book="-">${T('未分类')}</button>` : ''}
+        <button class="dv-book add" data-act="book" aria-label="${T('新建分类')}">${UI_IC.plus}<span>${T('分类')}</span></button>
+      </div>
+    </div>`;
+    if (!all.length) {
+      h += `<div class="dv-empty"><span class="dv-empty-ico">${svgOf('heart')}</span><b>${T('还没有日子')}</b><p>${T('点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。')}</p></div>`;
+    } else if (st.mode === 'cal') h += calHTML(now);
+    else h += listHTML(now);
+    dvBody.innerHTML = h;
+  }
+  function listHTML(now) {
+    const items = filtered(now);
+    if (!items.length) return `<div class="dv-empty small"><p>${st.filter === 'past' ? T('这里还没有过去的日子') : st.filter === 'fut' ? T('这里还没有未来的日子') : T('这个分类还没有日子')}</p></div>`;
+    const fut = items.filter(o => o.inf.state !== 'past').sort((a, b) => (b.x.pin - a.x.pin) || (a.inf.diff - b.inf.diff));
+    const past = items.filter(o => o.inf.state === 'past').sort((a, b) => (b.x.pin - a.x.pin) || (b.inf.diff - a.inf.diff));
+    const pinned = items.filter(o => o.x.pin).sort((a, b) => b.x.updatedAt - a.x.updatedAt)[0];
+    const hero = pinned || fut[0] || past[0];
+    let h = heroHTML(hero.x, now, false);
+    const sec = (title, list) => list.length ? `<p class="dv-sec">${title}<span>${list.length}</span></p><div class="dv-group">${list.map(o => rowHTML(o.x, now)).join('')}</div>` : '';
+    h += sec(T('即将到来'), fut.filter(o => o !== hero));
+    h += sec(T('已经过去'), past.filter(o => o !== hero));
+    return h;
+  }
+  function calHTML(now) {
+    const today = t0(now);
+    if (!st.ym) st.ym = [today.getFullYear(), today.getMonth()];
+    const [y, m] = st.ym, ws = MC.settings.weekStart || 0;
+    const first = new Date(y, m, 1), lead = (first.getDay() - ws + 7) % 7, n = new Date(y, m + 1, 0).getDate();
+    const list = daysOf(calId()).filter(x => !st.book || (st.book === '-' ? !x.book : x.book === st.book));
+    const marks = new Map(); // 日期 → [{x, kind}]
+    const add = (d, o) => { const k = MC.ymd(d); if (!marks.has(k)) marks.set(k, []); marks.get(k).push(o); };
+    for (let i = 1; i <= n; i++) { const d = new Date(y, m, i); for (const x of list) if (P.hits(x, d)) add(d, { x, kind: 'day' }); }
+    for (const x of list) for (const ms of milestonesIn(x, y, m)) add(ms.d, { x, kind: 'ms', label: ms.label });
+    let cells = '';
+    for (let i = 0; i < lead; i++) cells += '<span class="dc out"></span>';
+    for (let i = 1; i <= n; i++) {
+      const d = new Date(y, m, i), k = MC.ymd(d), mk = marks.get(k) || [];
+      const dots = mk.slice(0, 3).map(o => { const c = o.x.hl ? hlTone(o.x.hl) : `var(--${d < today ? 'past' : 'fut'})`; return `<i class="${o.kind === 'ms' ? 'ms' : ''}" style="--c:${c}"></i>`; }).join('');
+      cells += `<button class="dc${k === MC.ymd(today) ? ' today' : ''}${k === st.sel ? ' sel' : ''}${mk.length ? ' has' : ''}" data-date="${k}"><b>${i}</b><span class="dd">${dots}</span></button>`;
+    }
+    const wd = Array.from({ length: 7 }, (_, i) => `<span>${MC.WD[(i + ws) % 7]}</span>`).join('');
+    const selD = MC.parse(st.sel), selMarks = (marks.get(st.sel) || []);
+    const selList = selMarks.length ? `<div class="dv-group">${selMarks.map(o => o.kind === 'ms'
+      ? `<button class="dv-row ms" data-id="${o.x.id}" style="--tone:var(--past)${o.x.hl ? ';' + hlVars(o.x.hl) : ''}">${tile(o.x, info(o.x, now))}<span class="dv-txt"><b data-uc>${esc(o.x.title)}</b><small>${T('里程碑')}<i class="dot">·</i>${o.label}</small></span><span class="dv-n sm"><b>${o.label}</b></span></button>`
+      : rowHTML(o.x, now)).join('')}</div>` : `<p class="dv-none">${T('这一天没有标记的日子')}</p>`;
+    const title = new Intl.DateTimeFormat(MC.locale ? MC.locale() : 'zh-CN', { year: 'numeric', month: 'long' }).format(first);
+    return `<div class="dv-cal">
+      <div class="dv-cal-head"><button class="nav-btn" data-nav="-1" aria-label="${T('上个月')}">‹</button><b>${title}</b><button class="nav-btn" data-nav="1" aria-label="${T('下个月')}">›</button></div>
+      <div class="dv-wd">${wd}</div><div class="dv-grid">${cells}</div>
+      <div class="dv-legend"><span><i style="--c:var(--fut)"></i>${T('未来')}</span><span><i style="--c:var(--past)"></i>${T('过去')}</span><span><i class="ms" style="--c:var(--past)"></i>${T('里程碑')}</span></div>
+    </div>
+    <p class="dv-sec">${P.fmtDate(selD)}</p>${selList}`;
+  }
+
+  view.addEventListener('click', e => {
+    const t = e.target;
+    const f = t.closest('[data-filter]'); if (f) { st.filter = f.dataset.filter; render(); return; }
+    const bk = t.closest('[data-book]');
+    if (bk) {
+      const id = bk.dataset.book;
+      if (id && id !== '-' && st.book === id) { bookMenu(bk, MC.data.books.find(b => b.id === id)); return; }
+      st.book = id; render(); return;
+    }
+    if (t.closest('[data-act="book"]')) { bookForm(null, b => { st.book = b.id; render(); }); return; }
+    const nav = t.closest('[data-nav]');
+    if (nav) { const [y, m] = st.ym; const d = new Date(y, m + Number(nav.dataset.nav), 1); st.ym = [d.getFullYear(), d.getMonth()]; render(); return; }
+    const dc = t.closest('.dc[data-date]'); if (dc) { st.sel = dc.dataset.date; vib(); render(); return; }
+    const row = t.closest('[data-id]'); if (row) openDetail(row.dataset.id);
+  });
+  $('#dvMode').onclick = () => { st.mode = st.mode === 'cal' ? 'list' : 'cal'; MC.settings.daysMode = st.mode; MC.saveSettings(); if (st.mode === 'cal') { st.ym = null; st.sel = MC.todayStr(); } render(); };
+  $('#dvTitleBtn').onclick = () => MC.Drawer.open();
+
+  // ---------- 分类 ----------
+  function bookForm(b, done) {
+    MC.openForm({
+      title: b ? T('重命名分类') : T('新建分类'), submit: b ? T('保存') : T('新建'),
+      fields: [{ id: 'bookName', label: T('名称'), ph: T('比如：生活、纪念日、考试、旅行'), val: b ? b.name : '', max: 24 }],
+      onSubmit: async v => {
+        const name = v.bookName.trim(); if (!name) throw new Error(T('请填写名称'));
+        if (b) { MC.updateBook(b, { name }); done && done(b); return; }
+        const nb = MC.addBook(calId(), name); done && done(nb);
+      },
+    });
+    setTimeout(() => { const i = $('#ff_bookName'); i && i.focus(); }, 360);
+  }
+  function bookMenu(anchor, b) {
+    if (!b) return;
+    UI.menu(anchor, [{ label: T('重命名'), value: 'ren' }, { label: T('删除分类'), value: 'del' }], v => {
+      if (v === 'ren') bookForm(b, () => render());
+      else if (confirm(F('删除分类「{0}」？里面的日子不会删除，会移到「未分类」。', b.name))) { MC.deleteBook(b); st.book = ''; render(); }
+    });
+  }
+
+  // ---------- 详情 ----------
+  let cur = null;
+  const ddBody = $('#ddBody');
+  function openDetail(id) {
+    const x = find(id); if (!x) return;
+    cur = id; renderDetail();
+    UI.open('dayDetail', () => { cur = null; });
+    $('#ddBody').scrollTop = 0;
+  }
+  Days.openDetail = openDetail;
+  function renderDetail() {
+    const x = cur && find(cur); if (!x) { if (UI.isOpen('dayDetail')) UI.close('dayDetail', true); return; }
+    const now = new Date(), inf = info(x, now);
+    $('#ddHead').textContent = '';
+    const book = MC.data.books.find(b => b.id === x.book);
+    const notes = [...x.notes].sort((a, b) => b.at - a.at);
+    const units = UNIT_SEG;
+    ddBody.innerHTML = `${heroHTML(x, now, true)}
+      <div class="seg small dd-units" role="tablist" aria-label="${T('显示单位')}">${units.map(([v, l]) => `<button data-unit="${v}" class="${x.unit === v ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
+      <div class="dd-acts">
+        <button data-dd="share">${UI_IC.share}<span>${T('分享图片')}</span></button>
+        <button data-dd="cam">${UI_IC.cam}<span>${T('透明相机')}</span></button>
+        <button data-dd="hl" class="${x.hl ? 'on' : ''}" style="${x.hl ? hlVars(x.hl) : ''}">${UI_IC.hl}<span>${x.hl ? T('已高亮') : T('高亮')}</span></button>
+        <button data-dd="pin" class="${x.pin ? 'on' : ''}">${UI_IC.pin}<span>${x.pin ? T('已置顶') : T('置顶')}</span></button>
+      </div>
+      <div class="group dd-info">
+        <div class="dd-kv"><span>${x.rep ? T('起始日') : inf.state === 'past' ? T('起始日') : T('目标日')}</span><b>${esc(fmtDateTime(P.occurrence({ ...x, rep: '' }, t0()), x.time))}</b></div>
+        ${x.rep ? `<div class="dd-kv"><span>${T('下一次')}</span><b>${esc(fmtDateTime(inf.occ, x.time))}</b></div><div class="dd-kv"><span>${T('重复')}</span><b>${repLabel(x.rep)}</b></div>` : ''}
+        ${book ? `<div class="dd-kv"><span>${T('分类')}</span><b data-uc>${esc(book.name)}</b></div>` : ''}
+      </div>
+      <div class="dd-sec"><h3>${UI_IC.note}${T('小纸条')}<span>${notes.length || ''}</span></h3><button class="chip-btn glass" data-dd="note">${T('写一张')}</button></div>
+      ${notes.length ? `<div class="dd-notes">${notes.map(n => noteHTML(x, n)).join('')}</div>` : `<p class="dd-hint">${T('记下这一天的期待、心情，或者那天发生的小事。')}</p>`}
+      <div class="dd-sec"><h3>${UI_IC.photo}${T('相册')}<span>${x.photos.length || ''}</span></h3><button class="chip-btn glass" data-dd="photo">${T('添加照片')}</button></div>
+      ${x.photos.length ? `<div class="dd-photos">${x.photos.map((p, i) => `<button class="dd-ph" data-ph="${p.id}" data-i="${i}" aria-label="${T('查看照片')}"><img alt="" data-src="${p.id}"></button>`).join('')}<button class="dd-ph add" data-dd="photo" aria-label="${T('添加照片')}">${UI_IC.plus}</button></div>` : `<p class="dd-hint">${T('把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。')}</p>`}
+      <button class="dd-del" data-dd="del">${T('删除这个日子')}</button>`;
+    ddBody.querySelectorAll('img[data-src]').forEach(async img => { const u = await P.photoURL(img.dataset.src); if (u) { img.src = u; img.parentElement.classList.add('ok'); } else img.parentElement.classList.add('miss'); });
+  }
+  function noteHTML(x, n) {
+    const d = new Date(n.at), inf = info(x, d), a = amount(x, inf, 'd');
+    const when = inf.state === 'today' ? T('那天就是这一天') : inf.state === 'fut' ? F('那天还有 {0} 天', a.num) : x.from1 ? F('那天是第 {0} 天', a.num) : F('那天已经 {0} 天', a.num);
+    const who = MC.data.profile.name ? `<b data-uc>${esc(MC.data.profile.name)}</b>` : '';
+    return `<div class="dd-note" data-note="${n.id}">
+      <div class="dn-top">${who}<small>${esc(P.fmtDate(d))} · ${when}</small><button class="dn-more" data-nmore="${n.id}" aria-label="${T('更多')}">${UI_IC.more}</button></div>
+      <p data-uc>${esc(n.text)}</p></div>`;
+  }
+  ddBody.addEventListener('click', async e => {
+    const x = cur && find(cur); if (!x) return;
+    const t = e.target;
+    const u = t.closest('[data-unit]'); if (u) { MC.updateDay(x, { unit: u.dataset.unit }); vib(); return; }
+    if (t.closest('[data-cycle]')) { const order = ['d', 'w', 'm', 'y']; MC.updateDay(x, { unit: order[(order.indexOf(x.unit) + 1) % 4] }); vib(); return; }
+    const nm = t.closest('[data-nmore]');
+    if (nm) {
+      const n = x.notes.find(y => y.id === nm.dataset.nmore); if (!n) return;
+      UI.menu(nm, [{ label: T('编辑'), value: 'edit' }, { label: T('生成分享图片'), value: 'share' }, { label: T('删除'), value: 'del' }], v => {
+        if (v === 'edit') openNote(x, n);
+        else if (v === 'share') Days.openShare(x, { note: n.id });
+        else if (confirm(T('删除这张小纸条？'))) MC.updateDay(x, { notes: x.notes.filter(y => y.id !== n.id) });
+      });
+      return;
+    }
+    const ph = t.closest('[data-ph]'); if (ph) { Days.openViewer(x, Number(ph.dataset.i)); return; }
+    const b = t.closest('[data-dd]'); if (!b) return;
+    const a = b.dataset.dd;
+    if (a === 'share') Days.openShare(x);
+    else if (a === 'cam') Days.openCam(x);
+    else if (a === 'pin') { MC.updateDay(x, { pin: !x.pin }); UI.toast(x.pin ? T('已置顶，会显示在最上面和小组件里') : T('已取消置顶')); }
+    else if (a === 'hl') UI.menu(b, [{ label: T('不高亮'), value: '', on: !x.hl }, ...HL.map(h => ({ label: T(h.n), value: h.c, on: x.hl === h.c, icon: `<span class="hl-dot" style="--c:${hlTone(h.c)}"></span>` }))], v => MC.updateDay(x, { hl: v }));
+    else if (a === 'note') openNote(x, null);
+    else if (a === 'photo') pickPhotos(x);
+    else if (a === 'del') removeDay(x);
+  });
+  async function removeDay(x) {
+    if (!confirm(F('删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。', x.title))) return false;
+    for (const p of x.photos) { try { await P.PDB.del(p.id); } catch (err) {} Days.Album.enqueue('del', p.id); }
+    MC.deleteDay(x);
+    if (UI.isOpen('dayEditor')) UI.close('dayEditor', true);
+    if (UI.isOpen('dayDetail')) UI.close('dayDetail', true);
+    UI.toast(T('已删除'));
+    return true;
+  }
+  $('#ddEdit').onclick = () => { const x = cur && find(cur); if (x) openEditor(x); };
+  const photoIn = $('#dayPhotoFile');
+  let photoFor = null;
+  function pickPhotos(x) { photoFor = x.id; photoIn.value = ''; photoIn.click(); }
+  photoIn.addEventListener('change', async () => { const x = photoFor && find(photoFor); if (x && photoIn.files.length) await P.addPhotos(x, photoIn.files); });
+
+  // ---------- 小纸条 ----------
+  let noteCtx = null;
+  function openNote(x, n) {
+    noteCtx = { id: x.id, note: n ? n.id : '' };
+    $('#dnTitle').textContent = n ? T('编辑小纸条') : T('写一张小纸条');
+    $('#dnText').value = n ? n.text : '';
+    const inf = info(x, n ? new Date(n.at) : new Date()), a = amount(x, inf, 'd');
+    $('#dnMeta').textContent = `${x.title} · ${inf.state === 'today' ? T('就是今天') : stateWord(x, inf) + ' ' + a.num + ' ' + T('天')}`;
+    UI.open('dayNote');
+    setTimeout(() => $('#dnText').focus(), 340);
+  }
+  $('#dnSave').onclick = () => {
+    const x = noteCtx && find(noteCtx.id); if (!x) { UI.close('dayNote'); return; }
+    const text = $('#dnText').value.trim();
+    if (!text) { $('#dnText').classList.add('shake'); setTimeout(() => $('#dnText').classList.remove('shake'), 400); return; }
+    const notes = noteCtx.note ? x.notes.map(n => (n.id === noteCtx.note ? { ...n, text } : n)) : [{ id: 'n' + MC.uid(), text, at: Date.now() }, ...x.notes];
+    MC.updateDay(x, { notes });
+    UI.close('dayNote', true);
+    UI.toast(noteCtx.note ? T('已保存') : T('小纸条已贴上'));
+  };
+
+  // ---------- 编辑 ----------
+  let ed = null, edFor = null;
+  const deBody = $('#deBody');
+  function openEditor(x, defaults = {}) {
+    edFor = x ? x.id : null;
+    ed = x ? { title: x.title, date: x.date, time: x.time, rep: x.rep, book: x.book, icon: x.icon, hl: x.hl, pin: x.pin, unit: x.unit, from1: x.from1 }
+      : { title: '', date: defaults.date || MC.todayStr(), time: '', rep: '', book: defaults.book && defaults.book !== '-' ? defaults.book : '', icon: '', hl: '', pin: false, unit: 'd', from1: false };
+    ed.open = '';
+    $('#deHead').textContent = x ? T('编辑日子') : T('新的日子');
+    $('#deSave').textContent = x ? T('保存') : T('添加');
+    renderEditor();
+    UI.open('dayEditor');
+    deBody.scrollTop = 0;
+    if (!x) setTimeout(() => { const i = $('#deTitle'); i && i.focus(); }, 360);
+  }
+  Days.openEditor = openEditor;
+  function edPreview() {
+    const fake = { ...ed, id: 'preview', notes: [], photos: [], createdAt: Date.now() };
+    const h = $('#dePreview'); if (h) h.innerHTML = heroHTML(fake, new Date(), false);
+  }
+  function renderEditor() {
+    const books = booksOf(calId());
+    const d = MC.parse(ed.date), isPast = d < t0() && !ed.rep;
+    const sw = (id, on, label, sub) => `<label class="pk-row"><span>${label}${sub ? `<small>${sub}</small>` : ''}</span><input type="checkbox" class="switch" id="${id}"${on ? ' checked' : ''}></label>`;
+    deBody.innerHTML = `
+      <div id="dePreview" class="de-preview" aria-hidden="true"></div>
+      <div class="cmp-card de-card"><input id="deTitle" maxlength="120" placeholder="${T('比如：去巴黎旅行、在一起、考研')}" value="${esc(ed.title)}" enterkeyhint="done" autocomplete="off"></div>
+      <div class="group de-rows">
+        <button class="pk-row" data-open="date"><span>${T('日期')}</span><span class="grow-val on">${esc(fmtDate(d))}</span></button>
+        <div class="wheel-wrap" id="deDateW" ${ed.open === 'date' ? '' : 'hidden'}></div>
+        ${sw('deTimeOn', !!ed.time, T('精确时间'), T('倒数精确到时、分、秒'))}
+        ${ed.time ? `<button class="pk-row" data-open="time"><span>${T('时间')}</span><span class="grow-val on">${esc(MC.fmtTime ? MC.fmtTime(ed.time) : ed.time)}</span></button><div class="wheel-wrap" id="deTimeW" ${ed.open === 'time' ? '' : 'hidden'}></div>` : ''}
+      </div>
+      <p class="cmp-label">${T('重复')}</p>
+      <div class="cmp-chips">${[['', '不重复'], ['week', '每周'], ['month', '每月'], ['year', '每年']].map(([v, l]) => `<button class="qchip${ed.rep === v ? ' on' : ''}" data-rep="${v}">${T(l)}</button>`).join('')}</div>
+      <p class="de-tip">${ed.rep === 'year' ? T('生日、纪念日这类每年都有的日子：一直倒数到下一次。') : ed.rep ? T('每次过去后自动倒数到下一次。') : isPast ? T('日期在过去：累计已经过了多少天。') : T('日期在未来：倒数还有多少天。')}</p>
+      ${isPast ? `<div class="group de-rows">${sw('deFrom1', ed.from1, T('起始日算第 1 天'), T('显示成「第 N 天」，比如在一起第 100 天'))}</div>` : ''}
+      <p class="cmp-label">${T('显示单位')}</p>
+      <div class="seg de-seg">${UNIT_SEG.map(([v, l]) => `<button data-unit="${v}" class="${ed.unit === v ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
+      <p class="cmp-label">${T('分类')}</p>
+      <div class="cmp-chips"><button class="qchip${!ed.book ? ' on' : ''}" data-bk="">${T('未分类')}</button>${books.map(b => `<button class="qchip${ed.book === b.id ? ' on' : ''}" data-bk="${b.id}"><span data-uc>${esc(b.name)}</span></button>`).join('')}<button class="qchip ghost" data-newbk>＋ ${T('新分类')}</button></div>
+      <p class="cmp-label">${T('图标')}</p>
+      <div class="de-icons">
+        <div class="de-ic-row"><button class="de-ic${!ed.icon ? ' on' : ''}" data-ic="" aria-label="${T('用名称的第一个字')}"><span class="ini">${esc(P.firstChar(ed.title || T('字')))}</span></button><input class="de-emo" id="deEmo" maxlength="8" placeholder="${T('或输入一个表情')}" value="${ed.icon && !ICONS[ed.icon] ? esc(ed.icon) : ''}"></div>
+        ${ICON_GROUPS.map(([g, list]) => `<p class="de-ic-g">${T(g)}</p><div class="de-ic-grid">${list.map(n => `<button class="de-ic${ed.icon === n ? ' on' : ''}" data-ic="${n}" aria-label="${n}">${svgOf(n)}</button>`).join('')}</div>`).join('')}
+      </div>
+      <p class="cmp-label">${T('高亮')}</p>
+      <div class="dr-swatches de-hl"><button type="button" class="dr-sw none${!ed.hl ? ' on' : ''}" data-hl="" aria-label="${T('不高亮')}"></button>${HL.map(h => `<button type="button" class="dr-sw${ed.hl === h.c ? ' on' : ''}" style="--cc:${hlTone(h.c)}" data-hl="${h.c}" aria-label="${T(h.n)}"></button>`).join('')}</div>
+      <div class="group de-rows">${sw('dePin', ed.pin, T('置顶'), T('放在最上面，也显示在小组件里'))}</div>
+      ${edFor ? `<button class="dd-del" data-del>${T('删除这个日子')}</button>` : ''}`;
+    edPreview();
+    if (ed.open === 'date') dateWheel($('#deDateW'));
+    if (ed.open === 'time' && ed.time) timeWheel($('#deTimeW'));
+  }
+  function dateWheel(host) {
+    const d = MC.parse(ed.date), now = new Date().getFullYear();
+    const years = []; for (let y = 1900; y <= now + 60; y++) years.push({ label: MC.isZh ? y + '年' : String(y), value: y });
+    const mn = new Intl.DateTimeFormat(MC.locale ? MC.locale() : 'zh-CN', { month: 'short' });
+    const months = []; for (let m = 1; m <= 12; m++) months.push({ label: mn.format(new Date(2000, m - 1, 1)), value: m });
+    const dayItems = (y, m) => { const n = new Date(y, m, 0).getDate(), out = []; for (let i = 1; i <= n; i++) out.push({ label: MC.isZh ? `${i}日 周${MC.WD[new Date(y, m - 1, i).getDay()]}` : `${i}`, value: i }); return out; };
+    let y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+    const w = UI.wheel(host, [{ items: years, value: y, flex: 1 }, { items: months, value: m, flex: .8 }, { items: dayItems(y, m), value: day, flex: 1.4 }], (ci, v) => {
+      if (ci === 0) y = v; else if (ci === 1) m = v; else day = v;
+      if (ci < 2) { day = Math.min(day, new Date(y, m, 0).getDate()); w.cols[2].set(dayItems(y, m), day); }
+      ed.date = `${y}-${pad(m)}-${pad(day)}`;
+      const row = deBody.querySelector('[data-open="date"] .grow-val'); if (row) row.textContent = fmtDate(MC.parse(ed.date));
+      edPreview();
+      clearTimeout(dateWheel.t); dateWheel.t = setTimeout(() => { const wasPast = !!$('#deFrom1'); const nowPast = MC.parse(ed.date) < t0() && !ed.rep; if (wasPast !== nowPast) { ed.open = 'date'; const st0 = deBody.scrollTop; renderEditor(); deBody.scrollTop = st0; } }, 500);
+    });
+  }
+  function timeWheel(host) {
+    const [h0, m0] = ed.time.split(':').map(Number);
+    const hours = []; for (let h = 0; h < 24; h++) hours.push({ label: MC.use12 && MC.use12() ? MC.hourLabel(h) : pad(h), value: h });
+    const mins = []; for (let m = 0; m < 60; m++) mins.push({ label: pad(m), value: m });
+    const w = UI.wheel(host, [{ items: hours, value: h0 }, { sep: ':' }, { items: mins, value: m0 }], () => {
+      ed.time = `${pad(w.cols[0].value)}:${pad(w.cols[2].value)}`;
+      const row = deBody.querySelector('[data-open="time"] .grow-val'); if (row) row.textContent = MC.fmtTime ? MC.fmtTime(ed.time) : ed.time;
+      edPreview();
+    });
+  }
+  deBody.addEventListener('input', e => {
+    if (e.target.id === 'deTitle') { ed.title = e.target.value; const ini = deBody.querySelector('[data-ic=""] .ini'); if (ini) ini.textContent = P.firstChar(ed.title || T('字')); edPreview(); }
+    if (e.target.id === 'deEmo') { const v = e.target.value.trim(); ed.icon = v; deBody.querySelectorAll('.de-ic').forEach(b => b.classList.toggle('on', false)); if (!v) deBody.querySelector('[data-ic=""]').classList.add('on'); edPreview(); }
+  });
+  deBody.addEventListener('change', e => {
+    const id = e.target.id;
+    if (id === 'deTimeOn') { ed.time = e.target.checked ? (ed.time || '09:00') : ''; ed.open = e.target.checked ? 'time' : ''; keep(renderEditor); }
+    else if (id === 'deFrom1') { ed.from1 = e.target.checked; edPreview(); }
+    else if (id === 'dePin') { ed.pin = e.target.checked; edPreview(); }
+  });
+  const keep = fn => { const s = deBody.scrollTop; fn(); deBody.scrollTop = s; };
+  deBody.addEventListener('click', e => {
+    const t = e.target;
+    const op = t.closest('[data-open]'); if (op) { ed.open = ed.open === op.dataset.open ? '' : op.dataset.open; keep(renderEditor); return; }
+    const rp = t.closest('[data-rep]'); if (rp) { ed.rep = rp.dataset.rep; if (ed.rep) ed.from1 = false; keep(renderEditor); return; }
+    const un = t.closest('[data-unit]'); if (un) { ed.unit = un.dataset.unit; deBody.querySelectorAll('.de-seg button').forEach(b => b.classList.toggle('on', b === un)); edPreview(); return; }
+    const bk = t.closest('[data-bk]'); if (bk) { ed.book = bk.dataset.bk; deBody.querySelectorAll('[data-bk]').forEach(b => b.classList.toggle('on', b === bk)); return; }
+    if (t.closest('[data-newbk]')) { bookForm(null, b => { ed.book = b.id; keep(renderEditor); }); return; }
+    const ic = t.closest('[data-ic]'); if (ic) { ed.icon = ic.dataset.ic; const emo = $('#deEmo'); if (emo) emo.value = ''; deBody.querySelectorAll('.de-ic').forEach(b => b.classList.toggle('on', b === ic)); edPreview(); vib(); return; }
+    const hl = t.closest('[data-hl]'); if (hl) { ed.hl = hl.dataset.hl; deBody.querySelectorAll('[data-hl]').forEach(b => b.classList.toggle('on', b === hl)); edPreview(); return; }
+    if (t.closest('[data-del]')) { const x = find(edFor); if (x) removeDay(x); }
+  });
+  $('#deSave').onclick = () => {
+    const title = (ed.title || '').trim();
+    if (!title) { const i = $('#deTitle'); i.placeholder = T('先写一个名称'); i.parentElement.classList.add('shake'); setTimeout(() => i.parentElement.classList.remove('shake'), 400); i.focus(); return; }
+    const fields = { title, date: ed.date, time: ed.time, rep: ed.rep, book: ed.book, icon: ed.icon, hl: ed.hl, pin: ed.pin, unit: ed.unit, from1: !ed.rep && ed.from1 };
+    if (edFor) { const x = find(edFor); if (x) MC.updateDay(x, fields); UI.close('dayEditor', true); UI.toast(T('已保存')); return; }
+    const x = MC.addDay({ ...fields, cal: calId() });
+    UI.close('dayEditor', true);
+    if (st.book && st.book !== x.book) st.book = '';
+    render();
+    UI.toast(F('已添加「{0}」', title));
+  };
+
+  // ---------- 刷新 ----------
+  Days.paint = () => { if (isOn()) render(); };
+  Days.render = render;
+  Days.refresh = () => { if (isOn()) render(); if (cur && UI.isOpen('dayDetail')) { const s = ddBody.scrollTop; renderDetail(); ddBody.scrollTop = s; } if (Days.refreshShare) Days.refreshShare(); };
+  // 每秒更新精确时间；过了午夜重画
+  let lastDay = MC.todayStr();
+  setInterval(() => {
+    if (MC.todayStr() !== lastDay) { lastDay = MC.todayStr(); Days.refresh(); return; }
+    const els = document.querySelectorAll('[data-tick]'); if (!els.length) return;
+    const now = new Date();
+    els.forEach(el => { const x = find(el.dataset.tick); if (x) el.innerHTML = tickHTML(x, info(x, now), now); });
+  }, 1000);
+
+  // 和应用其他部分接起来：加号、数据变化、返回键、小组件链接
+  const fab = $('#fab'), prevFab = fab.onclick;
+  fab.onclick = e => (body.dataset.page === 'cal' && isOn() ? openEditor(null, { date: st.mode === 'cal' ? st.sel : MC.todayStr(), book: st.book }) : prevFab && prevFab.call(fab, e));
+  const prevChange = MC.onChange;
+  MC.onChange = () => { prevChange(); Days.refresh(); };
+  const prevBack = MC.back;
+  MC.back = () => (Days.closeOverlay && Days.closeOverlay()) || prevBack();
+  const prevHash = MC.openHash;
+  MC.openHash = h => {
+    const m = /^#days(?:-(.+))?$/.exec(h || '');
+    if (!m) return prevHash(h);
+    const target = m[1] ? MC.data.days.find(x => x.id === m[1]) : null;
+    const cal = (target && MC.cal(target.cal)) || MC.data.cals.find(c => c.kind === 'days');
+    if (!cal) return;
+    if (MC.activeCal() !== cal.id) { MC.setActiveCal(cal.id); MC.Drawer.paint(); }
+    const tab = document.querySelector('#tabbar [data-page="cal"]'); if (tab && body.dataset.page !== 'cal') tab.click();
+    render();
+    if (target) setTimeout(() => openDetail(target.id), 200);
+  };
+  if (/^#days/.test(location.hash)) { const h = location.hash; history.replaceState(null, '', location.pathname); setTimeout(() => MC.openHash(h), 60); }
+  render();
+})();
+
+/* ---------- 分享图片、透明相机、照片查看 ---------- */
+(() => {
+  'use strict';
+  const MC = window.MC, UI = MC.UI, $ = UI.$, esc = MC.esc, Days = MC.Days;
+  const P = Days.parts;
+  const { T, F, TT, FT, info, amount, stateWord, repLabel, fmtDate, toneHex, hlTone, ICONS, UI_IC } = P;
+  const find = id => MC.data.days.find(x => x.id === id);
+  const zh = /^zh/.test(P.LANG);
+
+  // ---------- 画布工具 ----------
+  const FONTS = {
+    sans: '-apple-system, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif',
+    round: 'ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", "PingFang SC", "Noto Sans SC", system-ui, sans-serif',
+    serif: '"New York", ui-serif, "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif',
+    mono: 'ui-monospace, "SF Mono", Menlo, "PingFang SC", monospace',
+  };
+  const FONT_NAMES = [['sans', '默认'], ['round', '圆体'], ['serif', '衬线'], ['mono', '等宽']];
+  const font = (w, px, fam = 'sans') => `${w} ${Math.round(px)}px ${FONTS[fam] || FONTS.sans}`;
+  function rr(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  // 按宽度换行：中文按字，英文按词；超出行数加省略号
+  function wrap(ctx, text, maxW, maxLines = 3) {
+    const out = []; let line = '';
+    const chars = Array.from(String(text || ''));
+    for (let i = 0; i < chars.length; i++) {
+      const ch = chars[i];
+      if (ch === '\n') { out.push(line); line = ''; continue; }
+      const t = line + ch;
+      if (ctx.measureText(t).width > maxW && line) {
+        const sp = line.lastIndexOf(' ');
+        if (/[A-Za-z0-9]/.test(ch) && sp > 0) { out.push(line.slice(0, sp)); line = line.slice(sp + 1) + ch; }
+        else { out.push(line); line = ch.trim() ? ch : ''; }
+      } else line = t;
+    }
+    if (line) out.push(line);
+    if (out.length > maxLines) {
+      const keep = out.slice(0, maxLines); let last = keep[maxLines - 1];
+      while (last && ctx.measureText(last + '…').width > maxW) last = Array.from(last).slice(0, -1).join('');
+      keep[maxLines - 1] = last + '…'; return keep;
+    }
+    return out;
+  }
+  function fitFont(ctx, text, maxW, maxPx, weight, fam) {
+    let px = maxPx; ctx.font = font(weight, px, fam);
+    const w = ctx.measureText(text).width;
+    if (w > maxW) { px = Math.max(24, px * maxW / w); ctx.font = font(weight, px, fam); }
+    return px;
+  }
+  // 磨砂玻璃：把画布上这一块缩小再放大，得到柔和的模糊
+  function frost(ctx, x, y, w, h, r, tint) {
+    const cv = ctx.canvas, s1 = 8, s2 = 28;
+    const a = document.createElement('canvas'); a.width = Math.max(2, Math.round(w / s1)); a.height = Math.max(2, Math.round(h / s1));
+    const b = document.createElement('canvas'); b.width = Math.max(2, Math.round(w / s2)); b.height = Math.max(2, Math.round(h / s2));
+    const ax = a.getContext('2d'), bx = b.getContext('2d');
+    ax.imageSmoothingQuality = bx.imageSmoothingQuality = 'high';
+    ax.drawImage(cv, x, y, w, h, 0, 0, a.width, a.height);
+    bx.drawImage(a, 0, 0, b.width, b.height);
+    ax.clearRect(0, 0, a.width, a.height); ax.drawImage(b, 0, 0, a.width, a.height);
+    ctx.save(); rr(ctx, x, y, w, h, r); ctx.clip();
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(a, x, y, w, h);
+    ctx.fillStyle = tint; ctx.fillRect(x, y, w, h);
+    ctx.restore();
+    ctx.save(); rr(ctx, x + .5, y + .5, w - 1, h - 1, r); ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = Math.max(1, w / 500); ctx.stroke(); ctx.restore();
+  }
+  function cover(ctx, img, x, y, w, h) {
+    const iw = img.naturalWidth || img.videoWidth || img.width, ih = img.naturalHeight || img.videoHeight || img.height;
+    const k = Math.max(w / iw, h / ih), sw = w / k, sh = h / k;
+    ctx.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, x, y, w, h);
+  }
+  function drawIcon(ctx, x, name, cx, cy, size, color, fam) {
+    if (x.icon && ICONS[x.icon]) {
+      ctx.save(); ctx.translate(cx - size / 2, cy - size / 2); ctx.scale(size / 24, size / 24);
+      ctx.strokeStyle = color; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ICONS[x.icon].forEach(d => ctx.stroke(new Path2D(d)));
+      ctx.restore();
+    } else {
+      ctx.save(); ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = font(650, size * (x.icon ? .9 : .78), fam); ctx.fillText(x.icon || P.firstChar(x.title), cx, cy + size * .04); ctx.restore();
+    }
+  }
+  let appIcon = null;
+  P.loadImg('icons/icon-192.png').then(i => (appIcon = i)).catch(() => {});
+
+  // ---------- 分享图片的样式 ----------
+  const TPLS = [['clean', '素白'], ['night', '夜'], ['tone', '色块'], ['photo', '照片'], ['note', '纸条'], ['type', '留白']];
+  const RATIOS = [['45', '4:5', 1080, 1350], ['916', '9:16', 1080, 1920], ['11', '1:1', 1080, 1080]];
+  const PAL = {
+    light: { bg: '#EEF2F6', card: '#FFFFFF', text: '#171B20', text2: '#6E757E', line: 'rgba(20,40,70,.09)' },
+    dark: { bg: '#07080B', card: '#15161B', text: '#EEEEF1', text2: '#8F929B', line: 'rgba(236,238,250,.09)' },
+  };
+  const TONE_HEX = { fut: ['#4776B4', '#8EB0E6'], today: ['#4776B4', '#8EB0E6'], past: ['#B6733B', '#E2A673'] };
+  const toneOf = (st, darkMode) => TONE_HEX[st][darkMode ? 1 : 0];
+  const hlOf = (c, darkMode) => (darkMode ? MC.darkTone(c)[0] : c);
+
+  // 主体：图标 + 名称 + 还有/已经 + 大数字 + 日期；dry = 只量高度
+  function block(ctx, x, o, X, Y, W, pal, dry) {
+    const inf = info(x), a = amount(x, inf), pad = W * .085, fam = o.font;
+    const tone = x.hl ? hlOf(x.hl, o.dark) : toneOf(inf.state, o.dark);
+    let y = Y + pad;
+    const s = W * .12;
+    if (!dry) {
+      ctx.save(); rr(ctx, X + pad, y, s, s, s * .3); ctx.fillStyle = tone; ctx.globalAlpha = o.onImage ? .3 : .14; ctx.fill(); ctx.restore();
+      drawIcon(ctx, x, '', X + pad + s / 2, y + s / 2, s * .56, o.onImage ? '#fff' : tone, fam);
+    }
+    ctx.font = font(650, W * .056); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    const tl = wrap(ctx, x.title, W - pad * 2 - s - W * .04, 2);
+    const lh = W * .07, th = tl.length * lh;
+    if (!dry) { ctx.fillStyle = pal.text; tl.forEach((l, i) => ctx.fillText(l, X + pad + s + W * .04, y + s / 2 - th / 2 + lh * (i + .78))); }
+    y += Math.max(s, th) + W * .075;
+    if (!a.today) {
+      ctx.font = font(650, W * .045);
+      if (!dry) { ctx.fillStyle = tone; ctx.fillText(TT(stateWord(x, inf)), X + pad, y + W * .04); }
+      y += W * .06;
+    }
+    const num = String(a.num), unit = TT(a.unit);
+    ctx.font = font(650, W * .075, fam); const uw = unit ? ctx.measureText(unit).width + W * .025 : 0;
+    const px = fitFont(ctx, num, W - pad * 2 - uw, W * (a.today ? .2 : .3), 750, fam);
+    if (!dry) {
+      ctx.fillStyle = a.today ? tone : pal.text; ctx.font = font(750, px, fam);
+      ctx.fillText(num, X + pad - px * .03, y + px * .82);
+      const nw = ctx.measureText(num).width;
+      if (unit) { ctx.font = font(650, W * .075, fam); ctx.fillStyle = pal.text2; ctx.fillText(unit, X + pad + nw + W * .02, y + px * .82); }
+    }
+    y += px * .98;
+    if (a.rest) { ctx.font = font(500, W * .038); if (!dry) { ctx.fillStyle = pal.text2; ctx.fillText(TT(T('又')) + ' ' + TT(a.rest), X + pad, y + W * .03); } y += W * .055; }
+    y += W * .045;
+    if (!dry) { ctx.fillStyle = pal.line; ctx.fillRect(X + pad, y, W - pad * 2, Math.max(1, W / 540)); }
+    y += W * .05;
+    ctx.font = font(500, W * .036);
+    const dl = TT(P.fmtDateTime(inf.occ, x.time)) + (x.rep ? ' · ' + TT(repLabel(x.rep)) : '');
+    if (!dry) { ctx.fillStyle = pal.text2; ctx.fillText(dl, X + pad, y + W * .03); }
+    y += W * .04;
+    if (inf.prog !== null && !o.noProg) {
+      y += W * .04;
+      if (!dry) {
+        ctx.save(); rr(ctx, X + pad, y, W - pad * 2, W * .009, W * .005); ctx.fillStyle = pal.line; ctx.fill();
+        rr(ctx, X + pad, y, Math.max(W * .009, (W - pad * 2) * inf.prog), W * .009, W * .005); ctx.fillStyle = tone; ctx.fill(); ctx.restore();
+      }
+      y += W * .009;
+    }
+    return y + pad - Y;
+  }
+  function brand(ctx, X, Y, W, color, align = 'left') {
+    const s = W * .045, label = /^zh/.test(P.LANG) ? TT('节律') + ' · Cadence' : 'Cadence';
+    ctx.font = font(600, W * .03); ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(label).width, total = s + W * .02 + tw;
+    const x0 = align === 'left' ? X : align === 'right' ? X - total : X - total / 2;
+    if (appIcon) { ctx.save(); rr(ctx, x0, Y - s / 2, s, s, s * .26); ctx.clip(); ctx.drawImage(appIcon, x0, Y - s / 2, s, s); ctx.restore(); }
+    ctx.fillStyle = color; ctx.textAlign = 'left'; ctx.fillText(label, x0 + s + W * .02, Y); ctx.textBaseline = 'alphabetic';
+  }
+  async function avatarImg() {
+    const a = MC.data.profile.avatar;
+    if (!a || !/^data:image\//.test(a)) return null;
+    try { return await P.loadImg(a); } catch (e) { return null; }
+  }
+
+  async function render(x, o) {
+    const [, , W, H] = RATIOS.find(r => r[0] === o.ratio) || RATIOS[0];
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    const inf = info(x), dk = o.tpl === 'night';
+    o.dark = dk;
+    if (o.tpl === 'clean' || o.tpl === 'night' || o.tpl === 'note') {
+      const pal = dk ? PAL.dark : PAL.light;
+      ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+      const cw = W * .84, cx = (W - cw) / 2;
+      let ch = block(ctx, x, o, cx, 0, cw, pal, true);
+      let note = null, nlines = [], av = null;
+      if (o.tpl === 'note') {
+        note = x.notes.find(n => n.id === o.note) || [...x.notes].sort((a, b) => b.at - a.at)[0] || null;
+        if (note) { ctx.font = font(500, cw * .042); nlines = wrap(ctx, note.text, cw * .83, o.ratio === '916' ? 16 : o.ratio === '11' ? 6 : 10); av = await avatarImg(); ch += cw * .2 + nlines.length * cw * .068; }
+      }
+      const cy = Math.max(W * .08, (H - ch) / 2 - W * .03);
+      ctx.save(); ctx.shadowColor = dk ? 'rgba(0,0,0,.6)' : 'rgba(30,45,70,.10)'; ctx.shadowBlur = W * .06; ctx.shadowOffsetY = W * .02;
+      rr(ctx, cx, cy, cw, ch, cw * .075); ctx.fillStyle = pal.card; ctx.fill(); ctx.restore();
+      let y = cy + block(ctx, x, o, cx, cy, cw, pal, false);
+      if (note) {
+        const pad = cw * .085; y -= pad - cw * .02;
+        ctx.fillStyle = pal.line; ctx.fillRect(cx + pad, y, cw - pad * 2, Math.max(1, W / 540)); y += cw * .06;
+        const as = cw * .075, name = MC.data.profile.name || TT(T('我'));
+        ctx.save(); ctx.beginPath(); ctx.arc(cx + pad + as / 2, y + as / 2, as / 2, 0, Math.PI * 2); ctx.closePath();
+        if (av) { ctx.clip(); cover(ctx, av, cx + pad, y, as, as); } else { ctx.fillStyle = toneOf(inf.state, o.dark); ctx.globalAlpha = .18; ctx.fill(); ctx.globalAlpha = 1; ctx.fillStyle = toneOf(inf.state, o.dark); ctx.font = font(650, as * .5); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(P.firstChar(name), cx + pad + as / 2, y + as / 2); }
+        ctx.restore(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        ctx.font = font(650, cw * .04); ctx.fillStyle = pal.text; ctx.fillText(FT('{0}的小纸条', name), cx + pad + as + cw * .03, y + as * .42);
+        ctx.font = font(500, cw * .032); ctx.fillStyle = pal.text2; ctx.fillText(TT(fmtDate(new Date(note.at))), cx + pad + as + cw * .03, y + as * .92);
+        y += as + cw * .06;
+        ctx.font = font(500, cw * .042); ctx.fillStyle = pal.text;
+        nlines.forEach((l, i) => ctx.fillText(l, cx + pad, y + cw * .045 + i * cw * .068));
+      }
+      brand(ctx, W / 2, Math.min(H - W * .06, cy + ch + (H - cy - ch) / 2), W, pal.text2, 'center');
+    } else if (o.tpl === 'tone') {
+      const c = x.hl || toneOf(inf.state, false);
+      ctx.fillStyle = c; ctx.fillRect(0, 0, W, H);
+      const a = amount(x, inf), pad = W * .09;
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
+      ctx.font = font(650, W * .062); const tl = wrap(ctx, x.title, W - pad * 2 - W * .26, 3);
+      tl.forEach((l, i) => ctx.fillText(l, pad, pad + W * .07 + i * W * .08));
+      ctx.globalAlpha = .78; ctx.font = font(600, W * .046); ctx.fillText(a.today ? TT(T('就是今天')) : TT(stateWord(x, inf)), pad, pad + W * .07 + tl.length * W * .08 + W * .02); ctx.globalAlpha = 1;
+      const num = String(a.num), px = fitFont(ctx, num, W - pad * 2, W * (a.today ? .3 : .52), 760, o.font);
+      ctx.font = font(760, px, o.font); const ny = H * .5 + px * .36;
+      ctx.fillText(num, pad - px * .04, ny);
+      if (a.unit) { ctx.font = font(650, W * .08, o.font); ctx.globalAlpha = .82; ctx.fillText(TT(a.unit) + (a.rest ? '  ' + TT(T('又')) + ' ' + TT(a.rest) : ''), pad, ny + W * .11); ctx.globalAlpha = 1; }
+      ctx.font = font(500, W * .036); ctx.globalAlpha = .78;
+      ctx.fillText(TT(P.fmtDateTime(inf.occ, x.time)) + (x.rep ? ' · ' + TT(repLabel(x.rep)) : ''), pad, H - pad - W * .02);
+      ctx.globalAlpha = .7; brand(ctx, W - pad, pad + W * .02, W, '#fff', 'right'); ctx.globalAlpha = 1;
+    } else if (o.tpl === 'type') {
+      const paper = '#F7F6F2', ink = '#1B1B1A', ink2 = '#7A776F', pad = W * .09, a = amount(x, inf), fam = o.font === 'sans' ? 'serif' : o.font;
+      ctx.fillStyle = paper; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = ink2; ctx.font = font(600, W * .03); ctx.textAlign = 'left';
+      ctx.fillText(TT(P.fmtDate(new Date())), pad, pad + W * .02);
+      ctx.fillStyle = ink; ctx.fillRect(pad, pad + W * .05, W - pad * 2, Math.max(2, W / 400));
+      ctx.font = font(650, W * .07, fam); const tl = wrap(ctx, x.title, W - pad * 2, 3);
+      tl.forEach((l, i) => ctx.fillText(l, pad, pad + W * .17 + i * W * .088));
+      ctx.fillStyle = x.hl || toneOf(inf.state, false); ctx.font = font(600, W * .045, fam);
+      ctx.fillText(a.today ? TT(T('就是今天')) : TT(stateWord(x, inf)), pad, pad + W * .17 + tl.length * W * .088 + W * .015);
+      const num = String(a.num), px = fitFont(ctx, num, W - pad * 2, W * .62, 400, fam);
+      ctx.fillStyle = ink; ctx.font = font(400, px, fam);
+      const by = H - pad - W * .2;
+      ctx.fillText(num, pad - px * .05, by);
+      ctx.font = font(500, W * .06, fam); ctx.fillText(TT(a.unit), pad, by + W * .1);
+      ctx.fillStyle = ink2; ctx.font = font(500, W * .034); ctx.textAlign = 'right';
+      ctx.fillText(TT(P.fmtDateTime(inf.occ, x.time)), W - pad, by + W * .1);
+      ctx.textAlign = 'left'; ctx.fillStyle = ink; ctx.fillRect(pad, H - pad - W * .045, W - pad * 2, Math.max(2, W / 400));
+      brand(ctx, pad, H - pad, W, ink2, 'left');
+    } else if (o.tpl === 'photo') {
+      ctx.fillStyle = '#111'; ctx.fillRect(0, 0, W, H);
+      if (o.bg) cover(ctx, o.bg, 0, 0, W, H);
+      const cw = W * .84, cx = (W - cw) / 2;
+      const pal = { text: '#fff', text2: 'rgba(255,255,255,.78)', line: 'rgba(255,255,255,.25)' };
+      const oo = { ...o, onImage: true, noProg: true };
+      const ch = block(ctx, x, oo, cx, 0, cw, pal, true), cy = H - ch - W * .14;
+      frost(ctx, cx, cy, cw, ch, cw * .075, 'rgba(20,22,28,.26)');
+      block(ctx, x, oo, cx, cy, cw, pal, false);
+      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = W * .01; brand(ctx, W / 2, H - W * .07, W, 'rgba(255,255,255,.92)', 'center'); ctx.restore();
+    }
+    return cv;
+  }
+
+  // 保存 / 分享：系统分享面板 → App 原生保存 → 浏览器下载
+  async function deliver(cv, name, type = 'image/png') {
+    const blob = await new Promise(r => cv.toBlob(r, type, .92));
+    if (!blob) { UI.toast(T('图片生成失败')); return; }
+    const file = new File([blob], name, { type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    if (MC.Native.on && MC.Native.has('saveImage')) {
+      const r = await MC.Native.saveFile(name, type, cv.toDataURL(type, .92));
+      UI.toast(r && r.ok ? T('已保存') : T('没有保存'));
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    UI.toast(T('图片已下载'));
+  }
+  const fileName = x => `${(x.title || 'cadence').replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 30)}-${MC.todayStr()}`;
+
+  // ---------- 分享面板 ----------
+  const sh = { id: null, tpl: 'clean', ratio: '45', font: 'sans', note: '', bgId: '', bgImg: null, cv: null, url: '' };
+  const opts = $('#dsOpts'), img = $('#dsImg');
+  Days.openShare = (x, extra = {}) => {
+    sh.id = x.id; sh.note = extra.note || ''; sh.tpl = extra.note ? 'note' : extra.bg ? 'photo' : (sh.tpl === 'note' && !x.notes.length) || (sh.tpl === 'photo' && !x.photos.length) ? 'clean' : sh.tpl;
+    sh.bgId = extra.bg || (x.photos[0] && x.photos[0].id) || ''; sh.bgImg = null;
+    UI.open('dayShare'); paintOpts(); draw();
+  };
+  Days.refreshShare = () => { if (UI.isOpen('dayShare') && find(sh.id)) { paintOpts(); draw(); } };
+  function paintOpts() {
+    const x = find(sh.id); if (!x) return;
+    const chips = (list, key, cur) => list.map(([v, l]) => `<button class="qchip${cur === v ? ' on' : ''}" data-${key}="${v}">${T(l)}</button>`).join('');
+    let h = `<p class="cmp-label">${T('样式')}</p><div class="cmp-chips ds-row">${chips(TPLS, 'tpl', sh.tpl)}</div>
+      <p class="cmp-label">${T('尺寸')}</p><div class="seg small ds-seg">${RATIOS.map(r => `<button data-ratio="${r[0]}" class="${sh.ratio === r[0] ? 'on' : ''}">${r[1]}</button>`).join('')}</div>
+      <p class="cmp-label">${T('数字字体')}</p><div class="cmp-chips">${chips(FONT_NAMES, 'font', sh.font)}</div>`;
+    if (sh.tpl === 'photo') h += `<p class="cmp-label">${T('背景照片')}</p><div class="ds-bgs">${x.photos.map(p => `<button class="ds-bg${sh.bgId === p.id ? ' on' : ''}" data-bg="${p.id}"><img alt="" data-src="${p.id}"></button>`).join('')}<button class="ds-bg add" data-bgpick aria-label="${T('选择照片')}">${UI_IC.plus}</button></div>`;
+    if (sh.tpl === 'note') h += x.notes.length ? `<p class="cmp-label">${T('小纸条')}</p><div class="cmp-chips">${[...x.notes].sort((a, b) => b.at - a.at).map((n, i) => `<button class="qchip${(sh.note ? sh.note === n.id : i === 0) ? ' on' : ''}" data-note="${n.id}"><span data-uc>${esc(n.text.slice(0, 12))}${n.text.length > 12 ? '…' : ''}</span></button>`).join('')}</div>` : `<p class="dd-hint">${T('还没有小纸条，先在详情里写一张吧。')}</p>`;
+    opts.innerHTML = h;
+    opts.querySelectorAll('img[data-src]').forEach(async i => { const u = await P.photoURL(i.dataset.src); if (u) i.src = u; });
+  }
+  let drawSeq = 0;
+  async function draw() {
+    const x = find(sh.id); if (!x) return;
+    const seq = ++drawSeq;
+    $('#dsStage').classList.add('busy');
+    if (sh.tpl === 'photo' && sh.bgId && !sh.bgImg) { const u = await P.photoURL(sh.bgId); if (u) try { sh.bgImg = await P.loadImg(u); } catch (e) {} }
+    const cv = await render(x, { tpl: sh.tpl, ratio: sh.ratio, font: sh.font, note: sh.note, bg: sh.bgImg });
+    if (seq !== drawSeq) return;
+    sh.cv = cv;
+    cv.toBlob(b => { if (seq !== drawSeq || !b) return; if (sh.url) URL.revokeObjectURL(sh.url); sh.url = URL.createObjectURL(b); img.src = sh.url; $('#dsStage').classList.remove('busy'); $('#dsStage').dataset.ratio = sh.ratio; }, 'image/jpeg', .9);
+  }
+  opts.addEventListener('click', e => {
+    const t = e.target, b = t.closest('button'); if (!b) return;
+    if (b.dataset.tpl) { sh.tpl = b.dataset.tpl; if (sh.tpl === 'photo' && !sh.bgId) { $('#dayBgFile').value = ''; $('#dayBgFile').click(); } }
+    else if (b.dataset.ratio) sh.ratio = b.dataset.ratio;
+    else if (b.dataset.font) sh.font = b.dataset.font;
+    else if (b.dataset.note) sh.note = b.dataset.note;
+    else if (b.dataset.bg) { sh.bgId = b.dataset.bg; sh.bgImg = null; }
+    else if (b.hasAttribute('data-bgpick')) { $('#dayBgFile').value = ''; $('#dayBgFile').click(); return; }
+    else return;
+    paintOpts(); draw();
+  });
+  // 背景照片：选一张，顺便存进这个日子的相册
+  $('#dayBgFile').addEventListener('change', async () => {
+    const f = $('#dayBgFile').files[0]; if (!f) return;
+    if (camCtx) { camUseImage(f); return; }
+    const x = find(sh.id); if (!x) return;
+    await P.addPhotos(x, [f]);
+    const nx = find(sh.id); sh.bgId = nx && nx.photos[0] ? nx.photos[0].id : ''; sh.bgImg = null; sh.tpl = 'photo';
+    paintOpts(); draw();
+  });
+  $('#dsSave').onclick = async () => { const x = find(sh.id); if (x && sh.cv) await deliver(sh.cv, fileName(x) + (sh.tpl === 'photo' ? '.jpg' : '.png'), sh.tpl === 'photo' ? 'image/jpeg' : 'image/png'); };
+
+  // ---------- 透明相机 ----------
+  let camCtx = null; // { id, stream, facing, style, font, pos:{x,y}, scale, bgImg }
+  const CAM_STYLES = [['glass', '玻璃'], ['clear', '透明'], ['light', '浅色'], ['dark', '深色']];
+  function camCardHTML(x) {
+    const inf = info(x), a = amount(x, inf);
+    const head = a.today ? T('就是今天') : (zh ? x.title + stateWord(x, inf) : `${x.title} · ${stateWord(x, inf)}`);
+    return `<small class="cc-head" data-uc>${esc(a.today ? x.title : head)}</small>
+      <span class="cc-row"><b class="cc-num">${a.today ? T('今天') : a.num}</b>${a.unit ? `<i class="cc-unit">${a.unit}</i>` : ''}</span>
+      <small class="cc-date">${esc(P.fmtDateTime(inf.occ, x.time))}</small>`;
+  }
+  Days.openCam = async x => {
+    closeCam();
+    const el = document.createElement('div');
+    el.className = 'cam'; el.id = 'dayCam';
+    el.innerHTML = `<div class="cam-view"><video playsinline muted autoplay></video><img class="cam-bg" alt="" hidden><div class="cam-msg" hidden></div>
+        <div class="cam-card st-glass f-sans" role="img">${camCardHTML(x)}</div></div>
+      <div class="cam-top"><button class="cam-btn" data-c="close" aria-label="${T('关闭')}">${UI_IC.close}</button>
+        <div class="cam-chips" data-group="style">${CAM_STYLES.map(([v, l], i) => `<button data-style="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
+      <div class="cam-fonts cam-chips" data-group="font">${FONT_NAMES.map(([v, l], i) => `<button data-font="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
+      <div class="cam-bottom"><button class="cam-btn" data-c="album" aria-label="${T('从相册选择')}">${UI_IC.photo}</button>
+        <button class="cam-shutter" data-c="shot" aria-label="${T('拍摄')}"><span></span></button>
+        <button class="cam-btn" data-c="flip" aria-label="${T('切换镜头')}">${UI_IC.flip}</button></div>
+      <p class="cam-tip">${T('拖动卡片调整位置，双指缩放大小')}</p>`;
+    document.body.appendChild(el);
+    camCtx = { id: x.id, el, stream: null, facing: 'environment', style: 'glass', font: 'sans', pos: null, scale: 1, bgImg: null, bgFile: null };
+    requestAnimationFrame(() => el.classList.add('show'));
+    bindCam(el);
+    await startStream();
+  };
+  async function startStream() {
+    const c = camCtx; if (!c) return;
+    if (c.stream) c.stream.getTracks().forEach(t => t.stop());
+    c.stream = null;
+    const v = c.el.querySelector('video'), msg = c.el.querySelector('.cam-msg');
+    if (c.bgImg) return;
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nocam');
+      c.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: c.facing, width: { ideal: 1920 }, height: { ideal: 1920 } }, audio: false });
+      if (camCtx !== c) { c.stream.getTracks().forEach(t => t.stop()); return; }
+      v.srcObject = c.stream; v.hidden = false; msg.hidden = true;
+      v.classList.toggle('mirror', c.facing === 'user');
+      await v.play().catch(() => {});
+    } catch (e) {
+      v.hidden = true; msg.hidden = false;
+      msg.innerHTML = `<b>${T('没法打开相机')}</b><span>${T('可以允许使用相机后再试，或者从相册选一张照片当背景。')}</span><button class="chip-btn glass" data-c="album">${T('从相册选择')}</button>`;
+    }
+  }
+  function camUseImage(f) {
+    const c = camCtx; if (!c) return;
+    const u = URL.createObjectURL(f);
+    P.loadImg(u).then(im => {
+      c.bgImg = im; c.bgFile = f;
+      if (c.stream) { c.stream.getTracks().forEach(t => t.stop()); c.stream = null; }
+      const bg = c.el.querySelector('.cam-bg'); bg.src = u; bg.hidden = false;
+      c.el.querySelector('video').hidden = true; c.el.querySelector('.cam-msg').hidden = true;
+    }).catch(() => UI.toast(T('照片读取失败')));
+  }
+  function closeCam() {
+    const c = camCtx; if (!c) return false;
+    if (c.stream) c.stream.getTracks().forEach(t => t.stop());
+    c.el.classList.remove('show'); setTimeout(() => c.el.remove(), 260);
+    camCtx = null; return true;
+  }
+  function bindCam(el) {
+    const card = el.querySelector('.cam-card'), view = el.querySelector('.cam-view');
+    const place = () => { const c = camCtx; if (!c) return; const p = c.pos || { x: .5, y: .64 }; card.style.left = (p.x * 100) + '%'; card.style.top = (p.y * 100) + '%'; card.style.transform = `translate(-50%,-50%) scale(${c.scale})`; };
+    place();
+    el.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b || !camCtx) return;
+      const c = camCtx;
+      if (b.dataset.style) { c.style = b.dataset.style; card.className = card.className.replace(/st-\w+/, 'st-' + c.style); b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); return; }
+      if (b.dataset.font) { c.font = b.dataset.font; card.className = card.className.replace(/f-\w+/, 'f-' + c.font); b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); return; }
+      const a = b.dataset.c;
+      if (a === 'close') closeCam();
+      else if (a === 'flip') { if (c.bgImg) { c.bgImg = null; c.el.querySelector('.cam-bg').hidden = true; } else c.facing = c.facing === 'user' ? 'environment' : 'user'; startStream(); }
+      else if (a === 'album') { $('#dayBgFile').value = ''; $('#dayBgFile').click(); }
+      else if (a === 'shot') shoot();
+      else if (a === 'retake') { el.querySelector('.cam-res').remove(); el.classList.remove('done'); }
+      else if (a === 'keep') saveShot(true);
+      else if (a === 'send') saveShot(false);
+    });
+    // 拖动、双指缩放
+    const pts = new Map(); let start = null;
+    card.addEventListener('pointerdown', e => {
+      card.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+      const r = view.getBoundingClientRect(), c = camCtx, p = c.pos || { x: .5, y: .64 };
+      start = { p: { ...p }, r, s: c.scale, pts: new Map(pts), d: pts.size > 1 ? dist() : 0 };
+    });
+    const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a[0] - b[0], a[1] - b[1]); };
+    card.addEventListener('pointermove', e => {
+      if (!pts.has(e.pointerId) || !start || !camCtx) return;
+      pts.set(e.pointerId, [e.clientX, e.clientY]);
+      const c = camCtx;
+      if (pts.size > 1) { if (!start.d) { start.d = dist(); start.s = c.scale; } c.scale = Math.max(.55, Math.min(2.2, start.s * dist() / start.d)); }
+      else { const o = start.pts.get(e.pointerId); if (!o) return; c.pos = { x: Math.max(.08, Math.min(.92, start.p.x + (e.clientX - o[0]) / start.r.width)), y: Math.max(.08, Math.min(.92, start.p.y + (e.clientY - o[1]) / start.r.height)) }; }
+      place();
+    });
+    const up = e => { pts.delete(e.pointerId); if (camCtx) start = { p: { ...(camCtx.pos || { x: .5, y: .64 }) }, r: view.getBoundingClientRect(), s: camCtx.scale, pts: new Map(pts), d: pts.size > 1 ? dist() : 0 }; };
+    card.addEventListener('pointerup', up); card.addEventListener('pointercancel', up);
+  }
+  // 拍摄：把屏幕上看到的画面（裁切后的相机画面或照片）和卡片一起画到画布上
+  function shoot() {
+    const c = camCtx; if (!c) return;
+    const el = c.el, view = el.querySelector('.cam-view'), vr = view.getBoundingClientRect();
+    const src = c.bgImg || el.querySelector('video');
+    const iw = src.naturalWidth || src.videoWidth, ih = src.naturalHeight || src.videoHeight;
+    if (!iw || !ih) { UI.toast(T('相机还没准备好')); return; }
+    const k = Math.max(vr.width / iw, vr.height / ih), sw = vr.width / k, sh0 = vr.height / k;
+    const s = Math.min(2560 / Math.max(sw, sh0), Math.max(1, 1440 / Math.min(sw, sh0)));
+    const cv = document.createElement('canvas'); cv.width = Math.round(sw * s); cv.height = Math.round(sh0 * s);
+    const ctx = cv.getContext('2d'), f = cv.width / vr.width;
+    ctx.save();
+    if (!c.bgImg && c.facing === 'user') { ctx.translate(cv.width, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(src, (iw - sw) / 2, (ih - sh0) / 2, sw, sh0, 0, 0, cv.width, cv.height);
+    ctx.restore();
+    const card = el.querySelector('.cam-card'), cr = card.getBoundingClientRect(), cs = getComputedStyle(card);
+    const X = (cr.left - vr.left) * f, Y = (cr.top - vr.top) * f, W = cr.width * f, H = cr.height * f, rad = parseFloat(cs.borderTopLeftRadius) * c.scale * f;
+    if (c.style === 'glass') frost(ctx, X, Y, W, H, rad, 'rgba(255,255,255,.14)');
+    else if (c.style === 'light') { rr(ctx, X, Y, W, H, rad); ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.fill(); }
+    else if (c.style === 'dark') { rr(ctx, X, Y, W, H, rad); ctx.fillStyle = 'rgba(12,12,16,.58)'; ctx.fill(); }
+    card.querySelectorAll('.cc-head, .cc-num, .cc-unit, .cc-date').forEach(n => {
+      const r = n.getBoundingClientRect(), st = getComputedStyle(n);
+      const px = parseFloat(st.fontSize) * c.scale * f;
+      ctx.save();
+      ctx.font = `${st.fontWeight} ${px}px ${st.fontFamily}`; ctx.fillStyle = st.color; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      if (c.style === 'clear') { ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = px * .25; ctx.shadowOffsetY = px * .04; }
+      const tx = TT(n.textContent.trim()), tw = ctx.measureText(tx).width, rw = r.width * f;
+      ctx.fillText(tx, (r.left - vr.left) * f + Math.max(0, (rw - tw) / 2), (r.top - vr.top + r.height / 2) * f);
+      ctx.restore();
+    });
+    c.shot = cv;
+    const res = document.createElement('div'); res.className = 'cam-res';
+    res.innerHTML = `<img alt="">
+      <div class="cam-res-bar"><button class="chip-btn" data-c="retake">${T('重拍')}</button>
+      <button class="chip-btn" data-c="keep">${UI_IC.photo}<span>${T('存进相册')}</span></button>
+      <button class="chip-btn accent" data-c="send">${UI_IC.share}<span>${T('保存 / 分享')}</span></button></div>`;
+    cv.toBlob(b => { if (b) res.querySelector('img').src = URL.createObjectURL(b); }, 'image/jpeg', .9);
+    el.appendChild(res); el.classList.add('done');
+    try { navigator.vibrate && navigator.vibrate(10); } catch (e) {}
+  }
+  async function saveShot(toAlbum) {
+    const c = camCtx; if (!c || !c.shot) return;
+    const x = find(c.id); if (!x) return;
+    if (toAlbum) {
+      const b = await new Promise(r => c.shot.toBlob(r, 'image/jpeg', .92));
+      if (b) { await P.addPhotos(x, [new File([b], 'cadence.jpg', { type: 'image/jpeg' })]); }
+      return;
+    }
+    await deliver(c.shot, fileName(x) + '.jpg', 'image/jpeg');
+  }
+
+  // ---------- 照片查看 ----------
+  let vw = null;
+  Days.openViewer = (x, i) => {
+    closeViewer();
+    const el = document.createElement('div'); el.className = 'pv'; el.id = 'dayViewer';
+    el.innerHTML = `<div class="pv-top"><button class="cam-btn" data-v="close" aria-label="${T('关闭')}">${UI_IC.close}</button><span class="pv-count"></span><button class="cam-btn" data-v="more" aria-label="${T('更多')}">${UI_IC.more}</button></div>
+      <div class="pv-track">${x.photos.map(p => `<div class="pv-slide"><img alt="" data-src="${p.id}"></div>`).join('')}</div>`;
+    document.body.appendChild(el);
+    vw = { el, id: x.id, i };
+    const track = el.querySelector('.pv-track');
+    const count = () => { const n = Math.round(track.scrollLeft / track.clientWidth); vw.i = n; el.querySelector('.pv-count').textContent = `${n + 1} / ${x.photos.length}`; };
+    track.addEventListener('scroll', () => requestAnimationFrame(count), { passive: true });
+    requestAnimationFrame(() => { track.scrollLeft = i * track.clientWidth; count(); el.classList.add('show'); });
+    el.querySelectorAll('img[data-src]').forEach(async im => { const u = await P.photoURL(im.dataset.src); if (u) im.src = u; });
+    el.addEventListener('click', e => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      const nx = find(vw.id); const p = nx && nx.photos[vw.i]; if (!p) { closeViewer(); return; }
+      if (b.dataset.v === 'close') closeViewer();
+      else UI.menu(b, [{ label: T('用它做分享图片'), value: 'bg' }, { label: T('保存 / 分享'), value: 'share' }, { label: T('删除照片'), value: 'del' }], async v => {
+        if (v === 'bg') { closeViewer(); Days.openShare(nx, { bg: p.id }); }
+        else if (v === 'share') {
+          const u = await P.photoURL(p.id); if (!u) return;
+          const im = await P.loadImg(u); const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight; cv.getContext('2d').drawImage(im, 0, 0);
+          deliver(cv, fileName(nx) + '.jpg', 'image/jpeg');
+        } else if (confirm(T('删除这张照片？其他设备同步后也会删除。'))) { await P.removePhoto(nx, p.id); closeViewer(); }
+      });
+    });
+  };
+  function closeViewer() { if (!vw) return false; const el = vw.el; el.classList.remove('show'); setTimeout(() => el.remove(), 220); vw = null; return true; }
+  Days.closeOverlay = () => (UI.menuOpen() ? (UI.closeMenu(), true) : false) || closeViewer() || closeCam();
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !UI.menuOpen() && (vw || camCtx)) { closeViewer() || closeCam(); } });
+})();

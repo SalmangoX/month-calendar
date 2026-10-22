@@ -52,6 +52,7 @@ final class Widgets {
         for (int id : m.getAppWidgetIds(new ComponentName(c, MonthWidget.class))) m.updateAppWidget(id, month(c, id, m.getAppWidgetOptions(id)));
         for (int id : m.getAppWidgetIds(new ComponentName(c, TodayWidget.class))) updateList(c, m, id, today(c));
         for (int id : m.getAppWidgetIds(new ComponentName(c, SchedWidget.class))) m.updateAppWidget(id, sched(c, id, m.getAppWidgetOptions(id)));
+        for (int id : m.getAppWidgetIds(new ComponentName(c, DaysWidget.class))) m.updateAppWidget(id, days(c, m.getAppWidgetOptions(id)));
     }
 
     static int count(Context c, Class<?> cls) {
@@ -816,6 +817,100 @@ final class Widgets {
             b.addItem(key++, r);
         }
         rv.setRemoteAdapter(R.id.l_list, b.build());
+        return rv;
+    }
+
+    // ---------- 纪念日：置顶（或最近的）一个大字显示，下面列出接下来的几个（和网页 js/days.js 一致） ----------
+    private static final int[] FUT = {0xFF4776B4, 0xFF8EB0E6}, PAST = {0xFFB6733B, 0xFFE2A673};
+    private static int hex(String h) { return 0xFF000000 | Integer.parseInt(h.substring(1), 16); }
+    /** 高亮色：深色模式下用 OKLCH 生成的深色调太复杂，这里把亮度压到 70% 左右，接近网页效果 */
+    private static int hlColor(String h, boolean dark) {
+        int c = hex(h);
+        if (!dark) return c;
+        float[] hsv = new float[3]; android.graphics.Color.colorToHSV(c, hsv); hsv[2] = Math.min(1f, hsv[2] * 1.18f); hsv[1] *= .8f;
+        return android.graphics.Color.HSVToColor(hsv);
+    }
+    private static String[] amount(Data.Day x, long diff, LocalDate today) {
+        if (diff == 0) return new String[]{I18n.t("今天"), ""};
+        boolean past = diff < 0;
+        long n = Math.abs(diff) + (past && x.from1 ? 1 : 0);
+        LocalDate a = past ? x.occ(today) : today, b = past ? today : x.occ(today);
+        java.time.Period p = java.time.Period.between(a, b);
+        if ("w".equals(x.unit) && n >= 7) return new String[]{String.valueOf(n / 7), I18n.t("周")};
+        if ("m".equals(x.unit) && p.toTotalMonths() >= 1) return new String[]{String.valueOf(p.toTotalMonths()), I18n.t("个月")};
+        if ("y".equals(x.unit) && p.getYears() >= 1) return new String[]{String.valueOf(p.getYears()), I18n.t("年")};
+        return new String[]{String.valueOf(n), past && x.from1 && !I18n.zh() ? "" : I18n.t("天")};
+    }
+    private static String stateWord(Data.Day x, long diff) {
+        return diff == 0 ? I18n.t("就是今天") : diff > 0 ? I18n.t("还有") : x.from1 ? I18n.t("第") : I18n.t("已经");
+    }
+    private static String dateLine(Data.Day x, LocalDate d, boolean h12) {
+        String s = (I18n.zh() ? d.getYear() + "年" : "") + I18n.md(d.getMonthValue(), d.getDayOfMonth()) + (I18n.zh() ? "" : ", " + d.getYear());
+        if (!x.time.isEmpty()) s += " " + Data.fmt(x.time, h12, false);
+        if (!x.rep.isEmpty()) s += " · " + I18n.t("week".equals(x.rep) ? "每周" : "month".equals(x.rep) ? "每月" : "每年");
+        return s;
+    }
+    static RemoteViews days(Context c, Bundle opts) {
+        int h = opts == null ? 0 : opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0);
+        boolean list = h == 0 || h >= 175;
+        boolean dark = (c.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        int di = dark ? 1 : 0;
+        RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_days);
+        Data d = Store.data(c);
+        LocalDate today = LocalDate.now(ZoneId.systemDefault());
+        rv.setOnClickPendingIntent(android.R.id.background, Engine.openApp(c, "#days", 401));
+        if (d.days.isEmpty()) {
+            rv.setViewVisibility(R.id.dw_hero, android.view.View.GONE);
+            rv.setViewVisibility(R.id.dw_list, android.view.View.GONE);
+            rv.setViewVisibility(R.id.dw_empty, android.view.View.VISIBLE);
+            rv.setTextViewText(R.id.dw_empty, I18n.t("还没有日子\n打开节律添加纪念日"));
+            return rv;
+        }
+        List<Data.Day> all = new ArrayList<>(d.days);
+        Data.Day hero = null;
+        for (Data.Day x : all) if (x.pin && (hero == null || x.updatedAt > hero.updatedAt)) hero = x;
+        List<Data.Day> fut = new ArrayList<>(), past = new ArrayList<>();
+        for (Data.Day x : all) (x.diff(today) >= 0 ? fut : past).add(x);
+        fut.sort((a, b) -> Long.compare(a.diff(today), b.diff(today)));
+        past.sort((a, b) -> Long.compare(b.diff(today), a.diff(today)));
+        if (hero == null) hero = !fut.isEmpty() ? fut.get(0) : past.get(0);
+        long hd = hero.diff(today);
+        int tone = !hero.hl.isEmpty() ? hlColor(hero.hl, dark) : hd < 0 ? PAST[di] : FUT[di];
+        String[] a = amount(hero, hd, today);
+        rv.setViewVisibility(R.id.dw_empty, android.view.View.GONE);
+        rv.setViewVisibility(R.id.dw_hero, android.view.View.VISIBLE);
+        rv.setTextViewText(R.id.dw_title, hero.title.isEmpty() ? I18n.t("（无标题）") : hero.title);
+        rv.setTextViewText(R.id.dw_state, hd == 0 ? I18n.t("就是今天") : stateWord(hero, hd));
+        rv.setTextColor(R.id.dw_state, tone);
+        rv.setTextViewText(R.id.dw_num, a[0]);
+        rv.setTextColor(R.id.dw_num, hd == 0 ? tone : c.getColor(R.color.w_text));
+        rv.setTextViewTextSize(R.id.dw_num, android.util.TypedValue.COMPLEX_UNIT_DIP, hd == 0 ? 30 : list ? 40 : 46);
+        rv.setTextViewText(R.id.dw_unit, a[1]);
+        rv.setTextViewText(R.id.dw_date, dateLine(hero, hero.occ(today), Data.h12(c)));
+        rv.setOnClickPendingIntent(R.id.dw_hero, Engine.openApp(c, "#days-" + hero.id, 402));
+        List<Data.Day> rest = new ArrayList<>(fut); rest.addAll(past); rest.remove(hero);
+        rv.setViewVisibility(R.id.dw_list, list && !rest.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE);
+        if (list && !rest.isEmpty()) {
+            RemoteViews.RemoteCollectionItems.Builder b = new RemoteViews.RemoteCollectionItems.Builder().setHasStableIds(false).setViewTypeCount(1);
+            long key = 0;
+            for (Data.Day x : rest) {
+                if (key >= 12) break;
+                long xd = x.diff(today);
+                int t = !x.hl.isEmpty() ? hlColor(x.hl, dark) : xd < 0 ? PAST[di] : FUT[di];
+                String[] xa = amount(x, xd, today);
+                RemoteViews r = new RemoteViews(c.getPackageName(), R.layout.item_day);
+                r.setTextViewText(R.id.di_title, x.title.isEmpty() ? I18n.t("（无标题）") : x.title);
+                r.setTextViewText(R.id.di_sub, stateWord(x, xd) + " · " + dateLine(x, x.occ(today), Data.h12(c)));
+                r.setTextViewText(R.id.di_num, xa[0]);
+                r.setTextColor(R.id.di_num, t);
+                r.setTextViewText(R.id.di_unit, xa[1]);
+                r.setInt(R.id.di_bar, "setBackgroundColor", t);
+                r.setOnClickFillInIntent(R.id.di_root, new Intent().putExtra(MainActivity.EXTRA_HASH, "#days-" + x.id));
+                b.addItem(key++, r);
+            }
+            rv.setRemoteAdapter(R.id.dw_list, b.build());
+            rv.setPendingIntentTemplate(R.id.dw_list, template(c, 403));
+        }
         return rv;
     }
 }

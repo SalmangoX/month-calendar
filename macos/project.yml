@@ -39,6 +39,7 @@ targets:
         NSHumanReadableCopyright: 节律 · Cadence
         CadenceAppURL: https://salmangox.github.io/month-calendar/
         CadenceRepo: SalmangoX/month-calendar
+        NSCameraUsageDescription: 纪念日历的透明相机用相机拍摄带倒数的照片。
         CadenceAppGroup: $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
         CFBundleURLTypes:
           - CFBundleURLName: io.github.salmangox.cadence
@@ -50,6 +51,7 @@ targets:
         com.apple.security.network.client: true
         com.apple.security.files.user-selected.read-write: true
         com.apple.security.files.bookmarks.app-scope: true
+        com.apple.security.device.camera: true
         com.apple.security.application-groups:
           - $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
     dependencies:

@@ -6,7 +6,7 @@ import WebKit
 @MainActor
 final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
     static let bridgeVersion = 1
-    static let features = ["data", "prefs", "token", "notify", "test", "widgets", "saveFile", "openUrl", "sync", "feedback"]
+    static let features = ["data", "prefs", "token", "notify", "test", "widgets", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget"]
 
     private let window: NSWindow
     private let web: WKWebView
@@ -189,9 +189,20 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         p.canCreateDirectories = true
         p.beginSheetModal(for: window) { [weak self] r in
             var ok = false
-            if r == .OK, let u = p.url { ok = (try? content.write(to: u, atomically: true, encoding: .utf8)) != nil }
+            if r == .OK, let u = p.url {
+                // 图片（纪念日的分享图片、相机）：data:image/...;base64,...
+                if content.hasPrefix("data:"), let i = content.range(of: ";base64,"), let bin = Data(base64Encoded: String(content[i.upperBound...])) {
+                    ok = (try? bin.write(to: u, options: .atomic)) != nil
+                } else { ok = (try? content.write(to: u, atomically: true, encoding: .utf8)) != nil }
+            }
             self?.callback(cb, ["ok": ok])
         }
+    }
+
+    // 纪念日历的透明相机：只允许节律自己的网页用相机，系统会再询问一次
+    func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo,
+                 type: WKMediaCaptureType, decisionHandler: @escaping (WKPermissionDecision) -> Void) {
+        decisionHandler(origin.host == appURL.host && type == .camera ? .prompt : .deny)
     }
 
     // ---------- 导航 ----------

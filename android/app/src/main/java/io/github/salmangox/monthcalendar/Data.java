@@ -64,6 +64,41 @@ final class Data {
         }
     }
 
+    /** 纪念日历里的日子（和网页 js/days.js 同一套算法） */
+    static final class Day {
+        String id = "", cal = "", title = "", time = "", rep = "", hl = "", unit = "d";
+        LocalDate date;
+        boolean pin, from1;
+        long updatedAt;
+
+        /** 从 today 起的下一次（不重复的就是那一天） */
+        LocalDate occ(LocalDate today) {
+            if (rep.isEmpty() || !date.isBefore(today)) return date;
+            if ("week".equals(rep)) {
+                long k = (java.time.temporal.ChronoUnit.DAYS.between(date, today) + 6) / 7;
+                return date.plusWeeks(k);
+            }
+            if ("month".equals(rep)) {
+                LocalDate d = clamp(today.getYear(), today.getMonthValue(), date.getDayOfMonth());
+                return d.isBefore(today) ? clamp(today.plusMonths(1).getYear(), today.plusMonths(1).getMonthValue(), date.getDayOfMonth()) : d;
+            }
+            LocalDate d = clamp(today.getYear(), date.getMonthValue(), date.getDayOfMonth());
+            return d.isBefore(today) ? clamp(today.getYear() + 1, date.getMonthValue(), date.getDayOfMonth()) : d;
+        }
+
+        private static LocalDate clamp(int y, int m, int d) {
+            java.time.YearMonth ym = java.time.YearMonth.of(y, m);
+            return ym.atDay(Math.min(d, ym.lengthOfMonth()));
+        }
+
+        /** 和今天相差几天：正数 = 还有，负数 = 已经 */
+        long diff(LocalDate today) { return java.time.temporal.ChronoUnit.DAYS.between(today, occ(today)); }
+    }
+
+    final List<Day> days = new ArrayList<>();
+    /** 纪念日历的名称（id → 名称） */
+    final Map<String, String> dayCals = new LinkedHashMap<>();
+
     final List<Event> events = new ArrayList<>();
     // ---------- 12 / 24 小时制（与网页 MC.fmtTime / fmtRange 一致） ----------
     /** 应用里的设置（同步数据 profile.clock）：auto / 12 / 24；最近一次读到的数据为准 */
@@ -142,7 +177,28 @@ final class Data {
                 String col = c.optString("color");
                 if (col.matches("#[0-9a-fA-F]{6}")) d.calColor.put(id, 0xFF000000 | Integer.parseInt(col.substring(1), 16));
                 if (c.optBoolean("notify")) d.notifyCals.add(id);
+                if ("days".equals(c.optString("kind"))) d.dayCals.put(id, c.optString("name"));
             }
+        }
+        JSONArray ds = o.optJSONArray("days");
+        if (ds != null) {
+            for (int i = 0; i < ds.length(); i++) {
+                JSONObject x = ds.optJSONObject(i);
+                if (x == null) continue;
+                String date = x.optString("date");
+                if (!DATE.matcher(date).matches()) continue;
+                Day y = new Day();
+                try { y.date = LocalDate.parse(date); } catch (Exception e) { continue; }
+                y.id = x.optString("id"); y.cal = x.optString("cal"); y.title = x.optString("title");
+                String t = x.optString("time"); y.time = TIME.matcher(t).matches() ? t : "";
+                y.rep = x.optString("rep"); if (!y.rep.matches("week|month|year")) y.rep = "";
+                y.hl = x.optString("hl"); if (!y.hl.matches("#[0-9a-fA-F]{6}")) y.hl = "";
+                y.unit = x.optString("unit", "d");
+                y.pin = x.optBoolean("pin"); y.from1 = x.optBoolean("from1");
+                y.updatedAt = x.optLong("updatedAt");
+                d.days.add(y);
+            }
+            d.days.removeIf(y -> !d.dayCals.containsKey(y.cal));
         }
         JSONObject daily = o.optJSONObject("daily");
         if (daily != null) {
@@ -253,6 +309,28 @@ final class Data {
     }
 
     // ---------- 合并（与网页 MC.merge 相同的规则） ----------
+    private static JSONArray byId(JSONObject a, JSONObject b, String key, String pre, JSONObject deleted) {
+        LinkedHashMap<String, JSONObject> m = new LinkedHashMap<>();
+        for (JSONObject src : new JSONObject[]{a, b}) {
+            JSONArray arr = src.optJSONArray(key);
+            if (arr == null) continue;
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject x = arr.optJSONObject(i);
+                if (x == null) continue;
+                String id = x.optString("id");
+                JSONObject prev = m.get(id);
+                if (prev == null || x.optLong("updatedAt") > prev.optLong("updatedAt")) m.put(id, x);
+            }
+        }
+        JSONArray out = new JSONArray();
+        for (JSONObject x : m.values()) {
+            String k = pre + x.optString("id");
+            if (deleted.has(k) && deleted.optLong(k) >= x.optLong("updatedAt")) continue;
+            out.put(x);
+        }
+        return out;
+    }
+
     static JSONObject merge(JSONObject a, JSONObject b) {
         try {
             long ua = a.optLong("updatedAt"), ub = b.optLong("updatedAt");
@@ -319,6 +397,9 @@ final class Data {
                 cals.put(c);
             }
             out.put("cals", cals);
+            // 纪念日历的日子、分类：同样按 id 取较新的一份（删除记录 "day:<id>" / "book:<id>"）
+            out.put("days", byId(a, b, "days", "day:", deleted));
+            out.put("books", byId(a, b, "books", "book:", deleted));
             return out;
         } catch (JSONException e) {
             return b;

@@ -8,4 +8,6 @@
     <string name="w_today_desc">今天和接下來一週的事件</string>
     <string name="w_sched">節律 · 課表</string>
     <string name="w_sched_desc">今天的課，正在上和下一節會突出顯示</string>
+    <string name="w_days">節律 · 紀念日</string>
+    <string name="w_days_desc">置頂或最近的日子，以及接下來的幾個</string>
 </resources>

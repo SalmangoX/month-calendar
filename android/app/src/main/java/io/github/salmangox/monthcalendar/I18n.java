@@ -58,6 +58,19 @@ final class I18n {
         put("连不上网络", "連不上網路", "No connection", "Pas de connexion");
         put("第一次打开需要联网下载节律，之后断网也能用。", "第一次開啟需要聯網下載節律，之後斷網也能用。", "Cadence needs a connection the first time it opens; after that it works offline.", "Cadence a besoin d’une connexion à la première ouverture ; ensuite, il fonctionne hors ligne.");
         put("重试", "重試", "Retry", "Réessayer");
+        put("纪念日", "紀念日", "Days", "Jours");
+        put("还有", "還有", "Coming up in", "Dans");
+        put("已经", "已經", "It’s been", "Depuis");
+        put("第", "第", "Day", "Jour");
+        put("就是今天", "就是今天", "It’s today", "C’est aujourd’hui");
+        put("天", "天", "days", "jours");
+        put("周", "週", "weeks", "semaines");
+        put("个月", "個月", "months", "mois");
+        put("年", "年", "years", "ans");
+        put("每周", "每週", "Weekly", "Chaque semaine");
+        put("每月", "每月", "Monthly", "Chaque mois");
+        put("每年", "每年", "Yearly", "Chaque année");
+        put("还没有日子\n打开节律添加纪念日", "還沒有日子\n打開節律新增紀念日", "No days yet\nOpen Cadence to add one", "Aucun jour\nOuvrez Cadence pour en ajouter");
     }
 
     static void set(String pref) {
