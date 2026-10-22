@@ -102,6 +102,8 @@ function amount(x, inf) {
   if (x.unit === "y" && dd.y >= 1) return { num: dd.y, unit: tr("年") };
   return { num: n, unit: past && x.from1 && !isZh() ? "" : tr("天") };
 }
+// 标题前面带上彩色表情（旧版的线条图标名不显示）
+const named = x => { const e = x.icon && !/^[a-z]+$/.test(x.icon) ? x.icon + " " : ""; return e + (x.title || "—"); };
 const stateWord = (x, inf) => tr(inf.state === "today" ? "就是今天" : inf.state === "fut" ? "还有" : x.from1 ? "第" : "已经");
 const tone = (x, inf) => (x.hl ? hlColor(x.hl) : inf.state === "past" ? C.past : C.fut);
 function dateLine(x, d) {
@@ -152,7 +154,7 @@ function addText(stack, str, font, color, lines) {
 const rounded = (size, weight = "bold") => { try { return Font[weight === "bold" ? "boldRoundedSystemFont" : "semiboldRoundedSystemFont"](size); } catch (e) { return Font.boldSystemFont(size); } };
 function hero(parent, o, big) {
   const { x, inf } = o, a = amount(x, inf), col = tone(x, inf);
-  addText(parent, x.title || "—", Font.semiboldSystemFont(big ? 14 : 13), C.text, 1);
+  addText(parent, named(x), Font.semiboldSystemFont(big ? 14 : 13), C.text, 1);
   parent.addSpacer(big ? 6 : 4);
   addText(parent, stateWord(x, inf), Font.semiboldSystemFont(11), col, 1);
   const row = parent.addStack(); row.bottomAlignContent();
@@ -166,7 +168,7 @@ function line(parent, o) {
   const r = parent.addStack(); r.centerAlignContent(); r.spacing = 8;
   const bar = r.addStack(); bar.size = new Size(3.5, 26); bar.cornerRadius = 1.75; bar.backgroundColor = col;
   const t = r.addStack(); t.layoutVertically();
-  addText(t, x.title || "—", Font.mediumSystemFont(12), C.text, 1);
+  addText(t, named(x), Font.mediumSystemFont(12), C.text, 1);
   addText(t, stateWord(x, inf) + " · " + dateLine(x, inf.occ), Font.systemFont(9.5), C.text2, 1);
   r.addSpacer();
   addText(r, a.num, rounded(16), col, 1);

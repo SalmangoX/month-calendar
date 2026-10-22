@@ -879,7 +879,7 @@ final class Widgets {
         String[] a = amount(hero, hd, today);
         rv.setViewVisibility(R.id.dw_empty, android.view.View.GONE);
         rv.setViewVisibility(R.id.dw_hero, android.view.View.VISIBLE);
-        rv.setTextViewText(R.id.dw_title, hero.title.isEmpty() ? I18n.t("（无标题）") : hero.title);
+        rv.setTextViewText(R.id.dw_title, hero.named());
         rv.setTextViewText(R.id.dw_state, hd == 0 ? I18n.t("就是今天") : stateWord(hero, hd));
         rv.setTextColor(R.id.dw_state, tone);
         rv.setTextViewText(R.id.dw_num, a[0]);
@@ -899,7 +899,7 @@ final class Widgets {
                 int t = !x.hl.isEmpty() ? hlColor(x.hl, dark) : xd < 0 ? PAST[di] : FUT[di];
                 String[] xa = amount(x, xd, today);
                 RemoteViews r = new RemoteViews(c.getPackageName(), R.layout.item_day);
-                r.setTextViewText(R.id.di_title, x.title.isEmpty() ? I18n.t("（无标题）") : x.title);
+                r.setTextViewText(R.id.di_title, x.named());
                 r.setTextViewText(R.id.di_sub, stateWord(x, xd) + " · " + dateLine(x, x.occ(today), Data.h12(c)));
                 r.setTextViewText(R.id.di_num, xa[0]);
                 r.setTextColor(R.id.di_num, t);

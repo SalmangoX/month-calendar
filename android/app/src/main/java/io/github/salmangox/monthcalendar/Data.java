@@ -66,7 +66,13 @@ final class Data {
 
     /** 纪念日历里的日子（和网页 js/days.js 同一套算法） */
     static final class Day {
-        String id = "", cal = "", title = "", time = "", rep = "", hl = "", unit = "d";
+        String id = "", cal = "", title = "", time = "", rep = "", hl = "", unit = "d", icon = "";
+
+        /** 标题前面带上彩色表情（旧版的线条图标名不显示） */
+        String named() {
+            String t = title.isEmpty() ? I18n.t("（无标题）") : title;
+            return !icon.isEmpty() && !icon.matches("[a-z]+") ? icon + " " + t : t;
+        }
         LocalDate date;
         boolean pin, from1;
         long updatedAt;
@@ -194,7 +200,7 @@ final class Data {
                 y.rep = x.optString("rep"); if (!y.rep.matches("week|month|year")) y.rep = "";
                 y.hl = x.optString("hl"); if (!y.hl.matches("#[0-9a-fA-F]{6}")) y.hl = "";
                 y.unit = x.optString("unit", "d");
-                y.pin = x.optBoolean("pin"); y.from1 = x.optBoolean("from1");
+                y.pin = x.optBoolean("pin"); y.from1 = x.optBoolean("from1"); y.icon = x.optString("icon");
                 y.updatedAt = x.optLong("updatedAt");
                 d.days.add(y);
             }

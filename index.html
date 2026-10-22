@@ -60,11 +60,19 @@
     <!-- 纪念日历：倒数日 / 纪念日（js/days.js） -->
     <div class="dv" id="daysView">
       <header class="dv-head">
-        <button class="dv-title" id="dvTitleBtn" aria-label="选择日历"><h1 id="dvName" data-uc></h1><p id="dvSub"></p></button>
-        <button class="gbtn glass" id="dvMode" aria-label="日历"></button>
+        <button class="dv-title" aria-label="选择日历"><h1 class="dvName" data-uc></h1><p class="dvSub"></p></button>
+        <div class="seg small dv-ym" id="dvYM" role="tablist"><button data-ym="year">年</button><button data-ym="month">月</button></div>
       </header>
       <div class="pscroll dv-scroll" id="dvBody"></div>
     </div>
+  </section>
+
+  <!-- 纪念日历：日子列表（只在纪念日历里出现在底部菜单） -->
+  <section class="page" id="page-days">
+    <header class="dv-head">
+      <button class="dv-title" aria-label="选择日历"><h1 class="dvName" data-uc></h1><p class="dvSub"></p></button>
+    </header>
+    <div class="pscroll dv-scroll" id="dvList"></div>
   </section>
 
   <!-- 四象限 -->
@@ -123,6 +131,10 @@
     <button data-page="cal" class="on" aria-label="日历">
       <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.2h17M8 2.8v3.4M16 2.8v3.4"/><text id="tabCalNum" x="12" y="17.9" text-anchor="middle" font-size="8.6" font-weight="700" fill="currentColor" stroke="none" style="font-variant-numeric:tabular-nums;letter-spacing:-.2px">1</text></svg>
       <span>日历</span>
+    </button>
+    <button data-page="days" aria-label="纪念日" hidden>
+      <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+      <span>纪念日</span>
     </button>
     <button data-page="quad" aria-label="四象限">
       <svg viewBox="0 0 24 24" class="filled"><rect x="4" y="4" width="7" height="7" rx="2.2"/><rect x="13" y="4" width="7" height="7" rx="2.2"/><rect x="4" y="13" width="7" height="7" rx="2.2"/><rect x="13" y="13" width="7" height="7" rx="2.2"/></svg>
@@ -195,16 +207,35 @@
   </div>
 </section>
 
-<!-- 纪念日：详情 -->
-<section class="sheet tall dd" id="dayDetail" aria-label="纪念日">
+<!-- 纪念日：每个日子的主页（单独一页：上面是主题图片，下面是小纸条、相册等） -->
+<section class="dp" id="dayPage" aria-hidden="true" aria-label="纪念日">
+  <div class="dp-scroll" id="dpScroll">
+    <header class="dp-cover" id="dpCover">
+      <div class="dp-bg" id="dpCoverBg"></div>
+      <div class="dp-bar">
+        <button class="dp-btn" data-pg="back" aria-label="返回"><svg viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg></button>
+        <span class="spacer"></span>
+        <button class="dp-btn" data-pg="share" aria-label="分享图片"><svg viewBox="0 0 24 24"><path d="M12 15V3.5M7.5 8L12 3.5 16.5 8"/><path d="M5 12.5V18a2.5 2.5 0 0 0 2.5 2.5h9A2.5 2.5 0 0 0 19 18v-5.5"/></svg></button>
+        <button class="dp-btn txt" data-pg="edit" id="dpEdit">编辑</button>
+      </div>
+      <button class="dp-setcover" id="dpSetCover" data-pg="cover"></button>
+      <div class="dp-plate" id="dpPlate"></div>
+    </header>
+    <div class="dp-body" id="ddBody"></div>
+  </div>
+</section>
+
+<!-- 纪念日：主题图片 -->
+<section class="sheet dcv" id="dayCover" aria-label="主题图片">
   <div class="handle"></div>
   <div class="sheet-head">
-    <button class="text-btn muted" data-close>关闭</button>
-    <h2 id="ddHead"></h2>
-    <button class="text-btn strong" id="ddEdit">编辑</button>
+    <button class="text-btn muted" data-close>取消</button>
+    <h2>主题图片</h2>
+    <span style="width:40px"></span>
   </div>
-  <div class="list dd-body" id="ddBody"></div>
+  <div class="list dc-body" id="dcBody"></div>
 </section>
+<input type="file" id="dayCoverFile" accept="image/*" hidden>
 
 <!-- 纪念日：新建 / 编辑 -->
 <section class="sheet tall de" id="dayEditor" aria-label="编辑日子">

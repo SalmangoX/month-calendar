@@ -57,7 +57,8 @@
       : spring(pos, target, v, 520, 48, (p, vv) => apply(Math.max(0, p), vv), () => (anim = null));
   }
   D.isOpen = () => isOpen;
-  D.open = () => { if (!calPage.classList.contains('active')) return; render(); measure(); animateTo(W); };
+  const daysPage = $('#page-days');
+  D.open = () => { if (!calPage.classList.contains('active') && !(daysPage && daysPage.classList.contains('active'))) return; render(); measure(); animateTo(W); };
   D.close = () => { measure(); animateTo(0); };
 
   // ---------- 当前日历的外观 ----------
@@ -206,7 +207,8 @@
   // 拉出：月 / 年视图里任何地方往右滑都可以（这两个视图是上下滚动的）；
   // 周视图左右滑是翻周，只在屏幕最左边一条或顶栏上往右滑才拉出。
   let g = null;
-  calPage.addEventListener('touchstart', e => {
+  const pullFrom = pg => {
+  pg.addEventListener('touchstart', e => {
     g = null;
     if (isOpen || e.touches.length !== 1 || UI.anyOpen()) return;
     const t = e.touches[0];
@@ -216,7 +218,7 @@
     if (MC.Cal.view() === 'week' && !edge && !head && document.body.dataset.kind !== 'days') return;
     g = { x0: t.clientX, y0: t.clientY, mode: 0, s: [[performance.now(), t.clientX]] };
   }, { capture: true, passive: true });
-  calPage.addEventListener('touchmove', e => {
+  pg.addEventListener('touchmove', e => {
     if (!g || g.mode < 0 || e.touches.length !== 1) return;
     const t = e.touches[0], dx = t.clientX - g.x0, dy = t.clientY - g.y0;
     if (g.mode === 0) {
@@ -241,8 +243,11 @@
     swallow = true; setTimeout(() => (swallow = false), 300);
     release(vel(s), pos);
   };
-  calPage.addEventListener('touchend', pageEnd, true);
-  calPage.addEventListener('touchcancel', () => { if (g && g.mode === 1) { g = null; animateTo(0); } else g = null; }, true);
+  pg.addEventListener('touchend', pageEnd, true);
+  pg.addEventListener('touchcancel', () => { if (g && g.mode === 1) { g = null; animateTo(0); } else g = null; }, true);
+  };
+  pullFrom(calPage);
+  if (daysPage) pullFrom(daysPage);
 
   // 触控板：在侧栏或遮罩上双指往左轻扫收起
   let wx = 0, wxT = null;

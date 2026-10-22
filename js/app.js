@@ -20,7 +20,7 @@
   // ---------- 页面 & 底部菜单栏（点击，或长按拖动切换） ----------
   let page = 'cal';
   const tabbar = $('#tabbar'), ind = $('#tabInd');
-  const tabs = () => [...tabbar.querySelectorAll('button[data-page]')];
+  const tabs = () => [...tabbar.querySelectorAll('button[data-page]')].filter(b => !b.hidden); // 纪念日历里只显示 日历 · 纪念日 · 设置
   const tabOf = p => tabs().find(b => b.dataset.page === p);
   // 指示块用弹簧物理驱动：拖动时跟手并按速度拉长压扁（体积守恒），顶到两端被压扁、整条菜单被轻轻拽动；
   // 松手后带一点回弹落到目标格子。按住时指示块「浮起」成一块磨砂玻璃，经过的图标被放大，像透镜。
@@ -96,7 +96,7 @@
     const btn = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
     if (MC.settings.tab3 !== 'sched') MC.settings.tab3 = 'quad'; // 不再提供「不显示」，在页面左上角切换四象限 / 课表
     const v = MC.settings.tab3;
-    btn.hidden = false;
+    btn.hidden = document.body.dataset.kind === 'days'; // 纪念日历的菜单里没有这一项
     if (v !== 'off') { btn.dataset.page = v; btn.setAttribute('aria-label', TAB3[v].label); btn.innerHTML = TAB3[v].svg + `<span>${TAB3[v].label}</span>`; }
     if ((page === 'quad' || page === 'sched') && page !== v) showPage('cal'); else placeInd(false);
   }
@@ -110,6 +110,7 @@
   function renderPage() {
     if (page === 'sched') { MC.Sched.render(); return; }
     if (page === 'cal') requestAnimationFrame(() => MC.Cal.render());
+    else if (page === 'days') { if (MC.Days) MC.Days.render(); }
     else if (page === 'today') renderToday();
     else if (page === 'quad') renderQuad();
     else renderSettings();
@@ -186,6 +187,7 @@
   if (window.ResizeObserver) new ResizeObserver(() => { if (!pd) placeInd(false); }).observe(tabbar);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeInd(false));
 
+  MC.App = { showPage: p => showPage(p), placeInd: () => placeInd(false), page: () => page };
   $('#fab').onclick = () => page === 'today'
     ? MC.Editor.openNew(MC.todayStr(), '')
     : MC.Editor.openNew(MC.Cal.selected(), page === 'cal' ? MC.activeCal() : '');

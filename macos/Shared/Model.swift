@@ -55,9 +55,14 @@ func monthGrid(_ ym: YMD, weekStart: Int) -> [YMD] {
 
 /// 纪念日历里的一个日子（和网页 js/days.js、安卓 Data.Day 同一套算法）
 struct CDay {
-    var id = "", cal = "", title = "", time = "", rep = "", hl = "", unit = "d"
+    var id = "", cal = "", title = "", time = "", rep = "", hl = "", unit = "d", icon = ""
     var date = YMD(y: 1970, m: 1, d: 1)
     var pin = false, from1 = false
+    /// 标题前面带上彩色表情（旧版的线条图标名不显示）
+    var named: String {
+        let t = title.isEmpty ? I18n.t("（无标题）") : title
+        return !icon.isEmpty && icon.range(of: "^[a-z]+$", options: .regularExpression) == nil ? icon + " " + t : t
+    }
     var updatedAt: Int64 = 0
 
     private static func clamp(_ y: Int, _ m: Int, _ d: Int) -> YMD {
@@ -249,7 +254,7 @@ final class CalData {
             let t = x.str("time"); y.time = isTime(t) ? t : ""
             let r = x.str("rep"); y.rep = ["week", "month", "year"].contains(r) ? r : ""
             let h = x.str("hl"); y.hl = h.count == 7 && h.hasPrefix("#") && UInt32(h.dropFirst(), radix: 16) != nil ? h : ""
-            y.unit = x.str("unit", "d"); y.pin = x.bool("pin"); y.from1 = x.bool("from1"); y.updatedAt = x.long("updatedAt")
+            y.unit = x.str("unit", "d"); y.icon = x.str("icon"); y.pin = x.bool("pin"); y.from1 = x.bool("from1"); y.updatedAt = x.long("updatedAt")
             d.days.append(y)
         }
         if let daily = o.obj("daily") {

@@ -223,15 +223,21 @@
   }
   // ---------- 纪念日历：日子、分类 ----------
   // 日子：date 目标日 / 起始日；time 精确到分钟（选填）；rep 每周 / 每月 / 每年重复；book 分类；icon 图标（内置名或一个表情）；
-  // hl 高亮颜色；pin 置顶；unit 显示单位；from1 起始日算第 1 天；notes 小纸条；photos 相册（图片本身存在单独的 Gist，见 days.js）
+  // cover 主题图片；hl 高亮颜色；pin 置顶；unit 显示单位；from1 起始日算第 1 天；notes 小纸条；photos 相册（图片本身存在单独的 Gist，见 days.js）
   const DAY_UNITS = ['d', 'w', 'm', 'y'];
+  // 1.2.0 的线条图标名 → 彩色表情（之后只存表情）
+  MC.DAY_LEGACY_ICONS = { heart: '❤️', ring: '💍', cake: '🎂', gift: '🎁', people: '👫', smile: '😊', home: '🏡', star: '⭐️', plane: '✈️', train: '🚄', car: '🚗', bag: '🧳',
+    mountain: '🏔️', sea: '🏖️', pin: '📍', cap: '🎓', book: '📚', paper: '📝', case: '💼', clock: '⏰', flag: '🚩', music: '🎵', mic: '🎤', film: '🎬', game: '🎮',
+    camera: '📷', gym: '🏋️', plant: '🌱', coffee: '☕️', paw: '🐾', cat: '🐱', dog: '🐶', lantern: '🏮', tree: '🎄', moon: '🌕', spark: '🎆' };
   function normDay(x) {
     const t = Date.now();
     return {
       id: String(x.id).slice(0, 40), cal: String(x.cal || '').slice(0, 40), title: String(x.title || '').slice(0, 120),
       date: x.date, time: /^\d{2}:\d{2}$/.test(x.time || '') ? x.time : '',
       rep: ['week', 'month', 'year'].includes(x.rep) ? x.rep : '',
-      book: String(x.book || '').slice(0, 40), icon: String(x.icon || '').slice(0, 24),
+      book: String(x.book || '').slice(0, 40), icon: MC.DAY_LEGACY_ICONS[x.icon] || String(x.icon || '').slice(0, 24),
+      cover: /^(p[a-z0-9]{4,40}|c:#[0-9a-fA-F]{6})$/.test(x.cover || '') ? x.cover : '', // 主题图片：照片 id 或 c:#颜色
+      cat: String(x.cat || '').slice(0, 16), sub: String(x.sub || '').slice(0, 40), // 大类、细分（细分是内置的 cat.xxx 或自定义细分 book 的 id）
       hl: /^#[0-9a-fA-F]{6}$/.test(x.hl || '') ? x.hl : '', pin: !!x.pin,
       unit: DAY_UNITS.includes(x.unit) ? x.unit : 'd', from1: !!x.from1,
       notes: (Array.isArray(x.notes) ? x.notes : []).filter(n => n && n.id).slice(0, 300)
@@ -243,7 +249,7 @@
   }
   function normBook(b) {
     const t = Date.now();
-    return { id: String(b.id).slice(0, 40), cal: String(b.cal || '').slice(0, 40), name: String(b.name || '').slice(0, 24),
+    return { id: String(b.id).slice(0, 40), cal: String(b.cal || '').slice(0, 40), name: String(b.name || '').slice(0, 24), cat: String(b.cat || 'other').slice(0, 16), // 自定义细分属于哪个大类
       createdAt: b.createdAt || t, updatedAt: b.updatedAt || b.createdAt || t };
   }
   MC.normDay = normDay;
@@ -368,12 +374,12 @@
   MC.addDay = fields => { const x = normDay({ ...fields, id: 'd' + MC.uid(), createdAt: Date.now(), updatedAt: Date.now() }); MC.data.days.push(x); MC.commit(); return x; };
   MC.updateDay = (x, fields) => { Object.assign(x, fields, { updatedAt: Date.now() }); MC.commit(); };
   MC.deleteDay = x => { MC.data.days = MC.data.days.filter(y => y.id !== x.id); MC.data.deleted['day:' + x.id] = Date.now(); MC.commit(); };
-  MC.addBook = (cal, name) => { const b = normBook({ id: 'b' + MC.uid(), cal, name }); MC.data.books.push(b); MC.commit(); return b; };
+  MC.addBook = (cal, name, cat = 'other') => { const b = normBook({ id: 'b' + MC.uid(), cal, name, cat }); MC.data.books.push(b); MC.commit(); return b; };
   MC.updateBook = (b, fields) => { Object.assign(b, fields, { updatedAt: Date.now() }); MC.commit(); };
   MC.deleteBook = b => { // 分类删掉后，里面的日子移到「未分类」
     const t = Date.now();
     MC.data.books = MC.data.books.filter(y => y.id !== b.id); MC.data.deleted['book:' + b.id] = t;
-    for (const x of MC.data.days) if (x.book === b.id) Object.assign(x, { book: '', updatedAt: t });
+    for (const x of MC.data.days) if (x.book === b.id) Object.assign(x, { book: '', sub: '', updatedAt: t });
     MC.commit();
   };
   MC.setDaily = fields => { Object.assign(MC.data.daily, fields, { updatedAt: Date.now() }); MC.commit(); };

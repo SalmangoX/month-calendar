@@ -11,8 +11,8 @@
 
   // ---------- 多语言：本模块的界面文字（繁体由 i18n.js 自动转换） ----------
   const LANG = MC.lang ? MC.lang() : 'zh-Hans';
-  const DICT = { en: {"小号显示置顶（没有置顶就是最近的）日子；中号和大号再列出接下来的几个。在 App 里置顶的日子会显示在这里。": "Small shows your pinned day (or the next one); medium and large also list the ones after it. Pin a day in the app to show it here.", "复制纪念日小组件脚本": "Copy days widget script", "长按小组件 → 编辑小组件 → Script 选「纪念日」。": "Touch and hold the widget → Edit Widget → set Script to “Days”.", "回到桌面长按 → 编辑 → 添加小组件 → Scriptable → 选小号、中号或大号。": "On the Home Screen, touch and hold → Edit → Add Widget → Scriptable → pick small, medium or large.", "打开 Scriptable → 右上角 ＋ → 粘贴 → 把标题改成「纪念日」→ Done。": "Open Scriptable → ＋ at the top right → paste → rename it “Days” → Done.", "点下方「复制纪念日小组件脚本」。": "Tap “Copy days widget script” below.", "先在「账户与同步」连接 GitHub，并同步成功一次。": "First connect GitHub in Account & sync and sync once.", "新建日历": "New calendar", "按年": "Years", "按月": "Months", "按周": "Weeks", "按天": "Days", "{0} 个日子": "{0} days saved", "{0} 个日子 · 下一个「{1}」还有 {2} 天": "{0} days · “{1}” in {2} days", "{0} 个日子 · 今天是「{1}」": "{0} days · today is “{1}”", "{0} 个月": "{0} mo", "{0} 周年": "{0} yr anniversary", "{0} 天": "{0} d", "{0} 的小纸条": "A note from {0}", "上个月": "Previous month", "下个月": "Next month", "下一个里程碑": "Next milestone", "下一次": "Next", "不重复": "Once", "不高亮": "No highlight", "个月": "months", "今天": "Today", "从相册选择": "Choose a photo", "保存": "Save", "保存 / 分享": "Save / Share", "倒数精确到时、分、秒": "Count down to the second", "先写一个名称": "Add a name first", "全部": "All", "关闭": "Close", "其他设备同步后也会删除。": "It will also be removed from your other devices.", "写一张": "Write", "写一张小纸条": "New note", "出行": "Travel", "分": "min", "分享图片": "Share image", "分类": "Category", "切换镜头": "Switch camera", "列表": "List", "删除": "Delete", "删除「{0}」？": "Delete “{0}”? ", "删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。": "Delete “{0}”? Its notes and photos will be deleted too, on all your devices.", "删除分类": "Delete category", "删除分类「{0}」？里面的日子不会删除，会移到「未分类」。": "Delete category “{0}”? Its days stay and move to Uncategorized.", "删除照片": "Delete photo", "删除这个日历": "Delete this calendar", "删除这个日子": "Delete this day", "删除这张小纸条？": "Delete this note?", "删除这张照片？其他设备同步后也会删除。": "Delete this photo? It will also be removed from your other devices.", "即将到来": "Coming up", "又": "and", "可以允许使用相机后再试，或者从相册选一张照片当背景。": "Allow camera access and try again, or use a photo as the background.", "名称": "Name", "名称和颜色": "Name and color", "周": "weeks", "图标": "Icon", "图片已下载": "Image downloaded", "图片生成失败": "Couldn’t create the image", "圆体": "Rounded", "夜": "Night", "天": "days", "字": "A", "存进相册": "Add to album", "学习 · 工作": "Study & work", "宠物": "Pets", "小纸条": "Notes", "小纸条已贴上": "Note added", "就是今天": "It’s today", "尺寸": "Size", "已保存": "Saved", "已删除": "Deleted", "已删除「{0}」": "Deleted “{0}”", "已取消置顶": "Unpinned", "已添加 {0} 张照片": "Added {0} photo(s)", "已添加 {0} 张照片（连接 GitHub 后可在其他设备看到）": "Added {0} photo(s) (connect GitHub to see them on other devices)", "已添加「{0}」": "Added “{0}”", "已经": "It’s been", "已经过去": "Past", "已置顶": "Pinned", "已置顶，会显示在最上面和小组件里": "Pinned to the top and to widgets", "已高亮": "Highlighted", "年": "years", "我": "Me", "或输入一个表情": "or type an emoji", "把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。": "Keep this day’s photos together. They sync to your own GitHub, in a separate secret Gist.", "拍摄": "Take photo", "拖动卡片调整位置，双指缩放大小": "Drag the card to move it, pinch to resize", "放在最上面，也显示在小组件里": "Shown at the top and in widgets", "数字字体": "Number font", "新分类": "New category", "新建": "Create", "新建分类": "New category", "新建纪念日历": "New days calendar", "新建记录日历": "New record calendar", "新的日子": "New day", "日历": "Calendar", "日期": "Date", "日期在未来：倒数还有多少天。": "Date in the future: counts down the days left.", "日期在过去：累计已经过了多少天。": "Date in the past: counts the days since.", "时": "h", "时间": "Time", "显示单位": "Show in", "显示成「第 N 天」，比如在一起第 100 天": "Show as “Day N”, e.g. Day 100 together", "更多": "More", "月": "Months", "未分类": "Uncategorized", "未来": "Future", "查看照片": "View photo", "样式": "Style", "正在添加 {0} 张照片…": "Adding {0} photo(s)…", "每周": "Weekly", "每年": "Yearly", "每月": "Monthly", "每次过去后自动倒数到下一次。": "After each one passes, it counts down to the next.", "比如：去巴黎旅行、在一起、考研": "e.g. Paris trip, Together, Final exam", "比如：我们、生日、考试": "e.g. Us, Birthdays, Exams", "比如：生活、纪念日、考试、旅行": "e.g. Life, Anniversaries, Exams, Travel", "没有保存": "Not saved", "没法打开相机": "Camera unavailable", "浅色": "Light", "深色": "Dark", "添加": "Add", "添加照片": "Add photos", "湖蓝": "Lake", "点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。": "Tap ＋ to add your first day: future days count down, past days count up.", "照片": "Photo", "照片读取失败": "Couldn’t read the photo", "爱好": "Hobbies", "玫瑰": "Rose", "玻璃": "Glass", "琥珀": "Amber", "生成分享图片": "Make share image", "生日、纪念日这类每年都有的日子：一直倒数到下一次。": "For birthdays and anniversaries: always counts down to the next one.", "用名称的第一个字": "Use the first letter of the name", "用它做分享图片": "Use for share image", "留白": "Blank", "目标日": "Target date", "相册": "Album", "相机还没准备好": "Camera isn’t ready yet", "石墨": "Graphite", "秒": "s", "第": "Day", "第 {0} 天": "Day {0}", "等宽": "Mono", "精确时间": "Exact time", "素白": "Plain", "紫藤": "Wisteria", "纪念": "Moments", "纪念日历": "Days calendars", "纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。": "A days calendar keeps your important days: future ones count down, past ones count up. Each day can have notes, an album and share images.", "纸条": "Note", "编辑": "Edit", "编辑小纸条": "Edit note", "编辑日子": "Edit day", "编辑纪念日历": "Edit days calendar", "置顶": "Pin", "背景照片": "Background photo", "色块": "Color", "节律": "Cadence", "节日": "Holidays", "莓果": "Berry", "衬线": "Serif", "记下这一天的期待、心情，或者那天发生的小事。": "Write down what you’re looking forward to, how you feel, or what happened that day.", "记录重要的日子": "Keep your important days", "请填写名称": "Please enter a name", "起始于": "Since", "起始日": "Start date", "起始日算第 1 天": "Count the start date as day 1", "过去": "Past", "还有": "Coming up in", "还有 {0} 天": "in {0} days", "还没有小纸条，先在详情里写一张吧。": "No notes yet. Write one from the day’s details.", "还没有日子": "No days yet", "这一天没有标记的日子": "Nothing marked on this date", "这个分类还没有日子": "No days in this category yet", "这是第 {0} 次": "Occurrence {0}", "这里还没有未来的日子": "No upcoming days here", "这里还没有过去的日子": "No past days here", "选择照片": "Choose a photo", "透明": "Clear", "透明相机": "Camera", "那天就是这一天": "written on the day itself", "那天已经 {0} 天": "written on day {0}", "那天是第 {0} 天": "written on day {0}", "那天还有 {0} 天": "written {0} days before", "里程碑": "Milestone", "里面的 {0} 个日子、小纸条和相册会一起删除，": "Its {0} days, notes and photos will be deleted too. ", "重命名": "Rename", "重命名分类": "Rename category", "重复": "Repeat", "重拍": "Retake", "青绿": "Teal", "青草": "Grass", "高亮": "Highlight", "默认": "Default", "（无标题）": "(Untitled)", "取消": "Cancel", "完成": "Done", "贴上": "Add", "选择日历": "Choose calendar", "今天想对这个日子说点什么？": "What do you want to say about this day?", "纪念日": "Days", "还没有日子，打开节律添加": "No days yet. Open Cadence to add one.", "纪念日小组件": "Days widget", "置顶或最近的日子，以及接下来的几个": "Your pinned or next day, plus a few more", "iOS 纪念日小组件": "iOS days widget", "复制 Scriptable 脚本": "Copy Scriptable script", "已复制纪念日小组件脚本": "Days widget script copied", "脚本还在加载，请稍后再点一次": "The script is still loading. Tap again in a moment.", "请先连接 GitHub 并完成一次同步": "Connect GitHub and sync once first", "安卓纪念日小组件": "Android days widget", "复制小组件链接": "Copy widget link", "已复制纪念日小组件链接": "Days widget link copied"},
-    fr: {"小号显示置顶（没有置顶就是最近的）日子；中号和大号再列出接下来的几个。在 App 里置顶的日子会显示在这里。": "Le petit format montre le jour épinglé (ou le prochain) ; moyen et grand listent aussi les suivants. Épinglez un jour dans l’app pour l’afficher ici.", "复制纪念日小组件脚本": "Copier le script du widget", "长按小组件 → 编辑小组件 → Script 选「纪念日」。": "Maintenez le widget → Modifier le widget → Script : « Jours ».", "回到桌面长按 → 编辑 → 添加小组件 → Scriptable → 选小号、中号或大号。": "Sur l’écran d’accueil, maintenez → Modifier → Ajouter un widget → Scriptable → choisissez petit, moyen ou grand.", "打开 Scriptable → 右上角 ＋ → 粘贴 → 把标题改成「纪念日」→ Done。": "Ouvrez Scriptable → ＋ en haut à droite → collez → renommez-le « Jours » → Done.", "点下方「复制纪念日小组件脚本」。": "Touchez « Copier le script du widget » ci-dessous.", "先在「账户与同步」连接 GitHub，并同步成功一次。": "Connectez d’abord GitHub dans Compte et synchronisation, puis synchronisez une fois.", "新建日历": "Nouveau calendrier", "按年": "Années", "按月": "Mois", "按周": "Semaines", "按天": "Jours", "{0} 个日子": "{0} jours enregistrés", "{0} 个日子 · 下一个「{1}」还有 {2} 天": "{0} jours · « {1} » dans {2} jours", "{0} 个日子 · 今天是「{1}」": "{0} jours · aujourd’hui : « {1} »", "{0} 个月": "{0} mois", "{0} 周年": "{0} an(s)", "{0} 天": "{0} j", "{0} 的小纸条": "Un mot de {0}", "上个月": "Mois précédent", "下个月": "Mois suivant", "下一个里程碑": "Prochaine étape", "下一次": "Prochaine fois", "不重复": "Une fois", "不高亮": "Sans surlignage", "个月": "mois", "今天": "Aujourd’hui", "从相册选择": "Choisir une photo", "保存": "Enregistrer", "保存 / 分享": "Enregistrer / Partager", "倒数精确到时、分、秒": "Compte à rebours à la seconde", "先写一个名称": "Ajoutez d’abord un nom", "全部": "Tous", "关闭": "Fermer", "其他设备同步后也会删除。": "Il sera aussi supprimé sur vos autres appareils.", "写一张": "Écrire", "写一张小纸条": "Nouveau mot", "出行": "Voyages", "分": "min", "分享图片": "Image à partager", "分类": "Catégorie", "切换镜头": "Changer de caméra", "列表": "Liste", "删除": "Supprimer", "删除「{0}」？": "Supprimer « {0} » ? ", "删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。": "Supprimer « {0} » ? Ses mots et photos seront aussi supprimés, sur tous vos appareils.", "删除分类": "Supprimer la catégorie", "删除分类「{0}」？里面的日子不会删除，会移到「未分类」。": "Supprimer la catégorie « {0} » ? Ses jours restent, dans « Sans catégorie ».", "删除照片": "Supprimer la photo", "删除这个日历": "Supprimer ce calendrier", "删除这个日子": "Supprimer ce jour", "删除这张小纸条？": "Supprimer ce mot ?", "删除这张照片？其他设备同步后也会删除。": "Supprimer cette photo ? Elle sera aussi supprimée sur vos autres appareils.", "即将到来": "À venir", "又": "et", "可以允许使用相机后再试，或者从相册选一张照片当背景。": "Autorisez la caméra et réessayez, ou utilisez une photo en arrière-plan.", "名称": "Nom", "名称和颜色": "Nom et couleur", "周": "semaines", "图标": "Icône", "图片已下载": "Image téléchargée", "图片生成失败": "Impossible de créer l’image", "圆体": "Arrondie", "夜": "Nuit", "天": "jours", "字": "A", "存进相册": "Ajouter à l’album", "学习 · 工作": "Études et travail", "宠物": "Animaux", "小纸条": "Mots", "小纸条已贴上": "Mot ajouté", "就是今天": "C’est aujourd’hui", "尺寸": "Format", "已保存": "Enregistré", "已删除": "Supprimé", "已删除「{0}」": "« {0} » supprimé", "已取消置顶": "Désépinglé", "已添加 {0} 张照片": "{0} photo(s) ajoutée(s)", "已添加 {0} 张照片（连接 GitHub 后可在其他设备看到）": "{0} photo(s) ajoutée(s) (connectez GitHub pour les voir sur vos autres appareils)", "已添加「{0}」": "« {0} » ajouté", "已经": "Depuis", "已经过去": "Passés", "已置顶": "Épinglé", "已置顶，会显示在最上面和小组件里": "Épinglé en haut et dans les widgets", "已高亮": "Surligné", "年": "ans", "我": "Moi", "或输入一个表情": "ou tapez un emoji", "把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。": "Gardez les photos de ce jour ensemble. Elles se synchronisent sur votre GitHub, dans un Gist secret à part.", "拍摄": "Prendre la photo", "拖动卡片调整位置，双指缩放大小": "Faites glisser la carte, pincez pour la redimensionner", "放在最上面，也显示在小组件里": "Affiché en haut et dans les widgets", "数字字体": "Police des chiffres", "新分类": "Nouvelle catégorie", "新建": "Créer", "新建分类": "Nouvelle catégorie", "新建纪念日历": "Nouveau calendrier de jours", "新建记录日历": "Nouveau calendrier de suivi", "新的日子": "Nouveau jour", "日历": "Calendrier", "日期": "Date", "日期在未来：倒数还有多少天。": "Date future : compte à rebours des jours restants.", "日期在过去：累计已经过了多少天。": "Date passée : compte les jours écoulés.", "时": "h", "时间": "Heure", "显示单位": "Afficher en", "显示成「第 N 天」，比如在一起第 100 天": "Afficher « Jour N », p. ex. jour 100 ensemble", "更多": "Plus", "月": "Mois", "未分类": "Sans catégorie", "未来": "À venir", "查看照片": "Voir la photo", "样式": "Style", "正在添加 {0} 张照片…": "Ajout de {0} photo(s)…", "每周": "Chaque semaine", "每年": "Chaque année", "每月": "Chaque mois", "每次过去后自动倒数到下一次。": "Après chaque occurrence, le compte repart vers la suivante.", "比如：去巴黎旅行、在一起、考研": "p. ex. Voyage à Paris, Ensemble, Examen", "比如：我们、生日、考试": "p. ex. Nous, Anniversaires, Examens", "比如：生活、纪念日、考试、旅行": "p. ex. Vie, Anniversaires, Examens, Voyages", "没有保存": "Non enregistré", "没法打开相机": "Caméra indisponible", "浅色": "Clair", "深色": "Sombre", "添加": "Ajouter", "添加照片": "Ajouter des photos", "湖蓝": "Lac", "点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。": "Touchez ＋ pour ajouter un premier jour : les jours à venir se décomptent, les jours passés se comptent.", "照片": "Photo", "照片读取失败": "Impossible de lire la photo", "爱好": "Loisirs", "玫瑰": "Rose", "玻璃": "Verre", "琥珀": "Ambre", "生成分享图片": "Créer une image", "生日、纪念日这类每年都有的日子：一直倒数到下一次。": "Pour anniversaires et fêtes : compte toujours jusqu’au prochain.", "用名称的第一个字": "Utiliser la première lettre du nom", "用它做分享图片": "Utiliser pour l’image", "留白": "Épuré", "目标日": "Date cible", "相册": "Album", "相机还没准备好": "La caméra n’est pas prête", "石墨": "Graphite", "秒": "s", "第": "Jour", "第 {0} 天": "Jour {0}", "等宽": "Mono", "精确时间": "Heure précise", "素白": "Uni", "紫藤": "Glycine", "纪念": "Moments", "纪念日历": "Calendriers de jours", "纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。": "Un calendrier de jours garde vos dates importantes : les futures se décomptent, les passées se comptent. Chaque jour peut avoir des mots, un album et des images.", "纸条": "Mot", "编辑": "Modifier", "编辑小纸条": "Modifier le mot", "编辑日子": "Modifier le jour", "编辑纪念日历": "Modifier le calendrier", "置顶": "Épingler", "背景照片": "Photo de fond", "色块": "Couleur", "节律": "Cadence", "节日": "Fêtes", "莓果": "Baie", "衬线": "Serif", "记下这一天的期待、心情，或者那天发生的小事。": "Notez vos attentes, votre humeur, ou ce qui s’est passé ce jour-là.", "记录重要的日子": "Vos dates importantes", "请填写名称": "Indiquez un nom", "起始于": "Depuis le", "起始日": "Date de début", "起始日算第 1 天": "Compter le premier jour comme jour 1", "过去": "Passés", "还有": "Dans", "还有 {0} 天": "dans {0} jours", "还没有小纸条，先在详情里写一张吧。": "Pas encore de mot. Écrivez-en un dans les détails du jour.", "还没有日子": "Aucun jour", "这一天没有标记的日子": "Rien de marqué à cette date", "这个分类还没有日子": "Aucun jour dans cette catégorie", "这是第 {0} 次": "Occurrence {0}", "这里还没有未来的日子": "Aucun jour à venir ici", "这里还没有过去的日子": "Aucun jour passé ici", "选择照片": "Choisir une photo", "透明": "Transparent", "透明相机": "Caméra", "那天就是这一天": "écrit le jour même", "那天已经 {0} 天": "écrit au jour {0}", "那天是第 {0} 天": "écrit au jour {0}", "那天还有 {0} 天": "écrit {0} jours avant", "里程碑": "Étape", "里面的 {0} 个日子、小纸条和相册会一起删除，": "Ses {0} jours, mots et photos seront aussi supprimés. ", "重命名": "Renommer", "重命名分类": "Renommer la catégorie", "重复": "Répéter", "重拍": "Reprendre", "青绿": "Sarcelle", "青草": "Herbe", "高亮": "Surligner", "默认": "Par défaut", "（无标题）": "(Sans titre)", "取消": "Annuler", "完成": "Terminé", "贴上": "Ajouter", "选择日历": "Choisir un calendrier", "今天想对这个日子说点什么？": "Que voulez-vous dire sur ce jour ?", "纪念日": "Jours", "还没有日子，打开节律添加": "Aucun jour. Ouvrez Cadence pour en ajouter.", "纪念日小组件": "Widget des jours", "置顶或最近的日子，以及接下来的几个": "Votre jour épinglé ou le prochain, et quelques autres", "iOS 纪念日小组件": "Widget iOS des jours", "复制 Scriptable 脚本": "Copier le script Scriptable", "已复制纪念日小组件脚本": "Script du widget copié", "脚本还在加载，请稍后再点一次": "Le script se charge encore. Touchez à nouveau dans un instant.", "请先连接 GitHub 并完成一次同步": "Connectez GitHub et synchronisez une fois d’abord", "安卓纪念日小组件": "Widget Android des jours", "复制小组件链接": "Copier le lien du widget", "已复制纪念日小组件链接": "Lien du widget copié"} };
+  const DICT = { en: {"小号显示置顶（没有置顶就是最近的）日子；中号和大号再列出接下来的几个。在 App 里置顶的日子会显示在这里。": "Small shows your pinned day (or the next one); medium and large also list the ones after it. Pin a day in the app to show it here.", "复制纪念日小组件脚本": "Copy days widget script", "长按小组件 → 编辑小组件 → Script 选「纪念日」。": "Touch and hold the widget → Edit Widget → set Script to “Days”.", "回到桌面长按 → 编辑 → 添加小组件 → Scriptable → 选小号、中号或大号。": "On the Home Screen, touch and hold → Edit → Add Widget → Scriptable → pick small, medium or large.", "打开 Scriptable → 右上角 ＋ → 粘贴 → 把标题改成「纪念日」→ Done。": "Open Scriptable → ＋ at the top right → paste → rename it “Days” → Done.", "点下方「复制纪念日小组件脚本」。": "Tap “Copy days widget script” below.", "先在「账户与同步」连接 GitHub，并同步成功一次。": "First connect GitHub in Account & sync and sync once.", "新建日历": "New calendar", "按年": "Years", "按月": "Months", "按周": "Weeks", "按天": "Days", "{0} 个日子": "{0} days saved", "{0} 个日子 · 下一个「{1}」还有 {2} 天": "{0} days · “{1}” in {2} days", "{0} 个日子 · 今天是「{1}」": "{0} days · today is “{1}”", "{0} 个月": "{0} mo", "{0} 周年": "{0} yr anniversary", "{0} 天": "{0} d", "{0} 的小纸条": "A note from {0}", "上个月": "Previous month", "下个月": "Next month", "下一个里程碑": "Next milestone", "下一次": "Next", "不重复": "Once", "不高亮": "No highlight", "个月": "months", "今天": "Today", "从相册选择": "Choose a photo", "保存": "Save", "保存 / 分享": "Save / Share", "倒数精确到时、分、秒": "Count down to the second", "先写一个名称": "Add a name first", "全部": "All", "关闭": "Close", "其他设备同步后也会删除。": "It will also be removed from your other devices.", "写一张": "Write", "写一张小纸条": "New note", "出行": "Travel", "分": "min", "分享图片": "Share image", "分类": "Category", "切换镜头": "Switch camera", "列表": "List", "删除": "Delete", "删除「{0}」？": "Delete “{0}”? ", "删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。": "Delete “{0}”? Its notes and photos will be deleted too, on all your devices.", "删除分类": "Delete category", "删除分类「{0}」？里面的日子不会删除，会移到「未分类」。": "Delete category “{0}”? Its days stay and move to Uncategorized.", "删除照片": "Delete photo", "删除这个日历": "Delete this calendar", "删除这个日子": "Delete this day", "删除这张小纸条？": "Delete this note?", "删除这张照片？其他设备同步后也会删除。": "Delete this photo? It will also be removed from your other devices.", "即将到来": "Coming up", "又": "and", "可以允许使用相机后再试，或者从相册选一张照片当背景。": "Allow camera access and try again, or use a photo as the background.", "名称": "Name", "名称和颜色": "Name and color", "周": "weeks", "图标": "Icon", "图片已下载": "Image downloaded", "图片生成失败": "Couldn’t create the image", "圆体": "Rounded", "夜": "Night", "天": "days", "字": "A", "存进相册": "Add to album", "学习 · 工作": "Study & work", "宠物": "Pets", "小纸条": "Notes", "小纸条已贴上": "Note added", "就是今天": "It’s today", "尺寸": "Size", "已保存": "Saved", "已删除": "Deleted", "已删除「{0}」": "Deleted “{0}”", "已取消置顶": "Unpinned", "已添加 {0} 张照片": "Added {0} photo(s)", "已添加 {0} 张照片（连接 GitHub 后可在其他设备看到）": "Added {0} photo(s) (connect GitHub to see them on other devices)", "已添加「{0}」": "Added “{0}”", "已经": "It’s been", "已经过去": "Past", "已置顶": "Pinned", "已置顶，会显示在最上面和小组件里": "Pinned to the top and to widgets", "已高亮": "Highlighted", "年": "years", "我": "Me", "或输入一个表情": "or type an emoji", "把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。": "Keep this day’s photos together. They sync to your own GitHub, in a separate secret Gist.", "拍摄": "Take photo", "拖动卡片调整位置，双指缩放大小": "Drag the card to move it, pinch to resize", "放在最上面，也显示在小组件里": "Shown at the top and in widgets", "数字字体": "Number font", "新分类": "New category", "新建": "Create", "新建分类": "New category", "新建纪念日历": "New days calendar", "新建记录日历": "New record calendar", "新的日子": "New day", "日历": "Calendar", "日期": "Date", "日期在未来：倒数还有多少天。": "Date in the future: counts down the days left.", "日期在过去：累计已经过了多少天。": "Date in the past: counts the days since.", "时": "h", "时间": "Time", "显示单位": "Show in", "显示成「第 N 天」，比如在一起第 100 天": "Show as “Day N”, e.g. Day 100 together", "更多": "More", "月": "Months", "未分类": "Uncategorized", "未来": "Future", "查看照片": "View photo", "样式": "Style", "正在添加 {0} 张照片…": "Adding {0} photo(s)…", "每周": "Weekly", "每年": "Yearly", "每月": "Monthly", "每次过去后自动倒数到下一次。": "After each one passes, it counts down to the next.", "比如：去巴黎旅行、在一起、考研": "e.g. Paris trip, Together, Final exam", "比如：我们、生日、考试": "e.g. Us, Birthdays, Exams", "比如：生活、纪念日、考试、旅行": "e.g. Life, Anniversaries, Exams, Travel", "没有保存": "Not saved", "没法打开相机": "Camera unavailable", "浅色": "Light", "深色": "Dark", "添加": "Add", "添加照片": "Add photos", "湖蓝": "Lake", "点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。": "Tap ＋ to add your first day: future days count down, past days count up.", "照片": "Photo", "照片读取失败": "Couldn’t read the photo", "爱好": "Hobbies", "玫瑰": "Rose", "玻璃": "Glass", "琥珀": "Amber", "生成分享图片": "Make share image", "生日、纪念日这类每年都有的日子：一直倒数到下一次。": "For birthdays and anniversaries: always counts down to the next one.", "用名称的第一个字": "Use the first letter of the name", "用它做分享图片": "Use for share image", "留白": "Blank", "目标日": "Target date", "相册": "Album", "相机还没准备好": "Camera isn’t ready yet", "石墨": "Graphite", "秒": "s", "第": "Day", "第 {0} 天": "Day {0}", "等宽": "Mono", "精确时间": "Exact time", "素白": "Plain", "紫藤": "Wisteria", "纪念": "Moments", "纪念日历": "Days calendars", "纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。": "A days calendar keeps your important days: future ones count down, past ones count up. Each day can have notes, an album and share images.", "纸条": "Note", "编辑": "Edit", "编辑小纸条": "Edit note", "编辑日子": "Edit day", "编辑纪念日历": "Edit days calendar", "置顶": "Pin", "背景照片": "Background photo", "色块": "Color", "节律": "Cadence", "节日": "Holidays", "莓果": "Berry", "衬线": "Serif", "记下这一天的期待、心情，或者那天发生的小事。": "Write down what you’re looking forward to, how you feel, or what happened that day.", "记录重要的日子": "Keep your important days", "请填写名称": "Please enter a name", "起始于": "Since", "起始日": "Start date", "起始日算第 1 天": "Count the start date as day 1", "过去": "Past", "还有": "Coming up in", "还有 {0} 天": "in {0} days", "还没有小纸条，先在详情里写一张吧。": "No notes yet. Write one from the day’s details.", "还没有日子": "No days yet", "这一天没有标记的日子": "Nothing marked on this date", "这个分类还没有日子": "No days in this category yet", "这是第 {0} 次": "Occurrence {0}", "这里还没有未来的日子": "No upcoming days here", "这里还没有过去的日子": "No past days here", "选择照片": "Choose a photo", "透明": "Clear", "透明相机": "Camera", "那天就是这一天": "written on the day itself", "那天已经 {0} 天": "written on day {0}", "那天是第 {0} 天": "written on day {0}", "那天还有 {0} 天": "written {0} days before", "里程碑": "Milestone", "里面的 {0} 个日子、小纸条和相册会一起删除，": "Its {0} days, notes and photos will be deleted too. ", "重命名": "Rename", "重命名分类": "Rename category", "重复": "Repeat", "重拍": "Retake", "青绿": "Teal", "青草": "Grass", "高亮": "Highlight", "默认": "Default", "（无标题）": "(Untitled)", "取消": "Cancel", "完成": "Done", "贴上": "Add", "选择日历": "Choose calendar", "今天想对这个日子说点什么？": "What do you want to say about this day?", "纪念日": "Days", "还没有日子，打开节律添加": "No days yet. Open Cadence to add one.", "纪念日小组件": "Days widget", "置顶或最近的日子，以及接下来的几个": "Your pinned or next day, plus a few more", "iOS 纪念日小组件": "iOS days widget", "复制 Scriptable 脚本": "Copy Scriptable script", "已复制纪念日小组件脚本": "Days widget script copied", "脚本还在加载，请稍后再点一次": "The script is still loading. Tap again in a moment.", "请先连接 GitHub 并完成一次同步": "Connect GitHub and sync once first", "安卓纪念日小组件": "Android days widget", "复制小组件链接": "Copy widget link", "已复制纪念日小组件链接": "Days widget link copied", "{0} 天前": "{0} days ago", "{0}的小纸条": "A note from {0}", "万圣节": "Halloween", "上一年": "Previous year", "下一年": "Next year", "中秋": "Mid-Autumn", "从手机相册选择": "Choose from your photos", "会裁成封面铺满顶部": "Fills the top of the page", "入职": "New job", "其他": "Other", "养花": "Plants", "删除细分": "Delete subcategory", "删除细分「{0}」？里面的日子不会删除。": "Delete subcategory “{0}”? Its days stay.", "回家": "Going home", "圣诞": "Christmas", "在「{0}」里加一个细分": "Add a subcategory to {0}", "宝宝": "Baby", "家人": "Family", "小宠": "Small pets", "已添加「{0}」，可以给它设一张主题图片": "Added “{0}”. You can give it a cover photo.", "开学": "New term", "恋爱": "Love", "情人节": "Valentine’s Day", "截止日": "Deadline", "收起": "Show less", "新年": "New Year", "旅行": "Trip", "春节": "Lunar New Year", "更多表情": "More emoji", "更换主题图片": "Change cover", "朋友": "Friends", "比如：去巴黎旅行、回家": "e.g. Paris trip", "比如：在一起、结婚纪念日": "e.g. Together, Wedding anniversary", "比如：小橘到家": "e.g. Mochi came home", "比如：搬家": "e.g. Moving day", "比如：春节、圣诞节": "e.g. Christmas", "比如：期末考试、毕业": "e.g. Final exam, Graduation", "比如：演唱会、马拉松": "e.g. Concert, Marathon", "比如：纪念日、周年、考研": "e.g. Anniversary", "比赛": "Competition", "毕业": "Graduation", "海边": "Beach", "游戏": "Games", "演唱会": "Concert", "爬山": "Hiking", "狗狗": "Dog", "猫咪": "Cat", "生日": "Birthday", "生活 · 爱好": "Life & hobbies", "电影": "Movies", "疫苗": "Vaccine", "移除主题图片": "Remove cover", "类别": "Category", "纯色": "Solid color", "细分": "Subcategory", "结婚": "Wedding", "美食": "Food", "考试": "Exam", "自定义": "Custom", "自驾": "Road trip", "设置主题图片": "Set cover", "运动": "Sport", "这一年的日子": "Days this year", "这一年还没有标记的日子": "Nothing marked this year", "这个日子的相册": "This day’s album", "重命名细分": "Rename subcategory", "露营": "Camping", "主题图片": "Cover"},
+    fr: {"小号显示置顶（没有置顶就是最近的）日子；中号和大号再列出接下来的几个。在 App 里置顶的日子会显示在这里。": "Le petit format montre le jour épinglé (ou le prochain) ; moyen et grand listent aussi les suivants. Épinglez un jour dans l’app pour l’afficher ici.", "复制纪念日小组件脚本": "Copier le script du widget", "长按小组件 → 编辑小组件 → Script 选「纪念日」。": "Maintenez le widget → Modifier le widget → Script : « Jours ».", "回到桌面长按 → 编辑 → 添加小组件 → Scriptable → 选小号、中号或大号。": "Sur l’écran d’accueil, maintenez → Modifier → Ajouter un widget → Scriptable → choisissez petit, moyen ou grand.", "打开 Scriptable → 右上角 ＋ → 粘贴 → 把标题改成「纪念日」→ Done。": "Ouvrez Scriptable → ＋ en haut à droite → collez → renommez-le « Jours » → Done.", "点下方「复制纪念日小组件脚本」。": "Touchez « Copier le script du widget » ci-dessous.", "先在「账户与同步」连接 GitHub，并同步成功一次。": "Connectez d’abord GitHub dans Compte et synchronisation, puis synchronisez une fois.", "新建日历": "Nouveau calendrier", "按年": "Années", "按月": "Mois", "按周": "Semaines", "按天": "Jours", "{0} 个日子": "{0} jours enregistrés", "{0} 个日子 · 下一个「{1}」还有 {2} 天": "{0} jours · « {1} » dans {2} jours", "{0} 个日子 · 今天是「{1}」": "{0} jours · aujourd’hui : « {1} »", "{0} 个月": "{0} mois", "{0} 周年": "{0} an(s)", "{0} 天": "{0} j", "{0} 的小纸条": "Un mot de {0}", "上个月": "Mois précédent", "下个月": "Mois suivant", "下一个里程碑": "Prochaine étape", "下一次": "Prochaine fois", "不重复": "Une fois", "不高亮": "Sans surlignage", "个月": "mois", "今天": "Aujourd’hui", "从相册选择": "Choisir une photo", "保存": "Enregistrer", "保存 / 分享": "Enregistrer / Partager", "倒数精确到时、分、秒": "Compte à rebours à la seconde", "先写一个名称": "Ajoutez d’abord un nom", "全部": "Tous", "关闭": "Fermer", "其他设备同步后也会删除。": "Il sera aussi supprimé sur vos autres appareils.", "写一张": "Écrire", "写一张小纸条": "Nouveau mot", "出行": "Voyages", "分": "min", "分享图片": "Image à partager", "分类": "Catégorie", "切换镜头": "Changer de caméra", "列表": "Liste", "删除": "Supprimer", "删除「{0}」？": "Supprimer « {0} » ? ", "删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。": "Supprimer « {0} » ? Ses mots et photos seront aussi supprimés, sur tous vos appareils.", "删除分类": "Supprimer la catégorie", "删除分类「{0}」？里面的日子不会删除，会移到「未分类」。": "Supprimer la catégorie « {0} » ? Ses jours restent, dans « Sans catégorie ».", "删除照片": "Supprimer la photo", "删除这个日历": "Supprimer ce calendrier", "删除这个日子": "Supprimer ce jour", "删除这张小纸条？": "Supprimer ce mot ?", "删除这张照片？其他设备同步后也会删除。": "Supprimer cette photo ? Elle sera aussi supprimée sur vos autres appareils.", "即将到来": "À venir", "又": "et", "可以允许使用相机后再试，或者从相册选一张照片当背景。": "Autorisez la caméra et réessayez, ou utilisez une photo en arrière-plan.", "名称": "Nom", "名称和颜色": "Nom et couleur", "周": "semaines", "图标": "Icône", "图片已下载": "Image téléchargée", "图片生成失败": "Impossible de créer l’image", "圆体": "Arrondie", "夜": "Nuit", "天": "jours", "字": "A", "存进相册": "Ajouter à l’album", "学习 · 工作": "Études et travail", "宠物": "Animaux", "小纸条": "Mots", "小纸条已贴上": "Mot ajouté", "就是今天": "C’est aujourd’hui", "尺寸": "Format", "已保存": "Enregistré", "已删除": "Supprimé", "已删除「{0}」": "« {0} » supprimé", "已取消置顶": "Désépinglé", "已添加 {0} 张照片": "{0} photo(s) ajoutée(s)", "已添加 {0} 张照片（连接 GitHub 后可在其他设备看到）": "{0} photo(s) ajoutée(s) (connectez GitHub pour les voir sur vos autres appareils)", "已添加「{0}」": "« {0} » ajouté", "已经": "Depuis", "已经过去": "Passés", "已置顶": "Épinglé", "已置顶，会显示在最上面和小组件里": "Épinglé en haut et dans les widgets", "已高亮": "Surligné", "年": "ans", "我": "Moi", "或输入一个表情": "ou tapez un emoji", "把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。": "Gardez les photos de ce jour ensemble. Elles se synchronisent sur votre GitHub, dans un Gist secret à part.", "拍摄": "Prendre la photo", "拖动卡片调整位置，双指缩放大小": "Faites glisser la carte, pincez pour la redimensionner", "放在最上面，也显示在小组件里": "Affiché en haut et dans les widgets", "数字字体": "Police des chiffres", "新分类": "Nouvelle catégorie", "新建": "Créer", "新建分类": "Nouvelle catégorie", "新建纪念日历": "Nouveau calendrier de jours", "新建记录日历": "Nouveau calendrier de suivi", "新的日子": "Nouveau jour", "日历": "Calendrier", "日期": "Date", "日期在未来：倒数还有多少天。": "Date future : compte à rebours des jours restants.", "日期在过去：累计已经过了多少天。": "Date passée : compte les jours écoulés.", "时": "h", "时间": "Heure", "显示单位": "Afficher en", "显示成「第 N 天」，比如在一起第 100 天": "Afficher « Jour N », p. ex. jour 100 ensemble", "更多": "Plus", "月": "Mois", "未分类": "Sans catégorie", "未来": "À venir", "查看照片": "Voir la photo", "样式": "Style", "正在添加 {0} 张照片…": "Ajout de {0} photo(s)…", "每周": "Chaque semaine", "每年": "Chaque année", "每月": "Chaque mois", "每次过去后自动倒数到下一次。": "Après chaque occurrence, le compte repart vers la suivante.", "比如：去巴黎旅行、在一起、考研": "p. ex. Voyage à Paris, Ensemble, Examen", "比如：我们、生日、考试": "p. ex. Nous, Anniversaires, Examens", "比如：生活、纪念日、考试、旅行": "p. ex. Vie, Anniversaires, Examens, Voyages", "没有保存": "Non enregistré", "没法打开相机": "Caméra indisponible", "浅色": "Clair", "深色": "Sombre", "添加": "Ajouter", "添加照片": "Ajouter des photos", "湖蓝": "Lac", "点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。": "Touchez ＋ pour ajouter un premier jour : les jours à venir se décomptent, les jours passés se comptent.", "照片": "Photo", "照片读取失败": "Impossible de lire la photo", "爱好": "Loisirs", "玫瑰": "Rose", "玻璃": "Verre", "琥珀": "Ambre", "生成分享图片": "Créer une image", "生日、纪念日这类每年都有的日子：一直倒数到下一次。": "Pour anniversaires et fêtes : compte toujours jusqu’au prochain.", "用名称的第一个字": "Utiliser la première lettre du nom", "用它做分享图片": "Utiliser pour l’image", "留白": "Épuré", "目标日": "Date cible", "相册": "Album", "相机还没准备好": "La caméra n’est pas prête", "石墨": "Graphite", "秒": "s", "第": "Jour", "第 {0} 天": "Jour {0}", "等宽": "Mono", "精确时间": "Heure précise", "素白": "Uni", "紫藤": "Glycine", "纪念": "Moments", "纪念日历": "Calendriers de jours", "纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。": "Un calendrier de jours garde vos dates importantes : les futures se décomptent, les passées se comptent. Chaque jour peut avoir des mots, un album et des images.", "纸条": "Mot", "编辑": "Modifier", "编辑小纸条": "Modifier le mot", "编辑日子": "Modifier le jour", "编辑纪念日历": "Modifier le calendrier", "置顶": "Épingler", "背景照片": "Photo de fond", "色块": "Couleur", "节律": "Cadence", "节日": "Fêtes", "莓果": "Baie", "衬线": "Serif", "记下这一天的期待、心情，或者那天发生的小事。": "Notez vos attentes, votre humeur, ou ce qui s’est passé ce jour-là.", "记录重要的日子": "Vos dates importantes", "请填写名称": "Indiquez un nom", "起始于": "Depuis le", "起始日": "Date de début", "起始日算第 1 天": "Compter le premier jour comme jour 1", "过去": "Passés", "还有": "Dans", "还有 {0} 天": "dans {0} jours", "还没有小纸条，先在详情里写一张吧。": "Pas encore de mot. Écrivez-en un dans les détails du jour.", "还没有日子": "Aucun jour", "这一天没有标记的日子": "Rien de marqué à cette date", "这个分类还没有日子": "Aucun jour dans cette catégorie", "这是第 {0} 次": "Occurrence {0}", "这里还没有未来的日子": "Aucun jour à venir ici", "这里还没有过去的日子": "Aucun jour passé ici", "选择照片": "Choisir une photo", "透明": "Transparent", "透明相机": "Caméra", "那天就是这一天": "écrit le jour même", "那天已经 {0} 天": "écrit au jour {0}", "那天是第 {0} 天": "écrit au jour {0}", "那天还有 {0} 天": "écrit {0} jours avant", "里程碑": "Étape", "里面的 {0} 个日子、小纸条和相册会一起删除，": "Ses {0} jours, mots et photos seront aussi supprimés. ", "重命名": "Renommer", "重命名分类": "Renommer la catégorie", "重复": "Répéter", "重拍": "Reprendre", "青绿": "Sarcelle", "青草": "Herbe", "高亮": "Surligner", "默认": "Par défaut", "（无标题）": "(Sans titre)", "取消": "Annuler", "完成": "Terminé", "贴上": "Ajouter", "选择日历": "Choisir un calendrier", "今天想对这个日子说点什么？": "Que voulez-vous dire sur ce jour ?", "纪念日": "Jours", "还没有日子，打开节律添加": "Aucun jour. Ouvrez Cadence pour en ajouter.", "纪念日小组件": "Widget des jours", "置顶或最近的日子，以及接下来的几个": "Votre jour épinglé ou le prochain, et quelques autres", "iOS 纪念日小组件": "Widget iOS des jours", "复制 Scriptable 脚本": "Copier le script Scriptable", "已复制纪念日小组件脚本": "Script du widget copié", "脚本还在加载，请稍后再点一次": "Le script se charge encore. Touchez à nouveau dans un instant.", "请先连接 GitHub 并完成一次同步": "Connectez GitHub et synchronisez une fois d’abord", "安卓纪念日小组件": "Widget Android des jours", "复制小组件链接": "Copier le lien du widget", "已复制纪念日小组件链接": "Lien du widget copié", "{0} 天前": "il y a {0} jours", "{0}的小纸条": "Un mot de {0}", "万圣节": "Halloween", "上一年": "Année précédente", "下一年": "Année suivante", "中秋": "Mi-automne", "从手机相册选择": "Choisir dans vos photos", "会裁成封面铺满顶部": "Remplit le haut de la page", "入职": "Nouveau poste", "其他": "Autre", "养花": "Plantes", "删除细分": "Supprimer la sous-catégorie", "删除细分「{0}」？里面的日子不会删除。": "Supprimer la sous-catégorie « {0} » ? Ses jours restent.", "回家": "Retour à la maison", "圣诞": "Noël", "在「{0}」里加一个细分": "Ajouter une sous-catégorie à {0}", "宝宝": "Bébé", "家人": "Famille", "小宠": "Petits animaux", "已添加「{0}」，可以给它设一张主题图片": "« {0} » ajouté. Vous pouvez lui donner une photo de couverture.", "开学": "Rentrée", "恋爱": "Amour", "情人节": "Saint-Valentin", "截止日": "Échéance", "收起": "Moins", "新年": "Nouvel An", "旅行": "Voyage", "春节": "Nouvel An lunaire", "更多表情": "Plus d’emoji", "更换主题图片": "Changer la couverture", "朋友": "Amis", "比如：去巴黎旅行、回家": "p. ex. Voyage à Paris", "比如：在一起、结婚纪念日": "p. ex. Ensemble, Anniversaire de mariage", "比如：小橘到家": "p. ex. Arrivée de Mochi", "比如：搬家": "p. ex. Déménagement", "比如：春节、圣诞节": "p. ex. Noël", "比如：期末考试、毕业": "p. ex. Examen final, Diplôme", "比如：演唱会、马拉松": "p. ex. Concert, Marathon", "比如：纪念日、周年、考研": "p. ex. Anniversaire", "比赛": "Compétition", "毕业": "Diplôme", "海边": "Plage", "游戏": "Jeux", "演唱会": "Concert", "爬山": "Randonnée", "狗狗": "Chien", "猫咪": "Chat", "生日": "Anniversaire", "生活 · 爱好": "Vie et loisirs", "电影": "Cinéma", "疫苗": "Vaccin", "移除主题图片": "Retirer la couverture", "类别": "Catégorie", "纯色": "Couleur unie", "细分": "Sous-catégorie", "结婚": "Mariage", "美食": "Gastronomie", "考试": "Examen", "自定义": "Personnaliser", "自驾": "Road trip", "设置主题图片": "Ajouter une couverture", "运动": "Sport", "这一年的日子": "Jours de cette année", "这一年还没有标记的日子": "Rien de marqué cette année", "这个日子的相册": "Album de ce jour", "重命名细分": "Renommer la sous-catégorie", "露营": "Camping", "主题图片": "Couverture"} };
   const T = (Days.T = s => { const d = DICT[LANG]; return d && d[s] != null ? d[s] : s; });
   const F = (s, ...a) => T(s).replace(/\{(\d)\}/g, (m, n) => (a[n] !== undefined ? a[n] : m));
   const TT = s => (MC.t ? MC.t(s) : s);     // 画在图片里的文字（繁体也要转）
@@ -148,63 +148,47 @@
   const hlTone = c => (dark() ? MC.darkTone(c)[0] : c);
   const hlInk = c => (dark() ? MC.darkTone(c)[1] : '#fff');
 
-  // ---------- 图标（一套线条图标，网页和分享图片共用同一份路径） ----------
-  const C = (x, y, r) => `M${x - r} ${y}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
-  const R = (x, y, w, h, r) => `M${x + r} ${y}h${w - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${h - 2 * r}a${r} ${r} 0 0 1 ${-r} ${r}h${-(w - 2 * r)}a${r} ${r} 0 0 1 ${-r} ${-r}v${-(h - 2 * r)}a${r} ${r} 0 0 1 ${r} ${-r}z`;
-  const ICONS = {
-    heart: ['M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z'],
-    ring: [C(12, 14.5, 5.5), 'M9.2 3.8h5.6L12 8z'],
-    cake: ['M5 20h14v-6.5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z', 'M5 15.5c1.2 1 2.3 1 3.5 0s2.3-1 3.5 0 2.3 1 3.5 0 2.3-1 3.5 0', 'M12 11.5V8.5', 'M12 6.2c.9-.7.9-1.6 0-2.7-.9 1.1-.9 2 0 2.7z'],
-    gift: [R(4, 9, 16, 4.2, 1.2), 'M5.5 13.2V20h13v-6.8', 'M12 9v11', 'M12 9c-1.2-3-4.6-3.6-4.6-1.5C7.4 9 10 9 12 9zM12 9c1.2-3 4.6-3.6 4.6-1.5C16.6 9 14 9 12 9z'],
-    people: [C(9, 8.5, 3), 'M3.5 19c.5-3 2.8-5 5.5-5s5 2 5.5 5', C(16.5, 9, 2.4), 'M16.2 13.8c2.4 0 4 1.7 4.4 4.4'],
-    smile: [C(12, 12, 8.2), 'M8.8 14.2c1.8 1.9 4.6 1.9 6.4 0', C(9.3, 10, .55), C(14.7, 10, .55)],
-    home: ['M4.5 11L12 4.5l7.5 6.5', 'M6.5 9.5v10h11v-10', 'M10 19.5v-5h4v5'],
-    star: ['M12 4l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8z'],
-    plane: ['M10.4 13.6L4 11.2l1.6-1.6 6.9 1 4.1-4.1c.9-.9 2.4-1.2 2.9-.7s.2 2-.7 2.9l-4.1 4.1 1 6.9-1.6 1.6-2.4-6.4-3 3 .3 2.3-1.2 1.2-1.6-3-3-1.6 1.2-1.2 2.3.3z'],
-    train: [R(6, 3.5, 12, 13.5, 3.2), 'M6 10.5h12', 'M9 20.5l1.5-3.5M15 20.5l-1.5-3.5', C(9, 13.8, .6), C(15, 13.8, .6)],
-    car: ['M5.2 14.5l1.5-4.6A2 2 0 0 1 8.6 8.5h6.8a2 2 0 0 1 1.9 1.4l1.5 4.6', R(4, 14.5, 16, 4.5, 1.6), 'M6.5 19v1.5M17.5 19v1.5', C(7.6, 16.8, .5), C(16.4, 16.8, .5)],
-    bag: [R(4, 7.5, 16, 12, 2.5), 'M9 7.5V5.8a1.3 1.3 0 0 1 1.3-1.3h3.4A1.3 1.3 0 0 1 15 5.8v1.7', 'M8.5 7.5v12M15.5 7.5v12'],
-    mountain: ['M3.5 19l6-9 4 6 2.4-3.4L20.5 19z', 'M7.9 12.4l1.6 1.2 1.6-1.3'],
-    sea: [C(16.5, 7.5, 2.5), 'M3.5 15c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5', 'M3.5 19c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5'],
-    pin: ['M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z', C(12, 10, 2.3)],
-    cap: ['M3 9.5L12 5l9 4.5-9 4.5z', 'M7 11.6v3.9c1.5 1.4 3 2 5 2s3.5-.6 5-2v-3.9', 'M21 9.5v5'],
-    book: ['M5 5.5A1.5 1.5 0 0 1 6.5 4H19v14H6.5A1.5 1.5 0 0 0 5 19.5z', 'M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3'],
-    paper: [R(5, 3.5, 14, 17, 2.2), 'M8.5 8h7M8.5 12h7M8.5 16h4'],
-    case: [R(3.5, 7.5, 17, 12, 2.5), 'M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5', 'M3.5 12.5h17'],
-    clock: [C(12, 12, 8.2), 'M12 7.5V12l3 2'],
-    flag: ['M6 21V4h11l-2.2 4.2L17 12.5H6'],
-    music: ['M9 17.5V6l10-2v11.5', C(6.5, 17.5, 2.5), C(16.5, 15.5, 2.5)],
-    mic: [R(9, 3.5, 6, 10.5, 3), 'M6 11a6 6 0 0 0 12 0', 'M12 17v3.5'],
-    film: [R(3.5, 5.5, 17, 13, 2.5), 'M3.5 9.5h17M8 5.5l-1.5 4M13 5.5l-1.5 4M18 5.5l-1.5 4'],
-    game: ['M7 8.5h10a4 4 0 0 1 3.9 4.8l-.7 3.4a2 2 0 0 1-3.4 1l-2.3-2.2H9.5l-2.3 2.2a2 2 0 0 1-3.4-1l-.7-3.4A4 4 0 0 1 7 8.5z', 'M8 11v3M6.5 12.5h3', C(15.5, 11.6, .55), C(17, 13.2, .55)],
-    camera: ['M4 8.5a2 2 0 0 1 2-2h2l1.5-2h5l1.5 2h2a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z', C(12, 13, 3.4)],
-    gym: ['M6.5 8v8M17.5 8v8M4 10v4M20 10v4M6.5 12h11'],
-    plant: ['M12 20v-8', 'M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z', 'M12 14c0-3-2.5-5-5.5-5 0 3 2.5 5 5.5 5z', 'M8 20h8'],
-    coffee: ['M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z', 'M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16', 'M8.5 3.5v2.5M11.5 3.5v2.5'],
-    paw: [C(6.6, 11.2, 1.6), C(9.4, 7.3, 1.6), C(14.6, 7.3, 1.6), C(17.4, 11.2, 1.6), 'M12 12.5c2.6 0 5 2.8 5 5 0 1.6-1.3 2.3-2.6 2-1-.3-1.6-.6-2.4-.6s-1.4.3-2.4.6C8.3 19.8 7 19.1 7 17.5c0-2.2 2.4-5 5-5z'],
-    cat: ['M5 9.2L5.6 4l4 3.2h4.8L18.4 4l.6 5.2c.6 1.1 1 2.4 1 3.8 0 4.2-3.6 7-8 7s-8-2.8-8-7c0-1.4.4-2.7 1-3.8z', C(9.4, 13, .6), C(14.6, 13, .6), 'M11.2 15.6h1.6L12 16.5z'],
-    dog: ['M8.6 5.6L5 7.4l1 5', 'M15.4 5.6l3.6 1.8-1 5', 'M7 10c0-2.3 2.2-4.5 5-4.5s5 2.2 5 4.5v3.5c0 3.5-2.2 6-5 6s-5-2.5-5-6z', C(10, 12, .6), C(14, 12, .6), 'M11 15.4h2l-1 1.1z'],
-    lantern: ['M12 3v2', 'M8.5 5h7', 'M7.5 7.5c0-1.4 2-2.5 4.5-2.5s4.5 1.1 4.5 2.5v7c0 1.4-2 2.5-4.5 2.5s-4.5-1.1-4.5-2.5z', 'M10 5.3c-.8 3-.8 8.4 0 11.4M14 5.3c.8 3 .8 8.4 0 11.4', 'M12 17v3.5'],
-    tree: ['M12 3.5l5 6h-2.5l4 5h-3l3.5 4.5h-14l3.5-4.5h-3l4-5H7z', 'M12 19v2'],
-    moon: ['M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z'],
-    spark: ['M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6'],
-  };
+  // ---------- 图标：彩色表情（系统自带的彩色字形，小组件和分享图片里也一样显示） ----------
+  const ICONS = {}; // 旧版线条图标已在 store.js 换成表情
   const ICON_GROUPS = [
-    ['纪念', ['heart', 'ring', 'cake', 'gift', 'people', 'smile', 'home', 'star']],
-    ['出行', ['plane', 'train', 'car', 'bag', 'mountain', 'sea', 'pin']],
-    ['学习 · 工作', ['cap', 'book', 'paper', 'case', 'clock', 'flag']],
-    ['爱好', ['music', 'mic', 'film', 'game', 'camera', 'gym', 'plant', 'coffee']],
-    ['宠物', ['paw', 'cat', 'dog']],
-    ['节日', ['lantern', 'tree', 'moon', 'spark']],
+    ['纪念', ['❤️', '💕', '💍', '🎂', '🎁', '💐', '🌹', '🥂', '👶', '🏡']],
+    ['出行', ['✈️', '🚄', '🚗', '🧳', '🏔️', '🏖️', '🗼', '🗺️', '⛺️', '🎡']],
+    ['学习 · 工作', ['🎓', '📚', '📝', '💼', '💻', '🔬', '🏆', '📅']],
+    ['爱好', ['🎵', '🎤', '🎬', '🎮', '📷', '🏃', '🧘', '🌱', '☕️', '🍰']],
+    ['宠物', ['🐶', '🐱', '🐰', '🐹', '🐠', '🐦']],
+    ['节日', ['🎄', '🏮', '🧧', '🎆', '🎃', '🌕', '🎉', '🐉']],
   ];
-  const svgOf = name => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name].map(d => `<path d="${d}"/>`).join('')}</svg>`;
+  const emojiOf = x => MC.DAY_LEGACY_ICONS[x.icon] || x.icon || '';
+  const svgOf = () => '';
   const firstChar = s => (Array.from(String(s || '').trim())[0] || '·');
-  // 图块里的内容：内置图标 / 表情 / 标题第一个字
+  // 图块里的内容：表情 / 标题第一个字
   function glyph(x) {
-    if (x.icon && ICONS[x.icon]) return svgOf(x.icon);
-    if (x.icon) return `<span class="emo" data-uc>${esc(x.icon)}</span>`;
+    const e = emojiOf(x);
+    if (e) return `<span class="emo" data-uc>${esc(e)}</span>`;
     return `<span class="ini" data-uc>${esc(firstChar(x.title))}</span>`;
   }
+  // 主题图片的纯色（清新的浅色调；深色模式在 CSS 里压暗）
+  // 分类：先选大类，再选细分（细分自带表情；每个大类下还可以加自己的细分）
+  const CATS = [
+    { k: 'love', n: '纪念', e: '💝', subs: [['love', '恋爱', '❤️'], ['wed', '结婚', '💍'], ['bday', '生日', '🎂'], ['baby', '宝宝', '👶'], ['family', '家人', '🏡'], ['friend', '朋友', '🥂']] },
+    { k: 'trip', n: '出行', e: '✈️', subs: [['travel', '旅行', '✈️'], ['home', '回家', '🚄'], ['drive', '自驾', '🚗'], ['camp', '露营', '⛺️'], ['beach', '海边', '🏖️'], ['hike', '爬山', '🏔️']] },
+    { k: 'study', n: '学习 · 工作', e: '🎓', subs: [['exam', '考试', '📝'], ['grad', '毕业', '🎓'], ['term', '开学', '📚'], ['job', '入职', '💼'], ['due', '截止日', '📅'], ['match', '比赛', '🏆']] },
+    { k: 'life', n: '生活 · 爱好', e: '🌱', subs: [['show', '演唱会', '🎤'], ['movie', '电影', '🎬'], ['sport', '运动', '🏃'], ['game', '游戏', '🎮'], ['plant', '养花', '🌱'], ['food', '美食', '🍰']] },
+    { k: 'pet', n: '宠物', e: '🐾', subs: [['dog', '狗狗', '🐶'], ['cat', '猫咪', '🐱'], ['small', '小宠', '🐰'], ['vax', '疫苗', '💉']] },
+    { k: 'fest', n: '节日', e: '🎉', subs: [['ny', '新年', '🎆'], ['spring', '春节', '🧧'], ['moon', '中秋', '🌕'], ['xmas', '圣诞', '🎄'], ['val', '情人节', '🌹'], ['hallo', '万圣节', '🎃']] },
+    { k: 'other', n: '其他', e: '⭐️', subs: [] },
+  ];
+  const catDef = k => CATS.find(c => c.k === k) || CATS[CATS.length - 1];
+  const EMO_CAT = {}; CATS.forEach(c => c.subs.forEach(s => (EMO_CAT[s[2]] = c.k)));
+  // 旧数据没有大类：自定义分类归到「其他」，否则按表情猜
+  const catOf = x => (CATS.some(c => c.k === x.cat) ? x.cat : x.book ? 'other' : EMO_CAT[emojiOf(x)] || 'other');
+  const subKey = x => x.book || x.sub || '';
+  const subName = (x, books = MC.data.books) => {
+    if (x.book) { const b = books.find(y => y.id === x.book); return b ? b.name : ''; }
+    const [c, k] = String(x.sub || '').split('.'), s0 = c && catDef(c).subs.find(s => s[0] === k);
+    return s0 ? T(s0[1]) : '';
+  };
+  const COVERS = ['#DCE8F7', '#F7E1E6', '#DFF0E4', '#F6EAD8', '#E7E2F6', '#DAEFEF', '#F4EFE2', '#E6E9EE'];
   const UI_IC = {
     list: '<svg viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r=".9"/><circle cx="4.8" cy="12" r=".9"/><circle cx="4.8" cy="17.5" r=".9"/></svg>',
     cal: '<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.2h17M8 2.8v3.4M16 2.8v3.4"/></svg>',
@@ -345,8 +329,27 @@
     if (urls.has(id)) { URL.revokeObjectURL(urls.get(id)); urls.delete(id); }
     Album.enqueue('del', id);
   }
+  // 主题图片：从手机选一张（和相册分开存，不占相册），或者用相册里的照片 / 纯色
+  async function dropCover(x) {
+    const old = x.cover;
+    if (!old || old.startsWith('c:') || x.photos.some(p => p.id === old)) return;
+    try { await PDB.del(old); } catch (e) {}
+    if (urls.has(old)) { URL.revokeObjectURL(urls.get(old)); urls.delete(old); }
+    Album.enqueue('del', old);
+  }
+  async function setCover(x, value) { await dropCover(x); MC.updateDay(x, { cover: value || '' }); }
+  async function setCoverFile(x, file) {
+    try {
+      const { blob } = await compress(file, 2000, .86);
+      const id = 'p' + MC.uid();
+      await PDB.put(id, blob);
+      await dropCover(x);
+      MC.updateDay(x, { cover: id });
+      Album.enqueue('up', id);
+    } catch (e) { UI.toast(T('照片读取失败')); }
+  }
   Days.parts = { T, F, TT, FT, info, amount, stateWord, repLabel, fmtDate, fmtDateTime, clock, milestone, milestonesIn, hits, occurrence, diffDays, t0,
-    toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, firstChar, UI_IC, photoURL, addPhotos, removePhoto, PDB, loadImg, DICT, LANG, dark };
+    toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, firstChar, UI_IC, emojiOf, COVERS, setCover, setCoverFile, CATS, catDef, catOf, subKey, subName, photoURL, addPhotos, removePhoto, PDB, loadImg, DICT, LANG, dark };
 })();
 
 /* ---------- 纪念日历视图：列表 / 日历、详情、编辑、小纸条 ---------- */
@@ -354,29 +357,43 @@
   'use strict';
   const MC = window.MC, UI = MC.UI, $ = UI.$, esc = MC.esc, Days = MC.Days;
   const P = Days.parts;
-  const { T, F, info, amount, stateWord, repLabel, fmtDate, fmtDateTime, clock, milestone, milestonesIn, hits, diffDays, t0, toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, UI_IC } = P;
+  const { T, F, info, amount, stateWord, repLabel, fmtDate, fmtDateTime, clock, milestone, milestonesIn, hits, diffDays, t0, toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, UI_IC, CATS, catDef, catOf, subKey, subName } = P;
   const body = document.body;
   const isOn = () => body.dataset.kind === 'days';
   const calId = () => MC.activeCal();
   const daysOf = id => MC.data.days.filter(x => x.cal === id);
   const booksOf = id => MC.data.books.filter(b => b.cal === id);
   const find = id => MC.data.days.find(x => x.id === id);
-  const st = { filter: 'all', book: '', mode: MC.settings.daysMode === 'cal' ? 'cal' : 'list', ym: null, sel: MC.todayStr() };
-  const view = $('#daysView'), dvBody = $('#dvBody');
+  const st = { filter: 'all', cat: '', sub: '', cv: MC.settings.daysCalView === 'year' ? 'year' : 'month', ym: null, yy: null, sel: MC.todayStr() };
+  // 纪念日历是一套单独的界面：底部菜单只有「日历（年 / 月）· 纪念日 · 设置」
+  const view = $('#daysView'), dvBody = $('#dvBody'), listPage = $('#page-days'), dvList = $('#dvList');
   const UNIT_SEG = /^zh/.test(P.LANG) ? [['d', '天'], ['w', '周'], ['m', '月'], ['y', '年']] : [['d', '按天'], ['w', '按周'], ['m', '按月'], ['y', '按年']];
   { const b = $('#drawerAdd'); const tn = b && [...b.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim()); if (tn) tn.nodeValue = ' ' + T('新建日历'); }
   // 面板上写死在 index.html 里的文字
-  [['#ddBody', null], ['#dayDetail [data-close]', '关闭'], ['#ddEdit', '编辑'], ['#dayEditor [data-close]', '取消'], ['#dayNote [data-close]', '取消'], ['#dnTitle', '写一张小纸条'], ['#dnSave', '贴上'],
+  [['#dayCover [data-close]', '取消'], ['#dayCover h2', '主题图片'], ['#dpEdit', '编辑'], ['#dayEditor [data-close]', '取消'], ['#dayNote [data-close]', '取消'], ['#dnTitle', '写一张小纸条'], ['#dnSave', '贴上'],
     ['#dayShare [data-close]', '完成'], ['#dayShare h2', '分享图片'], ['#dsSave', '保存']].forEach(([s, l]) => { const el = l && $(s); if (el) el.textContent = T(l); });
   $('#dnText').placeholder = T('今天想对这个日子说点什么？');
-  $('#dvTitleBtn').setAttribute('aria-label', T('选择日历'));
+  document.querySelectorAll('.dv-title').forEach(b => b.setAttribute('aria-label', T('选择日历')));
+  { const tb = document.querySelector('#tabbar [data-page="days"]'); if (tb) { tb.setAttribute('aria-label', T('纪念日')); tb.querySelector('span').textContent = T('纪念日'); } }
+  document.querySelectorAll('#dvYM [data-ym]').forEach(b => (b.textContent = T(b.dataset.ym === 'year' ? '年' : '月')));
   const vib = () => { try { navigator.vibrate && navigator.vibrate(6); } catch (e) {} };
 
   // ---------- 小部件 ----------
   // 颜色都用 CSS 变量，切换深浅色时不用重画：--fut / --past 在 days.css；高亮色给出浅色和深色两个值
   const hlVars = c => `--hl-l:${c};--hl-d:${MC.darkTone(c)[0]};--hl-ink-d:${MC.darkTone(c)[1]}`;
   const toneVar = (x, inf) => `--tone:var(--${inf.state === 'past' ? 'past' : 'fut'})${x.hl ? ';' + hlVars(x.hl) : ''}`;
-  const tile = (x, inf, cls = '') => `<span class="dv-ico ${cls}"${x.hl ? ' style="--tone:var(--hl)"' : ''}>${glyph(x)}</span>`;
+  // 图块：有主题照片时用照片缩略图（表情做小角标）；纯色主题用那个颜色；否则用未来 / 过去的浅色
+  const isPhotoCover = x => /^p/.test(x.cover || '');
+  const coverColor = x => (x.cover && x.cover.startsWith('c:') ? x.cover.slice(2) : '');
+  const tile = (x, inf, cls = '') => {
+    if (isPhotoCover(x)) return `<span class="dv-ico ph ${cls}"><img alt="" data-cover="${x.cover}">${P.emojiOf(x) ? `<span class="badge">${glyph(x)}</span>` : ''}</span>`;
+    const cc = coverColor(x);
+    return `<span class="dv-ico ${cls}"${cc ? ` style="--pastel:${cc}"` : x.hl ? ' style="--tone:var(--hl)"' : ''}>${glyph(x)}</span>`;
+  };
+  // 把页面里还没加载的主题照片填上
+  function fillCovers(root) {
+    root.querySelectorAll('img[data-cover]:not([src])').forEach(async img => { const u = await P.photoURL(img.dataset.cover); if (u) { img.src = u; img.classList.add('ok'); } });
+  }
   function subLine(x, inf) {
     const bits = [`<span class="dv-st">${stateWord(x, inf)}</span>`, esc(fmtDateTime(inf.state === 'past' ? inf.occ : inf.occ, x.time))];
     if (x.rep) bits.push(repLabel(x.rep) + (x.rep === 'year' && inf.nth > 0 ? ' · ' + F('{0} 周年', inf.nth) : ''));
@@ -417,39 +434,94 @@
     </div>`;
   }
 
+  // 列表最上面的大卡片：主题图片铺满，下面一块磨砂的倒数
+  function coverCardHTML(x, now) {
+    const inf = info(x, now), a = amount(x, inf), cc = coverColor(x);
+    const bg = isPhotoCover(x) ? `<img class="cv-img" alt="" data-cover="${x.cover}">` : `<span class="cv-emo" data-uc>${esc(P.emojiOf(x) || P.firstChar(x.title))}</span>`;
+    return `<div class="dv-cover${isPhotoCover(x) ? ' photo' : ''}${inf.state === 'past' ? ' past' : ''}" data-id="${x.id}" role="button" tabindex="0" style="${toneVar(x, inf)}${cc ? `;--pastel:${cc}` : ''}">
+      ${bg}
+      ${x.pin ? `<span class="cv-pin">${UI_IC.pin}</span>` : ''}
+      <div class="cv-plate">
+        <div class="cv-l"><b data-uc>${esc(x.title || T('（无标题）'))}</b><small>${esc(fmtDateTime(inf.occ, x.time))}${x.rep ? ' · ' + repLabel(x.rep) : ''}</small></div>
+        <div class="cv-r"><small>${inf.state === 'today' ? '' : stateWord(x, inf)}</small>${a.today ? `<b class="today">${T('今天')}</b>` : `<b>${a.num}<i>${a.unit}</i></b>`}</div>
+      </div>
+    </div>`;
+  }
+
   // ---------- 列表 / 日历 ----------
   function filtered(now) {
     let list = daysOf(calId());
-    if (st.book) list = list.filter(x => (st.book === '-' ? !x.book : x.book === st.book));
+    if (st.cat) list = list.filter(x => catOf(x) === st.cat && (!st.sub || subKey(x) === st.sub));
     return list.map(x => ({ x, inf: info(x, now) })).filter(o => st.filter === 'all' || (st.filter === 'fut' ? o.inf.state !== 'past' : o.inf.state === 'past'));
   }
   function render() {
     if (!isOn()) return;
     const c = MC.cal(calId()); if (!c) return;
     const now = new Date(), all = daysOf(c.id);
-    $('#dvName').textContent = c.name;
     const next = all.map(x => ({ x, inf: info(x, now) })).filter(o => o.inf.state !== 'past').sort((a, b) => a.inf.diff - b.inf.diff)[0];
-    $('#dvSub').textContent = !all.length ? T('记录重要的日子') : next
+    const sub = !all.length ? T('记录重要的日子') : next
       ? (next.inf.state === 'today' ? F('{0} 个日子 · 今天是「{1}」', all.length, next.x.title) : F('{0} 个日子 · 下一个「{1}」还有 {2} 天', all.length, next.x.title, next.inf.diff))
       : F('{0} 个日子', all.length);
-    $('#dvMode').innerHTML = st.mode === 'cal' ? UI_IC.list : UI_IC.cal;
-    $('#dvMode').setAttribute('aria-label', st.mode === 'cal' ? T('列表') : T('日历'));
+    document.querySelectorAll('.dvName').forEach(e => (e.textContent = c.name));
+    document.querySelectorAll('.dvSub').forEach(e => (e.textContent = sub));
+    document.querySelectorAll('#dvYM [data-ym]').forEach(b => b.classList.toggle('on', b.dataset.ym === st.cv));
     const books = booksOf(c.id);
-    if (st.book && st.book !== '-' && !books.some(b => b.id === st.book)) st.book = '';
+    const cats = CATS.filter(k => all.some(x => catOf(x) === k.k));
+    if (st.cat && !cats.some(k => k.k === st.cat)) { st.cat = ''; st.sub = ''; }
+    const inCat = st.cat ? all.filter(x => catOf(x) === st.cat) : [];
+    const subs = [...new Set(inCat.map(subKey).filter(Boolean))];
+    if (st.sub && !subs.includes(st.sub)) st.sub = '';
+    // 纪念日（列表）
     let h = `<div class="dv-bar">
       <div class="seg dv-seg" role="tablist">${[['all', '全部'], ['fut', '未来'], ['past', '过去']].map(([v, l]) => `<button data-filter="${v}" class="${st.filter === v ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
-      <div class="dv-books dv-noswipe">
-        <button class="dv-book${!st.book ? ' on' : ''}" data-book="">${T('全部')}</button>
-        ${books.map(b => `<button class="dv-book${st.book === b.id ? ' on' : ''}" data-book="${b.id}"><span data-uc>${esc(b.name)}</span><small>${all.filter(x => x.book === b.id).length}</small></button>`).join('')}
-        ${books.length && all.some(x => !x.book) ? `<button class="dv-book${st.book === '-' ? ' on' : ''}" data-book="-">${T('未分类')}</button>` : ''}
-        <button class="dv-book add" data-act="book" aria-label="${T('新建分类')}">${UI_IC.plus}<span>${T('分类')}</span></button>
-      </div>
+      ${cats.length > 1 || st.cat ? `<div class="dv-books dv-noswipe">
+        <button class="dv-book${!st.cat ? ' on' : ''}" data-cat="">${T('全部')}</button>
+        ${cats.map(k => `<button class="dv-book${st.cat === k.k ? ' on' : ''}" data-cat="${k.k}"><span class="e">${k.e}</span>${T(k.n)}<small>${all.filter(x => catOf(x) === k.k).length}</small></button>`).join('')}
+      </div>` : ''}
+      ${st.cat && subs.length > 1 ? `<div class="dv-books dv-subs dv-noswipe">
+        <button class="dv-sub${!st.sub ? ' on' : ''}" data-sub="">${T('全部')}</button>
+        ${subs.map(k => { const x0 = inCat.find(x => subKey(x) === k); return `<button class="dv-sub${st.sub === k ? ' on' : ''}" data-sub="${k}"${k.startsWith('b') ? ` data-custom="${k}"` : ''}><span data-uc>${esc(subName(x0, books))}</span><small>${inCat.filter(x => subKey(x) === k).length}</small></button>`; }).join('')}
+      </div>` : ''}
     </div>`;
-    if (!all.length) {
-      h += `<div class="dv-empty"><span class="dv-empty-ico">${svgOf('heart')}</span><b>${T('还没有日子')}</b><p>${T('点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。')}</p></div>`;
-    } else if (st.mode === 'cal') h += calHTML(now);
-    else h += listHTML(now);
-    dvBody.innerHTML = h;
+    const empty = `<div class="dv-empty"><span class="dv-empty-ico">💝</span><b>${T('还没有日子')}</b><p>${T('点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。')}</p></div>`;
+    dvList.innerHTML = h + (all.length ? listHTML(now) : empty);
+    fillCovers(dvList);
+    // 日历（年 / 月）
+    dvBody.innerHTML = st.cv === 'year' ? yearHTML(now) : calHTML(now);
+    fillCovers(dvBody);
+  }
+  // 年视图：12 个小月历，有日子的那天涂上颜色；下面列出这一年里的日子
+  function yearHTML(now) {
+    const today = t0(now);
+    if (!st.yy) st.yy = today.getFullYear();
+    const y = st.yy, ws = MC.settings.weekStart || 0, list = daysOf(calId());
+    const mn = new Intl.DateTimeFormat(MC.locale ? MC.locale() : 'zh-CN', { month: 'short' });
+    const occ = []; // 这一年里的每一次
+    let months = '';
+    for (let m = 0; m < 12; m++) {
+      const first = new Date(y, m, 1), lead = (first.getDay() - ws + 7) % 7, n = new Date(y, m + 1, 0).getDate();
+      let cells = '';
+      for (let i = 0; i < lead; i++) cells += '<i></i>';
+      for (let i = 1; i <= n; i++) {
+        const d = new Date(y, m, i), hit = list.filter(x => P.hits(x, d));
+        hit.forEach(x => occ.push({ x, d }));
+        const c = hit.length ? (hit[0].hl ? hlTone(hit[0].hl) : `var(--${d < today ? 'past' : 'fut'})`) : '';
+        cells += `<i class="${hit.length ? 'on' : ''}${diffDays(d, today) === 0 ? ' td' : ''}"${c ? ` style="--c:${c}"` : ''}>${i}</i>`;
+      }
+      months += `<button class="ym${y === today.getFullYear() && m === today.getMonth() ? ' cur' : ''}" data-month="${m}"><b>${mn.format(first)}</b><span class="ym-g">${cells}</span></button>`;
+    }
+    const rows = occ.length ? `<div class="dv-cards">${occ.map(o => {
+      const inf = info(o.x, now), dd = diffDays(today, o.d);
+      const word = dd === 0 ? T('就是今天') : dd > 0 ? F('还有 {0} 天', dd) : F('{0} 天前', -dd);
+      return `<button class="dv-row${dd < 0 ? ' past' : ''}" data-id="${o.x.id}" style="--tone:var(--${dd < 0 ? 'past' : 'fut'})${o.x.hl ? ';' + hlVars(o.x.hl) : ''}">${tile(o.x, inf)}
+        <span class="dv-txt"><b data-uc>${esc(o.x.title || T('（无标题）'))}</b><small>${esc(fmtDate(o.d))}${o.x.rep ? '<i class="dot">·</i>' + repLabel(o.x.rep) : ''}</small></span>
+        <span class="dv-n sm"><b>${word}</b></span></button>`;
+    }).join('')}</div>` : `<p class="dv-none">${T('这一年还没有标记的日子')}</p>`;
+    return `<div class="dv-cal dv-year">
+      <div class="dv-cal-head"><button class="nav-btn" data-ynav="-1" aria-label="${T('上一年')}">‹</button><b>${MC.isZh ? y + '年' : y}</b><button class="nav-btn" data-ynav="1" aria-label="${T('下一年')}">›</button></div>
+      <div class="ym-grid">${months}</div>
+    </div>
+    <p class="dv-sec">${T('这一年的日子')}<span>${occ.length || ''}</span></p>${rows}`;
   }
   function listHTML(now) {
     const items = filtered(now);
@@ -458,8 +530,8 @@
     const past = items.filter(o => o.inf.state === 'past').sort((a, b) => (b.x.pin - a.x.pin) || (b.inf.diff - a.inf.diff));
     const pinned = items.filter(o => o.x.pin).sort((a, b) => b.x.updatedAt - a.x.updatedAt)[0];
     const hero = pinned || fut[0] || past[0];
-    let h = heroHTML(hero.x, now, false);
-    const sec = (title, list) => list.length ? `<p class="dv-sec">${title}<span>${list.length}</span></p><div class="dv-group">${list.map(o => rowHTML(o.x, now)).join('')}</div>` : '';
+    let h = coverCardHTML(hero.x, now);
+    const sec = (title, list) => list.length ? `<p class="dv-sec">${title}<span>${list.length}</span></p><div class="dv-cards">${list.map(o => rowHTML(o.x, now)).join('')}</div>` : '';
     h += sec(T('即将到来'), fut.filter(o => o !== hero));
     h += sec(T('已经过去'), past.filter(o => o !== hero));
     return h;
@@ -469,7 +541,7 @@
     if (!st.ym) st.ym = [today.getFullYear(), today.getMonth()];
     const [y, m] = st.ym, ws = MC.settings.weekStart || 0;
     const first = new Date(y, m, 1), lead = (first.getDay() - ws + 7) % 7, n = new Date(y, m + 1, 0).getDate();
-    const list = daysOf(calId()).filter(x => !st.book || (st.book === '-' ? !x.book : x.book === st.book));
+    const list = daysOf(calId());
     const marks = new Map(); // 日期 → [{x, kind}]
     const add = (d, o) => { const k = MC.ymd(d); if (!marks.has(k)) marks.set(k, []); marks.get(k).push(o); };
     for (let i = 1; i <= n; i++) { const d = new Date(y, m, i); for (const x of list) if (P.hits(x, d)) add(d, { x, kind: 'day' }); }
@@ -483,7 +555,7 @@
     }
     const wd = Array.from({ length: 7 }, (_, i) => `<span>${MC.WD[(i + ws) % 7]}</span>`).join('');
     const selD = MC.parse(st.sel), selMarks = (marks.get(st.sel) || []);
-    const selList = selMarks.length ? `<div class="dv-group">${selMarks.map(o => o.kind === 'ms'
+    const selList = selMarks.length ? `<div class="dv-cards">${selMarks.map(o => o.kind === 'ms'
       ? `<button class="dv-row ms" data-id="${o.x.id}" style="--tone:var(--past)${o.x.hl ? ';' + hlVars(o.x.hl) : ''}">${tile(o.x, info(o.x, now))}<span class="dv-txt"><b data-uc>${esc(o.x.title)}</b><small>${T('里程碑')}<i class="dot">·</i>${o.label}</small></span><span class="dv-n sm"><b>${o.label}</b></span></button>`
       : rowHTML(o.x, now)).join('')}</div>` : `<p class="dv-none">${T('这一天没有标记的日子')}</p>`;
     const title = new Intl.DateTimeFormat(MC.locale ? MC.locale() : 'zh-CN', { year: 'numeric', month: 'long' }).format(first);
@@ -495,82 +567,116 @@
     <p class="dv-sec">${P.fmtDate(selD)}</p>${selList}`;
   }
 
-  view.addEventListener('click', e => {
+  const onClick = e => {
     const t = e.target;
+    if (t.closest('.dv-title')) { MC.Drawer.open(); return; }
+    const ym = t.closest('[data-ym]'); if (ym) { st.cv = ym.dataset.ym; MC.settings.daysCalView = st.cv; MC.saveSettings(); render(); return; }
     const f = t.closest('[data-filter]'); if (f) { st.filter = f.dataset.filter; render(); return; }
-    const bk = t.closest('[data-book]');
-    if (bk) {
-      const id = bk.dataset.book;
-      if (id && id !== '-' && st.book === id) { bookMenu(bk, MC.data.books.find(b => b.id === id)); return; }
-      st.book = id; render(); return;
+    const ck = t.closest('[data-cat]'); if (ck && !ck.closest('.de-body')) { st.cat = ck.dataset.cat; st.sub = ''; render(); return; }
+    const sk = t.closest('[data-sub]');
+    if (sk) {
+      const id = sk.dataset.sub;
+      if (sk.dataset.custom && st.sub === id) { bookMenu(sk, MC.data.books.find(b => b.id === id)); return; }
+      st.sub = id; render(); return;
     }
-    if (t.closest('[data-act="book"]')) { bookForm(null, b => { st.book = b.id; render(); }); return; }
     const nav = t.closest('[data-nav]');
     if (nav) { const [y, m] = st.ym; const d = new Date(y, m + Number(nav.dataset.nav), 1); st.ym = [d.getFullYear(), d.getMonth()]; render(); return; }
+    const yn = t.closest('[data-ynav]'); if (yn) { st.yy += Number(yn.dataset.ynav); render(); return; }
+    const mo = t.closest('[data-month]');
+    if (mo) { st.ym = [st.yy, Number(mo.dataset.month)]; st.cv = 'month'; MC.settings.daysCalView = 'month'; MC.saveSettings(); const d = new Date(st.yy, Number(mo.dataset.month), 1); st.sel = MC.ymd(d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear() ? new Date() : d); render(); return; }
     const dc = t.closest('.dc[data-date]'); if (dc) { st.sel = dc.dataset.date; vib(); render(); return; }
-    const row = t.closest('[data-id]'); if (row) openDetail(row.dataset.id);
-  });
-  $('#dvMode').onclick = () => { st.mode = st.mode === 'cal' ? 'list' : 'cal'; MC.settings.daysMode = st.mode; MC.saveSettings(); if (st.mode === 'cal') { st.ym = null; st.sel = MC.todayStr(); } render(); };
-  $('#dvTitleBtn').onclick = () => MC.Drawer.open();
+    const row = t.closest('[data-id]'); if (row) openPage(row.dataset.id);
+  };
+  view.addEventListener('click', onClick);
+  listPage.addEventListener('click', onClick);
+
 
   // ---------- 分类 ----------
-  function bookForm(b, done) {
+  function bookForm(b, done, cat = 'other') {
     MC.openForm({
-      title: b ? T('重命名分类') : T('新建分类'), submit: b ? T('保存') : T('新建'),
-      fields: [{ id: 'bookName', label: T('名称'), ph: T('比如：生活、纪念日、考试、旅行'), val: b ? b.name : '', max: 24 }],
+      title: b ? T('重命名细分') : F('在「{0}」里加一个细分', T(catDef(cat).n)), submit: b ? T('保存') : T('添加'),
+      fields: [{ id: 'bookName', label: T('名称'), ph: T('比如：纪念日、周年、考研'), val: b ? b.name : '', max: 24 }],
       onSubmit: async v => {
         const name = v.bookName.trim(); if (!name) throw new Error(T('请填写名称'));
         if (b) { MC.updateBook(b, { name }); done && done(b); return; }
-        const nb = MC.addBook(calId(), name); done && done(nb);
+        const nb = MC.addBook(calId(), name, cat); done && done(nb);
       },
     });
     setTimeout(() => { const i = $('#ff_bookName'); i && i.focus(); }, 360);
   }
   function bookMenu(anchor, b) {
     if (!b) return;
-    UI.menu(anchor, [{ label: T('重命名'), value: 'ren' }, { label: T('删除分类'), value: 'del' }], v => {
+    UI.menu(anchor, [{ label: T('重命名'), value: 'ren' }, { label: T('删除细分'), value: 'del' }], v => {
       if (v === 'ren') bookForm(b, () => render());
-      else if (confirm(F('删除分类「{0}」？里面的日子不会删除，会移到「未分类」。', b.name))) { MC.deleteBook(b); st.book = ''; render(); }
+      else if (confirm(F('删除细分「{0}」？里面的日子不会删除。', b.name))) { MC.deleteBook(b); st.sub = ''; render(); }
     });
   }
 
-  // ---------- 详情 ----------
+  // ---------- 日子的主页：单独的一页，上面是主题图片，下面是其他功能 ----------
   let cur = null;
-  const ddBody = $('#ddBody');
-  function openDetail(id) {
+  const page = $('#dayPage'), pgScroll = $('#dpScroll'), ddBody = $('#ddBody');
+  function openPage(id) {
     const x = find(id); if (!x) return;
-    cur = id; renderDetail();
-    UI.open('dayDetail', () => { cur = null; });
-    $('#ddBody').scrollTop = 0;
+    cur = id; renderPage();
+    pgScroll.scrollTop = 0;
+    page.classList.add('show'); page.setAttribute('aria-hidden', 'false');
+    body.classList.add('dp-open');
   }
-  Days.openDetail = openDetail;
-  function renderDetail() {
-    const x = cur && find(cur); if (!x) { if (UI.isOpen('dayDetail')) UI.close('dayDetail', true); return; }
-    const now = new Date(), inf = info(x, now);
-    $('#ddHead').textContent = '';
-    const book = MC.data.books.find(b => b.id === x.book);
-    const notes = [...x.notes].sort((a, b) => b.at - a.at);
-    const units = UNIT_SEG;
-    ddBody.innerHTML = `${heroHTML(x, now, true)}
-      <div class="seg small dd-units" role="tablist" aria-label="${T('显示单位')}">${units.map(([v, l]) => `<button data-unit="${v}" class="${x.unit === v ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
+  function closePage() {
+    if (!page.classList.contains('show')) return false;
+    page.classList.remove('show'); page.setAttribute('aria-hidden', 'true');
+    body.classList.remove('dp-open');
+    page.style.transform = ''; cur = null;
+    return true;
+  }
+  Days.openDetail = Days.openPage = openPage;
+  Days.closePage = closePage;
+  Days.pageOpen = () => page.classList.contains('show');
+  function renderPage() {
+    const x = cur && find(cur); if (!x) { closePage(); return; }
+    const now = new Date(), inf = info(x, now), a = amount(x, inf), ms = milestone(x, inf), cc = coverColor(x);
+    // 封面
+    const cover = $('#dpCover');
+    cover.className = 'dp-cover' + (isPhotoCover(x) ? ' photo' : '') + (inf.state === 'past' ? ' past' : '');
+    cover.style.cssText = toneVar(x, inf) + (cc ? `;--pastel:${cc}` : '');
+    $('#dpCoverBg').innerHTML = isPhotoCover(x) ? `<img alt="" data-cover="${x.cover}">` : `<span class="dp-emo" data-uc>${esc(P.emojiOf(x) || P.firstChar(x.title))}</span>`;
+    $('#dpSetCover').innerHTML = `${UI_IC.photo}<span>${x.cover ? T('更换主题图片') : T('设置主题图片')}</span>`;
+    $('#dpPlate').innerHTML = `
+      <b class="dp-title" data-uc>${esc(x.title || T('（无标题）'))}</b>
+      <span class="dp-st">${inf.state === 'today' ? T('就是今天') : stateWord(x, inf)}</span>
+      ${a.today ? `<span class="dp-num today" data-cycle>${T('今天')}</span>` : `<span class="dp-num" data-cycle><b>${a.num}</b><i>${a.unit}</i></span>`}
+      ${a.rest ? `<span class="dp-rest">${T('又')} ${a.rest}</span>` : ''}
+      <span class="dp-date">${esc(fmtDateTime(inf.occ, x.time))}${x.rep ? ' · ' + repLabel(x.rep) : ''}</span>
+      <div class="dh-tick" data-tick="${x.id}">${tickHTML(x, inf, now)}</div>`;
+    fillCovers(cover);
+    // 下面的内容
+    const cd = catDef(catOf(x)), sn = subName(x);
+    const notes = [...x.notes].sort((p, q) => q.at - p.at);
+    const extra = [ms ? `${T('下一个里程碑')} <b>${ms.label}</b> · ${esc(fmtDate(ms.date))} · ${F('还有 {0} 天', ms.left)}` : '',
+      x.rep === 'year' && inf.nth > 0 ? `${F('这是第 {0} 次', inf.nth)} · ${T('起始于')} ${esc(fmtDate(inf.base))}` : ''].filter(Boolean);
+    ddBody.innerHTML = `
+      <div class="seg small dd-units" role="tablist" aria-label="${T('显示单位')}">${UNIT_SEG.map(([v, l]) => `<button data-unit="${v}" class="${x.unit === v ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
+      ${inf.prog !== null ? `<div class="dp-prog" aria-hidden="true"><span style="width:${(inf.prog * 100).toFixed(1)}%;--tone:var(--${inf.state === 'past' ? 'past' : 'fut'})"></span></div>` : ''}
+      ${extra.length ? `<div class="dp-ms">${extra.map(t => `<p>${t}</p>`).join('')}</div>` : ''}
       <div class="dd-acts">
-        <button data-dd="share">${UI_IC.share}<span>${T('分享图片')}</span></button>
-        <button data-dd="cam">${UI_IC.cam}<span>${T('透明相机')}</span></button>
-        <button data-dd="hl" class="${x.hl ? 'on' : ''}" style="${x.hl ? hlVars(x.hl) : ''}">${UI_IC.hl}<span>${x.hl ? T('已高亮') : T('高亮')}</span></button>
-        <button data-dd="pin" class="${x.pin ? 'on' : ''}">${UI_IC.pin}<span>${x.pin ? T('已置顶') : T('置顶')}</span></button>
+        <button data-dd="share"><span class="ai" style="--ac:#5B8DEF">${UI_IC.share}</span><span>${T('分享图片')}</span></button>
+        <button data-dd="cam"><span class="ai" style="--ac:#8B6FD6">${UI_IC.cam}</span><span>${T('透明相机')}</span></button>
+        <button data-dd="hl" class="${x.hl ? 'on' : ''}" style="${x.hl ? hlVars(x.hl) : ''}"><span class="ai" style="--ac:${x.hl ? 'var(--hl)' : '#E0869A'}">${UI_IC.hl}</span><span>${x.hl ? T('已高亮') : T('高亮')}</span></button>
+        <button data-dd="pin" class="${x.pin ? 'on' : ''}"><span class="ai" style="--ac:#E3A048">${UI_IC.pin}</span><span>${x.pin ? T('已置顶') : T('置顶')}</span></button>
       </div>
       <div class="group dd-info">
-        <div class="dd-kv"><span>${x.rep ? T('起始日') : inf.state === 'past' ? T('起始日') : T('目标日')}</span><b>${esc(fmtDateTime(P.occurrence({ ...x, rep: '' }, t0()), x.time))}</b></div>
+        <div class="dd-kv"><span>${x.rep || inf.state === 'past' ? T('起始日') : T('目标日')}</span><b>${esc(fmtDateTime(P.occurrence({ ...x, rep: '' }, t0()), x.time))}</b></div>
         ${x.rep ? `<div class="dd-kv"><span>${T('下一次')}</span><b>${esc(fmtDateTime(inf.occ, x.time))}</b></div><div class="dd-kv"><span>${T('重复')}</span><b>${repLabel(x.rep)}</b></div>` : ''}
-        ${book ? `<div class="dd-kv"><span>${T('分类')}</span><b data-uc>${esc(book.name)}</b></div>` : ''}
+        <div class="dd-kv"><span>${T('分类')}</span><b><span>${cd.e}</span> ${T(cd.n)}${sn ? ` · <span data-uc>${esc(sn)}</span>` : ''}</b></div>
       </div>
-      <div class="dd-sec"><h3>${UI_IC.note}${T('小纸条')}<span>${notes.length || ''}</span></h3><button class="chip-btn glass" data-dd="note">${T('写一张')}</button></div>
+      <div class="dd-sec"><h3><span class="si">📝</span>${T('小纸条')}<span>${notes.length || ''}</span></h3><button class="chip-btn glass" data-dd="note">${T('写一张')}</button></div>
       ${notes.length ? `<div class="dd-notes">${notes.map(n => noteHTML(x, n)).join('')}</div>` : `<p class="dd-hint">${T('记下这一天的期待、心情，或者那天发生的小事。')}</p>`}
-      <div class="dd-sec"><h3>${UI_IC.photo}${T('相册')}<span>${x.photos.length || ''}</span></h3><button class="chip-btn glass" data-dd="photo">${T('添加照片')}</button></div>
+      <div class="dd-sec"><h3><span class="si">📷</span>${T('相册')}<span>${x.photos.length || ''}</span></h3><button class="chip-btn glass" data-dd="photo">${T('添加照片')}</button></div>
       ${x.photos.length ? `<div class="dd-photos">${x.photos.map((p, i) => `<button class="dd-ph" data-ph="${p.id}" data-i="${i}" aria-label="${T('查看照片')}"><img alt="" data-src="${p.id}"></button>`).join('')}<button class="dd-ph add" data-dd="photo" aria-label="${T('添加照片')}">${UI_IC.plus}</button></div>` : `<p class="dd-hint">${T('把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。')}</p>`}
       <button class="dd-del" data-dd="del">${T('删除这个日子')}</button>`;
     ddBody.querySelectorAll('img[data-src]').forEach(async img => { const u = await P.photoURL(img.dataset.src); if (u) { img.src = u; img.parentElement.classList.add('ok'); } else img.parentElement.classList.add('miss'); });
   }
+  const renderDetail = renderPage;
   function noteHTML(x, n) {
     const d = new Date(n.at), inf = info(x, d), a = amount(x, inf, 'd');
     const when = inf.state === 'today' ? T('那天就是这一天') : inf.state === 'fut' ? F('那天还有 {0} 天', a.num) : x.from1 ? F('那天是第 {0} 天', a.num) : F('那天已经 {0} 天', a.num);
@@ -579,11 +685,24 @@
       <div class="dn-top">${who}<small>${esc(P.fmtDate(d))} · ${when}</small><button class="dn-more" data-nmore="${n.id}" aria-label="${T('更多')}">${UI_IC.more}</button></div>
       <p data-uc>${esc(n.text)}</p></div>`;
   }
+  // 封面上的按钮：返回、分享、编辑、主题图片；点大数字切换单位
+  page.addEventListener('click', e => {
+    const x = cur && find(cur); if (!x) return;
+    const b = e.target.closest('[data-pg]');
+    if (b) {
+      const a = b.dataset.pg;
+      if (a === 'back') closePage();
+      else if (a === 'share') Days.openShare(x);
+      else if (a === 'edit') openEditor(x);
+      else if (a === 'cover') openCover(x);
+      return;
+    }
+    if (e.target.closest('#dpPlate [data-cycle]')) { const order = ['d', 'w', 'm', 'y']; MC.updateDay(x, { unit: order[(order.indexOf(x.unit) + 1) % 4] }); vib(); }
+  });
   ddBody.addEventListener('click', async e => {
     const x = cur && find(cur); if (!x) return;
     const t = e.target;
     const u = t.closest('[data-unit]'); if (u) { MC.updateDay(x, { unit: u.dataset.unit }); vib(); return; }
-    if (t.closest('[data-cycle]')) { const order = ['d', 'w', 'm', 'y']; MC.updateDay(x, { unit: order[(order.indexOf(x.unit) + 1) % 4] }); vib(); return; }
     const nm = t.closest('[data-nmore]');
     if (nm) {
       const n = x.notes.find(y => y.id === nm.dataset.nmore); if (!n) return;
@@ -607,18 +726,67 @@
   });
   async function removeDay(x) {
     if (!confirm(F('删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。', x.title))) return false;
-    for (const p of x.photos) { try { await P.PDB.del(p.id); } catch (err) {} Days.Album.enqueue('del', p.id); }
+    for (const p of [...x.photos, ...(isPhotoCover(x) ? [{ id: x.cover }] : [])]) { try { await P.PDB.del(p.id); } catch (err) {} Days.Album.enqueue('del', p.id); }
     MC.deleteDay(x);
     if (UI.isOpen('dayEditor')) UI.close('dayEditor', true);
-    if (UI.isOpen('dayDetail')) UI.close('dayDetail', true);
+    closePage();
     UI.toast(T('已删除'));
     return true;
   }
-  $('#ddEdit').onclick = () => { const x = cur && find(cur); if (x) openEditor(x); };
   const photoIn = $('#dayPhotoFile');
   let photoFor = null;
   function pickPhotos(x) { photoFor = x.id; photoIn.value = ''; photoIn.click(); }
   photoIn.addEventListener('change', async () => { const x = photoFor && find(photoFor); if (x && photoIn.files.length) await P.addPhotos(x, photoIn.files); });
+
+  // 从左边缘往右滑返回（和系统的返回手势一样）
+  let sw = null;
+  page.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    sw = e.touches.length === 1 && t.clientX < 28 && !UI.anyOpen() ? { x0: t.clientX, y0: t.clientY, on: false, w: page.offsetWidth } : null;
+  }, { passive: true });
+  page.addEventListener('touchmove', e => {
+    if (!sw) return;
+    const t = e.touches[0], dx = t.clientX - sw.x0, dy = t.clientY - sw.y0;
+    if (!sw.on) { if (Math.abs(dx) < 8) return; if (dx < 0 || Math.abs(dy) > dx) { sw = null; return; } sw.on = true; page.style.transition = 'none'; }
+    if (e.cancelable) e.preventDefault();
+    page.style.transform = `translate3d(${Math.max(0, dx)}px,0,0)`;
+    sw.dx = dx;
+  }, { passive: false });
+  page.addEventListener('touchend', () => {
+    if (!sw || !sw.on) { sw = null; return; }
+    page.style.transition = '';
+    if (sw.dx > sw.w * .32) { page.style.transform = `translate3d(${sw.w}px,0,0)`; setTimeout(closePage, 220); }
+    else page.style.transform = '';
+    sw = null;
+  });
+
+  // ---------- 主题图片 ----------
+  let coverFor = null;
+  const coverIn = $('#dayCoverFile');
+  function openCover(x) {
+    coverFor = x.id;
+    const cc = coverColor(x);
+    $('#dcBody').innerHTML = `
+      <button class="dc-pick" data-cv="pick"><span class="ai" style="--ac:#5B8DEF">${UI_IC.photo}</span><span><b>${T('从手机相册选择')}</b><small>${T('会裁成封面铺满顶部')}</small></span></button>
+      ${x.photos.length ? `<p class="cmp-label">${T('这个日子的相册')}</p><div class="dc-grid">${x.photos.map(p => `<button class="dc-ph${x.cover === p.id ? ' on' : ''}" data-cv="${p.id}"><img alt="" data-src="${p.id}"></button>`).join('')}</div>` : ''}
+      <p class="cmp-label">${T('纯色')}</p>
+      <div class="dc-colors">${P.COVERS.map(c => `<button class="dc-col${cc === c ? ' on' : ''}" style="--pastel:${c}" data-cv="c:${c}" aria-label="${c}"></button>`).join('')}</div>
+      ${x.cover ? `<button class="dd-del" data-cv="none">${T('移除主题图片')}</button>` : ''}`;
+    $('#dcBody').querySelectorAll('img[data-src]').forEach(async img => { const u = await P.photoURL(img.dataset.src); if (u) img.src = u; });
+    UI.open('dayCover');
+  }
+  $('#dcBody').addEventListener('click', async e => {
+    const b = e.target.closest('[data-cv]'); const x = coverFor && find(coverFor); if (!b || !x) return;
+    const v = b.dataset.cv;
+    if (v === 'pick') { coverIn.value = ''; coverIn.click(); return; }
+    await P.setCover(x, v === 'none' ? '' : v);
+    UI.close('dayCover', true);
+  });
+  coverIn.addEventListener('change', async () => {
+    const x = coverFor && find(coverFor), f = coverIn.files[0]; if (!x || !f) return;
+    UI.close('dayCover', true);
+    await P.setCoverFile(x, f);
+  });
 
   // ---------- 小纸条 ----------
   let noteCtx = null;
@@ -646,8 +814,8 @@
   const deBody = $('#deBody');
   function openEditor(x, defaults = {}) {
     edFor = x ? x.id : null;
-    ed = x ? { title: x.title, date: x.date, time: x.time, rep: x.rep, book: x.book, icon: x.icon, hl: x.hl, pin: x.pin, unit: x.unit, from1: x.from1 }
-      : { title: '', date: defaults.date || MC.todayStr(), time: '', rep: '', book: defaults.book && defaults.book !== '-' ? defaults.book : '', icon: '', hl: '', pin: false, unit: 'd', from1: false };
+    ed = x ? { title: x.title, date: x.date, time: x.time, rep: x.rep, book: x.book, cat: catOf(x), sub: x.sub, iconSet: true, icon: P.emojiOf(x), hl: x.hl, pin: x.pin, unit: x.unit, from1: x.from1 }
+      : { title: '', date: defaults.date || MC.todayStr(), time: '', rep: '', book: '', cat: defaults.cat || '', sub: '', iconSet: false, icon: '', hl: '', pin: false, unit: 'd', from1: false };
     ed.open = '';
     $('#deHead').textContent = x ? T('编辑日子') : T('新的日子');
     $('#deSave').textContent = x ? T('保存') : T('添加');
@@ -658,16 +826,24 @@
   }
   Days.openEditor = openEditor;
   function edPreview() {
-    const fake = { ...ed, id: 'preview', notes: [], photos: [], createdAt: Date.now() };
-    const h = $('#dePreview'); if (h) h.innerHTML = heroHTML(fake, new Date(), false);
+    const old = edFor && find(edFor);
+    const fake = { ...ed, id: 'preview', cover: old ? old.cover : '', notes: [], photos: [], createdAt: Date.now(), title: ed.title || edPlaceholder().replace(/^[^：:]*[：:]\s*/, '').split(/[、,]/)[0] };
+    const h = $('#dePreview'); if (h) { h.innerHTML = coverCardHTML(fake, new Date()); fillCovers(h); }
   }
+  const PH = { love: '比如：在一起、结婚纪念日', trip: '比如：去巴黎旅行、回家', study: '比如：期末考试、毕业', life: '比如：演唱会、马拉松', pet: '比如：小橘到家', fest: '比如：春节、圣诞节', other: '比如：搬家' };
+  const edPlaceholder = () => T(PH[ed.cat] || '比如：去巴黎旅行、在一起、考研');
   function renderEditor() {
     const books = booksOf(calId());
     const d = MC.parse(ed.date), isPast = d < t0() && !ed.rep;
     const sw = (id, on, label, sub) => `<label class="pk-row"><span>${label}${sub ? `<small>${sub}</small>` : ''}</span><input type="checkbox" class="switch" id="${id}"${on ? ' checked' : ''}></label>`;
     deBody.innerHTML = `
       <div id="dePreview" class="de-preview" aria-hidden="true"></div>
-      <div class="cmp-card de-card"><input id="deTitle" maxlength="120" placeholder="${T('比如：去巴黎旅行、在一起、考研')}" value="${esc(ed.title)}" enterkeyhint="done" autocomplete="off"></div>
+      <p class="cmp-label">${T('类别')}</p>
+      <div class="de-cats">${CATS.map(c => `<button class="de-cat${ed.cat === c.k ? ' on' : ''}" data-cat="${c.k}"><span class="e">${c.e}</span><span>${T(c.n)}</span></button>`).join('')}</div>
+      ${ed.cat ? `<p class="cmp-label">${T('细分')}</p>
+      <div class="cmp-chips de-subs">${catDef(ed.cat).subs.map(([k, n, e]) => `<button class="qchip${!ed.book && ed.sub === ed.cat + '.' + k ? ' on' : ''}" data-psub="${ed.cat}.${k}"><span>${e}</span>${T(n)}</button>`).join('')}${books.filter(b => b.cat === ed.cat).map(b => `<button class="qchip${ed.book === b.id ? ' on' : ''}" data-bk="${b.id}"><span data-uc>${esc(b.name)}</span></button>`).join('')}<button class="qchip ghost" data-newbk>＋ ${T('自定义')}</button></div>` : ''}
+      <p class="cmp-label">${T('名称')}</p>
+      <div class="cmp-card de-card"><input id="deTitle" maxlength="120" placeholder="${esc(edPlaceholder())}" value="${esc(ed.title)}" enterkeyhint="done" autocomplete="off"></div>
       <div class="group de-rows">
         <button class="pk-row" data-open="date"><span>${T('日期')}</span><span class="grow-val on">${esc(fmtDate(d))}</span></button>
         <div class="wheel-wrap" id="deDateW" ${ed.open === 'date' ? '' : 'hidden'}></div>
@@ -680,12 +856,11 @@
       ${isPast ? `<div class="group de-rows">${sw('deFrom1', ed.from1, T('起始日算第 1 天'), T('显示成「第 N 天」，比如在一起第 100 天'))}</div>` : ''}
       <p class="cmp-label">${T('显示单位')}</p>
       <div class="seg de-seg">${UNIT_SEG.map(([v, l]) => `<button data-unit="${v}" class="${ed.unit === v ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
-      <p class="cmp-label">${T('分类')}</p>
-      <div class="cmp-chips"><button class="qchip${!ed.book ? ' on' : ''}" data-bk="">${T('未分类')}</button>${books.map(b => `<button class="qchip${ed.book === b.id ? ' on' : ''}" data-bk="${b.id}"><span data-uc>${esc(b.name)}</span></button>`).join('')}<button class="qchip ghost" data-newbk>＋ ${T('新分类')}</button></div>
       <p class="cmp-label">${T('图标')}</p>
-      <div class="de-icons">
-        <div class="de-ic-row"><button class="de-ic${!ed.icon ? ' on' : ''}" data-ic="" aria-label="${T('用名称的第一个字')}"><span class="ini">${esc(P.firstChar(ed.title || T('字')))}</span></button><input class="de-emo" id="deEmo" maxlength="8" placeholder="${T('或输入一个表情')}" value="${ed.icon && !ICONS[ed.icon] ? esc(ed.icon) : ''}"></div>
-        ${ICON_GROUPS.map(([g, list]) => `<p class="de-ic-g">${T(g)}</p><div class="de-ic-grid">${list.map(n => `<button class="de-ic${ed.icon === n ? ' on' : ''}" data-ic="${n}" aria-label="${n}">${svgOf(n)}</button>`).join('')}</div>`).join('')}
+      <div class="de-icons${ed.moreIcons ? '' : ' fold'}">
+        <div class="de-ic-row">${ed.icon ? `<span class="de-ic emo on"><span data-uc>${esc(ed.icon)}</span></span>` : ''}<button class="de-ic${!ed.icon ? ' on' : ''}" data-ic="" aria-label="${T('用名称的第一个字')}"><span class="ini">${esc(P.firstChar(ed.title || T('字')))}</span></button><input class="de-emo" id="deEmo" maxlength="8" placeholder="${T('或输入一个表情')}" value="${ed.icon && !ICON_GROUPS.some(g => g[1].includes(ed.icon)) ? esc(ed.icon) : ''}"></div>
+        <button class="de-more" data-moreic>${ed.moreIcons ? T('收起') : T('更多表情')}</button>
+        ${!ed.moreIcons ? '' : ICON_GROUPS.map(([g, list]) => `<p class="de-ic-g">${T(g)}</p><div class="de-ic-grid">${list.map(n => `<button class="de-ic emo${ed.icon === n ? ' on' : ''}" data-ic="${n}" aria-label="${n}"><span data-uc>${n}</span></button>`).join('')}</div>`).join('')}
       </div>
       <p class="cmp-label">${T('高亮')}</p>
       <div class="dr-swatches de-hl"><button type="button" class="dr-sw none${!ed.hl ? ' on' : ''}" data-hl="" aria-label="${T('不高亮')}"></button>${HL.map(h => `<button type="button" class="dr-sw${ed.hl === h.c ? ' on' : ''}" style="--cc:${hlTone(h.c)}" data-hl="${h.c}" aria-label="${T(h.n)}"></button>`).join('')}</div>
@@ -723,7 +898,7 @@
   }
   deBody.addEventListener('input', e => {
     if (e.target.id === 'deTitle') { ed.title = e.target.value; const ini = deBody.querySelector('[data-ic=""] .ini'); if (ini) ini.textContent = P.firstChar(ed.title || T('字')); edPreview(); }
-    if (e.target.id === 'deEmo') { const v = e.target.value.trim(); ed.icon = v; deBody.querySelectorAll('.de-ic').forEach(b => b.classList.toggle('on', false)); if (!v) deBody.querySelector('[data-ic=""]').classList.add('on'); edPreview(); }
+    if (e.target.id === 'deEmo') { const v = e.target.value.trim(); ed.icon = v; ed.iconSet = !!v; deBody.querySelectorAll('.de-ic').forEach(b => b.classList.toggle('on', false)); if (!v) deBody.querySelector('[data-ic=""]').classList.add('on'); edPreview(); }
   });
   deBody.addEventListener('change', e => {
     const id = e.target.id;
@@ -737,28 +912,57 @@
     const op = t.closest('[data-open]'); if (op) { ed.open = ed.open === op.dataset.open ? '' : op.dataset.open; keep(renderEditor); return; }
     const rp = t.closest('[data-rep]'); if (rp) { ed.rep = rp.dataset.rep; if (ed.rep) ed.from1 = false; keep(renderEditor); return; }
     const un = t.closest('[data-unit]'); if (un) { ed.unit = un.dataset.unit; deBody.querySelectorAll('.de-seg button').forEach(b => b.classList.toggle('on', b === un)); edPreview(); return; }
-    const bk = t.closest('[data-bk]'); if (bk) { ed.book = bk.dataset.bk; deBody.querySelectorAll('[data-bk]').forEach(b => b.classList.toggle('on', b === bk)); return; }
-    if (t.closest('[data-newbk]')) { bookForm(null, b => { ed.book = b.id; keep(renderEditor); }); return; }
-    const ic = t.closest('[data-ic]'); if (ic) { ed.icon = ic.dataset.ic; const emo = $('#deEmo'); if (emo) emo.value = ''; deBody.querySelectorAll('.de-ic').forEach(b => b.classList.toggle('on', b === ic)); edPreview(); vib(); return; }
+    const ct = t.closest('[data-cat]');
+    if (ct) { if (ed.cat !== ct.dataset.cat) { ed.cat = ct.dataset.cat; ed.sub = ''; ed.book = ''; } keep(renderEditor); vib(); return; }
+    const ps = t.closest('[data-psub]');
+    if (ps) {
+      ed.sub = ps.dataset.psub; ed.book = '';
+      const [c, k] = ed.sub.split('.'), d0 = catDef(c).subs.find(x => x[0] === k);
+      if (d0 && !ed.iconSet) ed.icon = d0[2];
+      keep(renderEditor); vib(); return;
+    }
+    const bk = t.closest('[data-bk]'); if (bk) { ed.book = bk.dataset.bk; ed.sub = ''; keep(renderEditor); return; }
+    if (t.closest('[data-newbk]')) { bookForm(null, b => { ed.book = b.id; ed.sub = ''; keep(renderEditor); }, ed.cat || 'other'); return; }
+    if (t.closest('[data-moreic]')) { ed.moreIcons = !ed.moreIcons; keep(renderEditor); return; }
+    const ic = t.closest('[data-ic]'); if (ic) { ed.icon = ic.dataset.ic; ed.iconSet = !!ed.icon; keep(renderEditor); vib(); return; }
     const hl = t.closest('[data-hl]'); if (hl) { ed.hl = hl.dataset.hl; deBody.querySelectorAll('[data-hl]').forEach(b => b.classList.toggle('on', b === hl)); edPreview(); return; }
     if (t.closest('[data-del]')) { const x = find(edFor); if (x) removeDay(x); }
   });
   $('#deSave').onclick = () => {
     const title = (ed.title || '').trim();
     if (!title) { const i = $('#deTitle'); i.placeholder = T('先写一个名称'); i.parentElement.classList.add('shake'); setTimeout(() => i.parentElement.classList.remove('shake'), 400); i.focus(); return; }
-    const fields = { title, date: ed.date, time: ed.time, rep: ed.rep, book: ed.book, icon: ed.icon, hl: ed.hl, pin: ed.pin, unit: ed.unit, from1: !ed.rep && ed.from1 };
+    const fields = { title, date: ed.date, time: ed.time, rep: ed.rep, book: ed.book, cat: ed.cat || 'other', sub: ed.book ? '' : ed.sub, icon: ed.icon, hl: ed.hl, pin: ed.pin, unit: ed.unit, from1: !ed.rep && ed.from1 };
     if (edFor) { const x = find(edFor); if (x) MC.updateDay(x, fields); UI.close('dayEditor', true); UI.toast(T('已保存')); return; }
     const x = MC.addDay({ ...fields, cal: calId() });
     UI.close('dayEditor', true);
-    if (st.book && st.book !== x.book) st.book = '';
+    if (st.cat && st.cat !== catOf(x)) { st.cat = ''; st.sub = ''; }
     render();
-    UI.toast(F('已添加「{0}」', title));
+    openPage(x.id);
+    UI.toast(F('已添加「{0}」，可以给它设一张主题图片', title));
   };
 
   // ---------- 刷新 ----------
-  Days.paint = () => { if (isOn()) render(); };
+  // 进出纪念日历：切换底部菜单（日历 · 纪念日 · 设置），进来时直接到「纪念日」
+  let wasOn = null;
+  function syncTabs() {
+    const on = isOn(), tb = $('#tabbar');
+    if (on === wasOn) return;
+    const entering = on && wasOn !== null;
+    wasOn = on;
+    tb.querySelectorAll('button[data-page]').forEach(b => {
+      const p = b.dataset.page;
+      b.hidden = on ? !['cal', 'days', 'set'].includes(p) : p === 'days';
+    });
+    body.classList.toggle('days-mode', on);
+    if (!MC.App) return;
+    const pg = MC.App.page();
+    if (on && (entering || pg === 'today' || pg === 'quad' || pg === 'sched')) MC.App.showPage('days');
+    else if (!on && pg === 'days') MC.App.showPage('cal');
+    else MC.App.placeInd();
+  }
+  Days.paint = () => { syncTabs(); if (isOn()) render(); };
   Days.render = render;
-  Days.refresh = () => { if (isOn()) render(); if (cur && UI.isOpen('dayDetail')) { const s = ddBody.scrollTop; renderDetail(); ddBody.scrollTop = s; } if (Days.refreshShare) Days.refreshShare(); };
+  Days.refresh = () => { if (isOn()) render(); if (cur && Days.pageOpen()) { const s = pgScroll.scrollTop; renderPage(); pgScroll.scrollTop = s; } if (Days.refreshShare) Days.refreshShare(); };
   // 每秒更新精确时间；过了午夜重画
   let lastDay = MC.todayStr();
   setInterval(() => {
@@ -770,11 +974,13 @@
 
   // 和应用其他部分接起来：加号、数据变化、返回键、小组件链接
   const fab = $('#fab'), prevFab = fab.onclick;
-  fab.onclick = e => (body.dataset.page === 'cal' && isOn() ? openEditor(null, { date: st.mode === 'cal' ? st.sel : MC.todayStr(), book: st.book }) : prevFab && prevFab.call(fab, e));
+  fab.onclick = e => ((body.dataset.page === 'cal' || body.dataset.page === 'days') && isOn()
+    ? openEditor(null, { date: body.dataset.page === 'cal' && st.cv === 'month' ? st.sel : MC.todayStr(), cat: body.dataset.page === 'days' ? st.cat : '' })
+    : prevFab && prevFab.call(fab, e));
   const prevChange = MC.onChange;
   MC.onChange = () => { prevChange(); Days.refresh(); };
   const prevBack = MC.back;
-  MC.back = () => (Days.closeOverlay && Days.closeOverlay()) || prevBack();
+  MC.back = () => (Days.closeOverlay && Days.closeOverlay()) || (!UI.anyOpen() && closePage()) || prevBack();
   const prevHash = MC.openHash;
   MC.openHash = h => {
     const m = /^#days(?:-(.+))?$/.exec(h || '');
@@ -783,10 +989,12 @@
     const cal = (target && MC.cal(target.cal)) || MC.data.cals.find(c => c.kind === 'days');
     if (!cal) return;
     if (MC.activeCal() !== cal.id) { MC.setActiveCal(cal.id); MC.Drawer.paint(); }
-    const tab = document.querySelector('#tabbar [data-page="cal"]'); if (tab && body.dataset.page !== 'cal') tab.click();
+    syncTabs();
+    if (MC.App && MC.App.page() !== 'days') MC.App.showPage('days');
     render();
-    if (target) setTimeout(() => openDetail(target.id), 200);
+    if (target) setTimeout(() => openPage(target.id), 200);
   };
+  syncTabs();
   if (/^#days/.test(location.hash)) { const h = location.hash; history.replaceState(null, '', location.pathname); setTimeout(() => MC.openHash(h), 60); }
   render();
 })();
@@ -864,15 +1072,11 @@
     ctx.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, x, y, w, h);
   }
   function drawIcon(ctx, x, name, cx, cy, size, color, fam) {
-    if (x.icon && ICONS[x.icon]) {
-      ctx.save(); ctx.translate(cx - size / 2, cy - size / 2); ctx.scale(size / 24, size / 24);
-      ctx.strokeStyle = color; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ICONS[x.icon].forEach(d => ctx.stroke(new Path2D(d)));
-      ctx.restore();
-    } else {
-      ctx.save(); ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = font(650, size * (x.icon ? .9 : .78), fam); ctx.fillText(x.icon || P.firstChar(x.title), cx, cy + size * .04); ctx.restore();
-    }
+    const e = P.emojiOf(x);
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (e) { ctx.font = `${Math.round(size * .92)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`; ctx.fillText(e, cx, cy + size * .05); }
+    else { ctx.fillStyle = color; ctx.font = font(650, size * .78, fam); ctx.fillText(P.firstChar(x.title), cx, cy + size * .04); }
+    ctx.restore();
   }
   let appIcon = null;
   P.loadImg('icons/icon-192.png').then(i => (appIcon = i)).catch(() => {});
@@ -1055,8 +1259,8 @@
   const sh = { id: null, tpl: 'clean', ratio: '45', font: 'sans', note: '', bgId: '', bgImg: null, cv: null, url: '' };
   const opts = $('#dsOpts'), img = $('#dsImg');
   Days.openShare = (x, extra = {}) => {
-    sh.id = x.id; sh.note = extra.note || ''; sh.tpl = extra.note ? 'note' : extra.bg ? 'photo' : (sh.tpl === 'note' && !x.notes.length) || (sh.tpl === 'photo' && !x.photos.length) ? 'clean' : sh.tpl;
-    sh.bgId = extra.bg || (x.photos[0] && x.photos[0].id) || ''; sh.bgImg = null;
+    sh.id = x.id; sh.note = extra.note || ''; sh.tpl = extra.note ? 'note' : extra.bg ? 'photo' : (sh.tpl === 'note' && !x.notes.length) || (sh.tpl === 'photo' && !x.photos.length && !/^p/.test(x.cover || '')) ? 'clean' : sh.tpl;
+    sh.bgId = extra.bg || (/^p/.test(x.cover || '') ? x.cover : '') || (x.photos[0] && x.photos[0].id) || ''; sh.bgImg = null;
     UI.open('dayShare'); paintOpts(); draw();
   };
   Days.refreshShare = () => { if (UI.isOpen('dayShare') && find(sh.id)) { paintOpts(); draw(); } };
@@ -1066,7 +1270,7 @@
     let h = `<p class="cmp-label">${T('样式')}</p><div class="cmp-chips ds-row">${chips(TPLS, 'tpl', sh.tpl)}</div>
       <p class="cmp-label">${T('尺寸')}</p><div class="seg small ds-seg">${RATIOS.map(r => `<button data-ratio="${r[0]}" class="${sh.ratio === r[0] ? 'on' : ''}">${r[1]}</button>`).join('')}</div>
       <p class="cmp-label">${T('数字字体')}</p><div class="cmp-chips">${chips(FONT_NAMES, 'font', sh.font)}</div>`;
-    if (sh.tpl === 'photo') h += `<p class="cmp-label">${T('背景照片')}</p><div class="ds-bgs">${x.photos.map(p => `<button class="ds-bg${sh.bgId === p.id ? ' on' : ''}" data-bg="${p.id}"><img alt="" data-src="${p.id}"></button>`).join('')}<button class="ds-bg add" data-bgpick aria-label="${T('选择照片')}">${UI_IC.plus}</button></div>`;
+    if (sh.tpl === 'photo') h += `<p class="cmp-label">${T('背景照片')}</p><div class="ds-bgs">${[...(/^p/.test(x.cover || '') && !x.photos.some(p => p.id === x.cover) ? [{ id: x.cover }] : []), ...x.photos].map(p => `<button class="ds-bg${sh.bgId === p.id ? ' on' : ''}" data-bg="${p.id}"><img alt="" data-src="${p.id}"></button>`).join('')}<button class="ds-bg add" data-bgpick aria-label="${T('选择照片')}">${UI_IC.plus}</button></div>`;
     if (sh.tpl === 'note') h += x.notes.length ? `<p class="cmp-label">${T('小纸条')}</p><div class="cmp-chips">${[...x.notes].sort((a, b) => b.at - a.at).map((n, i) => `<button class="qchip${(sh.note ? sh.note === n.id : i === 0) ? ' on' : ''}" data-note="${n.id}"><span data-uc>${esc(n.text.slice(0, 12))}${n.text.length > 12 ? '…' : ''}</span></button>`).join('')}</div>` : `<p class="dd-hint">${T('还没有小纸条，先在详情里写一张吧。')}</p>`;
     opts.innerHTML = h;
     opts.querySelectorAll('img[data-src]').forEach(async i => { const u = await P.photoURL(i.dataset.src); if (u) i.src = u; });
