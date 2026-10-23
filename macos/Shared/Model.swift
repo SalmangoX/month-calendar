@@ -346,11 +346,13 @@ final class CalData {
         out["coursesAt"] = nc.long("coursesAt")
         out["cals"] = cals
         // 纪念日历的日子、分类：同样按 id 取较新的一份（删除记录 "day:<id>" / "book:<id>"）
-        out["days"] = byId("days").compactMap { id, x in
+        out["days"] = byId("days").compactMap { (pair: (String, JObj)) -> JObj? in
+            let (id, x) = pair
             if let t = deleted["day:" + id], t >= x.long("updatedAt") { return nil }
             return x
         }
-        out["books"] = byId("books").compactMap { id, x in
+        out["books"] = byId("books").compactMap { (pair: (String, JObj)) -> JObj? in
+            let (id, x) = pair
             if let t = deleted["book:" + id], t >= x.long("updatedAt") { return nil }
             return x
         }
