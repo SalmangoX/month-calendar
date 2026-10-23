@@ -21,11 +21,12 @@ function setLang(p) {
   let l = p && p !== "auto" ? p : "";
   if (!l) {
     const s = String(Device.language() || "").toLowerCase();
-    l = s.startsWith("zh") ? (/tw|hk|mo|hant/.test(s) ? "zh-Hant" : "zh-Hans") : s.startsWith("fr") ? "fr" : "en";
+    l = s.startsWith("zh") ? (/tw|hk|mo|hant/.test(s) ? "zh-Hant" : "zh-Hans") : s.startsWith("fr") ? "fr" : s.startsWith("ja") ? "ja" : "en";
   }
-  LANG = ["zh-Hans", "zh-Hant", "en", "fr"].includes(l) ? l : "zh-Hans";
+  LANG = ["zh-Hans", "zh-Hant", "en", "fr", "ja"].includes(l) ? l : "zh-Hans";
 }
 const TR = {
+  ja: {"纪念日": "記念日", "还有": "あと", "已经": "経過", "第": "", "就是今天": "今日です", "今天": "今日", "天": "日", "周": "週", "个月": "か月", "年": "年", "每周": "毎週", "每月": "毎月", "每年": "毎年", "离线": "オフライン", "还没有日子\n打开节律添加纪念日": "まだ記念日がありません\nCadence を開いて追加してください", "还没有设置 Gist ID。\n请在节律 设置里复制纪念日小组件脚本后重新粘贴。": "Gist ID が設定されていません。\nCadence の設定で記念日ウィジェットのスクリプトをコピーして貼り付け直してください。", "节律": "Cadence", "预览哪种尺寸？": "どのサイズをプレビューしますか？", "大号": "大", "中号": "中", "小号": "小", "取消": "キャンセル", "Gist 中没有节律数据": "この Gist には Cadence のデータがありません"},
   "zh-Hant": { "纪念日": "紀念日", "还有": "還有", "已经": "已經", "周": "週", "个月": "個月", "每周": "每週", "离线": "離線", "还没有日子\n打开节律添加纪念日": "還沒有日子\n打開節律新增紀念日", "还没有设置 Gist ID。\n请在节律 设置里复制纪念日小组件脚本后重新粘贴。": "還沒有設定 Gist ID。\n請在節律 設定裡複製紀念日小元件指令碼後重新貼上。", "节律": "節律", "预览哪种尺寸？": "預覽哪種尺寸？", "大号": "大號", "中号": "中號", "小号": "小號", "Gist 中没有节律数据": "Gist 中沒有節律資料" },
   en: { "纪念日": "Days", "还有": "Coming up in", "已经": "It’s been", "第": "Day", "就是今天": "It’s today", "今天": "Today", "天": "days", "周": "weeks", "个月": "months", "年": "years", "每周": "Weekly", "每月": "Monthly", "每年": "Yearly", "离线": "Offline", "还没有日子\n打开节律添加纪念日": "No days yet\nOpen Cadence to add one", "还没有设置 Gist ID。\n请在节律 设置里复制纪念日小组件脚本后重新粘贴。": "No Gist ID yet.\nCopy the days widget script in Cadence Settings and paste it again.", "节律": "Cadence", "预览哪种尺寸？": "Preview which size?", "大号": "Large", "中号": "Medium", "小号": "Small", "取消": "Cancel", "Gist 中没有节律数据": "No Cadence data in this Gist" },
   fr: { "纪念日": "Jours", "还有": "Dans", "已经": "Depuis", "第": "Jour", "就是今天": "C’est aujourd’hui", "今天": "Aujourd’hui", "天": "jours", "周": "semaines", "个月": "mois", "年": "ans", "每周": "Chaque semaine", "每月": "Chaque mois", "每年": "Chaque année", "离线": "Hors ligne", "还没有日子\n打开节律添加纪念日": "Aucun jour\nOuvrez Cadence pour en ajouter", "还没有设置 Gist ID。\n请在节律 设置里复制纪念日小组件脚本后重新粘贴。": "Pas d’identifiant Gist.\nCopiez le script du widget dans les Réglages de Cadence et recollez-le.", "节律": "Cadence", "预览哪种尺寸？": "Quelle taille ?", "大号": "Grand", "中号": "Moyen", "小号": "Petit", "取消": "Annuler", "Gist 中没有节律数据": "Aucune donnée Cadence dans ce Gist" },
@@ -100,14 +101,14 @@ function amount(x, inf) {
   if (x.unit === "w" && n >= 7) return { num: Math.floor(n / 7), unit: tr("周") };
   if (x.unit === "m" && dd.y * 12 + dd.m >= 1) return { num: dd.y * 12 + dd.m, unit: tr("个月") };
   if (x.unit === "y" && dd.y >= 1) return { num: dd.y, unit: tr("年") };
-  return { num: n, unit: past && x.from1 && !isZh() ? "" : tr("天") };
+  return { num: n, unit: past && x.from1 ? (LANG === "ja" ? "日目" : isZh() ? tr("天") : "") : tr("天") };
 }
 // 标题前面带上彩色表情（旧版的线条图标名不显示）
 const named = x => { const e = x.icon && !/^[a-z]+$/.test(x.icon) ? x.icon + " " : ""; return e + (x.title || "—"); };
 const stateWord = (x, inf) => tr(inf.state === "today" ? "就是今天" : inf.state === "fut" ? "还有" : x.from1 ? "第" : "已经");
 const tone = (x, inf) => (x.hl ? hlColor(x.hl) : inf.state === "past" ? C.past : C.fut);
 function dateLine(x, d) {
-  const loc = { "zh-Hans": "zh-CN", "zh-Hant": "zh-TW", en: "en", fr: "fr" }[LANG];
+  const loc = { "zh-Hans": "zh-CN", "zh-Hant": "zh-TW", en: "en", fr: "fr", ja: "ja-JP" }[LANG];
   let s = new Intl.DateTimeFormat(loc, { year: "numeric", month: "short", day: "numeric", weekday: "short" }).format(d);
   if (x.rep) s += " · " + tr({ week: "每周", month: "每月", year: "每年" }[x.rep]);
   return s;

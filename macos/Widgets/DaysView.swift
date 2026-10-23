@@ -53,14 +53,14 @@ struct DaysView: View {
         if x.unit == "w" && n >= 7 { return ("\(n / 7)", I18n.t("周")) }
         if x.unit == "m" && months >= 1 { return ("\(months)", I18n.t("个月")) }
         if x.unit == "y" && (comp.year ?? 0) >= 1 { return ("\(comp.year ?? 0)", I18n.t("年")) }
-        return ("\(n)", past && x.from1 && !I18n.zh ? "" : I18n.t("天"))
+        return ("\(n)", past && x.from1 ? (I18n.lang == "ja" ? "日目" : I18n.zh ? I18n.t("天") : "") : I18n.t("天"))
     }
     private func state(_ i: Item) -> String {
         i.diff == 0 ? I18n.t("就是今天") : i.diff > 0 ? I18n.t("还有") : i.x.from1 ? I18n.t("第") : I18n.t("已经")
     }
     private func dateLine(_ i: Item) -> String {
         let d = i.x.occ(entry.today)
-        var s = I18n.zh ? "\(d.y)年" + I18n.md(d.m, d.d) : I18n.md(d.m, d.d) + ", \(d.y)"
+        var s = I18n.cjk ? "\(d.y)年" + I18n.md(d.m, d.d) : I18n.md(d.m, d.d) + ", \(d.y)"
         if !i.x.time.isEmpty { s += " " + i.x.time }
         if !i.x.rep.isEmpty { s += " · " + I18n.t(i.x.rep == "week" ? "每周" : i.x.rep == "month" ? "每月" : "每年") }
         return s

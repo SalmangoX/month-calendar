@@ -5,6 +5,8 @@ import Foundation
 enum I18n {
     private(set) static var lang = "zh-Hans"
     static var zh: Bool { lang.hasPrefix("zh") }
+    /// 中文或日文：日期用「年 / 月 / 日」写法
+    static var cjk: Bool { zh || lang == "ja" }
 
     /// 原文 → [繁體, English, Français]
     private static let T: [String: [String]] = [
@@ -124,19 +126,137 @@ enum I18n {
         "小尺寸：今天的课；中尺寸：本周；大尺寸：本周课表": ["小尺寸：今天的課；中尺寸：本週；大尺寸：本週課表", "Small: today’s classes · Medium: this week · Large: weekly timetable", "Petit : cours du jour · Moyen : cette semaine · Grand : horaire de la semaine"],
     ]
 
+    /// 原文 → 日本語
+    private static let JA: [String: String] = [
+        "讲座": "講義",
+        "纪念日": "記念日",
+        "还有": "あと",
+        "已经": "経過",
+        "第": "",
+        "就是今天": "今日です",
+        "天": "日",
+        "周": "週",
+        "个月": "か月",
+        "年": "年",
+        "每周": "毎週",
+        "每月": "毎月",
+        "每年": "毎年",
+        "还没有日子\n打开节律添加纪念日": "まだ記念日がありません\nCadence を開いて追加してください",
+        "置顶或最近的日子，以及接下来的几个": "ピン留めした日か次の日と、その後の記念日",
+        "实验": "実験",
+        "辅导": "演習",
+        "讨论课": "ディスカッション",
+        "研讨": "セミナー",
+        "（无标题）": "（タイトルなし）",
+        "今天 · {0}": "今日 · {0}",
+        "明天 · {0}": "明日 · {0}",
+        "后天 · {0}": "明後日 · {0}",
+        "今天": "今日",
+        "明天": "明日",
+        "昨天": "昨日",
+        "{0} 天后": "{0} 日後",
+        "{0} 天前": "{0} 日前",
+        "已逾期": "期限切れ",
+        "今天没有事件\n接下来一周也很空闲": "今日は予定がありません\nこの先 1 週間も空いています",
+        "打开节律 App\n同步一次后这里会显示事件": "Cadence を開いて\n一度同期すると予定が表示されます",
+        "全天": "終日",
+        "{0} 天": "{0} 日",
+        "本周课表": "今週の時間割",
+        "还没有导入课表": "まだ時間割を読み込んでいません",
+        "课表": "時間割",
+        "这周没有课": "今週は授業がありません",
+        "上课中": "授業中",
+        "下一节": "次の授業",
+        "第一节": "最初の授業",
+        "查看今日未完成事件": "今日の未完了の予定を確認",
+        "今日事件已完成": "今日の予定はすべて完了",
+        "今天还有 {0} 件事未完成，点开查看。": "今日はまだ {0} 件が未完了です。タップして確認。",
+        "今天的事件都完成了。": "今日の予定はすべて完了しました。",
+        "节律 · 后台提醒测试": "Cadence · バックグラウンド通知のテスト",
+        "节律 · 测试通知": "Cadence · テスト通知",
+        "App 关着也能准时收到提醒。": "アプリを閉じていても時間どおりに通知が届きます。",
+        "通知可以正常显示了": "通知は正常に表示されます",
+        "连不上网络": "ネットワークに接続できません",
+        "第一次打开需要联网下载节律，之后断网也能用。": "初回起動時は Cadence のダウンロードに接続が必要です。以降はオフラインでも使えます。",
+        "重试": "再試行",
+        "本月": "今日",
+        "好": "OK",
+        "取消": "キャンセル",
+        "打开节律": "Cadence を開く",
+        "立即同步": "今すぐ同期",
+        "开机时自动启动": "ログイン時に開く",
+        "退出节律": "Cadence を終了",
+        "关于节律": "Cadence について",
+        "隐藏节律": "Cadence を隠す",
+        "隐藏其他": "ほかを隠す",
+        "全部显示": "すべてを表示",
+        "编辑": "編集",
+        "文件": "ファイル",
+        "新建事件": "新しい予定",
+        "撤销": "取り消す",
+        "重做": "やり直す",
+        "剪切": "カット",
+        "拷贝": "コピー",
+        "粘贴": "ペースト",
+        "全选": "すべてを選択",
+        "显示": "表示",
+        "重新载入": "再読み込み",
+        "窗口": "ウインドウ",
+        "最小化": "しまう",
+        "缩放": "拡大/縮小",
+        "关闭窗口": "ウインドウを閉じる",
+        "节律主窗口": "Cadence ウインドウ",
+        "没有事件": "予定はありません",
+        "未连接 GitHub": "GitHub 未接続",
+        "上次同步 {0}": "前回の同期 {0}",
+        "同步中…": "同期中…",
+        "令牌无效或已过期": "トークンが無効か期限切れです",
+        "找不到同步数据": "同期データが見つかりません",
+        "网络错误": "ネットワークエラー",
+        "GitHub 返回 {0}": "GitHub の応答：{0}",
+        "{0} 件未完成": "未完了 {0} 件",
+        "整月": "月",
+        "检查更新…": "アップデートを確認…",
+        "检查更新失败": "アップデートを確認できませんでした",
+        "连不上 GitHub，稍后再试。": "GitHub に接続できません。しばらくしてから再試行してください。",
+        "已经是最新版本": "最新バージョンです",
+        "Mac 版 {0}（{1}）": "Mac 版 {0}（{1}）",
+        "节律 Mac 版有新版本 {0}": "Cadence for Mac の新しいバージョン {0} があります",
+        "点菜单栏的日历图标更新。": "メニューバーのカレンダーアイコンから更新してください。",
+        "Mac 版有新版本 {0}": "新しいバージョン {0} があります",
+        "更新…": "アップデート…",
+        "更新命令已复制": "更新コマンドをコピーしました",
+        "在打开的终端窗口里按 ⌘V 粘贴，再按回车。编译大约一两分钟，完成后节律会自动重新打开。": "開いたターミナルで ⌘V を押して貼り付け、Return を押してください。ビルドには 1〜2 分かかり、完了すると Cadence が自動で再び開きます。",
+        "备份到 iCloud 云盘…": "iCloud Drive にバックアップ…",
+        "iCloud 备份：{0}": "iCloud バックアップ：{0}",
+        "上次备份 {0}": "前回のバックアップ {0}",
+        "在访达中显示": "Finder に表示",
+        "更换备份文件夹…": "バックアップフォルダを変更…",
+        "停止备份": "バックアップを停止",
+        "选择 iCloud 云盘里的一个文件夹，节律会把数据自动备份到这里": "iCloud Drive のフォルダを選んでください。Cadence がデータを自動でバックアップします",
+        "选择": "選択",
+        "备份失败：{0}": "バックアップに失敗しました：{0}",
+        "找不到备份文件夹，请重新选择": "バックアップフォルダが見つかりません。もう一度選んでください",
+        "整月日历，右上角可以翻月": "1 か月のカレンダー。右上で月を切り替え",
+        "今日": "今日",
+        "今天、已逾期和接下来一周": "今日・期限切れ・この先 1 週間",
+        "小尺寸：今天的课；中尺寸：本周；大尺寸：本周课表": "小：今日の授業 · 中：今週 · 大：今週の時間割",
+    ]
+
     static func set(_ pref: String) {
         var l = pref == "auto" ? "" : pref
         if l.isEmpty {
             let p = (Locale.preferredLanguages.first ?? "en").lowercased()
             if p.hasPrefix("zh") { l = p.contains("hant") || p.contains("-tw") || p.contains("-hk") || p.contains("-mo") ? "zh-Hant" : "zh-Hans" }
-            else { l = p.hasPrefix("fr") ? "fr" : "en" }
+            else { l = p.hasPrefix("fr") ? "fr" : p.hasPrefix("ja") ? "ja" : "en" }
         }
-        lang = ["zh-Hant", "en", "fr"].contains(l) ? l : "zh-Hans"
+        lang = ["zh-Hant", "en", "fr", "ja"].contains(l) ? l : "zh-Hans"
     }
 
     static func t(_ zhHans: String, _ args: Any...) -> String {
         var s = zhHans
-        if lang != "zh-Hans", let v = T[zhHans] { s = v[lang == "zh-Hant" ? 0 : lang == "en" ? 1 : 2] }
+        if lang == "ja" { s = JA[zhHans] ?? T[zhHans]?[1] ?? zhHans }
+        else if lang != "zh-Hans", let v = T[zhHans] { s = v[lang == "zh-Hant" ? 0 : lang == "en" ? 1 : 2] }
         for (i, a) in args.enumerated() { s = s.replacingOccurrences(of: "{\(i)}", with: "\(a)") }
         return s
     }
@@ -152,11 +272,11 @@ enum I18n {
     /// 日期：「10月20日」/ Oct 20 / 20 oct.
     static func md(_ m: Int, _ d: Int) -> String { lang == "en" ? "\(MON_EN[m - 1]) \(d)" : lang == "fr" ? "\(d) \(MON_FR[m - 1])" : "\(m)月\(d)日" }
     /// 星期表头（0 = 周日）：「日」/ S / D
-    static func wdHead(_ i: Int) -> String { lang == "en" ? String(Array("SMTWTFS")[i]) : lang == "fr" ? String(Array("DLMMJVS")[i]) : String(WD_ZH[i]) }
+    static func wdHead(_ i: Int) -> String { lang == "en" ? String(Array("SMTWTFS")[i]) : lang == "fr" ? String(Array("DLMMJVS")[i]) : lang == "ja" ? String(Array("日月火水木金土")[i]) : String(WD_ZH[i]) }
     /// 星期名（0 = 周日）：「周三」/ Wed / mer.
-    static func wk(_ i: Int) -> String { lang == "en" ? WD_EN[i] : lang == "fr" ? WD_FR[i] : "周" + String(WD_ZH[i]) }
+    static func wk(_ i: Int) -> String { lang == "en" ? WD_EN[i] : lang == "fr" ? WD_FR[i] : lang == "ja" ? "(" + String(Array("日月火水木金土")[i]) + ")" : (lang == "zh-Hant" ? "週" : "周") + String(WD_ZH[i]) }
     /// 「10月课表」/ Oct timetable
-    static func monthSched(_ m: Int) -> String { zh ? "\(m)月课表" : lang == "fr" ? "Horaire · " + mon(m) : mon(m) + " timetable" }
+    static func monthSched(_ m: Int) -> String { lang == "ja" ? "\(m)月の時間割" : zh ? (lang == "zh-Hant" ? "\(m)月課表" : "\(m)月课表") : lang == "fr" ? "Horaire · " + mon(m) : mon(m) + " timetable" }
     /// 「10月20日 周二」/ Tue, Oct 20
     static func full(_ d: YMD) -> String { zh ? "\(d.m)月\(d.d)日 " + wk(d.jsDay) : wk(d.jsDay) + ", " + md(d.m, d.d) }
 }

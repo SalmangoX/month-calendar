@@ -13,8 +13,66 @@ final class I18n {
     private static final Map<String, String[]> T = new HashMap<>(); // 原文 → {繁體, English, Français}
 
     private static void put(String k, String hant, String en, String fr) { T.put(k, new String[]{hant, en, fr}); }
+    private static final Map<String, String> JA = new HashMap<>(); // 原文 → 日本語
+    private static void ja(String k, String v) { JA.put(k, v); }
 
     static {
+        ja("讲座", "講義");
+        ja("实验", "実験");
+        ja("辅导", "演習");
+        ja("讨论课", "ディスカッション");
+        ja("研讨", "セミナー");
+        ja("（无标题）", "（タイトルなし）");
+        ja("今天 · {0}", "今日 · {0}");
+        ja("明天 · {0}", "明日 · {0}");
+        ja("后天 · {0}", "明後日 · {0}");
+        ja("今天", "今日");
+        ja("明天", "明日");
+        ja("昨天", "昨日");
+        ja("{0} 天后", "{0} 日後");
+        ja("{0} 天前", "{0} 日前");
+        ja("已逾期", "期限切れ");
+        ja("今天没有事件\n接下来一周也很空闲", "今日は予定がありません\nこの先 1 週間も空いています");
+        ja("打开节律 App\n同步一次后这里会显示事件", "Cadence を開いて\n一度同期すると予定が表示されます");
+        ja("全天", "終日");
+        ja("{0} 天", "{0} 日");
+        ja("本周课表", "今週の時間割");
+        ja("还没有导入课表", "まだ時間割を読み込んでいません");
+        ja("课表", "時間割");
+        ja("这周没有课", "今週は授業がありません");
+        ja("上课中", "授業中");
+        ja("下一节", "次の授業");
+        ja("第一节", "最初の授業");
+        ja("事件提醒", "予定のリマインダー");
+        ja("设置了提醒的事件到点通知", "リマインダー付きの予定を時間どおりに通知");
+        ja("每日未完成提醒", "毎日の未完了リマインダー");
+        ja("每天在设定的时间提醒查看当天未完成的事件", "毎日設定した時刻に、その日に残っている予定をお知らせ");
+        ja("测试通知", "テスト通知");
+        ja("查看今日未完成事件", "今日の未完了の予定を確認");
+        ja("今日事件已完成", "今日の予定はすべて完了");
+        ja("今天还有 {0} 件事未完成，点开查看。", "今日はまだ {0} 件が未完了です。タップして確認。");
+        ja("今天的事件都完成了。", "今日の予定はすべて完了しました。");
+        ja("节律 · 后台提醒测试", "Cadence · バックグラウンド通知のテスト");
+        ja("节律 · 测试通知", "Cadence · テスト通知");
+        ja("App 关着也能准时收到提醒。", "アプリを閉じていても時間どおりに通知が届きます。");
+        ja("通知可以正常显示了", "通知は正常に表示されます");
+        ja("没有可以打开这个链接的应用", "このリンクを開けるアプリがありません");
+        ja("连不上网络", "ネットワークに接続できません");
+        ja("第一次打开需要联网下载节律，之后断网也能用。", "初回起動時は Cadence のダウンロードに接続が必要です。以降はオフラインでも使えます。");
+        ja("重试", "再試行");
+        ja("纪念日", "記念日");
+        ja("还有", "あと");
+        ja("已经", "経過");
+        ja("第", "");
+        ja("就是今天", "今日です");
+        ja("天", "日");
+        ja("周", "週");
+        ja("个月", "か月");
+        ja("年", "年");
+        ja("每周", "毎週");
+        ja("每月", "毎月");
+        ja("每年", "毎年");
+        ja("还没有日子\n打开节律添加纪念日", "まだ記念日がありません\nCadence を開いて追加してください");
         put("讲座", "講座", "Lecture", "Cours magistral");
         put("实验", "實驗", "Lab", "TP");
         put("辅导", "輔導", "Tutorial", "TD");
@@ -78,16 +136,19 @@ final class I18n {
         if (l.isEmpty()) {
             Locale loc = Locale.getDefault();
             String lg = loc.getLanguage(), sc = loc.getScript(), co = loc.getCountry();
-            l = "zh".equals(lg) ? ("Hant".equals(sc) || "TW".equals(co) || "HK".equals(co) || "MO".equals(co) ? "zh-Hant" : "zh-Hans") : "fr".equals(lg) ? "fr" : "en";
+            l = "zh".equals(lg) ? ("Hant".equals(sc) || "TW".equals(co) || "HK".equals(co) || "MO".equals(co) ? "zh-Hant" : "zh-Hans") : "fr".equals(lg) ? "fr" : "ja".equals(lg) ? "ja" : "en";
         }
-        lang = l.equals("zh-Hant") || l.equals("en") || l.equals("fr") ? l : "zh-Hans";
+        lang = l.equals("zh-Hant") || l.equals("en") || l.equals("fr") || l.equals("ja") ? l : "zh-Hans";
     }
 
     static boolean zh() { return lang.startsWith("zh"); }
+    /** 中文或日文：日期用「年 / 月 / 日」写法 */
+    static boolean cjk() { return zh() || lang.equals("ja"); }
 
     static String t(String zhHans, Object... a) {
         String[] v = T.get(zhHans);
-        String s = v == null || lang.equals("zh-Hans") ? zhHans : v[lang.equals("zh-Hant") ? 0 : lang.equals("en") ? 1 : 2];
+        String s = lang.equals("ja") ? (JA.containsKey(zhHans) ? JA.get(zhHans) : v != null ? v[1] : zhHans)
+            : v == null || lang.equals("zh-Hans") ? zhHans : v[lang.equals("zh-Hant") ? 0 : lang.equals("en") ? 1 : 2];
         for (int i = 0; i < a.length; i++) s = s.replace("{" + i + "}", String.valueOf(a[i]));
         return s;
     }
@@ -96,16 +157,16 @@ final class I18n {
     private static final String[] MON_FR = {"janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."};
     private static final String[] WD_EN = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
     private static final String[] WD_FR = {"dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."};
-    private static final String WD_ZH = "日一二三四五六";
+    private static final String WD_ZH = "日一二三四五六", WD_JA = "日月火水木金土";
 
     /** 月份标题：「10月」/ Oct / oct.（m：1–12） */
     static String mon(int m) { return lang.equals("en") ? MON_EN[m - 1] : lang.equals("fr") ? MON_FR[m - 1] : m + "月"; }
     /** 日期：「10月20日」/ Oct 20 / 20 oct. */
     static String md(int m, int d) { return lang.equals("en") ? MON_EN[m - 1] + " " + d : lang.equals("fr") ? d + " " + MON_FR[m - 1] : m + "月" + d + "日"; }
     /** 星期表头（0 = 周日）：「日」/ S / D */
-    static String wdHead(int i) { return lang.equals("en") ? "SMTWTFS".substring(i, i + 1) : lang.equals("fr") ? "DLMMJVS".substring(i, i + 1) : WD_ZH.substring(i, i + 1); }
+    static String wdHead(int i) { return lang.equals("en") ? "SMTWTFS".substring(i, i + 1) : lang.equals("fr") ? "DLMMJVS".substring(i, i + 1) : lang.equals("ja") ? WD_JA.substring(i, i + 1) : WD_ZH.substring(i, i + 1); }
     /** 星期名（0 = 周日）：「周三」/ Wed / mer. */
-    static String wk(int i) { return lang.equals("en") ? WD_EN[i] : lang.equals("fr") ? WD_FR[i] : "周" + WD_ZH.charAt(i); }
+    static String wk(int i) { return lang.equals("en") ? WD_EN[i] : lang.equals("fr") ? WD_FR[i] : lang.equals("ja") ? "(" + WD_JA.charAt(i) + ")" : (lang.equals("zh-Hant") ? "週" : "周") + WD_ZH.charAt(i); }
     /** 「10月课表」/ Oct timetable */
-    static String monthSched(int m) { return zh() ? m + "月课表" : (lang.equals("fr") ? "Horaire · " + mon(m) : mon(m) + " timetable"); }
+    static String monthSched(int m) { return lang.equals("ja") ? m + "月の時間割" : zh() ? m + (lang.equals("zh-Hant") ? "月課表" : "月课表") : (lang.equals("fr") ? "Horaire · " + mon(m) : mon(m) + " timetable"); }
 }

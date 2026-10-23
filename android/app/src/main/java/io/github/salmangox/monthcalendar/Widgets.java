@@ -839,13 +839,13 @@ final class Widgets {
         if ("w".equals(x.unit) && n >= 7) return new String[]{String.valueOf(n / 7), I18n.t("周")};
         if ("m".equals(x.unit) && p.toTotalMonths() >= 1) return new String[]{String.valueOf(p.toTotalMonths()), I18n.t("个月")};
         if ("y".equals(x.unit) && p.getYears() >= 1) return new String[]{String.valueOf(p.getYears()), I18n.t("年")};
-        return new String[]{String.valueOf(n), past && x.from1 && !I18n.zh() ? "" : I18n.t("天")};
+        return new String[]{String.valueOf(n), past && x.from1 ? (I18n.lang.equals("ja") ? "日目" : I18n.zh() ? I18n.t("天") : "") : I18n.t("天")};
     }
     private static String stateWord(Data.Day x, long diff) {
         return diff == 0 ? I18n.t("就是今天") : diff > 0 ? I18n.t("还有") : x.from1 ? I18n.t("第") : I18n.t("已经");
     }
     private static String dateLine(Data.Day x, LocalDate d, boolean h12) {
-        String s = (I18n.zh() ? d.getYear() + "年" : "") + I18n.md(d.getMonthValue(), d.getDayOfMonth()) + (I18n.zh() ? "" : ", " + d.getYear());
+        String s = (I18n.cjk() ? d.getYear() + "年" : "") + I18n.md(d.getMonthValue(), d.getDayOfMonth()) + (I18n.cjk() ? "" : ", " + d.getYear());
         if (!x.time.isEmpty()) s += " " + Data.fmt(x.time, h12, false);
         if (!x.rep.isEmpty()) s += " · " + I18n.t("week".equals(x.rep) ? "每周" : "month".equals(x.rep) ? "每月" : "每年");
         return s;
