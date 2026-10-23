@@ -235,7 +235,7 @@
       id: String(x.id).slice(0, 40), cal: String(x.cal || '').slice(0, 40), title: String(x.title || '').slice(0, 120),
       date: x.date, time: /^\d{2}:\d{2}$/.test(x.time || '') ? x.time : '',
       rep: ['week', 'month', 'year'].includes(x.rep) ? x.rep : '',
-      book: String(x.book || '').slice(0, 40), icon: MC.DAY_LEGACY_ICONS[x.icon] || String(x.icon || '').slice(0, 24),
+      book: String(x.book || '').slice(0, 40), icon: String(x.icon || '').slice(0, 24), // 图标名（旧版存过表情，days.js 会换回对应图标）
       cover: /^(p[a-z0-9]{4,40}|c:#[0-9a-fA-F]{6})$/.test(x.cover || '') ? x.cover : '', // 主题图片：照片 id 或 c:#颜色
       cat: String(x.cat || '').slice(0, 16), sub: String(x.sub || '').slice(0, 40), // 大类、细分（细分是内置的 cat.xxx 或自定义细分 book 的 id）
       hl: /^#[0-9a-fA-F]{6}$/.test(x.hl || '') ? x.hl : '', pin: !!x.pin,
