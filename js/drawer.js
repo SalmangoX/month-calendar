@@ -57,8 +57,8 @@
       : spring(pos, target, v, 520, 48, (p, vv) => apply(Math.max(0, p), vv), () => (anim = null));
   }
   D.isOpen = () => isOpen;
-  const daysPage = $('#page-days');
-  D.open = () => { if (!calPage.classList.contains('active') && !(daysPage && daysPage.classList.contains('active'))) return; render(); measure(); animateTo(W); };
+  const daysPage = $('#page-days'), sumPage = $('#page-dsum');
+  D.open = () => { if (![calPage, daysPage, sumPage].some(p => p && p.classList.contains('active'))) return; render(); measure(); animateTo(W); };
   D.close = () => { measure(); animateTo(0); };
 
   // ---------- 当前日历的外观 ----------
@@ -248,6 +248,7 @@
   };
   pullFrom(calPage);
   if (daysPage) pullFrom(daysPage);
+  if (sumPage) pullFrom(sumPage);
 
   // 触控板：在侧栏或遮罩上双指往左轻扫收起
   let wx = 0, wxT = null;

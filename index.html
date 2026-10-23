@@ -75,6 +75,14 @@
     <div class="pscroll dv-scroll" id="dvList"></div>
   </section>
 
+  <!-- 纪念日历：总览（只在纪念日历里出现在底部菜单） -->
+  <section class="page" id="page-dsum">
+    <header class="dv-head">
+      <button class="dv-title" aria-label="选择日历"><h1 class="dvSumName">总览</h1><p class="dvName" data-uc></p></button>
+    </header>
+    <div class="pscroll dv-scroll" id="dvSum"></div>
+  </section>
+
   <!-- 四象限 -->
   <section class="page" id="page-quad">
     <header class="ptitle">
@@ -135,6 +143,10 @@
     <button data-page="days" aria-label="纪念日" hidden>
       <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
       <span>纪念日</span>
+    </button>
+    <button data-page="dsum" aria-label="总览" hidden>
+      <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="9" rx="2"/><rect x="13.5" y="3.5" width="7" height="5" rx="2"/><rect x="13.5" y="11.5" width="7" height="9" rx="2"/><rect x="3.5" y="15.5" width="7" height="5" rx="2"/></svg>
+      <span>总览</span>
     </button>
     <button data-page="quad" aria-label="四象限">
       <svg viewBox="0 0 24 24" class="filled"><rect x="4" y="4" width="7" height="7" rx="2.2"/><rect x="13" y="4" width="7" height="7" rx="2.2"/><rect x="4" y="13" width="7" height="7" rx="2.2"/><rect x="13" y="13" width="7" height="7" rx="2.2"/></svg>
