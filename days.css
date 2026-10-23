@@ -11,7 +11,7 @@
 :root[data-theme="dark"] [style*="--hl-l"] { --hl: var(--hl-d); --hl-ink: var(--hl-ink-d); }
 
 /* ---------- 纪念日历是一套单独的界面 ---------- */
-body[data-kind="days"] #page-cal, #page-days { background: var(--dv-bg); }
+body[data-kind="days"] #page-cal, #page-days, body.days-mode, :root:has(body.days-mode) { background: var(--dv-bg); }
 body[data-kind="days"] #page-cal > .topbar,
 body[data-kind="days"] #page-cal > .weekdays,
 body[data-kind="days"] #page-cal > .cal-body { display: none; }
@@ -45,32 +45,40 @@ body[data-kind="days"] .dv { display: flex; }
 .dv-ico .emo { font-size: 24px; line-height: 1; }
 .dv-ico .ini { font-size: 18px; font-weight: 700; line-height: 1; }
 .dv-ico.ph { overflow: visible; background: var(--field); }
-.dv-ico.ph img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; opacity: 0; transition: opacity .25s; }
+.dv-ico.ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 15px; opacity: 0; transition: opacity .25s; }
 .dv-ico.ph img.ok { opacity: 1; }
-.dv-ico .badge { position: absolute; right: -5px; bottom: -5px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--dv-card); box-shadow: 0 1px 4px rgba(0, 0, 0, .14); }
+.dv-ico .badge { position: absolute; z-index: 1; right: -5px; bottom: -5px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--dv-card); box-shadow: 0 1px 4px rgba(0, 0, 0, .14); }
 .dv-ico .badge .emo { font-size: 13px; }
 
-/* ---------- 封面卡片（列表最上面） ---------- */
-.dv-cover { position: relative; height: 200px; margin: 6px 0 2px; border-radius: 28px; overflow: hidden; background: var(--soft); cursor: pointer; box-shadow: var(--dv-shadow); transition: transform .2s var(--ease); }
+/* ---------- 封面卡片（列表最上面）
+   有照片和没照片用同一套网格：上面一行是表情图块和置顶标记，下面一行左边名称日期、右边大数字，
+   四周统一 16px 边距；有照片时下面一行放进磨砂玻璃里 ---------- */
+.dv-cover { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; min-height: 164px; margin: 6px 0 2px; padding: 16px;
+  border-radius: 28px; overflow: hidden; background: var(--soft); cursor: pointer; box-shadow: var(--dv-shadow); transition: transform .2s var(--ease); isolation: isolate; }
+.dv-cover.photo { min-height: 216px; background: var(--field); }
 .dv-cover:active { transform: scale(.985); }
 .dv-cover.past { --tone: var(--past); }
-.cv-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .3s; }
+.cv-img { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .3s; }
 .cv-img.ok { opacity: 1; }
-.cv-emo { position: absolute; right: 22px; top: 16px; font-size: 64px; line-height: 1; }
-.cv-pin { position: absolute; left: 16px; top: 14px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--plate); color: var(--plate-ink2);
-  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.cv-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.cv-tile { width: 52px; height: 52px; border-radius: 17px; display: grid; place-items: center; font-size: 28px; line-height: 1;
+  background: color-mix(in srgb, var(--dv-card) 72%, transparent); box-shadow: 0 1px 2px rgba(30, 50, 80, .06); }
+.dv-cover.photo .cv-tile { background: var(--plate); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.cv-pin { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--plate-ink2);
+  background: color-mix(in srgb, var(--dv-card) 72%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 .cv-pin svg { width: 15px; height: 15px; stroke-width: 2; }
-.cv-plate { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; align-items: flex-end; gap: 12px; padding: 12px 16px 12px; border-radius: 20px;
-  background: var(--plate); color: var(--plate-ink); -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); }
-.dv-cover:not(.photo) .cv-plate { background: color-mix(in srgb, var(--dv-card) 82%, transparent); }
-.cv-l { flex: 1; min-width: 0; }
-.cv-l b { display: block; font-size: 17px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cv-l small { display: block; margin-top: 3px; font-size: 12px; color: var(--plate-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-plate { display: flex; align-items: flex-end; gap: 12px; color: var(--plate-ink); }
+.dv-cover.photo .cv-plate { margin: 0 -6px -6px; padding: 12px 14px; border-radius: 20px; background: var(--plate);
+  -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); }
+.cv-l { flex: 1; min-width: 0; padding-bottom: 2px; }
+.cv-l b { display: block; font-size: 18px; font-weight: 680; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-l small { display: block; margin-top: 3px; font-size: 12.5px; color: var(--plate-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cv-r { flex: none; text-align: right; }
-.cv-r small { display: block; font-size: 12px; font-weight: 650; color: var(--tone); }
-.cv-r b { display: inline-flex; align-items: baseline; gap: 3px; font-family: var(--num-font); font-size: 44px; line-height: .95; font-weight: 760; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.cv-r small { display: block; margin-bottom: 2px; font-size: 12px; font-weight: 650; color: var(--tone); }
+.cv-r b { display: inline-flex; align-items: baseline; gap: 3px; font-family: var(--num-font); font-size: 48px; line-height: .92; font-weight: 760; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 .cv-r b i { font-style: normal; font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--plate-ink2); }
-.cv-r b.today { font-size: 30px; color: var(--tone); letter-spacing: -.01em; }
+.cv-r b i.pre { margin-right: 2px; color: var(--tone); }
+.cv-r b.today { font-size: 32px; color: var(--tone); letter-spacing: -.01em; }
 
 /* ---------- 列表：一张张白卡片 ---------- */
 .dv-sec { display: flex; align-items: baseline; gap: 6px; margin: 24px 6px 10px; font-size: 13px; font-weight: 650; color: var(--text2); }
@@ -88,6 +96,8 @@ body[data-kind="days"] .dv { display: flex; }
 .dv-n { flex: none; display: flex; align-items: baseline; gap: 3px; font-family: var(--num-font); color: var(--tone); }
 .dv-n b { font-size: 27px; font-weight: 740; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .dv-n i { font-style: normal; font-size: 12.5px; font-weight: 600; color: var(--text2); }
+.dv-n i.pre { margin-right: 1px; color: var(--tone); }
+.dv-row.hl .dv-n i.pre { color: inherit; }
 .dv-n.today b, .dv-n.sm b { font-size: 14.5px; letter-spacing: 0; font-weight: 650; }
 .dv-row.hl { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--hl) 55%, transparent), var(--dv-shadow); }
 .dv-row.hl .dv-n { padding: 4px 11px; border-radius: 13px; background: var(--hl); color: var(--hl-ink); }
@@ -228,8 +238,7 @@ body[data-kind="days"] .dv { display: flex; }
 #dayNote, #dayShare { z-index: 35; }
 .de-body, .ds-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0 16px 28px; }
 .de-preview { pointer-events: none; }
-.de-preview .dv-cover { height: 150px; margin: 2px 0 6px; }
-.de-preview .cv-emo { font-size: 50px; }
+.de-preview .dv-cover { min-height: 140px; margin: 2px 0 6px; }
 .de-cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .de-cat { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 11px 2px 9px; border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line);
   font-size: 12px; font-weight: 580; color: var(--text); transition: box-shadow .2s, background .2s; }
