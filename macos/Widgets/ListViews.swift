@@ -365,19 +365,18 @@ struct SchedGrid: View {
     private func block(_ c: Course, x: CGFloat, w: CGFloat, top: CGFloat, bottom: CGFloat, fk: CGFloat, h12: Bool, live: Bool) -> some View {
         let t = entry.data.toneOf(c.code)
         let x0 = x + 1.5, x1 = x0 + w - 3, y0 = top + 1, y1 = bottom - 1
-        // 放得下几行就显示几行：代码、类型、时间、教室
-        var lines: [(String, CGFloat, Font.Weight, Color)] = [
-            (c.code, 11.5, .bold, Color(argb: t[pal.dark ? CourseColors.INK_D : CourseColors.INK_L])),
-            (I18n.t(c.type), 9.5, .regular, pal.text),
-            (h12 ? fmtTime(c.start, true, true) + "–" + fmtTime(c.end, true, true) : c.start + "–" + c.end, 9, .regular, pal.text2),
-            (c.room, 9, .regular, pal.text),
-        ]
-        lines = lines.filter { !$0.0.isEmpty }
-        var used: CGFloat = 2, fit: [(String, CGFloat, Font.Weight, Color)] = []
-        for (i, ln) in lines.enumerated() {
-            let h = ln.1 * fk * 1.22
-            if i > 0 && used + h > y1 - y0 { break } // 第一行（课程代码）不管多矮都显示
-            used += h; fit.append(ln)
+        // 课程代码和上课时间一定显示：一节课的色块矮时，两行一起缩小一点也要放下；还有空间再加教室、类型
+        let ink = Color(argb: t[pal.dark ? CourseColors.INK_D : CourseColors.INK_L])
+        let time = h12 ? fmtTime(c.start, true, true) + "–" + fmtTime(c.end, true, true) : c.start + "–" + c.end
+        let avail = y1 - y0 - 3, lh: CGFloat = 1.18
+        let sc = min(1, max(0.72, avail / ((11.5 + 9.5) * fk * lh)))
+        var fit: [(String, CGFloat, Font.Weight, Color)] = [(c.code, 11.5 * fk * sc, .bold, ink)]
+        var used = 11.5 * fk * sc * lh
+        for ln in [(time, 9.5 * fk * sc, Font.Weight.medium, pal.text2), (c.room, 9 * fk * sc, .regular, pal.text), (I18n.t(c.type), 9 * fk * sc, .regular, pal.text)]
+            where !ln.0.isEmpty {
+            if used + ln.1 * lh > avail + 1 { break }
+            used += ln.1 * lh
+            fit.append(ln)
         }
         return ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 6).fill(Color(argb: t[pal.dark ? CourseColors.FILL_D : CourseColors.FILL_L]))
@@ -385,11 +384,11 @@ struct SchedGrid: View {
                 .frame(width: 3).widgetAccentable()
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(fit.enumerated()), id: \.offset) { _, ln in
-                    Text(ln.0).font(.system(size: ln.1 * fk, weight: ln.2)).foregroundStyle(ln.3).lineLimit(1)
-                        .minimumScaleFactor(0.55) // 宁可字小一点，也要显示完整的课程代码，不要「MAT 2…」
+                    Text(ln.0).font(.system(size: ln.1, weight: ln.2)).foregroundStyle(ln.3).lineLimit(1)
+                        .minimumScaleFactor(0.55) // 宁可字小一点，也要显示完整，不要「MAT 2…」
                 }
             }
-            .padding(.leading, 5.5).padding(.top, 2).padding(.trailing, 1.5)
+            .padding(.leading, 5.5).padding(.top, 1.5).padding(.trailing, 1.5)
         }
         .frame(width: max(0, x1 - x0), height: max(0, y1 - y0), alignment: .topLeading)
         .clipped()
