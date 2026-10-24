@@ -250,7 +250,9 @@ enum I18n {
             if p.hasPrefix("zh") { l = p.contains("hant") || p.contains("-tw") || p.contains("-hk") || p.contains("-mo") ? "zh-Hant" : "zh-Hans" }
             else { l = p.hasPrefix("fr") ? "fr" : p.hasPrefix("ja") ? "ja" : "en" }
         }
-        lang = ["zh-Hant", "en", "fr", "ja"].contains(l) ? l : "zh-Hans"
+        let v = ["zh-Hant", "en", "fr", "ja"].contains(l) ? l : "zh-Hans"
+        // 小组件里好几个线程同时在画、同时在读 lang；没变就不写，避免读到写了一半的字符串而崩溃
+        if v != lang { lang = v }
     }
 
     static func t(_ zhHans: String, _ args: Any...) -> String {

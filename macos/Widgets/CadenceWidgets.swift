@@ -34,27 +34,32 @@ struct CalProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<CalEntry>) -> Void) {
         let now = Date(), d = Shared.load(), today = YMD(now)
         let midnight = today.adding(1).date.addingTimeInterval(2)
+        // 一次只排接下来 3 小时（不再一口气排到午夜）：之前白天每 10 分钟一条、一天 90 多条，
+        // 系统要把每一条都预先画好，大尺寸课表很容易超出小组件进程的内存 / 时间限制被系统结束，
+        // App 退出后就只剩灰色的占位图。到点后系统会再来要下一段。
+        let horizon = min(midnight, now.addingTimeInterval(3 * 3600))
         var times: Set<Date> = [now]
         for c in d.courses(on: today) {
             for m in [c.startMin, c.endMin] {
                 let t = today.at(minutes: m)
-                if t > now && t < midnight { times.insert(t) }
+                if t > now && t < horizon { times.insert(t) }
             }
         }
         // 课表上的「现在」线：白天每 10 分钟一格
         var t = YMD.cal.date(bySetting: .second, value: 0, of: now) ?? now
         while true {
             t = t.addingTimeInterval(600)
-            if t >= midnight { break }
+            if t >= horizon { break }
             let h = YMD.cal.component(.hour, from: t)
             if h >= 7 && h < 23 { times.insert(t) }
         }
         let exp = Shared.offsetExpiry("moff"), off = Shared.offset("moff")
-        if let e = exp, e < midnight { times.insert(e) }
+        if let e = exp, e < horizon { times.insert(e) }
+        let ws = Shared.weekStart
         let entries = times.sorted().map { t in
-            CalEntry(date: t, data: d, weekStart: Shared.weekStart, moff: exp.map { t >= $0 } == true ? 0 : off)
+            CalEntry(date: t, data: d, weekStart: ws, moff: exp.map { t >= $0 } == true ? 0 : off)
         }
-        completion(Timeline(entries: entries, policy: .after(midnight)))
+        completion(Timeline(entries: entries, policy: .after(horizon)))
     }
 }
 
