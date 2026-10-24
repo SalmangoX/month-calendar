@@ -129,13 +129,14 @@
   function closeComposer(save) { skipCloseSave = !save; UI.close('composer'); }
   Editor.closeComposerSilently = () => closeComposer(false);
 
-  Editor.openNew = (date, cal) => {
+  Editor.openNew = (date, cal, pinDate) => { // pinDate：明确点了某一天（长按日期），草稿也改用这一天
     mode = 'new'; editing = null;
     newCal = cal && MC.cal(cal) ? cal : '';
     resetDraft(date || MC.Cal.selected() || MC.todayStr());
     const saved = readDraft();
     if (saved) {
       Object.assign(draft, saved);
+      if (pinDate && date) draft.date = date;
       $('#cmpTitle').value = saved.title || ''; $('#cmpNote').value = saved.note || '';
     } else { $('#cmpTitle').value = ''; $('#cmpNote').value = ''; }
     $('#cmpHeading').textContent = saved ? '继续编辑草稿' : newHeading();
@@ -147,6 +148,8 @@
     otherOpen = false; renderOther();
     growTitle(); paintComposer();
     UI.open('composer', onComposerClosed);
+    // 新建时直接把光标放进名称（同一次点击里调用，手机才会弹出键盘）
+    const ti = $('#cmpTitle'); ti.focus({ preventScroll: true }); try { ti.setSelectionRange(ti.value.length, ti.value.length); } catch (e) {}
   };
   Editor.openEdit = e => {
     mode = 'edit'; editing = e;
@@ -174,6 +177,7 @@
 
   $('#cmpTitle').addEventListener('input', () => { growTitle(); $('#cmpTitle').classList.remove('err'); paintComposer(); });
   $('#cmpTitle').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); } });
+  $('#cmpNote').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.isComposing) { e.preventDefault(); submit(); } });
   $('#cmpQuick').addEventListener('click', e => {
     const b = e.target.closest('.qchip'); if (!b) return;
     if (b.dataset.act === 'other') { otherOpen = !otherOpen; otherCal = null; paintQuick(); renderOther(); return; }
@@ -197,24 +201,21 @@
     if (!editing) return;
     const ev = editing;
     const later = ev.series ? MC.data.events.filter(x => x.series === ev.series && x.date >= ev.date) : [];
+    // 直接删除，提示里可以撤销（不再先弹确认框）
     const doDelete = all => {
-      if (all) {
-        const ids = new Set(later.map(x => x.id));
-        const t = Date.now();
-        MC.data.events = MC.data.events.filter(x => !ids.has(x.id));
-        ids.forEach(id => (MC.data.deleted[id] = t));
-        for (const x of MC.data.events) if (x.series === ev.series && x.rep && x.rep.forever) { x.rep = { ...x.rep, forever: false }; x.updatedAt = t; } // 停止续生成
-        MC.commit();
-        UI.toast(`已删除 ${ids.size} 个事件`);
-      } else { MC.deleteEvent(ev); UI.toast('已删除'); }
       closeComposer(false);
+      if (!all) { UI.removeEvents([ev], `已删除「${ev.title}」`); return; }
+      const t = Date.now(), stopped = [];
+      for (const x of MC.data.events) if (x.series === ev.series && x.rep && x.rep.forever && !later.includes(x)) { stopped.push([x, x.rep]); x.rep = { ...x.rep, forever: false }; x.updatedAt = t; } // 停止续生成
+      // 撤销时把「一直重复」也恢复
+      UI.removeEvents(later, `已删除 ${later.length} 个事件`, () => { const t2 = Date.now(); stopped.forEach(([x, r]) => { x.rep = r; x.updatedAt = t2; }); });
     };
     if (later.length > 1) {
       UI.menu($('#cmpDelete'), [
         { label: '仅删除这一个', value: false },
-        { label: `删除这个及之后的重复（${later.length} 个）`, value: true },
+        { label: `删除这个及之后的重复（${later.length} 个）`, value: true, danger: true },
       ], doDelete);
-    } else if (confirm(`删除「${ev.title}」？`)) doDelete(false);
+    } else doDelete(false);
   };
 
   function submit() {

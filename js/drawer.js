@@ -121,11 +121,11 @@
     }
     const c = MC.cal(id); if (!c) return;
     if (c.kind === 'days') {
-      UI.menu(b, [{ label: T('名称和颜色'), value: 'edit' }, { label: T('删除这个日历'), value: 'del' }], v => {
+      UI.menu(b, [{ label: T('名称和颜色'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }], async v => {
         if (v === 'edit') calForm(c);
         else {
           const n = MC.countIn(c.id);
-          if (!confirm(T('删除「{0}」？').replace('{0}', c.name) + (n ? T('里面的 {0} 个日子、小纸条和相册会一起删除，').replace('{0}', n) : '') + T('其他设备同步后也会删除。'))) return;
+          if (!(await UI.confirm(T('删除「{0}」？').replace('{0}', c.name) + (n ? T('里面的 {0} 个日子、小纸条和相册会一起删除，').replace('{0}', n) : '') + T('其他设备同步后也会删除。'), { ok: T('删除'), danger: true }))) return;
           MC.deleteCal(c.id); D.paint(); render(); MC.Cal.render();
           UI.toast(T('已删除「{0}」').replace('{0}', c.name));
         }
@@ -136,14 +136,14 @@
       { label: '在主日历显示', value: 'main', on: c.showInMain },
       { label: '通知', value: 'notify', on: c.notify },
       { label: '名称和颜色', value: 'edit' },
-      { label: '删除这个日历', value: 'del' },
-    ], v => {
+      { label: '删除这个日历', value: 'del', danger: true },
+    ], async v => {
       if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? `「${c.name}」的事件会显示在主日历` : `「${c.name}」不再显示在主日历`); }
       else if (v === 'notify') { MC.updateCal(c, { notify: !c.notify }); render(); UI.toast(c.notify ? `已打开「${c.name}」的通知` : `已关闭「${c.name}」的通知`); }
       else if (v === 'edit') calForm(c);
       else {
         const n = MC.countIn(c.id);
-        if (!confirm(`删除「${c.name}」？${n ? `里面的 ${n} 条记录会一起删除，` : ''}其他设备同步后也会删除。`)) return;
+        if (!(await UI.confirm(`删除「${c.name}」？${n ? `里面的 ${n} 条记录会一起删除，` : ''}其他设备同步后也会删除。`, { ok: '删除', danger: true }))) return;
         MC.deleteCal(c.id); D.paint(); render(); MC.Cal.render();
         UI.toast(`已删除「${c.name}」`);
       }

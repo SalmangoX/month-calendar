@@ -351,6 +351,12 @@
     MC.data.deleted[ev.id] = Date.now();
     MC.commit();
   };
+  // 撤销删除：放回原来的事件。updatedAt 要比删除时间新，其他设备同步时才会保留它
+  MC.restoreEvents = list => {
+    const t = Date.now() + 1, have = new Set(MC.data.events.map(e => e.id));
+    for (const e of list) { delete MC.data.deleted[e.id]; if (!have.has(e.id)) MC.data.events.push({ ...e, updatedAt: t }); }
+    MC.commit();
+  };
   MC.setProfile = fields => { Object.assign(MC.data.profile, fields, { updatedAt: Date.now() }); MC.commit(); };
   MC.setCourses = list => { MC.data.courses = list; MC.data.coursesAt = Date.now(); MC.commit(); };
   MC.addCal = (name, color, opts = {}) => {

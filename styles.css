@@ -647,10 +647,37 @@ html.locked .lock { display: grid; }
   pointer-events: none; transition: opacity .2s, transform .3s var(--ease); z-index: 90; max-width: 86vw; text-align: center;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast { display: flex; align-items: center; gap: 14px; }
+.toast.has-act { pointer-events: auto; padding: 6px 6px 6px 18px; text-align: left; }
+.toast-act { flex: none; padding: 6px 13px; border-radius: 14px; font-size: 14px; font-weight: 650; color: var(--accent-text); background: var(--field); }
+.toast-act:active { opacity: .7; }
+
+/* 确认框（替代系统 confirm） */
+.cfm-scrim { position: absolute; inset: 0; z-index: 84; background: var(--backdrop); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.cfm-scrim.show { opacity: 1; pointer-events: auto; }
+.cfm { position: absolute; z-index: 85; left: 50%; top: 50%; width: min(300px, calc(100% - 48px)); border-radius: 22px; padding: 20px 16px 14px;
+  transform: translate(-50%, -46%) scale(.94); opacity: 0; pointer-events: none; transition: opacity .16s, transform .26s var(--ease-spring); }
+.cfm.show { transform: translate(-50%, -50%); opacity: 1; pointer-events: auto; }
+.cfm p { margin: 0 4px 18px; font-size: 15px; line-height: 1.5; text-align: center; white-space: normal; word-break: break-word; user-select: text; -webkit-user-select: text; }
+.cfm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cfm-btns button { padding: 11px 8px; border-radius: 13px; font-size: 15px; font-weight: 600; background: var(--field); }
+.cfm-btns button.strong { background: var(--accent); color: #fff; }
+.cfm-btns button.danger { background: color-mix(in srgb, var(--p3) 14%, transparent); color: var(--p3); }
+.cfm-btns button:active { opacity: .75; }
+
+/* 弹出菜单里的危险操作 */
+.popover button.danger { color: var(--p3); }
+
+/* 今日：分组标题右侧的小按钮（已逾期 → 全部移到今天） */
+.sec-r { display: inline-flex; align-items: center; gap: 10px; }
+.sec-act { font-size: 12.5px; font-weight: 600; color: var(--accent-text); padding: 2px 8px; margin: -2px 0; border-radius: 10px; background: var(--field); }
+.sec-act:active { opacity: .7; }
+/* 长按事件时不弹出系统的文字菜单 */
+.item, .cell, .wcol { -webkit-touch-callout: none; }
 
 @media (min-width: 700px) { .chip { font-size: 11px; } .num { font-size: 15px; } }
 @media (prefers-reduced-motion: reduce) {
-  .sheet, .backdrop, .toast, .glass, .popover, .tab-ind, .drawer-scrim { transition: none; }
+  .sheet, .backdrop, .toast, .glass, .popover, .tab-ind, .drawer-scrim, .cfm, .cfm-scrim { transition: none; }
   .dr-row, .dr-empty, .dr-sec { transform: none !important; }
   .page.active, .cal-body.previewing .preview, #calZoom.zoom-in, #calZoom.zoom-out, .cell.sel .num, .wcol.sel .wnum { animation: none; }
 }

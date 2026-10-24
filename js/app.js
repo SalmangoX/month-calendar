@@ -203,19 +203,31 @@
   function renderToday() {
     const d = new Date(), t = MC.todayStr();
     $('#todayDate').textContent = `${d.getMonth() + 1}月${d.getDate()}日 周${MC.WD[d.getDay()]}`;
-    const overdue = MC.data.events.filter(e => MC.inMainView(e) && !e.done && MC.endDate(e) < t) // 含设为在主日历显示的记录日历.sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b));
+    // 已逾期：最早的在最上面（含设为在主日历显示的记录日历）
+    const overdue = MC.data.events.filter(e => MC.inMainView(e) && !e.done && MC.endDate(e) < t)
+      .sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b));
     const today = MC.mainViewOn(t);
     const open = today.filter(e => !e.done), done = today.filter(e => e.done);
+    // 接下来 7 天还没完成的（和今日小组件一致）
+    const seen = new Set(today.map(e => e.id)), soon = [];
+    for (let i = 1; i <= 7; i++) for (const e of MC.mainViewOn(MC.ymd(MC.addDays(d, i)))) if (!e.done && !seen.has(e.id)) { seen.add(e.id); soon.push(e); }
     let h = '';
-    if (overdue.length) h += `<section class="sec"><h3 class="over"><span>已逾期</span><span>${overdue.length}</span></h3><ul class="card glass-panel">${overdue.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
+    if (overdue.length) h += `<section class="sec"><h3 class="over"><span>已逾期</span><span class="sec-r"><button class="sec-act" data-sec="overdue">全部移到今天</button><span>${overdue.length}</span></span></h3><ul class="card glass-panel">${overdue.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
     if (open.length) h += `<section class="sec"><h3><span>待完成</span><span>${open.length}</span></h3><ul class="card glass-panel">${open.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
     if (done.length) h += `<section class="sec"><h3><span>已完成</span><span>${done.length}</span></h3><ul class="card glass-panel">${done.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
     const sun = '<span class="em-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></svg></span>';
     const tick = '<span class="em-ico"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
     if (!today.length && !overdue.length) h = `<div class="big-empty">${sun}今天没有安排<br><small style="color:var(--text3)">点右下角 ＋ 添加</small></div>`;
     else if (!open.length && !overdue.length) h = `<div class="big-empty" style="padding:30px 20px 6px">${tick}今天的事都完成了</div>` + h;
+    if (soon.length) h += `<section class="sec"><h3><span>接下来 7 天</span><span>${soon.length}</span></h3><ul class="card glass-panel">${soon.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
     $('#todayBody').innerHTML = h;
   }
+  $('#todayBody').addEventListener('click', e => {
+    if (!e.target.closest('[data-sec="overdue"]')) return;
+    const t = MC.todayStr();
+    const list = MC.data.events.filter(x => MC.inMainView(x) && !x.done && MC.endDate(x) < t);
+    if (list.length) UI.moveEvents(list, t, `已把 ${list.length} 个事件移到今天`);
+  });
   UI.bindList($('#todayBody'));
 
   // ---------- 四象限 ----------
@@ -461,7 +473,7 @@
       try {
         const up = await MC.Native.checkUpdate(true);
         if (up) {
-          if (confirm(`安卓 App 有新版本 ${up.name}（第 ${up.latest} 版）。现在下载？\n下载完成后点通知栏里的文件安装，数据和设置都会保留。`)) MC.Native.update();
+          if (await UI.confirm(`安卓 App 有新版本 ${up.name}（第 ${up.latest} 版）。现在下载？\n下载完成后点通知栏里的文件安装，数据和设置都会保留。`, { ok: '下载' })) MC.Native.update();
         } else UI.toast(MC.Native.lastCheck().latest ? '已经是最新版本' : '仓库里还没有发布安卓 App');
       } catch (err) { UI.toast('检查失败：' + err.message); }
       renderSettings();
@@ -498,7 +510,7 @@
         { label: '断开，保留本机数据', value: 'keep' },
         { label: '断开并清除本机数据', value: 'wipe' },
       ], async v => {
-        if (v === 'wipe' && !confirm('本机的事件、头像和昵称会被清除（你的 GitHub 账号里的数据不受影响），适合把设备交给别人用。继续？')) return;
+        if (v === 'wipe' && !(await UI.confirm('本机的事件、头像和昵称会被清除（你的 GitHub 账号里的数据不受影响），适合把设备交给别人用。继续？', { ok: '清除', danger: true }))) return;
         if (Push.enabled()) await Push.disable();
         MC.vault.disconnect();
         MC.settings.account = '';
@@ -627,7 +639,10 @@
         const switching = !!MC.settings.account && login && login !== MC.settings.account;
         const localCount = MC.data.events.length;
         if (localCount && id && (switching || !isRetoken)) {
-          const keep = confirm(`这台设备上已有 ${localCount} 个事件。\n\n点「确定」：把它们合并到 ${login ? '@' + login : '你'} 的账号。\n点「取消」：只使用该账号自己的数据，本机这些事件会被清除。`);
+          // 关掉对话框（点外面 / 返回）按合并处理，不会误删本机事件
+          const keep = await UI.confirm(login
+            ? `这台设备上已有 ${localCount} 个事件。合并到 @${login} 的账号，还是只用该账号自己的数据（本机这些事件会被清除）？`
+            : `这台设备上已有 ${localCount} 个事件。合并到你的账号，还是只用账号自己的数据（本机这些事件会被清除）？`, { ok: '合并', cancel: '只用账号数据', dismiss: true });
           if (!keep) { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); }
         }
         if (switching && !id) { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); }
@@ -696,8 +711,8 @@
       $('#lockPw').select();
     }
   });
-  $('#lockForgot').onclick = () => {
-    if (!confirm('忘记密码只能清除这台设备上保存的令牌，日历数据会保留。之后需要重新连接 GitHub。继续？')) return;
+  $('#lockForgot').onclick = async () => {
+    if (!(await UI.confirm('忘记密码只能清除这台设备上保存的令牌，日历数据会保留。之后需要重新连接 GitHub。继续？', { ok: '清除令牌', danger: true }))) return;
     MC.vault.disconnect();
     hideLock(); renderPage();
     UI.toast('已清除令牌，请在设置中重新连接 GitHub');
@@ -944,7 +959,7 @@
     else if (k === 'yml') workflowYml ? copy(workflowYml, '已复制工作流文件') : UI.toast('文件还在加载，请稍后再点一次');
     else if (k === 'regen') {
       if (!Push.enabled()) { UI.toast('请先打开提醒通知开关'); return; }
-      if (!confirm('重新生成后，需要把新密钥更新到 GitHub 的 VAPID_PRIVATE_KEY，其他设备也要重新打开提醒开关。继续？')) return;
+      if (!(await UI.confirm('重新生成后，需要把新密钥更新到 GitHub 的 VAPID_PRIVATE_KEY，其他设备也要重新打开提醒开关。继续？', { ok: '重新生成' }))) return;
       try { await Push.regenerate(); openHelp('notify'); UI.toast('已生成新的通知密钥'); } catch (err) { UI.toast(err.message); }
     }
   });
@@ -1063,6 +1078,7 @@
   if (location.hash === '#today' || location.hash === '#sched') { MC.openHash(location.hash); history.replaceState(null, '', location.pathname); }
   // 安卓返回键：先关菜单和面板，再回到月历页；都没有时由 App 退到后台
   MC.back = () => {
+    if (UI.confirmOpen()) { UI.closeConfirm(); return true; }
     if (document.documentElement.classList.contains('locked')) return false;
     if (UI.menuOpen()) { UI.closeMenu(); return true; }
     if (UI.anyOpen()) { UI.close(); return true; }
@@ -1070,6 +1086,20 @@
     if (page !== 'cal') { showPage('cal'); return true; }
     return false;
   };
+  // 键盘（电脑 / Mac App / 平板外接键盘）：N 新建 · T 今天 · Y / M / W 年月周视图 · 1–4 切换底部页面
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+    if (document.documentElement.classList.contains('locked') || UI.anyOpen() || UI.menuOpen() || UI.confirmOpen() || MC.Drawer.isOpen()) return;
+    const a = document.activeElement;
+    if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;
+    if (document.querySelector('.dp.show, .cam.show, .pv.show')) return; // 纪念日主页、相机、看照片时不响应
+    const k = e.key.toLowerCase();
+    if (k === 'n') { e.preventDefault(); $('#fab').click(); }
+    else if (k === 't') { e.preventDefault(); if (page !== 'cal') showPage('cal'); if (document.body.dataset.kind !== 'days') $('#btnToday').click(); }
+    else if (page === 'cal' && document.body.dataset.kind !== 'days' && { y: 1, m: 1, w: 1 }[k]) { e.preventDefault(); MC.Cal.setView({ y: 'year', m: 'month', w: 'week' }[k]); }
+    else if (/^[1-5]$/.test(k)) { const b = tabs()[Number(k) - 1]; if (b) { e.preventDefault(); showPage(b.dataset.page); } }
+  });
+
   // 安卓 App：提示更新（Mac App 在本机编译，不提示）
   if (MC.Native.on && !MC.Native.mac) {
     if (MC.Native.outdated) setTimeout(() => UI.toast('这个版本的安卓 App 太旧了，请到 设置 → 安卓 App 更新'), 2500);

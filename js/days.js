@@ -726,9 +726,9 @@
   }
   function bookMenu(anchor, b) {
     if (!b) return;
-    UI.menu(anchor, [{ label: T('重命名'), value: 'ren' }, { label: T('删除细分'), value: 'del' }], v => {
+    UI.menu(anchor, [{ label: T('重命名'), value: 'ren' }, { label: T('删除细分'), value: 'del', danger: true }], async v => {
       if (v === 'ren') bookForm(b, () => render());
-      else if (confirm(F('删除细分「{0}」？里面的日子不会删除。', b.name))) { MC.deleteBook(b); st.sub = ''; render(); }
+      else if (await UI.confirm(F('删除细分「{0}」？里面的日子不会删除。', b.name), { ok: T('删除'), danger: true })) { MC.deleteBook(b); st.sub = ''; render(); }
     });
   }
 
@@ -826,10 +826,10 @@
     const nm = t.closest('[data-nmore]');
     if (nm) {
       const n = x.notes.find(y => y.id === nm.dataset.nmore); if (!n) return;
-      UI.menu(nm, [{ label: T('编辑'), value: 'edit' }, { label: T('生成分享图片'), value: 'share' }, { label: T('删除'), value: 'del' }], v => {
+      UI.menu(nm, [{ label: T('编辑'), value: 'edit' }, { label: T('生成分享图片'), value: 'share' }, { label: T('删除'), value: 'del', danger: true }], async v => {
         if (v === 'edit') openNote(x, n);
         else if (v === 'share') Days.openShare(x, { note: n.id });
-        else if (confirm(T('删除这张小纸条？'))) MC.updateDay(x, { notes: x.notes.filter(y => y.id !== n.id) });
+        else if (await UI.confirm(T('删除这张小纸条？'), { ok: T('删除'), danger: true })) MC.updateDay(x, { notes: x.notes.filter(y => y.id !== n.id) });
       });
       return;
     }
@@ -845,7 +845,7 @@
     else if (a === 'del') removeDay(x);
   });
   async function removeDay(x) {
-    if (!confirm(F('删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。', x.title))) return false;
+    if (!(await UI.confirm(F('删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。', x.title), { ok: T('删除'), danger: true }))) return false;
     for (const p of [...x.photos, ...(isPhotoCover(x) ? [{ id: x.cover }] : [])]) { try { await P.PDB.del(p.id); } catch (err) {} Days.Album.enqueue('del', p.id); }
     MC.deleteDay(x);
     if (UI.isOpen('dayEditor')) UI.close('dayEditor', true);
@@ -1100,7 +1100,7 @@
   const prevChange = MC.onChange;
   MC.onChange = () => { prevChange(); Days.refresh(); };
   const prevBack = MC.back;
-  MC.back = () => (Days.closeOverlay && Days.closeOverlay()) || (!UI.anyOpen() && closePage()) || prevBack();
+  MC.back = () => (UI.confirmOpen() ? (UI.closeConfirm(), true) : false) || (Days.closeOverlay && Days.closeOverlay()) || (!UI.anyOpen() && closePage()) || prevBack();
   const prevHash = MC.openHash;
   MC.openHash = h => {
     const m = /^#days(?:-(.+))?$/.exec(h || '');
@@ -1604,13 +1604,13 @@
       const b = e.target.closest('[data-v]'); if (!b) return;
       const nx = find(vw.id); const p = nx && nx.photos[vw.i]; if (!p) { closeViewer(); return; }
       if (b.dataset.v === 'close') closeViewer();
-      else UI.menu(b, [{ label: T('用它做分享图片'), value: 'bg' }, { label: T('保存 / 分享'), value: 'share' }, { label: T('删除照片'), value: 'del' }], async v => {
+      else UI.menu(b, [{ label: T('用它做分享图片'), value: 'bg' }, { label: T('保存 / 分享'), value: 'share' }, { label: T('删除照片'), value: 'del', danger: true }], async v => {
         if (v === 'bg') { closeViewer(); Days.openShare(nx, { bg: p.id }); }
         else if (v === 'share') {
           const u = await P.photoURL(p.id); if (!u) return;
           const im = await P.loadImg(u); const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight; cv.getContext('2d').drawImage(im, 0, 0);
           deliver(cv, fileName(nx) + '.jpg', 'image/jpeg');
-        } else if (confirm(T('删除这张照片？其他设备同步后也会删除。'))) { await P.removePhoto(nx, p.id); closeViewer(); }
+        } else if (await UI.confirm(T('删除这张照片？其他设备同步后也会删除。'), { ok: T('删除'), danger: true })) { await P.removePhoto(nx, p.id); closeViewer(); }
       });
     });
   };

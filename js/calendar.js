@@ -146,11 +146,15 @@
     else pts.push([X(0) + i, Y(r1 + 1) + i], [X(c1) + i, Y(r1 + 1) + i]);
     path.setAttribute('d', 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L') + ' Z');
   }
+  // 统计某段日期里的事件：跨好几天的事件只算一个
+  function tally(prefix) {
+    const seen = new Set(); let total = 0, done = 0;
+    for (const [k, arr] of MC.byDate) if (k.startsWith(prefix)) for (const e of arr) if (!seen.has(e.id)) { seen.add(e.id); total++; if (e.done) done++; }
+    return { total, done };
+  }
   function monthTitle() {
     $('#calTitle').textContent = `${focus.m + 1}月`;
-    const prefix = `${focus.y}-${MC.pad(focus.m + 1)}-`;
-    let total = 0, done = 0;
-    for (const [k, arr] of MC.byDate) if (k.startsWith(prefix)) { total += arr.length; done += arr.filter(e => e.done).length; }
+    const { total, done } = tally(`${focus.y}-${MC.pad(focus.m + 1)}-`);
     $('#calSub').textContent = total ? `${focus.y} · 完成 ${done}/${total}` : String(focus.y);
   }
   // ---------- 物理滚动：弹簧动画，接住手指松开时的速度 ----------
@@ -315,9 +319,7 @@
     track.innerHTML = yearPanelHTML(year - 1, 0) + yearPanelHTML(year, H) + yearPanelHTML(year + 1, 2 * H);
     setT(0, -H);
     $('#calTitle').textContent = `${year}年`;
-    const prefix = `${year}-`;
-    let total = 0, done = 0;
-    for (const [k, arr] of MC.byDate) if (k.startsWith(prefix)) { total += arr.length; done += arr.filter(e => e.done).length; }
+    const { total, done } = tally(`${year}-`);
     $('#calSub').textContent = total ? `完成 ${done}/${total}` : '全年';
   }
 
@@ -707,6 +709,17 @@
     const k = e.key;
     if (k === 'ArrowDown' || k === 'ArrowRight') { e.preventDefault(); view === 'month' ? shiftRows(1) : page(1); }
     if (k === 'ArrowUp' || k === 'ArrowLeft') { e.preventDefault(); view === 'month' ? shiftRows(-1) : page(-1); }
+  });
+
+  // 长按某一天（电脑上右键）：直接在这一天新建事件
+  UI.longPress(vp, '[data-date]', cell => {
+    if (pinch || dragging || animating) return;
+    const ds = cell.dataset.date;
+    selected = ds;
+    track.querySelectorAll('.sel').forEach(c => c.classList.remove('sel', 'pop'));
+    track.querySelectorAll(`[data-date="${ds}"]`).forEach(c => c.classList.add('sel'));
+    if (previewOpen) renderPreview();
+    MC.Editor.openNew(ds, MC.activeCal(), true);
   });
 
   vp.addEventListener('click', e => {

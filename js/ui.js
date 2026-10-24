@@ -7,11 +7,55 @@
   const esc = MC.esc;
 
   // ---------- 提示 ----------
-  let toastTimer;
-  UI.toast = msg => {
-    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  // UI.toast(msg, { action: '撤销', onAction }) 带一个按钮；有按钮时多停留一会儿
+  let toastTimer, toastAct = null;
+  UI.toast = (msg, opts = {}) => {
+    const t = $('#toast');
+    toastAct = opts.onAction || null;
+    t.innerHTML = `<span>${esc(String(msg))}</span>` + (toastAct ? `<button class="toast-act" type="button">${esc(opts.action || '撤销')}</button>` : '');
+    t.classList.toggle('has-act', !!toastAct);
+    t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(UI.hideToast, opts.ms || (toastAct ? 4500 : 2200));
   };
+  UI.hideToast = () => { $('#toast').classList.remove('show', 'has-act'); toastAct = null; };
+  $('#toast').addEventListener('click', e => {
+    if (!e.target.closest('.toast-act') || !toastAct) return;
+    const fn = toastAct; UI.hideToast(); fn();
+  });
+  // 撤销：做完一件不好反悔的事（删除、批量改日期）后显示「撤销」
+  UI.undoable = (msg, undo, done = '已撤销') => UI.toast(msg, { onAction: () => { undo(); UI.toast(done); } });
+
+  // ---------- 确认框（替代系统 confirm：样式一致，安卓不再显示网址标题）----------
+  // UI.confirm(文字, { ok: '删除', danger: true }) → Promise<boolean>
+  let cfm = null;
+  UI.confirmOpen = () => !!(cfm && cfm.el.classList.contains('show'));
+  UI.closeConfirm = v => { // 不传值 = 点外面 / Esc / 返回键，按 dismiss 处理（默认等于取消）
+    if (!cfm || !cfm.res) return;
+    if (v === undefined) v = cfm.dismiss;
+    const r = cfm.res; cfm.res = null;
+    cfm.el.classList.remove('show'); cfm.scrim.classList.remove('show');
+    r(v);
+  };
+  UI.confirm = (msg, o = {}) => new Promise(res => {
+    if (!cfm) {
+      const scrim = document.createElement('div'); scrim.className = 'cfm-scrim';
+      const el = document.createElement('div'); el.className = 'cfm glass-panel'; el.setAttribute('role', 'alertdialog'); el.setAttribute('aria-modal', 'true');
+      document.body.append(scrim, el);
+      cfm = { el, scrim, res: null };
+      scrim.addEventListener('click', () => UI.closeConfirm());
+      el.addEventListener('click', e => { const b = e.target.closest('[data-cfm]'); if (b) UI.closeConfirm(b.dataset.cfm === '1'); });
+    }
+    if (cfm.res) cfm.res(false);
+    cfm.res = res; cfm.dismiss = 'dismiss' in o ? o.dismiss : false;
+    const text = MC.t ? MC.t(String(msg)) : String(msg); // 和系统弹窗一样整句翻译；里面有用户写的名字，不再逐字转换
+    cfm.el.innerHTML = `<p data-uc>${esc(text).replace(/\n/g, '<br>')}</p><div class="cfm-btns">`
+      + `<button type="button" data-cfm="0">${esc(o.cancel || '取消')}</button>`
+      + `<button type="button" data-cfm="1" class="${o.danger ? 'danger' : 'strong'}">${esc(o.ok || '确定')}</button></div>`;
+    cfm.scrim.classList.add('show'); cfm.el.classList.add('show');
+    if (UI.menuOpen()) UI.closeMenu();
+    // 危险操作默认停在「取消」上，回车不会误删
+    setTimeout(() => { const b = cfm.el.querySelector(`[data-cfm="${o.danger ? 0 : 1}"]`); b && b.focus({ preventScroll: true }); }, 30);
+  });
 
   // ---------- 面板层级 ----------
   const backdrop = $('#backdrop');
@@ -50,7 +94,7 @@
   backdrop.addEventListener('click', () => UI.close());
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (UI.menuOpen()) UI.closeMenu(); else if (stack.length) UI.close();
+    if (UI.confirmOpen()) UI.closeConfirm(); else if (UI.menuOpen()) UI.closeMenu(); else if (stack.length) UI.close();
   });
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => UI.close(b.closest('.sheet').id)));
   // 面板手势：除了可编辑区域（输入框、文本框、滚轮），面板任何位置往下拉都能收起；
@@ -128,7 +172,7 @@
   UI.menu = (anchor, items, cb) => {
     popCb = cb;
     pop.innerHTML = items.map((it, i) =>
-      `<button role="menuitem" data-i="${i}" class="${it.on ? 'on' : ''}">${it.icon || ''}<span>${esc(it.label)}</span>${it.on ? '<span class="tick">✓</span>' : ''}</button>`).join('');
+      `<button role="menuitem" data-i="${i}" class="${it.on ? 'on' : ''}${it.danger ? ' danger' : ''}">${it.icon || ''}<span>${esc(it.label)}</span>${it.on ? '<span class="tick">✓</span>' : ''}</button>`).join('');
     pop.classList.add('show');
     const r = anchor.getBoundingClientRect();
     const pw = pop.offsetWidth, ph = pop.offsetHeight;
@@ -222,8 +266,71 @@
   };
   UI.doneFeedback = () => { haptic(); chime(); };
 
-  // 统一处理列表点击：勾选 / 打开编辑
+  // ---------- 事件的快捷操作：长按（手机）或右键（电脑）弹出 ----------
+  UI.haptic = () => haptic();
+  const snap = e => JSON.parse(JSON.stringify(e));
+  // 删除一个或多个事件，提示里带「撤销」
+  UI.removeEvents = (list, msg, alsoUndo) => {
+    if (!list.length) return;
+    const saved = list.map(snap), ids = new Set(list.map(e => e.id)), t = Date.now();
+    MC.data.events = MC.data.events.filter(e => !ids.has(e.id));
+    ids.forEach(id => (MC.data.deleted[id] = t));
+    MC.commit();
+    UI.undoable(msg || (list.length > 1 ? `已删除 ${list.length} 个事件` : '已删除'), () => { if (alsoUndo) alsoUndo(); MC.restoreEvents(saved); });
+  };
+  // 改日期（移到今天 / 明天），可以撤销
+  UI.moveEvents = (list, ds, msg) => {
+    const before = list.map(e => [e, e.date]);
+    const t = Date.now();
+    list.forEach(e => { e.date = ds; e.updatedAt = t; });
+    MC.commit();
+    UI.undoable(msg, () => { const t2 = Date.now(); before.forEach(([e, d]) => { e.date = d; e.updatedAt = t2; }); MC.commit(); });
+  };
+  UI.itemMenu = (anchor, e) => {
+    const today = MC.todayStr(), tmr = MC.ymd(MC.addDays(new Date(), 1));
+    const items = [{ label: e.done ? '标为未完成' : '标为完成', value: 'toggle' }];
+    if (!e.done && e.date !== today) items.push({ label: '移到今天', value: 'today' });
+    if (!e.done && e.date !== tmr) items.push({ label: '移到明天', value: 'tmr' });
+    items.push({ label: '优先级', value: 'pri' }, { label: '编辑', value: 'edit' }, { label: '删除', value: 'del', danger: true });
+    UI.menu(anchor, items, v => {
+      if (!MC.data.events.includes(e)) return;
+      if (v === 'toggle') { if (!e.done) { UI.justDone = e.id; UI.doneFeedback(); } MC.updateEvent(e, { done: !e.done }); }
+      else if (v === 'today') UI.moveEvents([e], today, '已移到今天');
+      else if (v === 'tmr') UI.moveEvents([e], tmr, '已移到明天');
+      else if (v === 'pri') setTimeout(() => UI.menu(anchor, UI.priMenuItems(e.priority), p => MC.updateEvent(e, { priority: p })), 60);
+      else if (v === 'edit') MC.Editor.openEdit(e);
+      else if (v === 'del') UI.removeEvents([e], '已删除');
+    });
+  };
+  // 长按：按住约半秒、手指没怎么动；之后的那次点击不再打开编辑
+  UI.longPress = (el, sel, fn) => {
+    let lp = null, lastTouch = 0, swallowClick = false;
+    const cancel = () => { if (lp) { clearTimeout(lp.t); lp = null; } };
+    el.addEventListener('touchstart', ev => {
+      lastTouch = Date.now(); cancel();
+      if (ev.touches.length !== 1) return;
+      const target = ev.target.closest(sel); if (!target || !el.contains(target)) return;
+      const x = ev.touches[0].clientX, y = ev.touches[0].clientY;
+      lp = { x, y, t: setTimeout(() => { lp = null; swallowClick = true; setTimeout(() => (swallowClick = false), 600); haptic(); fn(target, ev); }, 480) };
+    }, { passive: true });
+    el.addEventListener('touchmove', ev => { if (lp && Math.hypot(ev.touches[0].clientX - lp.x, ev.touches[0].clientY - lp.y) > 9) cancel(); }, { passive: true });
+    el.addEventListener('touchend', () => { lastTouch = Date.now(); cancel(); });
+    el.addEventListener('touchcancel', cancel);
+    el.addEventListener('contextmenu', ev => {
+      const target = ev.target.closest(sel); if (!target || !el.contains(target)) return;
+      ev.preventDefault();
+      if (Date.now() - lastTouch < 900) return; // 手机长按也会发右键事件，上面已经处理过了
+      fn(target, ev);
+    });
+    el.addEventListener('click', ev => { if (swallowClick) { swallowClick = false; ev.stopPropagation(); ev.preventDefault(); } }, true);
+  };
+
+  // 统一处理列表点击：勾选 / 打开编辑；长按或右键：快捷操作
   UI.bindList = el => {
+    UI.longPress(el, '.item', li => {
+      const e = MC.data.events.find(x => x.id === li.dataset.id);
+      if (e) UI.itemMenu(li.querySelector('.item-main') || li, e);
+    });
     el.addEventListener('click', ev => {
       const li = ev.target.closest('.item'); if (!li) return;
       const e = MC.data.events.find(x => x.id === li.dataset.id); if (!e) return;
