@@ -206,7 +206,7 @@ struct MenuBarView: View {
         HStack(spacing: 8) {
             GlassGroup {
                 HStack(spacing: 6) {
-                    Button(I18n.t("打开节律")) { (NSApp.delegate as? AppDelegate)?.main.show() }
+                    Button(I18n.t("打开节律")) { (NSApp.delegate as? AppDelegate)?.main?.show() }
                         .glassButton(prominent: true).tint(pal.accent)
                     Button { Task { await engine.pull() } } label: {
                         Image(systemName: "arrow.triangle.2.circlepath")

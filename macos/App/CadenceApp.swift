@@ -17,22 +17,26 @@ enum CadenceMain {
 /// 原生部分负责菜单栏月历、桌面小组件、系统通知和后台同步。
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
-    private(set) var main: MainWindowController!
-    private var bar: StatusBar!
+    /// 主窗口在启动完成后才创建；在那之前点小组件 / 通知打开节律时，先记下要跳到哪里
+    private(set) var main: MainWindowController?
+    private var bar: StatusBar?
+    private var pendingHash = ""
 
     func applicationDidFinishLaunching(_ n: Notification) {
         let engine = Engine.shared // 先读一次数据：语言跟着同步数据走，菜单要用
         UNUserNotificationCenter.current().delegate = self
         NSApp.mainMenu = buildMenu()
-        main = MainWindowController()
+        let m = MainWindowController()
+        main = m
         bar = StatusBar(engine: engine)
         engine.start()
         Updater.shared.start()
-        main.show()
+        m.show(hash: pendingHash)
+        pendingHash = ""
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        if !hasVisibleWindows { main.show() }
+        if !hasVisibleWindows { main?.show() }
         return true
     }
 
@@ -43,14 +47,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     func application(_ application: NSApplication, open urls: [URL]) {
         for u in urls where u.scheme == Shared.urlScheme {
             let h = URLComponents(url: u, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "hash" }?.value ?? ""
-            main.show(hash: h.isEmpty ? "" : "#" + h)
+            let hash = h.isEmpty ? "" : "#" + h
+            // 节律还没启动完（比如直接点小组件把它打开）：主窗口还没建好，等建好再跳过去，不然会闪退
+            if let m = main { m.show(hash: hash) } else { pendingHash = hash }
         }
     }
 
-    @objc func showMain(_ sender: Any?) { main.show() }
-    func closePopover() { bar.close() }
-    @objc func reloadWeb(_ sender: Any?) { main.reload() }
-    @objc func newEvent(_ sender: Any?) { main.newEvent() }
+    @objc func showMain(_ sender: Any?) { main?.show() }
+    func closePopover() { bar?.close() }
+    @objc func reloadWeb(_ sender: Any?) { main?.reload() }
+    @objc func newEvent(_ sender: Any?) { main?.newEvent() }
     @objc func checkUpdate(_ sender: Any?) { Task { await Updater.shared.check(manual: true) } }
 
     // ---------- 通知 ----------
@@ -62,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                             withCompletionHandler completionHandler: @escaping () -> Void) {
         let hash = response.notification.request.content.userInfo["hash"] as? String ?? ""
-        Task { @MainActor in (NSApp.delegate as? AppDelegate)?.main.show(hash: hash) }
+        Task { @MainActor in (NSApp.delegate as? AppDelegate)?.main?.show(hash: hash) }
         completionHandler()
     }
 
