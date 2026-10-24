@@ -33,11 +33,18 @@ final class Updater: ObservableObject {
         guard manual || !checking else { return } // 手动检查总是执行，不被后台那次挡住
         checking = true
         defer { checking = false }
-        let url = URL(string: "https://raw.githubusercontent.com/\(repo)/main/macos/version.json")!
-        let req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
-        guard let res = try? await URLSession.shared.data(for: req),
-              (res.1 as? HTTPURLResponse)?.statusCode == 200,
-              let o = (try? JSONSerialization.jsonObject(with: res.0)) as? JObj, o.int("build") > 0 else {
+        // 先问 GitHub API：上传后立刻就能查到（raw.githubusercontent.com 有大约 5 分钟的缓存）；
+        // API 每小时限 60 次，万一超了再退回 raw
+        func fetch(_ url: String, _ accept: String?) async -> JObj? {
+            var req = URLRequest(url: URL(string: url)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+            if let a = accept { req.setValue(a, forHTTPHeaderField: "Accept") }
+            guard let res = try? await URLSession.shared.data(for: req), (res.1 as? HTTPURLResponse)?.statusCode == 200,
+                  let o = (try? JSONSerialization.jsonObject(with: res.0)) as? JObj, o.int("build") > 0 else { return nil }
+            return o
+        }
+        var found = await fetch("https://api.github.com/repos/\(repo)/contents/macos/version.json?ref=main", "application/vnd.github.raw")
+        if found == nil { found = await fetch("https://raw.githubusercontent.com/\(repo)/main/macos/version.json", nil) }
+        guard let o = found else {
             if manual { alert(I18n.t("检查更新失败"), I18n.t("连不上 GitHub，稍后再试。")) }
             return
         }
