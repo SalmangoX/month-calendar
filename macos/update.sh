@@ -17,4 +17,5 @@ SRC=$(find "$TMP" -maxdepth 2 -type d -name macos | head -1)
 # 源码放在固定位置，保留本机生成的团队设置和编译缓存，下次更新更快
 mkdir -p "$DIR"
 rsync -a --delete --exclude build/ --exclude Cadence.xcodeproj/ --exclude Team.xcconfig "$SRC/" "$DIR/"
+cp "$SRC/../version.json" "$DIR/../version.json" 2>/dev/null || true # 网页的版本号，Mac 版显示同一个
 bash "$DIR/build.sh"

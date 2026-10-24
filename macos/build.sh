@@ -34,7 +34,9 @@ echo "→ 团队 $TEAM"
 echo "→ 生成工程…"
 xcodegen generate --quiet || exit 1
 
-VER=$(plutil -extract version raw version.json 2>/dev/null || echo 1.0.0)
+# 版本号和网页用同一个（仓库根目录的 version.json），设置里看到的网页版本和 Mac 版本就一致了；
+# macos/version.json 里的 build 只用来判断 Mac 原生部分有没有新版本，每次改原生代码加一
+VER=$(plutil -extract version raw ../version.json 2>/dev/null || plutil -extract version raw version.json 2>/dev/null || echo 1.0.0)
 BUILD=$(plutil -extract build raw version.json 2>/dev/null || echo 1)
 echo "→ 编译 ${VER}（${BUILD}）…（第一次大约一两分钟）"
 mkdir -p build
