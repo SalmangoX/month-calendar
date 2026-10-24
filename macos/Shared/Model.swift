@@ -202,6 +202,7 @@ final class CalData {
     var notifyCals = Set<String>()
     var days: [CDay] = []
     var isEmpty = true
+    var langPref = "auto"
     private var byDate: [YMD: [CEvent]] = [:]
 
     func toneOf(_ code: String) -> [UInt32] { courseTone[code] ?? CourseColors.tone(240) }
@@ -238,7 +239,8 @@ final class CalData {
         for e in o.arr("events") { if let x = event(e) { d.events.append(x) } }
         let prof = o.obj("profile") ?? [:]
         d.clock = prof.str("clock", "auto")
-        I18n.set(prof.str("lang", "auto"))
+        d.langPref = prof.str("lang", "auto")
+        I18n.set(d.langPref)
         for c in o.arr("cals") {
             let id = c.str("id"); if id.isEmpty { continue }
             if c.bool("showInMain") { d.shownCals.insert(id) }
