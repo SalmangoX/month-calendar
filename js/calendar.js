@@ -26,7 +26,16 @@
     const head = body.classList.contains('previewing') ? 34 + 3 : 39 + 3; // 数字区 + 底部留白
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
     withMore = Math.floor((rowH - head - 12 + 2) / 17);
+    room = rowH - head; tw = (W - 4) / 7 - 8;
   }
+  // 时间文字宽度：用 canvas 量，判断一行放不放得下
+  let room = 0, tw = 0, mctx = null;
+  const textW = t => {
+    if (!mctx) { mctx = document.createElement('canvas').getContext('2d'); mctx.font = `500 9px ${getComputedStyle(document.body).fontFamily}`; }
+    return mctx.measureText(t).width;
+  };
+  const rangeOf = e => MC.fmtRange(e.time, e.endTime);
+  const oneLine = e => textW(rangeOf(e)) <= tw - 2;
   function setT(x, y) { track.style.transform = `translate3d(${x}px,${y}px,0)`; }
 
   // ---------- 月视图 ----------
@@ -72,20 +81,38 @@
     `<div class="chip${cls}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}${style}">${esc(e.title)}</div>`;
   // 一天的格子：跨天横条的位置留空，单天事件放在自己的行上
   // 放得下就全显示；放不下时留一行显示「+n」，空间太小则只显示一行
+  // 有时间的事件：高度够就在色条下面加一行时间（先试完整时间段，不够就每个只占一行），
+  // 再不够就在色条右端点一个小点，表示「这个事件有具体时间」
   function cellChips(occ, lim) {
     if (!occ.length) return '';
-    // 当天只有一个事件且设了时间：在色条下面加一行时间（放得下第二行时才加）
-    const one = occ.length === 1 && occ[0] && !('slot' in occ[0]) && occ[0].e;
-    if (one && one.time && maxChips >= 2)
-      return chipHTML(one) + `<div class="ctime${one.done ? ' done' : ''}">${esc(MC.fmtRange(one.time, one.endTime, '–\u200b'))}</div>`;
-    let h = '';
-    for (let s = 0; s < Math.min(lim, occ.length); s++) {
-      const it = occ[s];
-      h += it && !('slot' in it) ? chipHTML(it.e) : '<div class="chip gap"></div>'; // 有 slot 的是跨天横条
-    }
+    const shown = Math.min(lim, occ.length);
     let hidden = 0;
     for (let s = lim; s < occ.length; s++) if (occ[s]) hidden++;
-    if (hidden && withMore >= 1) h += `<div class="more">+${hidden}</div>`;
+    const more = hidden && withMore >= 1;
+    // 时间行会把下面的东西往下推，所以只给最后一条跨天横条下面的事件加（横条是按行号绝对定位的）
+    let lastBar = -1;
+    for (let s = 0; s < shown; s++) if (occ[s] && 'slot' in occ[s]) lastBar = s;
+    const timed = [];
+    for (let s = lastBar + 1; s < shown; s++) if (occ[s] && occ[s].e.time) timed.push(s);
+    const base = 17 * shown - 2 + (more ? 14 : 0);
+    let mode = '';
+    if (timed.length && !hidden) {
+      const full = timed.reduce((n, s) => n + 2 + (oneLine(occ[s].e) ? 11 : 22), 0);
+      mode = base + full <= room ? 'full' : base + 13 * timed.length <= room ? 'short' : '';
+    }
+    let h = '';
+    for (let s = 0; s < shown; s++) {
+      const it = occ[s];
+      if (!it || 'slot' in it) { h += '<div class="chip gap"></div>'; continue; } // 有 slot 的是跨天横条
+      const e = it.e, tm = e.time && (!mode || s <= lastBar);
+      h += chipHTML(e, tm ? ' tm' : '');
+      if (e.time && mode && s > lastBar) {
+        const one = mode === 'short' || oneLine(e);
+        const t = mode === 'full' ? MC.fmtRange(e.time, e.endTime, '–\u200b') : oneLine(e) ? rangeOf(e) : MC.fmtTime(e.time);
+        h += `<div class="ctime${one ? ' one' : ''}${e.done ? ' done' : ''}">${esc(t)}</div>`;
+      }
+    }
+    if (more) h += `<div class="more">+${hidden}</div>`;
     return h;
   }
   const limitOf = occ => (occ.length <= maxChips ? occ.length : Math.max(1, withMore));
