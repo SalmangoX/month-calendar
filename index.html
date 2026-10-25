@@ -298,6 +298,10 @@
     <h2>批量添加</h2>
     <button class="text-btn strong" id="batchSave">添加</button>
   </div>
+  <div class="bpaste">
+    <textarea id="batchPaste" rows="2" placeholder="粘贴文字自动识别，一行一个事件&#10;例：10/27 15:00-17:00 组会 高 提醒"></textarea>
+    <button class="chip-btn glass" id="batchParse" disabled>识别</button>
+  </div>
   <p class="sheet-hint" id="batchHint">名称必填；不选优先级默认为灰色；备注可不填。</p>
   <div class="batch-list" id="batchList"></div>
   <div class="batch-foot"><button class="chip-btn glass" id="batchAddRow">＋ 再加一行</button></div>

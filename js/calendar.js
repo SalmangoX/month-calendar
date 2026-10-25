@@ -74,6 +74,10 @@
   // 放得下就全显示；放不下时留一行显示「+n」，空间太小则只显示一行
   function cellChips(occ, lim) {
     if (!occ.length) return '';
+    // 当天只有一个事件且设了时间：在色条下面加一行时间（放得下第二行时才加）
+    const one = occ.length === 1 && occ[0] && !('slot' in occ[0]) && occ[0].e;
+    if (one && one.time && maxChips >= 2)
+      return chipHTML(one) + `<div class="ctime${one.done ? ' done' : ''}">${esc(MC.fmtRange(one.time, one.endTime, '–\u200b'))}</div>`;
     let h = '';
     for (let s = 0; s < Math.min(lim, occ.length); s++) {
       const it = occ[s];

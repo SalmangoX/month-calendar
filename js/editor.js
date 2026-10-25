@@ -520,6 +520,151 @@
     return { dates, rep, events: dates.map(ds => MC.makeEvent({ ...fields, cal: newCal, date: ds, series, rep, id: series ? `${series}-${ds}` : MC.uid() })) };
   }
 
+  // ---------- 粘贴识别：一行一个事件，名称和日期必填，时间段 / 优先级 / 提醒可选 ----------
+  const CN = { 零: 0, 〇: 0, 一: 1, 两: 2, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+  const cnNum = s => {
+    if (/^\d+(\.\d+)?$/.test(s)) return Number(s);
+    if (s === '半') return 0.5;
+    const m = /^([一二两三四五六七八九])?十([一二三四五六七八九])?$/.exec(s);
+    if (m) return (m[1] ? CN[m[1]] : 1) * 10 + (m[2] ? CN[m[2]] : 0);
+    return s.length === 1 && s in CN ? CN[s] : NaN;
+  };
+  const MONS = [/^jan/, /^f[eé]v|^feb/, /^mar/, /^a[pv]r/, /^ma[yi]/, /^jui?n/, /^jul|^juil/, /^aug|^ao[uû]/, /^sep/, /^oct/, /^nov/, /^d[eé]c/];
+  const MON_RE = '(jan(?:uary|v(?:ier)?)?|f[eé]v(?:rier)?|feb(?:ruary)?|mar(?:ch|s)?|apr(?:il)?|avr(?:il)?|may|mai|june?|juin|july?|juil(?:let)?|aug(?:ust)?|ao[uû]t?|sept?(?:ember|embre)?|oct(?:ober|obre)?|nov(?:ember|embre)?|d[eé]c(?:ember|embre)?)\\.?';
+  const monOf = w => MONS.findIndex(r => r.test(w)) + 1;
+  const WD = { 日: 0, 天: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 };
+  const WDE = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  // 只给了月日：默认今年，已经过去半年以上就当成明年
+  function mkDate(y, m, d, today) {
+    const yy = y == null ? today.getFullYear() : (y < 100 ? 2000 + y : y);
+    let dt = new Date(yy, m - 1, d);
+    if (dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+    if (y == null && (today - dt) / 864e5 > 183) dt = new Date(yy + 1, m - 1, d);
+    return dt;
+  }
+  // 从字符串开头认一个日期，返回 { d, len }
+  // weak：「10-27」「10.27」「27号」这类容易和别的数字混淆的写法，只在没有更明确的日期时才用
+  function dateAt(s, today, weak) {
+    let m;
+    if (weak) {
+      if ((m = /^(\d{1,2})[-.](\d{1,2})(?![\d:.])/.exec(s))) return { d: mkDate(null, +m[1], +m[2], today), len: m[0].length };
+      if ((m = /^(\d{1,2})\s*[日号號](?!本)/.exec(s))) { // 只写了「27号」：本月，已过就下个月
+        let d = new Date(today.getFullYear(), today.getMonth(), +m[1]);
+        if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, +m[1]);
+        return d.getDate() === +m[1] ? { d, len: m[0].length } : null;
+      }
+      return null;
+    }
+    if ((m = /^(\d{4})\s*[-/.年]\s*(\d{1,2})\s*[-/.月]\s*(\d{1,2})\s*[日号]?/.exec(s))) return { d: mkDate(+m[1], +m[2], +m[3], today), len: m[0].length };
+    if ((m = /^(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?/.exec(s))) return { d: mkDate(null, +m[1], +m[2], today), len: m[0].length };
+    if ((m = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}|\d{2}))?(?!\d)/.exec(s))) {
+      let a = +m[1], b = +m[2]; if (a > 12 && b <= 12) [a, b] = [b, a]; // 日/月 写法
+      return { d: mkDate(m[3] ? +m[3] : null, a, b, today), len: m[0].length };
+    }
+    if ((m = new RegExp(`^${MON_RE}\\s*(\\d{1,2})(?:st|nd|rd|th|er)?(?:,?\\s*(\\d{4}))?(?![\\d:])`).exec(s))) return { d: mkDate(m[3] ? +m[3] : null, monOf(m[1]), +m[2], today), len: m[0].length };
+    if ((m = new RegExp(`^(\\d{1,2})(?:st|nd|rd|th|er)?\\s*(?:of\\s+)?${MON_RE}(?:,?\\s*(\\d{4}))?`).exec(s))) return { d: mkDate(m[3] ? +m[3] : null, monOf(m[2]), +m[1], today), len: m[0].length };
+    const rel = { 今天: 0, 今日: 0, today: 0, 明天: 1, 明日: 1, tomorrow: 1, 后天: 2, 後天: 2, 大后天: 3, 大後天: 3, 昨天: -1, yesterday: -1, "aujourd'hui": 0, demain: 1 };
+    if ((m = /^(大后天|大後天|今天|今日|明天|明日|后天|後天|昨天|today|tomorrow|yesterday|aujourd'hui|demain)/.exec(s))) return { d: MC.addDays(today, rel[m[1]]), len: m[0].length };
+    if ((m = /^(下下|下个|下個|下|本|这个|這個|这|這|上)?\s*(周|週|星期|礼拜|禮拜)([日天一二三四五六])/.exec(s)) || (m = /^(next\s+|this\s+)?(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?(?![a-z])/.exec(s))) {
+      const pre = (m[1] || '').trim(), w = m[3] !== undefined ? WD[m[3]] : WDE.indexOf(m[2]);
+      let d;
+      if (!pre) d = MC.addDays(today, (w - today.getDay() + 7) % 7); // 最近的那一天（含今天）
+      else {
+        const ws = MC.weekStartOf(today), off = /下下/.test(pre) ? 14 : /下|next/.test(pre) ? 7 : pre === '上' ? -7 : 0;
+        d = MC.addDays(ws, off + (w - MC.settings.weekStart + 7) % 7);
+      }
+      return { d, len: m[0].length };
+    }
+    return null;
+  }
+  const TIME = '((?<![a-z])(?:am|pm)|上午|早上|早晨|中午|下午|晚上|傍晚|夜里|凌晨)?\\s*(\\d{1,2})(?:\\s*:\\s*(\\d{2})|\\s*([点點时時]|h(?![a-z]))(?:\\s*(半|\\d{1,2})\\s*分?)?)?\\s*(a\\.?m\\.?|p\\.?m\\.?)?(?![a-z])';
+  const SEP = '\\s*(?:-|~|到|至|to|à)\\s*';
+  function hm(x, per, suf) {
+    let h = +x[1];
+    const m = x[2] !== undefined ? +x[2] : x[4] === '半' ? 30 : x[4] !== undefined ? +x[4] : 0;
+    const p = (per || '') + (suf || '').replace(/\./g, '');
+    if (/下午|晚上|傍晚|夜里|pm/.test(p) && h < 12) h += 12;
+    else if (/中午/.test(p) && h < 11) h += 12;
+    else if (/上午|早|凌晨|am/.test(p) && h === 12) h = 0;
+    return h > 23 || m > 59 ? null : { h, m, per: !!p };
+  }
+  const hhmm = t => `${MC.pad(t.h)}:${MC.pad(t.m)}`;
+  // 认时间：「15:00-17:00」「下午3点到5点」「3-5pm」「9点半」「15h30」；只有数字、没有冒号 / 点 / am pm 的不算时间
+  function findTime(s) {
+    const re = new RegExp(`${TIME}(?:${SEP}${TIME})?`, 'g');
+    let m;
+    while ((m = re.exec(s))) {
+      if (!m[0]) { re.lastIndex++; continue; }
+      const a = m.slice(1, 7), b = m.slice(7, 13), hasB = b[1] !== undefined;
+      const marked = x => x[0] || x[2] !== undefined || x[3] || x[5];
+      if (!marked(a) && !(hasB && marked(b))) continue; // 比如 10-27：两边都只是数字
+      const before = s[m.index - 1], after = s[m.index + m[0].length];
+      if ((before && /[\d/.\-:]/.test(before)) || (after && /[\d/:]/.test(after))) continue;
+      const t1 = hm(a, a[0] || (!a[5] && hasB ? b[0] : null), a[5] || (!a[0] && hasB ? b[5] : null));
+      if (!t1) continue;
+      let t2 = hasB ? hm(b, b[0] || (!b[5] ? a[0] : null), b[5] || (!b[0] && !a[0] ? a[5] : null)) : null;
+      if (t2 && t2.h * 60 + t2.m <= t1.h * 60 + t1.m && t2.h < 12 && !t2.per) t2.h += 12; // 11:00-1:00 → 13:00
+      if (t2 && t2.h * 60 + t2.m <= t1.h * 60 + t1.m) t2 = null;
+      return { time: hhmm(t1), endTime: t2 ? hhmm(t2) : '', i: m.index, len: m[0].length };
+    }
+    return null;
+  }
+  const PRI_W = { 高: 3, 紧急: 3, 緊急: 3, high: 3, urgent: 3, haute: 3, 中: 2, medium: 2, med: 2, mid: 2, moyenne: 2, 低: 1, low: 1, basse: 1, 无: 0, 無: 0, none: 0 };
+  const B = '(?<=^|[\\s,;|、\\t(（\\[【])', E = '(?=$|[\\s,;|、\\t)）\\]】:=])'; // 单独成词
+  function parseLine(raw, today) {
+    let s = raw.replace(/[\uFF01-\uFF5E]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[\u2010-\u2015\u2212]/g, '-').replace(/\u3000/g, ' ');
+    s = s.replace(/^\s*(?:[-*•·]\s+|\d{1,3}(?:[、)]|\.\s+))/, ''); // 列表编号
+    const cut = (i, len) => { s = s.slice(0, i) + ' '.repeat(len) + s.slice(i + len); };
+    const take = (re, f) => { const m = re.exec(s.toLowerCase()); if (!m) return false; f(m); cut(m.index, m[0].length); return true; };
+    const out = { remind: null, priority: 0, time: '', endTime: '', days: 1 };
+    // 提醒
+    if (!take(new RegExp(`(不|无|無|不要|不用|无需|無需)(需要)?提醒|${B}提醒\\s*[:=]?\\s*(否|不|无|無|no|n|×|✗)${E}|no\\s+remind(er)?`), () => {})) {
+      take(/提前\s*(\d+|[一二两三四五六七八九十半]+)\s*(?:个|個)?\s*(分钟|分鐘|分|min(?:ute)?s?|小时|小時|钟头|鐘頭|h(?:ours?)?|天|日|days?|周|週|星期|weeks?)\s*(?:提醒)?|(\d+)\s*(分钟|分鐘|分|min(?:ute)?s?|小时|小時|時間|h(?:ours?)?|天|日|days?)\s*(?:前|before)\s*(?:に)?\s*(?:提醒|通知)?/, m => {
+        const n = cnNum(m[1] || m[3]), u = m[2] || m[4];
+        const k = /分|min/.test(u) ? 1 : /时|時|钟头|鐘頭|^h/.test(u) ? 60 : /周|週|星期|week/.test(u) ? 10080 : 1440;
+        if (n >= 0) out.remind = Math.round(n * k);
+      }) || take(new RegExp(`(准时|準時|需要|要)提醒|${B}提醒\\s*[:=]?\\s*(是|要|需要|yes|y|√|✓)?${E}|${B}remind(er)?${E}|${B}rappel${E}|${B}通知${E}|⏰|🔔`), () => { out.remind = 0; });
+    }
+    // 优先级
+    take(new RegExp(`(优先级|優先級|優先度|priority|prio|priorité)\\s*[:=]?\\s*(高|中|低|无|無|high|medium|med|mid|low|none|haute|moyenne|basse)|(高|中|低)\\s*(?:优先级?|優先級?)|${B}p([0-3])${E}|${B}(!{1,3})${E}`), m => {
+      out.priority = m[2] ? PRI_W[m[2]] : m[3] ? PRI_W[m[3]] : m[4] ? [0, 3, 2, 1][+m[4]] : m[5].length;
+    }) || take(new RegExp(`${B}(高|中|低|紧急|緊急|urgent|high|medium|low|haute|moyenne|basse)${E}`), m => { out.priority = PRI_W[m[1]]; });
+    take(/全天|all[\s-]?day|toute la journée/, () => {});
+    // 时间段（先认，免得被当成日期）
+    const t = findTime(s.toLowerCase());
+    if (t) { out.time = t.time; out.endTime = t.endTime; cut(t.i, t.len); }
+    // 日期：先找明确的写法，没有再找「10-27」「27号」；后面紧跟「-」「到」再一个日期就是连续多天
+    for (const weak of [false, true]) {
+      const sl = s.toLowerCase();
+      for (let i = 0; i < sl.length && !out.date; i++) {
+        if (i && /[a-z\d]/.test(sl[i - 1]) && /[a-z\d]/.test(sl[i])) continue;
+        const r = dateAt(sl.slice(i), today, weak); if (!r || !r.d) continue;
+        out.date = MC.ymd(r.d); let len = r.len;
+        const rest = /^\s*(?:-|~|到|至|au)\s*/.exec(sl.slice(i + len));
+        if (rest && !out.time) {
+          const tail = sl.slice(i + len + rest[0].length);
+          let r2 = dateAt(tail, today, false), dm = null;
+          if (!r2 && (dm = /^(\d{1,2})\s*[日号號]?(?![\d:/.\-])/.exec(tail))) r2 = { d: new Date(r.d.getFullYear(), r.d.getMonth(), +dm[1]), len: dm[0].length };
+          if (r2 && r2.d) {
+            let e = r2.d; if (e < r.d && !dm) e = new Date(e.getFullYear() + 1, e.getMonth(), e.getDate());
+            const n = Math.round((e - r.d) / 864e5) + 1;
+            if (n > 1 && n <= 60) { out.days = n; len += rest[0].length + r2.len; }
+          }
+        }
+        cut(i, len);
+      }
+      if (out.date) break;
+    }
+    // 剩下的就是名称：去掉字段标签和分隔符
+    out.title = s.replace(/(名称|名稱|事件|标题|標題|日期|时间段|時間段|时间|時間|优先级|優先級|優先度|提醒|通知|title|name|date|time)\s*[:=]/gi, ' ')
+      .replace(/[\t|;,，；、]+/g, ' ').replace(/[()（）\[\]【】]\s*[()（）\[\]【】]/g, ' ').replace(/\s+/g, ' ')
+      .replace(/^[\s\-~:.·。]+|[\s\-~:.·。]+$/g, '').trim();
+    // 全天事件只能「当天」或提前几天（以当天 9:00 为准），挑最接近的
+    if (out.remind !== null && !out.time) out.remind = [0, 1440, 2880, 10080].reduce((a, b) => (Math.abs(b - out.remind) < Math.abs(a - out.remind) ? b : a));
+    return out;
+  }
+  MC.parseEventLine = (line, today = new Date()) => parseLine(line, new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+
   // ======================= 批量添加 =======================
   let rows = [];
   // 草稿：随时自动保存在本机，关掉再打开会恢复；添加成功或选择清空后删除
@@ -565,6 +710,7 @@
       UI.toast('已恢复上次没添加完的草稿');
     } else rows = [blankRow(draft.date, { title: t, note: n, priority: draft.priority }), blankRow(draft.date), blankRow(draft.date)];
     $('#cmpTitle').blur(); $('#cmpNote').blur();
+    $('#batchPaste').value = ''; fitPaste();
     renderBatch();
     UI.open('batchSheet');
   }
@@ -632,6 +778,29 @@
     $('#batchList').scrollTop = $('#batchList').scrollHeight;
   }
   $('#batchAddRow').onclick = addRow;
+  // 粘贴栏：一行一个事件，认出名称和日期的变成下面的行，认不出的留在粘贴栏里
+  const paste = $('#batchPaste');
+  function fitPaste() {
+    paste.style.height = 'auto';
+    paste.style.height = Math.min(paste.scrollHeight, 150) + 'px';
+    $('#batchParse').disabled = !paste.value.trim();
+  }
+  paste.addEventListener('input', fitPaste);
+  $('#batchParse').onclick = () => {
+    const lines = paste.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return;
+    const ok = [], bad = [];
+    for (const l of lines) { const x = MC.parseEventLine(l); if (x.title && x.date) ok.push(x); else bad.push(l); }
+    if (!ok.length) { UI.toast('没认出事件：每行需要名称和日期'); return; }
+    const first = rows.filter(rowHasContent).length;
+    rows = rows.filter(rowHasContent).concat(ok.map(x => blankRow(x.date, { title: x.title, priority: x.priority, days: x.days, time: x.time, endTime: x.endTime, remind: x.remind })));
+    paste.value = bad.join('\n'); fitPaste();
+    if (!bad.length) paste.blur();
+    renderBatch();
+    const el = $('#batchList').querySelectorAll('.brow')[first];
+    if (el) $('#batchList').scrollTop = el.offsetTop - $('#batchList').offsetTop - 4;
+    UI.toast(bad.length ? `已识别 ${ok.length} 个事件，${bad.length} 行缺少名称或日期，留在粘贴栏里` : `已识别 ${ok.length} 个事件`, { ms: bad.length ? 3500 : 2200 });
+  };
   $('#batchSave').onclick = () => {
     let bad = -1;
     rows.forEach((r, i) => {
