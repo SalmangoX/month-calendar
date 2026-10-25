@@ -128,6 +128,23 @@ function monthDays(y, m) {
 }
 
 // ---------- 数据 ----------
+// ---------- 12 / 24 小时制：用应用里的设置（同步数据 profile.clock），「跟随地区」时按设备地区 ----------
+let CLOCK = "auto";
+const region12 = () => {
+  try {
+    const loc = (typeof Device !== "undefined" && Device.locale ? Device.locale() : "") || "";
+    const parts = loc.replace("_", "-").split("-"), region = parts.length > 1 ? parts[parts.length - 1] : "";
+    const tag = region ? new Intl.Locale("und-" + region).maximize().toString() : loc;
+    const o = new Intl.DateTimeFormat(tag || undefined, { hour: "numeric" }).resolvedOptions();
+    return o.hourCycle ? /h1[12]/.test(o.hourCycle) : !!o.hour12;
+  } catch (e) { return false; }
+};
+const use12 = () => (CLOCK === "12" ? true : CLOCK === "24" ? false : region12());
+const fmtT = (t, noHalf) => { if (!t || !use12()) return t || ""; const [h, m] = t.split(":").map(Number), hm = (h % 12 || 12) + ":" + String(m).padStart(2, "0"); return noHalf ? hm : isZh() ? (h < 12 ? "上午" : "下午") + hm : `${hm} ${h < 12 ? "AM" : "PM"}`; };
+const fmtR = (a, b) => { if (!use12()) return `${a}–${b}`; const same = (+a.slice(0, 2) < 12) === (+b.slice(0, 2) < 12); return isZh() ? `${fmtT(a)}–${fmtT(b, same)}` : `${fmtT(a, same)}–${fmtT(b)}`; };
+// 小组件里没法量文字宽度：按字形估一个（数字约 0.58 个字号宽，汉字 1 个字号）
+const estW = (t, fs) => Array.from(t).reduce((w, ch) => w + fs * (/[\u3000-\u9fff]/.test(ch) ? 1 : /[:.]/.test(ch) ? 0.3 : /\s/.test(ch) ? 0.28 : /[AMP]/.test(ch) ? 0.66 : 0.58), 0);
+
 async function loadData() {
   const fm = FileManager.local();
   const cachePath = fm.joinPath(fm.cacheDirectory(), "mcal-widget-cache.json");
@@ -144,11 +161,11 @@ async function loadData() {
     let text = f.content;
     if (f.truncated) text = await new Request(f.raw_url).loadString();
     const data = JSON.parse(text);
-    setLang(data.profile && data.profile.lang); // 语言和应用一致
+    setLang(data.profile && data.profile.lang); CLOCK = (data.profile && data.profile.clock) || "auto"; // 语言和应用一致
     fm.writeString(cachePath, text);
     return { data, offline: false };
   } catch (e) {
-    if (fm.fileExists(cachePath)) { const data = JSON.parse(fm.readString(cachePath)); setLang(data.profile && data.profile.lang); return { data, offline: true }; }
+    if (fm.fileExists(cachePath)) { const data = JSON.parse(fm.readString(cachePath)); setLang(data.profile && data.profile.lang); CLOCK = (data.profile && data.profile.clock) || "auto"; return { data, offline: true }; }
     throw e;
   }
 }
@@ -201,7 +218,8 @@ function chipLabel(e) {
   if (e.done) label = Array.from(label).map(c => c + "\u0336").join(""); // 已完成：删除线
   return label;
 }
-function addChip(parent, e, width, h, fs, out) {
+// tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致）
+function addChip(parent, e, width, h, fs, out, tm) {
   const { bg, fg } = chipColors(e.priority, e.done, out, calHex(e));
   const ch = parent.addStack();
   ch.size = new Size(width, h);
@@ -214,6 +232,12 @@ function addChip(parent, e, width, h, fs, out) {
   const tx = addText(ch, label, chipFont(fs), fg, { lines: 1 });
   tx.minimumScaleFactor = 0.85;
   ch.addSpacer();
+  if (tm) {
+    ch.addSpacer(1);
+    const dot = ch.addStack();
+    dot.size = new Size(3, 3); dot.cornerRadius = 1.5; dot.backgroundColor = fg;
+    ch.addSpacer(1.5);
+  }
 }
 function addLine(w, width) {
   const l = w.addStack();
@@ -297,6 +321,12 @@ function largeLayout(w, idx, offline) {
     const hidden = lay.occ.map((o, c) => o.slice(lim[c]).filter(Boolean).length);
     const segs = barSegments(lay, dss, lim, m);
     const lanes = Math.min(maxChips, Math.max(0, ...lim));
+    // 有时间的事件：剩下的高度够，就在那一条事件行下面加一行时间（整周一起加，横条跟着一起往下移，不会错位），
+    // 从上往下能加几行加几行；没加到的，在色条右端点一个小点。有「+n」的格子也只点小点
+    const TB = 10;
+    const timedAt = k => { const out = []; for (let c = 0; c < 7; c++) { const o = lay.occ[c][k]; if (k < lim[c] && o && !o.bar && o.e.time && !hidden[c]) out.push(c); } return out; };
+    const tlanes = [];
+    for (let k = 0, room = rowH - top0 - lanes * STEP; k < lanes; k++) if (timedAt(k).length && room >= TB) { tlanes.push(k); room -= TB; }
     const row = grid.addStack();
     row.layoutVertically();
     row.size = new Size(S.mw, rowH);
@@ -342,12 +372,25 @@ function largeLayout(w, idx, offline) {
         cell.setPadding(0, 1, 0, 1);
         const o = lay.occ[c][k], out = wk[c].getMonth() !== m;
         cell.topAlignContent();
-        if (k < lim[c] && o && !o.bar) addChip(cell, o.e, 0, chipH, 9, out);
+        if (k < lim[c] && o && !o.bar) addChip(cell, o.e, 0, chipH, 9, out, !!o.e.time && !(tlanes.includes(k) && !hidden[c]));
         c++;
+      }
+      if (tlanes.includes(k)) {
+        const cs = timedAt(k), tb = band(row, TB);
+        for (let c = 0; c < 7; c++) {
+          if (c) sep(tb, TB);
+          const cell = box(tb, colW, TB);
+          cell.setPadding(0, 2.5, 0, 1);
+          if (!cs.includes(c)) continue;
+          const e = lay.occ[c][k].e, out = wk[c].getMonth() !== m;
+          const r = e.endTime ? fmtR(e.time, e.endTime) : fmtT(e.time);
+          const tx = addText(cell, estW(r, 7.5) <= colW - 3 ? r : fmtT(e.time), Font.mediumSystemFont(7.5), out ? C.text3 : C.text2, { lines: 1, opacity: e.done ? 0.5 : 1 });
+          tx.minimumScaleFactor = 0.8;
+        }
       }
     }
     // 剩下的空白（竖线照常）
-    const rest = rowH - top0 - lanes * STEP;
+    const rest = rowH - top0 - lanes * STEP - tlanes.length * TB;
     if (rest > 0) {
       const fb = band(row, rest);
       for (let c = 0; c < 7; c++) { if (c) sep(fb, rest); box(fb, colW, rest); }

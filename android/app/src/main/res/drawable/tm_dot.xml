@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 月历小组件：有具体时间、但放不下时间行的事件，色条右端的小点（实色色条上） -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="3dp" android:height="3dp" android:right="1.5dp" android:gravity="center">
+        <shape android:shape="oval"><solid android:color="#D9FFFFFF" /></shape>
+    </item>
+</layer-list>

@@ -42,6 +42,12 @@
   .chip.done { background:color-mix(in srgb, var(--c) var(--mix), transparent); color:color-mix(in srgb, var(--c) 72%, var(--text2)); text-decoration:line-through; }
   .more { font-size:8px; color:var(--text2); padding-left:2px; }
   .chip.gap { visibility:hidden; }
+  /* 时间行（当天事件下面）；放不下时间行时，色条右端的小点表示「有具体时间」 */
+  .ct { height:10px; line-height:10px; font-size:8px; font-weight:500; color:var(--text2); margin:0 1px 1px 2.5px; white-space:nowrap; overflow:hidden; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+  .ct.done { opacity:.5; }
+  .out .ct { opacity:.55; }
+  .chip.tm { position:relative; padding-right:6px; }
+  .chip.tm::after { content:''; position:absolute; right:2.5px; top:50%; width:3px; height:3px; margin-top:-1.5px; border-radius:50%; background:currentColor; opacity:.75; }
   /* 今天：整格叠一层淡主色；还有放不下的事件时，「+n」用主色小标签 */
   /* 今天：一块带小圆角的淡主色，四周留一点边 */
   .c { position:relative; }
@@ -151,6 +157,11 @@
     const gridH = window.innerHeight - 30;
     const rowH = gridH / rows;
     const max = Math.max(1, Math.floor((rowH - 24) / 15));
+    CLOCK = (data.profile && data.profile.clock) || 'auto';
+    const cellW = window.innerWidth / 7 - 6.5; // 格子宽 - 内边距 - 时间行左右边距
+    const mctx = document.createElement('canvas').getContext('2d');
+    mctx.font = `500 8px ${getComputedStyle(document.body).fontFamily}`;
+    const textW = t => mctx.measureText(t).width + 1;
     const label = e => { const mm = String(e.title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/); return mm ? `${mm[1].toUpperCase()} ${mm[2]}` : e.title; };
     // 记录日历里没设优先级的事件用日历自己的颜色（和应用一致），深色用同一套算法生成的深色调
     const calc = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color]));
@@ -176,8 +187,19 @@
       for (let c = 0; c < 7; c++) {
         const d = days[c], ds = ymd(d), o = occ[c];
         let chips = '';
-        for (let s = 0; s < Math.min(lim[c], o.length); s++) chips += o[s] && !('s' in o[s]) ? chip(o[s].e) : '<div class="chip gap"></div>';
         const hidden = o.slice(lim[c]).filter(Boolean).length;
+        // 有时间的事件：高度够就在色条下面加一行时间（和应用一致），不够就在色条右端点一个小点。
+        // 时间行会把下面的东西往下推，所以只给最后一条跨天横条下面的事件加
+        const shownN = Math.min(lim[c], o.length);
+        let lastBar = -1; for (let s = 0; s < shownN; s++) if (o[s] && 's' in o[s]) lastBar = s;
+        let nt = 0; for (let s = lastBar + 1; s < shownN; s++) if (o[s] && o[s].e.time) nt++;
+        const withTime = nt && !hidden && 15 * shownN + 11 * nt <= rowH - 24;
+        for (let s = 0; s < shownN; s++) {
+          if (!o[s] || 's' in o[s]) { chips += '<div class="chip gap"></div>'; continue; }
+          const e = o[s].e, tl = e.time && withTime && s > lastBar;
+          chips += chip(e, e.time && !tl ? ' tm' : '');
+          if (tl) { const r = e.endTime ? fmtR(e.time, e.endTime) : fmtT(e.time); chips += `<div class="ct${e.done ? ' done' : ''}">${esc(textW(r) <= cellW ? r : fmtT(e.time))}</div>`; }
+        }
 
         // 格子显式摆放：否则自动排列会绕开横条占的位置，整个网格错位
         cells += `<div class="c${d.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}${r === rows - 1 ? ' last' : ''}" style="grid-row:${r + 1};grid-column:${c + 1}"><div class="nr"><div class="n">${d.getDate()}</div>${hidden ? `<span class="more">+${hidden}</span>` : ''}</div>${chips}</div>`;

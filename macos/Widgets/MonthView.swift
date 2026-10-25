@@ -1,4 +1,5 @@
 import AppIntents
+import AppKit
 import SwiftUI
 import WidgetKit
 
@@ -86,7 +87,7 @@ struct MonthView: View {
         ZStack(alignment: .topLeading) {
             HStack(spacing: MonthView.sp) {
                 ForEach(0..<7, id: \.self) { k in
-                    cell(wk[k], occ: lay.occ[k], lim: lim[k], ym: ym, today: today, cap: cap, cw: cw, pal: pal)
+                    cell(wk[k], occ: lay.occ[k], lim: lim[k], ym: ym, today: today, cap: cap, cw: cw, rowH: rowH, pal: pal)
                         .frame(width: cw, height: rowH, alignment: .topLeading)
                         // 底色铺满整格（只盖住日期那一行时，下面会露出分隔线的灰色）
                         .background { ZStack { pal.bg; if wk[k] == today { pal.todayCell } } }
@@ -101,10 +102,30 @@ struct MonthView: View {
         .clipped()
     }
 
-    private func cell(_ day: YMD, occ: [WeekLanes.Slot], lim: Int, ym: YMD, today: YMD, cap: Int, cw: CGFloat, pal: Pal) -> some View {
+    /// 时间行的高度、字号
+    private static let timeH: CGFloat = 11, timeFS: CGFloat = 9
+
+    /// 色条下面那一行时间：放得下完整时间段就写时间段，否则只写开始时间
+    private func timeText(_ e: CEvent, width: CGFloat, h12: Bool) -> String {
+        let full = e.endTime.isEmpty ? fmtTime(e.time, h12, false) : fmtRange(e.time, e.endTime, h12)
+        let w = (full as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: MonthView.timeFS, weight: .medium)]).width
+        return w <= width ? full : fmtTime(e.time, h12, false)
+    }
+
+    private func cell(_ day: YMD, occ: [WeekLanes.Slot], lim: Int, ym: YMD, today: YMD, cap: Int, cw: CGFloat, rowH: CGFloat, pal: Pal) -> some View {
         let d = entry.data
         let isToday = day == today, inMonth = day.m == ym.m
         let hidden = cap >= 1 ? occ.dropFirst(lim).filter { !$0.isEmpty }.count : 0
+        // 有时间的事件：格子里剩下的高度够，就在色条下面加一行时间（和应用一致），否则色条右端点一个小点。
+        // 时间行会把下面的事件往下挤，所以只给最后一条跨天横条下面的事件加（横条按行号叠在上面）
+        let lastBar = (0..<lim).last(where: { s -> Bool in if case .bar = occ[s] { return true }; return false }) ?? -1
+        let timedSlots = Set((0..<lim).filter { (s: Int) -> Bool in
+            guard s > lastBar, case .event(let e) = occ[s] else { return false }
+            return !e.time.isEmpty
+        })
+        let room = rowH - MonthView.cellTop - MonthView.dateH - 0.5
+        let withTime = cap >= 1 && hidden == 0 && !timedSlots.isEmpty
+            && CGFloat(lim) * MonthView.slot + CGFloat(timedSlots.count) * MonthView.timeH <= room
         let dots = cap == 0 ? Array(d.on(day).filter { !$0.done }.prefix(3)) : []
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
@@ -130,7 +151,21 @@ struct MonthView: View {
             if cap >= 1 {
                 ForEach(0..<lim, id: \.self) { s in
                     switch occ[s] {
-                    case .event(let e): chip(e, soft: e.done || !inMonth, width: cw - 2, pal: pal)
+                    case .event(let e):
+                        VStack(alignment: .leading, spacing: 0) {
+                            chip(e, soft: e.done || !inMonth, width: cw - 2, pal: pal, tm: !e.time.isEmpty && !(withTime && timedSlots.contains(s)))
+                            if withTime && timedSlots.contains(s) {
+                                Text(timeText(e, width: cw - 5, h12: d.h12))
+                                    .font(.system(size: MonthView.timeFS, weight: .medium))
+                                    .monospacedDigit()
+                                    .foregroundStyle(pal.text2)
+                                    .opacity(e.done || !inMonth ? 0.5 : 1)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.85)
+                                    .padding(.leading, 3)
+                                    .frame(width: cw, height: MonthView.timeH, alignment: .leading)
+                            }
+                        }
                     default: Color.clear.frame(height: MonthView.chipH) // 占位，让下面的事件和横条对齐
                     }
                 }
@@ -148,7 +183,8 @@ struct MonthView: View {
         .padding(.top, MonthView.cellTop)
     }
 
-    private func chip(_ e: CEvent, soft: Bool, width: CGFloat, pal: Pal) -> some View {
+    /// tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致）
+    private func chip(_ e: CEvent, soft: Bool, width: CGFloat, pal: Pal, tm: Bool = false) -> some View {
         let (fill, ink) = pal.chip(e, entry.data, soft: soft)
         return Text(e.displayTitle)
             .font(.system(size: 10.5, weight: pal.dark ? .medium : .bold))
@@ -157,8 +193,12 @@ struct MonthView: View {
             .lineLimit(1)
             .fixedSize()
             .padding(.leading, 1.5)
-            .frame(width: width, height: MonthView.chipH, alignment: .leading)
+            .frame(width: max(0, width - (tm ? 7 : 0)), height: MonthView.chipH, alignment: .leading)
             .clipped()
+            .frame(width: width, height: MonthView.chipH, alignment: .leading)
+            .overlay(alignment: .trailing) {
+                if tm { Circle().fill(ink).frame(width: 3.5, height: 3.5).opacity(0.75).padding(.trailing, 3) }
+            }
             .background(RoundedRectangle(cornerRadius: 3.5).fill(fill))
             .padding(.horizontal, 1)
             .widgetAccentable()

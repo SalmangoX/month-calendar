@@ -194,13 +194,26 @@ final class Widgets {
                     List<Object> o = lay.occ.get(k);
                     lim[k] = Math.min(o.size(), cap); // 「+n」放在日期右边，事件行全部留给事件
                     boolean in = start.plusDays(i).getMonthValue() == ym.getMonthValue();
-                    for (int s = 0; s < lim[k]; s++) {
-                        Object it = o.get(s);
-                        if (it == null || WeekLanes.isBar(it)) rv.setViewVisibility(EV[i][s], android.view.View.INVISIBLE); // 占位，让下面的事件和横条对齐
-                        else chip(c, rv, EV[i][s], (Data.Event) it, in);
-                    }
                     int hidden = 0;
                     for (int s = lim[k]; s < o.size(); s++) if (o.get(s) != null) hidden++;
+                    // 有时间的事件：格子里还有空行，就在色条下面那一行显示时间（和应用一致），否则色条右端点一个小点。
+                    // 时间行会把下面的事件往下挤，所以只给最后一条跨天横条下面的事件加（横条按行号画在图上）
+                    int lastBar = -1, nt = 0;
+                    for (int s = 0; s < lim[k]; s++) if (WeekLanes.isBar(o.get(s))) lastBar = s;
+                    for (int s = lastBar + 1; s < lim[k]; s++) {
+                        Object it = o.get(s);
+                        if (it != null && !WeekLanes.isBar(it) && !((Data.Event) it).time.isEmpty()) nt++;
+                    }
+                    boolean withTime = nt > 0 && hidden == 0 && lim[k] + nt <= cap;
+                    int p = 0;
+                    for (int s = 0; s < lim[k]; s++) {
+                        Object it = o.get(s);
+                        if (it == null || WeekLanes.isBar(it)) { rv.setViewVisibility(EV[i][p++], android.view.View.INVISIBLE); continue; } // 占位，让下面的事件和横条对齐
+                        Data.Event e = (Data.Event) it;
+                        boolean tl = withTime && s > lastBar && !e.time.isEmpty();
+                        chip(c, rv, EV[i][p++], e, in, !e.time.isEmpty() && !tl);
+                        if (tl) timeLine(c, rv, EV[i][p++], e, in, widthDp / 7f - 4.5f);
+                    }
                     if (hidden > 0) {
                         rv.setViewVisibility(MORE[i], android.view.View.VISIBLE);
                         rv.setTextViewText(MORE[i], "+" + hidden);
@@ -292,7 +305,27 @@ final class Widgets {
         return p;
     }
 
-    private static void chip(Context c, RemoteViews rv, int vid, Data.Event e, boolean inMonth) {
+    /** 色条下面的时间行：用下一个事件位，去掉底色，灰色小字；放不下完整时间段就只写开始时间 */
+    private static void timeLine(Context c, RemoteViews rv, int vid, Data.Event e, boolean inMonth, float availDp) {
+        boolean h12 = Data.h12(c);
+        String t = e.endTime.isEmpty() ? Data.fmt(e.time, h12, false) : Data.range(e.time, e.endTime, h12);
+        Paint p = new Paint();
+        p.setTextSize(8f);
+        p.setTypeface(Typeface.create(Typeface.DEFAULT, 700, false));
+        if (p.measureText(t) > availDp) t = Data.fmt(e.time, h12, false);
+        rv.setViewVisibility(vid, android.view.View.VISIBLE);
+        rv.setTextViewText(vid, t);
+        rv.setTextViewTextSize(vid, android.util.TypedValue.COMPLEX_UNIT_DIP, 8f);
+        rv.setInt(vid, "setBackgroundResource", 0);
+        int a = e.done || !inMonth ? 0x80 : 0xFF;
+        rv.setColorInt(vid, "setTextColor", alpha(0xFF747B83, a), alpha(0xFF8C8E97, a));
+    }
+
+    private static void chip(Context c, RemoteViews rv, int vid, Data.Event e, boolean inMonth) { chip(c, rv, vid, e, inMonth, false); }
+
+    /** tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致） */
+    private static void chip(Context c, RemoteViews rv, int vid, Data.Event e, boolean inMonth, boolean tm) {
+        if (tm) rv.setTextViewCompoundDrawables(vid, 0, 0, e.done || !inMonth ? R.drawable.tm_dot_soft : R.drawable.tm_dot, 0);
         String title = e.title.isEmpty() ? I18n.t("（无标题）") : e.title;
         rv.setViewVisibility(vid, android.view.View.VISIBLE);
         if (e.done) {
