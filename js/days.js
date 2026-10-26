@@ -15,6 +15,12 @@
     fr: {"小号显示置顶（没有置顶就是最近的）日子；中号和大号再列出接下来的几个。在 App 里置顶的日子会显示在这里。": "Le petit format montre le jour épinglé (ou le prochain) ; moyen et grand listent aussi les suivants. Épinglez un jour dans l’app pour l’afficher ici.", "复制纪念日小组件脚本": "Copier le script du widget", "长按小组件 → 编辑小组件 → Script 选「纪念日」。": "Maintenez le widget → Modifier le widget → Script : « Jours ».", "回到桌面长按 → 编辑 → 添加小组件 → Scriptable → 选小号、中号或大号。": "Sur l’écran d’accueil, maintenez → Modifier → Ajouter un widget → Scriptable → choisissez petit, moyen ou grand.", "打开 Scriptable → 右上角 ＋ → 粘贴 → 把标题改成「纪念日」→ Done。": "Ouvrez Scriptable → ＋ en haut à droite → collez → renommez-le « Jours » → Done.", "点下方「复制纪念日小组件脚本」。": "Touchez « Copier le script du widget » ci-dessous.", "先在「账户与同步」连接 GitHub，并同步成功一次。": "Connectez d’abord GitHub dans Compte et synchronisation, puis synchronisez une fois.", "新建日历": "Nouveau calendrier", "按年": "Années", "按月": "Mois", "按周": "Semaines", "按天": "Jours", "{0} 个日子": "{0} jours", "{0} 个日子 · 下一个「{1}」还有 {2} 天": "{0} jours · « {1} » dans {2} jours", "{0} 个日子 · 今天是「{1}」": "{0} jours · aujourd’hui : « {1} »", "{0} 个月": "{0} mois", "{0} 周年": "{0} an(s)", "{0} 天": "{0} j", "{0} 的小纸条": "Un mot de {0}", "上个月": "Mois précédent", "下个月": "Mois suivant", "下一个里程碑": "Prochaine étape", "下一次": "Prochaine fois", "不重复": "Une fois", "不高亮": "Sans surlignage", "个月": "mois", "今天": "Aujourd’hui", "从相册选择": "Choisir une photo", "保存": "Enregistrer", "保存 / 分享": "Enregistrer / Partager", "倒数精确到时、分、秒": "Compte à rebours à la seconde", "先写一个名称": "Ajoutez d’abord un nom", "全部": "Tous", "关闭": "Fermer", "其他设备同步后也会删除。": "Il sera aussi supprimé sur vos autres appareils.", "写一张": "Écrire", "写一张小纸条": "Nouveau mot", "出行": "Voyages", "分": "min", "分享图片": "Image à partager", "分类": "Catégorie", "切换镜头": "Changer de caméra", "列表": "Liste", "删除": "Supprimer", "删除「{0}」？": "Supprimer « {0} » ? ", "删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。": "Supprimer « {0} » ? Ses mots et photos seront aussi supprimés, sur tous vos appareils.", "删除分类": "Supprimer la catégorie", "删除分类「{0}」？里面的日子不会删除，会移到「未分类」。": "Supprimer la catégorie « {0} » ? Ses jours restent, dans « Sans catégorie ».", "删除照片": "Supprimer la photo", "删除这个日历": "Supprimer ce calendrier", "删除这个日子": "Supprimer ce jour", "删除这张小纸条？": "Supprimer ce mot ?", "删除这张照片？其他设备同步后也会删除。": "Supprimer cette photo ? Elle sera aussi supprimée sur vos autres appareils.", "即将到来": "À venir", "又": "et", "可以允许使用相机后再试，或者从相册选一张照片当背景。": "Autorisez la caméra et réessayez, ou utilisez une photo en arrière-plan.", "名称": "Nom", "名称和颜色": "Nom et couleur", "周": "semaines", "图标": "Icône", "图片已下载": "Image téléchargée", "图片生成失败": "Impossible de créer l’image", "圆体": "Arrondie", "夜": "Nuit", "天": "jours", "字": "A", "存进相册": "Ajouter à l’album", "学习 · 工作": "Études et travail", "宠物": "Animaux", "小纸条": "Mots", "小纸条已贴上": "Mot ajouté", "就是今天": "C’est aujourd’hui", "尺寸": "Format", "已保存": "Enregistré", "已删除": "Supprimé", "已删除「{0}」": "« {0} » supprimé", "已取消置顶": "Désépinglé", "已添加 {0} 张照片": "{0} photo(s) ajoutée(s)", "已添加 {0} 张照片（连接 GitHub 后可在其他设备看到）": "{0} photo(s) ajoutée(s) (connectez GitHub pour les voir sur vos autres appareils)", "已添加「{0}」": "« {0} » ajouté", "已经": "Depuis", "已经过去": "Passés", "已置顶": "Épinglé", "已置顶，会显示在最上面和小组件里": "Épinglé en haut et dans les widgets", "已高亮": "Surligné", "年": "ans", "我": "Moi", "或输入一个表情": "ou tapez un emoji", "把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。": "Gardez les photos de ce jour ensemble. Elles se synchronisent sur votre GitHub, dans un Gist secret à part.", "拍摄": "Prendre la photo", "拖动卡片调整位置，双指缩放大小": "Faites glisser la carte, pincez pour la redimensionner", "放在最上面，也显示在小组件里": "Affiché en haut et dans les widgets", "数字字体": "Police des chiffres", "新分类": "Nouvelle catégorie", "新建": "Créer", "新建分类": "Nouvelle catégorie", "新建纪念日历": "Nouveau calendrier de jours", "新建记录日历": "Nouveau calendrier de suivi", "新的日子": "Nouveau jour", "日历": "Calendrier", "日期": "Date", "日期在未来：倒数还有多少天。": "Date future : compte à rebours des jours restants.", "日期在过去：累计已经过了多少天。": "Date passée : compte les jours écoulés.", "时": "h", "时间": "Heure", "显示单位": "Afficher en", "显示成「第 N 天」，比如在一起第 100 天": "Afficher « Jour N », p. ex. jour 100 ensemble", "更多": "Plus", "月": "Mois", "未分类": "Sans catégorie", "未来": "À venir", "查看照片": "Voir la photo", "样式": "Style", "正在添加 {0} 张照片…": "Ajout de {0} photo(s)…", "每周": "Chaque semaine", "每年": "Chaque année", "每月": "Chaque mois", "每次过去后自动倒数到下一次。": "Après chaque occurrence, le compte repart vers la suivante.", "比如：去巴黎旅行、在一起、考研": "p. ex. Voyage à Paris, Ensemble, Examen", "比如：我们、生日、考试": "p. ex. Nous, Anniversaires, Examens", "比如：生活、纪念日、考试、旅行": "p. ex. Vie, Anniversaires, Examens, Voyages", "没有保存": "Non enregistré", "没法打开相机": "Caméra indisponible", "浅色": "Clair", "深色": "Sombre", "添加": "Ajouter", "添加照片": "Ajouter des photos", "湖蓝": "Lac", "点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。": "Touchez ＋ pour ajouter un premier jour : les jours à venir se décomptent, les jours passés se comptent.", "照片": "Photo", "照片读取失败": "Impossible de lire la photo", "爱好": "Loisirs", "玫瑰": "Rose", "玻璃": "Verre", "琥珀": "Ambre", "生成分享图片": "Créer une image", "生日、纪念日这类每年都有的日子：一直倒数到下一次。": "Pour anniversaires et fêtes : compte toujours jusqu’au prochain.", "用名称的第一个字": "Utiliser la première lettre du nom", "用它做分享图片": "Utiliser pour l’image", "留白": "Épuré", "目标日": "Date cible", "相册": "Album", "相机还没准备好": "La caméra n’est pas prête", "石墨": "Graphite", "秒": "s", "第": "Jour", "第 {0} 天": "Jour {0}", "等宽": "Mono", "精确时间": "Heure précise", "素白": "Uni", "紫藤": "Glycine", "纪念": "Moments", "纪念日历": "Calendriers de jours", "纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。": "Un calendrier de jours garde vos dates importantes : les futures se décomptent, les passées se comptent. Chaque jour peut avoir des mots, un album et des images.", "纸条": "Mot", "编辑": "Modifier", "编辑小纸条": "Modifier le mot", "编辑日子": "Modifier le jour", "编辑纪念日历": "Modifier le calendrier", "置顶": "Épingler", "背景照片": "Photo de fond", "色块": "Couleur", "节律": "Cadence", "节日": "Fêtes", "莓果": "Baie", "衬线": "Serif", "记下这一天的期待、心情，或者那天发生的小事。": "Notez vos attentes, votre humeur, ou ce qui s’est passé ce jour-là.", "记录重要的日子": "Vos dates importantes", "请填写名称": "Indiquez un nom", "起始于": "Depuis le", "起始日": "Date de début", "起始日算第 1 天": "Compter le premier jour comme jour 1", "过去": "Passés", "还有": "Dans", "还有 {0} 天": "dans {0} jours", "还没有小纸条，先在详情里写一张吧。": "Pas encore de mot. Écrivez-en un dans les détails du jour.", "还没有日子": "Aucun jour", "这一天没有标记的日子": "Rien de marqué à cette date", "这个分类还没有日子": "Aucun jour dans cette catégorie", "这是第 {0} 次": "Occurrence {0}", "这里还没有未来的日子": "Aucun jour à venir ici", "这里还没有过去的日子": "Aucun jour passé ici", "选择照片": "Choisir une photo", "透明": "Transparent", "透明相机": "Caméra", "那天就是这一天": "écrit le jour même", "那天已经 {0} 天": "écrit au jour {0}", "那天是第 {0} 天": "écrit au jour {0}", "那天还有 {0} 天": "écrit {0} jours avant", "里程碑": "Étape", "里面的 {0} 个日子、小纸条和相册会一起删除，": "Ses {0} jours, mots et photos seront aussi supprimés. ", "重命名": "Renommer", "重命名分类": "Renommer la catégorie", "重复": "Répéter", "重拍": "Reprendre", "青绿": "Sarcelle", "青草": "Herbe", "高亮": "Surligner", "默认": "Par défaut", "（无标题）": "(Sans titre)", "取消": "Annuler", "完成": "Terminé", "贴上": "Ajouter", "选择日历": "Choisir un calendrier", "今天想对这个日子说点什么？": "Que voulez-vous dire sur ce jour ?", "纪念日": "Jours", "还没有日子，打开节律添加": "Aucun jour. Ouvrez Cadence pour en ajouter.", "纪念日小组件": "Widget des jours", "置顶或最近的日子，以及接下来的几个": "Votre jour épinglé ou le prochain, et quelques autres", "iOS 纪念日小组件": "Widget iOS des jours", "复制 Scriptable 脚本": "Copier le script Scriptable", "已复制纪念日小组件脚本": "Script du widget copié", "脚本还在加载，请稍后再点一次": "Le script se charge encore. Touchez à nouveau dans un instant.", "请先连接 GitHub 并完成一次同步": "Connectez GitHub et synchronisez une fois d’abord", "安卓纪念日小组件": "Widget Android des jours", "复制小组件链接": "Copier le lien du widget", "已复制纪念日小组件链接": "Lien du widget copié", "{0} 天前": "il y a {0} jours", "{0}的小纸条": "Un mot de {0}", "万圣节": "Halloween", "上一年": "Année précédente", "下一年": "Année suivante", "中秋": "Mi-automne", "从手机相册选择": "Choisir dans vos photos", "会裁成封面铺满顶部": "Remplit le haut de la page", "入职": "Nouveau poste", "其他": "Autre", "养花": "Plantes", "删除细分": "Supprimer la sous-catégorie", "删除细分「{0}」？里面的日子不会删除。": "Supprimer la sous-catégorie « {0} » ? Ses jours restent.", "回家": "Retour à la maison", "圣诞": "Noël", "在「{0}」里加一个细分": "Ajouter une sous-catégorie à {0}", "宝宝": "Bébé", "家人": "Famille", "小宠": "Petits animaux", "已添加「{0}」，可以给它设一张主题图片": "« {0} » ajouté. Vous pouvez lui donner une photo de couverture.", "开学": "Rentrée", "恋爱": "Amour", "情人节": "Saint-Valentin", "截止日": "Échéance", "收起": "Moins", "新年": "Nouvel An", "旅行": "Voyage", "春节": "Nouvel An lunaire", "更多表情": "Plus d’emoji", "更换主题图片": "Changer la couverture", "朋友": "Amis", "比如：去巴黎旅行、回家": "p. ex. Voyage à Paris", "比如：在一起、结婚纪念日": "p. ex. Ensemble, Anniversaire de mariage", "比如：小橘到家": "p. ex. Arrivée de Mochi", "比如：搬家": "p. ex. Déménagement", "比如：春节、圣诞节": "p. ex. Noël", "比如：期末考试、毕业": "p. ex. Examen final, Diplôme", "比如：演唱会、马拉松": "p. ex. Concert, Marathon", "比如：纪念日、周年、考研": "p. ex. Anniversaire", "比赛": "Compétition", "毕业": "Diplôme", "海边": "Plage", "游戏": "Jeux", "演唱会": "Concert", "爬山": "Randonnée", "狗狗": "Chien", "猫咪": "Chat", "生日": "Anniversaire", "生活 · 爱好": "Vie et loisirs", "电影": "Cinéma", "疫苗": "Vaccin", "移除主题图片": "Retirer la couverture", "类别": "Catégorie", "纯色": "Couleur unie", "细分": "Sous-catégorie", "结婚": "Mariage", "美食": "Gastronomie", "考试": "Examen", "自定义": "Personnaliser", "自驾": "Road trip", "设置主题图片": "Ajouter une couverture", "运动": "Sport", "这一年的日子": "Jours de cette année", "这一年还没有标记的日子": "Rien de marqué cette année", "这个日子的相册": "Album de ce jour", "重命名细分": "Renommer la sous-catégorie", "露营": "Camping", "主题图片": "Couverture", "今天是": "Aujourd’hui :", "更多图标": "Plus d’icônes", "选了细分会自动换成对应的图标": "Choisir une sous-catégorie change l’icône", "选了类别会自动换成对应的图标": "Choisir une catégorie change l’icône", "选填": "facultatif", "返回": "Retour", "总览": "Aperçu", "今年还会到来": "À venir cette année", "今天没有纪念日 · 离「{0}」还有 {1} 天": "Rien aujourd’hui · {0} dans {1} jours", "今天没有纪念日": "Rien aujourd’hui", "接下来": "À venir", "快到的里程碑": "Étapes à venir", "回忆": "Souvenirs", "{0} 张小纸条 · {1} 张照片": "{0} mots · {1} photos", "在日子的主页里写小纸条、放照片，这里会显示最近的一张。": "Écrivez des mots et ajoutez des photos sur la page d’un jour ; le plus récent s’affiche ici."},
     'zh-Hant': {"小号显示置顶（没有置顶就是最近的）日子；中号和大号再列出接下来的几个。在 App 里置顶的日子会显示在这里。": "小號顯示置頂（沒有置頂就是最近的）日子；中號和大號再列出接下來的幾個。在 App 裡置頂的日子會顯示在這裡。", "复制纪念日小组件脚本": "複製紀念日小元件指令碼", "长按小组件 → 编辑小组件 → Script 选「纪念日」。": "長按小元件 → 編輯小元件 → Script 選「紀念日」。", "回到桌面长按 → 编辑 → 添加小组件 → Scriptable → 选小号、中号或大号。": "回到桌面長按 → 編輯 → 新增小元件 → Scriptable → 選小號、中號或大號。", "打开 Scriptable → 右上角 ＋ → 粘贴 → 把标题改成「纪念日」→ Done。": "開啟 Scriptable → 右上角 ＋ → 貼上 → 把標題改成「紀念日」→ Done。", "点下方「复制纪念日小组件脚本」。": "點下方「複製紀念日小元件指令碼」。", "先在「账户与同步」连接 GitHub，并同步成功一次。": "先在「賬戶與同步」連線 GitHub，並同步成功一次。", "新建日历": "新建日曆", "{0} 个日子": "{0} 個日子", "{0} 个日子 · 下一个「{1}」还有 {2} 天": "{0} 個日子 · 下一個「{1}」還有 {2} 天", "{0} 个日子 · 今天是「{1}」": "{0} 個日子 · 今天是「{1}」", "{0} 个月": "{0} 個月", "{0} 周年": "{0} 週年", "{0} 的小纸条": "{0} 的小紙條", "上个月": "上個月", "下个月": "下個月", "下一个里程碑": "下一個里程碑", "不重复": "不重複", "个月": "個月", "从相册选择": "從相簿選擇", "保存": "儲存", "保存 / 分享": "儲存 / 分享", "倒数精确到时、分、秒": "倒數精確到時、分、秒", "先写一个名称": "先寫一個名稱", "关闭": "關閉", "其他设备同步后也会删除。": "其他裝置同步後也會刪除。", "写一张": "寫一張", "写一张小纸条": "寫一張小紙條", "分享图片": "分享圖片", "分类": "分類", "切换镜头": "切換鏡頭", "删除": "刪除", "删除「{0}」？": "刪除「{0}」？", "删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。": "刪除「{0}」？小紙條和相簿會一起刪除，其他裝置同步後也會刪除。", "删除分类": "刪除分類", "删除分类「{0}」？里面的日子不会删除，会移到「未分类」。": "刪除分類「{0}」？裡面的日子不會刪除，會移到「未分類」。", "删除照片": "刪除照片", "删除这个日历": "刪除這個日曆", "删除这个日子": "刪除這個日子", "删除这张小纸条？": "刪除這張小紙條？", "删除这张照片？其他设备同步后也会删除。": "刪除這張照片？其他裝置同步後也會刪除。", "即将到来": "即將到來", "可以允许使用相机后再试，或者从相册选一张照片当背景。": "可以允許使用相機後再試，或者從相簿選一張照片當背景。", "名称": "名稱", "名称和颜色": "名稱和顏色", "图标": "圖示", "图片已下载": "圖片已下載", "图片生成失败": "圖片生成失敗", "圆体": "圓體", "存进相册": "存進相簿", "学习 · 工作": "學習 · 工作", "宠物": "寵物", "小纸条": "小紙條", "小纸条已贴上": "小紙條已貼上", "已保存": "已儲存", "已删除": "已刪除", "已删除「{0}」": "已刪除「{0}」", "已取消置顶": "已取消置頂", "已添加 {0} 张照片": "已新增 {0} 張照片", "已添加 {0} 张照片（连接 GitHub 后可在其他设备看到）": "已新增 {0} 張照片（連線 GitHub 後可在其他裝置看到）", "已添加「{0}」": "已新增「{0}」", "已经": "已經", "已经过去": "已經過去", "已置顶": "已置頂", "已置顶，会显示在最上面和小组件里": "已置頂，會顯示在最上面和小元件裡", "或输入一个表情": "或輸入一個表情", "把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。": "把這一天的照片放在一起。照片會同步到你自己的 GitHub（單獨的私密 Gist）。", "拍摄": "拍攝", "拖动卡片调整位置，双指缩放大小": "拖動卡片調整位置，雙指縮放大小", "放在最上面，也显示在小组件里": "放在最上面，也顯示在小元件裡", "数字字体": "數字字型", "新分类": "新分類", "新建分类": "新建分類", "新建纪念日历": "新建紀念日曆", "新建记录日历": "新建記錄日曆", "日历": "日曆", "日期在未来：倒数还有多少天。": "日期在未來：倒數還有多少天。", "日期在过去：累计已经过了多少天。": "日期在過去：累計已經過了多少天。", "时": "時", "时间": "時間", "显示单位": "顯示單位", "显示成「第 N 天」，比如在一起第 100 天": "顯示成「第 N 天」，比如在一起第 100 天", "未分类": "未分類", "未来": "未來", "查看照片": "檢視照片", "样式": "樣式", "正在添加 {0} 张照片…": "正在新增 {0} 張照片…", "每周": "每週", "每次过去后自动倒数到下一次。": "每次過去後自動倒數到下一次。", "比如：我们、生日、考试": "比如：我們、生日、考試", "比如：生活、纪念日、考试、旅行": "比如：生活、紀念日、考試、旅行", "没有保存": "沒有儲存", "没法打开相机": "沒法開啟相機", "浅色": "淺色", "添加": "新增", "添加照片": "新增照片", "湖蓝": "湖藍", "点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。": "點右下角 ＋ 記下第一個重要的日子：未來的倒數，過去的累計。", "照片读取失败": "照片讀取失敗", "爱好": "愛好", "生成分享图片": "生成分享圖片", "生日、纪念日这类每年都有的日子：一直倒数到下一次。": "生日、紀念日這類每年都有的日子：一直倒數到下一次。", "用名称的第一个字": "用名稱的第一個字", "用它做分享图片": "用它做分享圖片", "目标日": "目標日", "相册": "相簿", "相机还没准备好": "相機還沒準備好", "等宽": "等寬", "精确时间": "精確時間", "纪念": "紀念", "纪念日历": "紀念日曆", "纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。": "紀念日曆記錄重要的日子：未來的倒數，過去的累計。每個日子可以寫小紙條、建相簿、生成分享圖片。", "纸条": "紙條", "编辑": "編輯", "编辑小纸条": "編輯小紙條", "编辑日子": "編輯日子", "编辑纪念日历": "編輯紀念日曆", "置顶": "置頂", "色块": "色塊", "节律": "節律", "节日": "節日", "衬线": "襯線", "记下这一天的期待、心情，或者那天发生的小事。": "記下這一天的期待、心情，或者那天發生的小事。", "记录重要的日子": "記錄重要的日子", "请填写名称": "請填寫名稱", "起始于": "起始於", "过去": "過去", "还有": "還有", "还有 {0} 天": "還有 {0} 天", "还没有小纸条，先在详情里写一张吧。": "還沒有小紙條，先在詳情裡寫一張吧。", "还没有日子": "還沒有日子", "这一天没有标记的日子": "這一天沒有標記的日子", "这个分类还没有日子": "這個分類還沒有日子", "这是第 {0} 次": "這是第 {0} 次", "这里还没有未来的日子": "這裡還沒有未來的日子", "这里还没有过去的日子": "這裡還沒有過去的日子", "选择照片": "選擇照片", "透明相机": "透明相機", "那天就是这一天": "那天就是這一天", "那天已经 {0} 天": "那天已經 {0} 天", "那天还有 {0} 天": "那天還有 {0} 天", "里面的 {0} 个日子、小纸条和相册会一起删除，": "裡面的 {0} 個日子、小紙條和相簿會一起刪除，", "重命名": "重新命名", "重命名分类": "重新命名分類", "重复": "重複", "青绿": "青綠", "默认": "預設", "（无标题）": "（無標題）", "贴上": "貼上", "选择日历": "選擇日曆", "今天想对这个日子说点什么？": "今天想對這個日子說點什麼？", "纪念日": "紀念日", "还没有日子，打开节律添加": "還沒有日子，開啟節律新增", "纪念日小组件": "紀念日小元件", "置顶或最近的日子，以及接下来的几个": "置頂或最近的日子，以及接下來的幾個", "iOS 纪念日小组件": "iOS 紀念日小元件", "复制 Scriptable 脚本": "複製 Scriptable 指令碼", "已复制纪念日小组件脚本": "已複製紀念日小元件指令碼", "脚本还在加载，请稍后再点一次": "指令碼還在載入，請稍後再點一次", "请先连接 GitHub 并完成一次同步": "請先連線 GitHub 並完成一次同步", "安卓纪念日小组件": "安卓紀念日小元件", "复制小组件链接": "複製小元件連結", "已复制纪念日小组件链接": "已複製紀念日小元件連結", "{0}的小纸条": "{0}的小紙條", "万圣节": "萬聖節", "从手机相册选择": "從手機相簿選擇", "会裁成封面铺满顶部": "會裁成封面鋪滿頂部", "入职": "入職", "养花": "養花", "删除细分": "刪除細分", "删除细分「{0}」？里面的日子不会删除。": "刪除細分「{0}」？裡面的日子不會刪除。", "圣诞": "聖誕", "在「{0}」里加一个细分": "在「{0}」里加一個細分", "宝宝": "寶寶", "小宠": "小寵", "已添加「{0}」，可以给它设一张主题图片": "已新增「{0}」，可以給它設一張主題圖片", "开学": "開學", "恋爱": "戀愛", "情人节": "情人節", "春节": "春節", "更换主题图片": "更換主題圖片", "比如：在一起、结婚纪念日": "比如：在一起、結婚紀念日", "比如：春节、圣诞节": "比如：春節、聖誕節", "比如：期末考试、毕业": "比如：期末考試、畢業", "比如：演唱会、马拉松": "比如：演唱會、馬拉松", "比如：纪念日、周年、考研": "比如：紀念日、週年、考研", "比赛": "比賽", "毕业": "畢業", "海边": "海邊", "游戏": "遊戲", "演唱会": "演唱會", "猫咪": "貓咪", "生活 · 爱好": "生活 · 愛好", "电影": "電影", "移除主题图片": "移除主題圖片", "类别": "類別", "纯色": "純色", "细分": "細分", "结婚": "結婚", "考试": "考試", "自定义": "自定義", "自驾": "自駕", "设置主题图片": "設定主題圖片", "运动": "運動", "这一年的日子": "這一年的日子", "这一年还没有标记的日子": "這一年還沒有標記的日子", "这个日子的相册": "這個日子的相簿", "重命名细分": "重新命名細分", "露营": "露營", "主题图片": "主題圖片", "更多图标": "更多圖示", "选了细分会自动换成对应的图标": "選了細分會自動換成對應的圖示", "选了类别会自动换成对应的图标": "選了類別會自動換成對應的圖示", "选填": "選填", "周": "週", "返回": "返回", "总览": "總覽", "今年还会到来": "今年還會到來", "今天没有纪念日 · 离「{0}」还有 {1} 天": "今天沒有紀念日 · 離「{0}」還有 {1} 天", "今天没有纪念日": "今天沒有紀念日", "接下来": "接下來", "回忆": "回憶", "{0} 张小纸条 · {1} 张照片": "{0} 張小紙條 · {1} 張照片", "在日子的主页里写小纸条、放照片，这里会显示最近的一张。": "在日子的主頁裡寫小紙條、放照片，這裡會顯示最近的一張。"},
     ja: {"小号显示置顶（没有置顶就是最近的）日子；中号和大号再列出接下来的几个。在 App 里置顶的日子会显示在这里。": "小サイズはピン留めした日（なければ次の日）を表示し、中・大サイズはその後の日も一覧表示します。アプリでピン留めした日がここに表示されます。", "复制纪念日小组件脚本": "記念日ウィジェットのスクリプトをコピー", "长按小组件 → 编辑小组件 → Script 选「纪念日」。": "ウィジェットを長押し → ウィジェットを編集 → Script で「記念日」を選択。", "回到桌面长按 → 编辑 → 添加小组件 → Scriptable → 选小号、中号或大号。": "ホーム画面で長押し → 編集 → ウィジェットを追加 → Scriptable → 小・中・大を選択。", "打开 Scriptable → 右上角 ＋ → 粘贴 → 把标题改成「纪念日」→ Done。": "Scriptable を開く → 右上の ＋ → 貼り付け → タイトルを「記念日」に変更 → Done。", "点下方「复制纪念日小组件脚本」。": "下の「記念日ウィジェットのスクリプトをコピー」をタップ。", "先在「账户与同步」连接 GitHub，并同步成功一次。": "まず「同期」で GitHub に接続し、一度同期を完了してください。", "新建日历": "新しいカレンダー", "按年": "年", "按月": "月", "按周": "週", "按天": "日", "{0} 个日子": "{0} 件の記念日", "{0} 个日子 · 下一个「{1}」还有 {2} 天": "{0} 件 · 次の「{1}」まであと {2} 日", "{0} 个日子 · 今天是「{1}」": "{0} 件 · 今日は「{1}」", "{0} 个月": "{0} か月", "{0} 周年": "{0} 周年", "{0} 天": "{0} 日", "{0} 的小纸条": "{0} のメモ", "上个月": "前の月", "下个月": "次の月", "下一个里程碑": "次の節目", "下一次": "次回", "不重复": "繰り返さない", "不高亮": "ハイライトなし", "个月": "か月", "今天": "今日", "从相册选择": "写真から選ぶ", "保存": "保存", "保存 / 分享": "保存 / 共有", "倒数精确到时、分、秒": "時・分・秒までカウントダウン", "先写一个名称": "先に名前を入力してください", "全部": "すべて", "关闭": "閉じる", "其他设备同步后也会删除。": "同期後はほかのデバイスからも削除されます。", "写一张": "書く", "写一张小纸条": "メモを書く", "出行": "お出かけ", "分": "分", "分享图片": "画像で共有", "分类": "カテゴリ", "切换镜头": "カメラを切り替え", "列表": "リスト", "删除": "削除", "删除「{0}」？": "「{0}」を削除しますか？", "删除「{0}」？小纸条和相册会一起删除，其他设备同步后也会删除。": "「{0}」を削除しますか？メモとアルバムも削除され、同期後はほかのデバイスからも削除されます。", "删除分类": "カテゴリを削除", "删除分类「{0}」？里面的日子不会删除，会移到「未分类」。": "カテゴリ「{0}」を削除しますか？記念日は削除されず「未分類」に移ります。", "删除照片": "写真を削除", "删除这个日历": "このカレンダーを削除", "删除这个日子": "この記念日を削除", "删除这张小纸条？": "このメモを削除しますか？", "删除这张照片？其他设备同步后也会删除。": "この写真を削除しますか？同期後はほかのデバイスからも削除されます。", "即将到来": "これから", "又": "と", "可以允许使用相机后再试，或者从相册选一张照片当背景。": "カメラへのアクセスを許可してもう一度試すか、写真を背景にしてください。", "名称": "名前", "名称和颜色": "名前と色", "周": "週", "图标": "アイコン", "图片已下载": "画像をダウンロードしました", "图片生成失败": "画像を作成できませんでした", "圆体": "丸ゴシック", "夜": "夜", "天": "日", "字": "字", "存进相册": "アルバムに保存", "学习 · 工作": "学業 · 仕事", "宠物": "ペット", "小纸条": "メモ", "小纸条已贴上": "メモを追加しました", "就是今天": "今日です", "尺寸": "サイズ", "已保存": "保存しました", "已删除": "削除しました", "已删除「{0}」": "「{0}」を削除しました", "已取消置顶": "ピン留めを外しました", "已添加 {0} 张照片": "写真を {0} 枚追加しました", "已添加 {0} 张照片（连接 GitHub 后可在其他设备看到）": "写真を {0} 枚追加しました（GitHub に接続するとほかのデバイスでも見られます）", "已添加「{0}」": "「{0}」を追加しました", "已经": "経過", "已经过去": "過ぎた日", "已置顶": "ピン留め中", "已置顶，会显示在最上面和小组件里": "ピン留めしました。いちばん上とウィジェットに表示されます", "已高亮": "ハイライト中", "年": "年", "我": "自分", "或输入一个表情": "または絵文字を入力", "把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。": "この日の写真をまとめておけます。写真はあなたの GitHub（別の非公開 Gist）に同期されます。", "拍摄": "撮影", "拖动卡片调整位置，双指缩放大小": "カードをドラッグして移動、ピンチでサイズ変更", "放在最上面，也显示在小组件里": "いちばん上に表示し、ウィジェットにも表示", "数字字体": "数字のフォント", "新分类": "新しいカテゴリ", "新建": "作成", "新建分类": "新しいカテゴリ", "新建纪念日历": "新しい記念日カレンダー", "新建记录日历": "新しい記録カレンダー", "新的日子": "新しい記念日", "日历": "カレンダー", "日期": "日付", "日期在未来：倒数还有多少天。": "未来の日付：残りの日数をカウントダウンします。", "日期在过去：累计已经过了多少天。": "過去の日付：経過した日数を数えます。", "时": "時", "时间": "時刻", "显示单位": "表示単位", "显示成「第 N 天」，比如在一起第 100 天": "「N 日目」と表示（例：付き合って 100 日目）", "更多": "その他", "月": "月", "未分类": "未分類", "未来": "未来", "查看照片": "写真を見る", "样式": "スタイル", "正在添加 {0} 张照片…": "写真を {0} 枚追加中…", "每周": "毎週", "每年": "毎年", "每月": "毎月", "每次过去后自动倒数到下一次。": "過ぎるたびに次の日へ自動でカウントダウンします。", "比如：去巴黎旅行、在一起、考研": "例：パリ旅行、付き合った日、試験", "比如：我们、生日、考试": "例：ふたり、誕生日、試験", "比如：生活、纪念日、考试、旅行": "例：生活、記念日、試験、旅行", "没有保存": "保存されていません", "没法打开相机": "カメラを起動できません", "浅色": "ライト", "深色": "ダーク", "添加": "追加", "添加照片": "写真を追加", "湖蓝": "湖", "点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。": "右下の ＋ で最初の大切な日を追加しましょう。未来の日はカウントダウン、過去の日は経過日数を数えます。", "照片": "写真", "照片读取失败": "写真を読み込めませんでした", "爱好": "趣味", "玫瑰": "ローズ", "玻璃": "ガラス", "琥珀": "アンバー", "生成分享图片": "共有画像を作成", "生日、纪念日这类每年都有的日子：一直倒数到下一次。": "誕生日や記念日など毎年ある日：いつも次の日までカウントダウンします。", "用名称的第一个字": "名前の最初の文字を使う", "用它做分享图片": "共有画像に使う", "留白": "余白", "目标日": "目標日", "相册": "アルバム", "相机还没准备好": "カメラの準備ができていません", "石墨": "グラファイト", "秒": "秒", "第": "", "第 {0} 天": "{0} 日目", "等宽": "等幅", "精确时间": "正確な時刻", "素白": "シンプル", "紫藤": "藤", "纪念": "記念", "纪念日历": "記念日カレンダー", "纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。": "記念日カレンダーは大切な日を記録します。未来の日はカウントダウン、過去の日は経過日数を数えます。日ごとにメモやアルバム、共有画像を作れます。", "纸条": "メモ", "编辑": "編集", "编辑小纸条": "メモを編集", "编辑日子": "記念日を編集", "编辑纪念日历": "記念日カレンダーを編集", "置顶": "ピン留め", "背景照片": "背景の写真", "色块": "カラー", "节律": "Cadence", "节日": "行事", "莓果": "ベリー", "衬线": "明朝", "记下这一天的期待、心情，或者那天发生的小事。": "この日への期待や気持ち、その日の出来事を書き留めましょう。", "记录重要的日子": "大切な日を記録", "请填写名称": "名前を入力してください", "起始于": "開始日", "起始日": "開始日", "起始日算第 1 天": "開始日を 1 日目として数える", "过去": "過去", "还有": "あと", "还有 {0} 天": "あと {0} 日", "还没有小纸条，先在详情里写一张吧。": "まだメモがありません。記念日の詳細から書いてみましょう。", "还没有日子": "まだ記念日がありません", "这一天没有标记的日子": "この日には記念日がありません", "这个分类还没有日子": "このカテゴリにはまだ記念日がありません", "这是第 {0} 次": "{0} 回目", "这里还没有未来的日子": "これからの記念日はまだありません", "这里还没有过去的日子": "過ぎた記念日はまだありません", "选择照片": "写真を選ぶ", "透明": "透明", "透明相机": "透明カメラ", "那天就是这一天": "当日に書いたメモ", "那天已经 {0} 天": "{0} 日目に書いたメモ", "那天是第 {0} 天": "{0} 日目に書いたメモ", "那天还有 {0} 天": "{0} 日前に書いたメモ", "里程碑": "節目", "里面的 {0} 个日子、小纸条和相册会一起删除，": "中の {0} 件の記念日・メモ・アルバムも削除され、", "重命名": "名前を変更", "重命名分类": "カテゴリ名を変更", "重复": "繰り返し", "重拍": "撮り直す", "青绿": "ティール", "青草": "グリーン", "高亮": "ハイライト", "默认": "標準", "（无标题）": "（タイトルなし）", "取消": "キャンセル", "完成": "完了", "贴上": "追加", "选择日历": "カレンダーを選択", "今天想对这个日子说点什么？": "今日はこの日に何を伝えたいですか？", "纪念日": "記念日", "还没有日子，打开节律添加": "まだ記念日がありません。Cadence を開いて追加してください", "纪念日小组件": "記念日ウィジェット", "置顶或最近的日子，以及接下来的几个": "ピン留めした日か次の日と、その後の記念日", "iOS 纪念日小组件": "iOS 記念日ウィジェット", "复制 Scriptable 脚本": "Scriptable のスクリプトをコピー", "已复制纪念日小组件脚本": "記念日ウィジェットのスクリプトをコピーしました", "脚本还在加载，请稍后再点一次": "スクリプトを読み込み中です。少ししてからもう一度タップしてください", "请先连接 GitHub 并完成一次同步": "先に GitHub に接続して一度同期してください", "安卓纪念日小组件": "Android 記念日ウィジェット", "复制小组件链接": "ウィジェットのリンクをコピー", "已复制纪念日小组件链接": "記念日ウィジェットのリンクをコピーしました", "{0} 天前": "{0} 日前", "{0}的小纸条": "{0}のメモ", "万圣节": "ハロウィン", "上一年": "前の年", "下一年": "次の年", "中秋": "中秋", "从手机相册选择": "写真ライブラリから選ぶ", "会裁成封面铺满顶部": "上部いっぱいのカバーになります", "入职": "入社", "其他": "その他", "养花": "ガーデニング", "删除细分": "サブカテゴリを削除", "删除细分「{0}」？里面的日子不会删除。": "サブカテゴリ「{0}」を削除しますか？記念日は削除されません。", "回家": "帰省", "圣诞": "クリスマス", "在「{0}」里加一个细分": "「{0}」にサブカテゴリを追加", "宝宝": "赤ちゃん", "家人": "家族", "小宠": "小動物", "已添加「{0}」，可以给它设一张主题图片": "「{0}」を追加しました。カバー写真を設定できます", "开学": "新学期", "恋爱": "恋愛", "情人节": "バレンタイン", "截止日": "締め切り", "收起": "閉じる", "新年": "お正月", "旅行": "旅行", "春节": "春節", "更多表情": "その他の絵文字", "更换主题图片": "カバーを変更", "朋友": "友達", "比如：去巴黎旅行、回家": "例：パリ旅行、帰省", "比如：在一起、结婚纪念日": "例：付き合った日、結婚記念日", "比如：小橘到家": "例：ミケがうちに来た日", "比如：搬家": "例：引っ越し", "比如：春节、圣诞节": "例：お正月、クリスマス", "比如：期末考试、毕业": "例：期末試験、卒業", "比如：演唱会、马拉松": "例：コンサート、マラソン", "比如：纪念日、周年、考研": "例：記念日、周年、受験", "比赛": "大会", "毕业": "卒業", "海边": "海", "游戏": "ゲーム", "演唱会": "コンサート", "爬山": "登山", "狗狗": "犬", "猫咪": "猫", "生日": "誕生日", "生活 · 爱好": "生活 · 趣味", "电影": "映画", "疫苗": "ワクチン", "移除主题图片": "カバーを削除", "类别": "カテゴリ", "纯色": "単色", "细分": "サブカテゴリ", "结婚": "結婚", "美食": "グルメ", "考试": "試験", "自定义": "カスタム", "自驾": "ドライブ", "设置主题图片": "カバーを設定", "运动": "スポーツ", "这一年的日子": "今年の記念日", "这一年还没有标记的日子": "今年の記念日はまだありません", "这个日子的相册": "この日のアルバム", "重命名细分": "サブカテゴリ名を変更", "露营": "キャンプ", "主题图片": "カバー", "今天是": "今日で", "更多图标": "その他のアイコン", "选了细分会自动换成对应的图标": "サブカテゴリを選ぶとアイコンも切り替わります", "选了类别会自动换成对应的图标": "カテゴリを選ぶとアイコンも切り替わります", "选填": "任意", "返回": "戻る", "总览": "概要", "今年还会到来": "今年これから", "今天没有纪念日 · 离「{0}」还有 {1} 天": "今日は記念日なし · {0}まであと {1} 日", "今天没有纪念日": "今日は記念日なし", "接下来": "これから", "快到的里程碑": "もうすぐの節目", "回忆": "思い出", "{0} 张小纸条 · {1} 张照片": "メモ {0} 件 · 写真 {1} 枚", "在日子的主页里写小纸条、放照片，这里会显示最近的一张。": "記念日のページでメモや写真を追加すると、最新のメモがここに表示されます。"} };
+  Object.entries({
+    en: { '全屏': 'Full', '拖动、双指缩放照片；拖动卡片换位置；双击复原': 'Drag or pinch the photo, drag the card to move it, double-tap to reset' },
+    fr: { '全屏': 'Plein écran', '拖动、双指缩放照片；拖动卡片换位置；双击复原': 'Faites glisser ou pincez la photo, déplacez la carte, touchez deux fois pour réinitialiser' },
+    'zh-Hant': { '全屏': '全螢幕', '拖动、双指缩放照片；拖动卡片换位置；双击复原': '拖動、雙指縮放照片；拖動卡片換位置；點兩下復原' },
+    ja: { '全屏': 'フル', '拖动、双指缩放照片；拖动卡片换位置；双击复原': '写真はドラッグ・ピンチで調整、カードはドラッグで移動、ダブルタップでリセット' },
+  }).forEach(([k, v]) => Object.assign(DICT[k] || (DICT[k] = {}), v));
   const T = (Days.T = s => { const d = DICT[LANG]; return d && d[s] != null ? d[s] : s; });
   const F = (s, ...a) => T(s).replace(/\{(\d)\}/g, (m, n) => (a[n] !== undefined ? a[n] : m));
   const TT = s => (MC.t ? MC.t(s) : s);     // 画在图片里的文字（繁体也要转）
@@ -932,10 +938,36 @@
   // ---------- 编辑 ----------
   let ed = null, edFor = null;
   const deBody = $('#deBody');
+  // 新建 / 编辑时就能选主题图片：手机里的照片先放在这里，点「添加 / 保存」才真正存
+  const edTmp = { file: null, url: '' };
+  const edCoverIn = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*', hidden: true });
+  document.body.appendChild(edCoverIn);
+  edCoverIn.addEventListener('change', () => {
+    const f = edCoverIn.files[0]; if (!f || !ed) return;
+    if (edTmp.url) URL.revokeObjectURL(edTmp.url);
+    edTmp.file = f; edTmp.url = URL.createObjectURL(f);
+    keep(renderEditor);
+  });
+  function edCoverRow() {
+    const old = edFor && find(edFor), ids = old ? old.photos.map(p => p.id) : [];
+    if (old && isPhotoCover(old) && !ids.includes(old.cover)) ids.unshift(old.cover);
+    const cur = edTmp.file ? 'tmp' : ed.cover || '';
+    return `<p class="cmp-label">${T('主题图片')}<span class="opt">${T('选填')}</span></p>
+      <div class="de-covers">
+        <button class="de-cv-pick" data-cvpick aria-label="${T('从手机相册选择')}">${UI_IC.photo}</button>
+        ${edTmp.file ? `<button class="dc-ph on" data-cvp="tmp"><img alt="" src="${edTmp.url}"></button>` : ''}
+        ${ids.map(id => `<button class="dc-ph${cur === id ? ' on' : ''}" data-cvp="${id}"><img alt="" data-src="${id}"></button>`).join('')}
+        <button class="dr-sw none de-cv-none${!cur ? ' on' : ''}" data-cvp="" aria-label="${T('移除主题图片')}"></button>
+        ${P.COVERS.map(c => `<button class="dc-col${cur === 'c:' + c ? ' on' : ''}" style="--pastel:${c}" data-cvp="c:${c}" aria-label="${c}"></button>`).join('')}
+      </div>`;
+  }
   function openEditor(x, defaults = {}) {
     edFor = x ? x.id : null;
     ed = x ? { title: x.title, date: x.date, time: x.time, rep: x.rep, book: x.book, cat: catOf(x), sub: x.sub, iconSet: true, icon: P.iconOf(x) || x.icon, hl: x.hl, pin: x.pin, unit: x.unit, from1: x.from1 }
       : { title: '', date: defaults.date || MC.todayStr(), time: '', rep: '', book: '', cat: defaults.cat || '', sub: '', iconSet: false, icon: '', hl: '', pin: false, unit: 'd', from1: false };
+    if (edTmp.url) URL.revokeObjectURL(edTmp.url);
+    edTmp.file = null; edTmp.url = '';
+    ed.cover = x ? x.cover || '' : '';
     ed.open = '';
     $('#deHead').textContent = x ? T('编辑日子') : T('新的日子');
     $('#deSave').textContent = x ? T('保存') : T('添加');
@@ -947,8 +979,11 @@
   Days.openEditor = openEditor;
   function edPreview() {
     const old = edFor && find(edFor);
-    const fake = { ...ed, id: 'preview', cover: old ? old.cover : '', notes: [], photos: [], createdAt: Date.now(), title: ed.title || edPlaceholder().replace(/^[^：:]*[：:]\s*/, '').split(/[、,]/)[0] };
-    const h = $('#dePreview'); if (h) { h.innerHTML = coverCardHTML(fake, new Date()); fillCovers(h); }
+    const fake = { ...ed, id: 'preview', cover: edTmp.file ? 'ptmp' : ed.cover || '', notes: [], photos: [], createdAt: Date.now(), title: ed.title || edPlaceholder().replace(/^[^：:]*[：:]\s*/, '').split(/[、,]/)[0] };
+    const h = $('#dePreview'); if (!h) return;
+    h.innerHTML = coverCardHTML(fake, new Date());
+    if (edTmp.file) h.querySelectorAll('img[data-cover="ptmp"]').forEach(i => { i.src = edTmp.url; i.classList.add('ok'); });
+    fillCovers(h);
   }
   const PH = { love: '比如：在一起、结婚纪念日', trip: '比如：去巴黎旅行、回家', study: '比如：期末考试、毕业', life: '比如：演唱会、马拉松', pet: '比如：小橘到家', fest: '比如：春节、圣诞节', other: '比如：搬家' };
   const edPlaceholder = () => T(PH[ed.cat] || '比如：去巴黎旅行、在一起、考研');
@@ -958,6 +993,7 @@
     const sw = (id, on, label, sub) => `<label class="pk-row"><span>${label}${sub ? `<small>${sub}</small>` : ''}</span><input type="checkbox" class="switch" id="${id}"${on ? ' checked' : ''}></label>`;
     deBody.innerHTML = `
       <div id="dePreview" class="de-preview" aria-hidden="true"></div>
+      ${edCoverRow()}
       <p class="cmp-label">${T('类别')}</p>
       <div class="de-cats">${CATS.map(c => `<button class="de-cat${ed.cat === c.k ? ' on' : ''}" data-cat="${c.k}"><span class="e" style="--ic:${c.c}">${svgOf(c.i)}</span><span>${T(c.n)}</span></button>`).join('')}</div>
       ${ed.cat ? `<p class="cmp-label">${T('细分')}<span class="opt">${T('选填')}</span></p>
@@ -987,6 +1023,7 @@
       <div class="group de-rows">${sw('dePin', ed.pin, T('置顶'), T('放在最上面，也显示在小组件里'))}</div>
       ${edFor ? `<button class="dd-del" data-del>${T('删除这个日子')}</button>` : ''}`;
     edPreview();
+    deBody.querySelectorAll('.de-covers img[data-src]').forEach(async i => { const u = await P.photoURL(i.dataset.src); if (u) i.src = u; });
     if (ed.open === 'date') dateWheel($('#deDateW'));
     if (ed.open === 'time' && ed.time) timeWheel($('#deTimeW'));
   }
@@ -1029,6 +1066,9 @@
   const keep = fn => { const s = deBody.scrollTop; fn(); deBody.scrollTop = s; };
   deBody.addEventListener('click', e => {
     const t = e.target;
+    if (t.closest('[data-cvpick]')) { edCoverIn.value = ''; edCoverIn.click(); return; }
+    const cvp = t.closest('[data-cvp]');
+    if (cvp) { if (cvp.dataset.cvp !== 'tmp') { if (edTmp.url) URL.revokeObjectURL(edTmp.url); edTmp.file = null; edTmp.url = ''; ed.cover = cvp.dataset.cvp; } keep(renderEditor); vib(); return; }
     const op = t.closest('[data-open]'); if (op) { ed.open = ed.open === op.dataset.open ? '' : op.dataset.open; keep(renderEditor); return; }
     const rp = t.closest('[data-rep]'); if (rp) { ed.rep = rp.dataset.rep; if (ed.rep) ed.from1 = false; keep(renderEditor); return; }
     const un = t.closest('[data-unit]'); if (un) { ed.unit = un.dataset.unit; deBody.querySelectorAll('.de-seg button').forEach(b => b.classList.toggle('on', b === un)); edPreview(); return; }
@@ -1048,17 +1088,27 @@
     const hl = t.closest('[data-hl]'); if (hl) { ed.hl = hl.dataset.hl; deBody.querySelectorAll('[data-hl]').forEach(b => b.classList.toggle('on', b === hl)); edPreview(); return; }
     if (t.closest('[data-del]')) { const x = find(edFor); if (x) removeDay(x); }
   });
-  $('#deSave').onclick = () => {
+  // 存主题图片：手机里选的照片要压缩后再存；其他（相册里的照片、纯色、移除）直接改
+  async function applyCover(id, file, value) {
+    const x = find(id); if (!x) return;
+    if (file) await P.setCoverFile(x, file);
+    else if ((value || '') !== (x.cover || '')) await P.setCover(x, value);
+  }
+  $('#deSave').onclick = async () => {
     const title = (ed.title || '').trim();
     if (!title) { const i = $('#deTitle'); i.placeholder = T('先写一个名称'); i.parentElement.classList.add('shake'); setTimeout(() => i.parentElement.classList.remove('shake'), 400); i.focus(); return; }
     const fields = { title, date: ed.date, time: ed.time, rep: ed.rep, book: ed.book, cat: ed.cat || 'other', sub: ed.book ? '' : ed.sub, icon: ed.icon, hl: ed.hl, pin: ed.pin, unit: ed.unit, from1: !ed.rep && ed.from1 };
-    if (edFor) { const x = find(edFor); if (x) MC.updateDay(x, fields); UI.close('dayEditor', true); UI.toast(T('已保存')); return; }
+    const file = edTmp.file, value = ed.cover, url = edTmp.url;
+    edTmp.file = null; edTmp.url = '';
+    const done = () => { if (url) setTimeout(() => URL.revokeObjectURL(url), 1500); };
+    if (edFor) { const x = find(edFor); if (x) MC.updateDay(x, fields); UI.close('dayEditor', true); if (x) await applyCover(x.id, file, value); done(); UI.toast(T('已保存')); return; }
     const x = MC.addDay({ ...fields, cal: calId() });
     UI.close('dayEditor', true);
+    await applyCover(x.id, file, value); done();
     if (st.cat && st.cat !== catOf(x)) { st.cat = ''; st.sub = ''; }
     render();
     openPage(x.id);
-    UI.toast(F('已添加「{0}」，可以给它设一张主题图片', title));
+    UI.toast(file || value ? F('已添加「{0}」', title) : F('已添加「{0}」，可以给它设一张主题图片', title));
   };
 
   // ---------- 刷新 ----------
@@ -1169,22 +1219,60 @@
     if (w > maxW) { px = Math.max(24, px * maxW / w); ctx.font = font(weight, px, fam); }
     return px;
   }
-  // 磨砂玻璃：把画布上这一块缩小再放大，得到柔和的模糊
-  function frost(ctx, x, y, w, h, r, tint) {
-    const cv = ctx.canvas, s1 = 8, s2 = 28;
-    const a = document.createElement('canvas'); a.width = Math.max(2, Math.round(w / s1)); a.height = Math.max(2, Math.round(h / s1));
-    const b = document.createElement('canvas'); b.width = Math.max(2, Math.round(w / s2)); b.height = Math.max(2, Math.round(h / s2));
-    const ax = a.getContext('2d'), bx = b.getContext('2d');
-    ax.imageSmoothingQuality = bx.imageSmoothingQuality = 'high';
-    ax.drawImage(cv, x, y, w, h, 0, 0, a.width, a.height);
-    bx.drawImage(a, 0, 0, b.width, b.height);
-    ax.clearRect(0, 0, a.width, a.height); ax.drawImage(b, 0, 0, a.width, a.height);
-    ctx.save(); rr(ctx, x, y, w, h, r); ctx.clip();
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(a, x, y, w, h);
-    ctx.fillStyle = tint; ctx.fillRect(x, y, w, h);
-    ctx.restore();
+  // 模糊：三次盒式模糊 ≈ 高斯模糊，可顺便提一点饱和度
+  function blurRGBA(px, w, h, r, sat = 1) {
+    const a = new Float32Array(px), b = new Float32Array(px.length), n = r * 2 + 1;
+    const pass = (src, dst, len, lines, step, lineStep) => {
+      for (let l = 0; l < lines; l++) {
+        const o = l * lineStep;
+        for (let c = 0; c < 4; c++) {
+          let sum = 0;
+          for (let k = -r; k <= r; k++) sum += src[o + Math.min(len - 1, Math.max(0, k)) * step + c];
+          for (let i = 0; i < len; i++) {
+            dst[o + i * step + c] = sum / n;
+            sum += src[o + Math.min(len - 1, i + r + 1) * step + c] - src[o + Math.max(0, i - r) * step + c];
+          }
+        }
+      }
+    };
+    for (let it = 0; it < 3; it++) { pass(a, b, w, h, 4, w * 4); pass(b, a, h, w, w * 4, 4); }
+    for (let i = 0; i < px.length; i += 4) {
+      let R = a[i], G = a[i + 1], B = a[i + 2];
+      if (sat !== 1) { const y = .2126 * R + .7152 * G + .0722 * B; R = y + (R - y) * sat; G = y + (G - y) * sat; B = y + (B - y) * sat; }
+      px[i] = R; px[i + 1] = G; px[i + 2] = B; px[i + 3] = a[i + 3];
+    }
+  }
+  // 磨砂玻璃：取卡片下面（多带一圈边）的画面，缩小后做真正的模糊再铺回去，不会出现马赛克
+  function frost(ctx, x, y, w, h, r, tint, sigma = 36, sat = 1.15) {
+    const cv = ctx.canvas, m = sigma * 2, ds = Math.max(1, Math.min(6, sigma / 8));
+    const x0 = Math.max(0, Math.floor(x - m)), y0 = Math.max(0, Math.floor(y - m));
+    const x1 = Math.min(cv.width, Math.ceil(x + w + m)), y1 = Math.min(cv.height, Math.ceil(y + h + m));
+    const rw = x1 - x0, rh = y1 - y0;
+    if (rw > 2 && rh > 2) {
+      const a = document.createElement('canvas'); a.width = Math.max(2, Math.round(rw / ds)); a.height = Math.max(2, Math.round(rh / ds));
+      const ax = a.getContext('2d', { willReadFrequently: true });
+      ax.imageSmoothingEnabled = true; ax.imageSmoothingQuality = 'high';
+      ax.drawImage(cv, x0, y0, rw, rh, 0, 0, a.width, a.height);
+      try {
+        const id = ax.getImageData(0, 0, a.width, a.height);
+        blurRGBA(id.data, a.width, a.height, Math.max(1, Math.round(sigma / ds)), sat);
+        ax.putImageData(id, 0, 0);
+      } catch (e) {}
+      ctx.save(); rr(ctx, x, y, w, h, r); ctx.clip();
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(a, 0, 0, a.width, a.height, x0, y0, rw, rh);
+      ctx.fillStyle = tint; ctx.fillRect(x, y, w, h);
+      ctx.restore();
+    }
     ctx.save(); rr(ctx, x + .5, y + .5, w - 1, h - 1, r); ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = Math.max(1, w / 500); ctx.stroke(); ctx.restore();
+  }
+  // 照片铺满画面，可以平移、缩放（adj.cx / cy 是画面中心在照片上的位置，z 是放大倍数）
+  function coverAt(ctx, img, W, H, adj) {
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    const z = Math.max(1, adj.z || 1), k = Math.max(W / iw, H / ih) * z, sw = W / k, sh = H / k;
+    const sx = Math.max(0, Math.min(iw - sw, adj.cx * iw - sw / 2)), sy = Math.max(0, Math.min(ih - sh, adj.cy * ih - sh / 2));
+    adj.cx = (sx + sw / 2) / iw; adj.cy = (sy + sh / 2) / ih; adj.k = k;
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
   }
   function cover(ctx, img, x, y, w, h) {
     const iw = img.naturalWidth || img.videoWidth || img.width, ih = img.naturalHeight || img.videoHeight || img.height;
@@ -1351,12 +1439,14 @@
       brand(ctx, pad, H - pad, W, ink2, 'left');
     } else if (o.tpl === 'photo') {
       ctx.fillStyle = '#111'; ctx.fillRect(0, 0, W, H);
-      if (o.bg) cover(ctx, o.bg, 0, 0, W, H);
+      if (o.bg) coverAt(ctx, o.bg, W, H, o.adj || { z: 1, cx: .5, cy: .5 });
       const cw = W * .84, cx = (W - cw) / 2;
       const pal = { text: '#fff', text2: 'rgba(255,255,255,.78)', line: 'rgba(255,255,255,.25)' };
       const oo = { ...o, onImage: true, noProg: true };
-      const ch = block(ctx, x, oo, cx, 0, cw, pal, true), cy = H - ch - W * .14;
-      frost(ctx, cx, cy, cw, ch, cw * .075, 'rgba(20,22,28,.26)');
+      const ch = block(ctx, x, oo, cx, 0, cw, pal, true);
+      const cy = o.cardY == null ? H - ch - W * .14 : Math.max(W * .05, Math.min(H - ch - W * .12, o.cardY * H - ch / 2));
+      cv._card = { x: cx, y: cy, w: cw, h: ch };
+      frost(ctx, cx, cy, cw, ch, cw * .075, 'rgba(20,22,28,.24)', W * .034, 1.15);
       block(ctx, x, oo, cx, cy, cw, pal, false);
       ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = W * .01; brand(ctx, W / 2, H - W * .07, W, 'rgba(255,255,255,.92)', 'center'); ctx.restore();
     }
@@ -1383,18 +1473,22 @@
   const fileName = x => `${(x.title || 'cadence').replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 30)}-${MC.todayStr()}`;
 
   // ---------- 分享面板 ----------
-  const sh = { id: null, tpl: 'clean', ratio: '45', font: 'sans', note: '', bgId: '', bgImg: null, cv: null, url: '' };
+  const sh = { id: null, tpl: 'clean', ratio: '45', font: 'sans', note: '', bgId: '', bgImg: null, cv: null, url: '', adj: { z: 1, cx: .5, cy: .5 }, cardY: null };
+  const resetAdj = () => { sh.adj = { z: 1, cx: .5, cy: .5 }; sh.cardY = null; };
+  const ro = () => ({ tpl: sh.tpl, ratio: sh.ratio, font: sh.font, note: sh.note, bg: sh.bgImg, adj: sh.adj, cardY: sh.cardY });
+  const adjOn = () => sh.tpl === 'photo' && !!sh.bgImg;
   const opts = $('#dsOpts'), img = $('#dsImg');
   Days.openShare = (x, extra = {}) => {
     sh.id = x.id; sh.note = extra.note || ''; sh.tpl = extra.note ? 'note' : extra.bg ? 'photo' : (sh.tpl === 'note' && !x.notes.length) || (sh.tpl === 'photo' && !x.photos.length && !/^p/.test(x.cover || '')) ? 'clean' : sh.tpl;
-    sh.bgId = extra.bg || (/^p/.test(x.cover || '') ? x.cover : '') || (x.photos[0] && x.photos[0].id) || ''; sh.bgImg = null;
+    sh.bgId = extra.bg || (/^p/.test(x.cover || '') ? x.cover : '') || (x.photos[0] && x.photos[0].id) || ''; sh.bgImg = null; resetAdj();
     UI.open('dayShare'); paintOpts(); draw();
   };
   Days.refreshShare = () => { if (UI.isOpen('dayShare') && find(sh.id)) { paintOpts(); draw(); } };
   function paintOpts() {
     const x = find(sh.id); if (!x) return;
     const chips = (list, key, cur) => list.map(([v, l]) => `<button class="qchip${cur === v ? ' on' : ''}" data-${key}="${v}">${T(l)}</button>`).join('');
-    let h = `<p class="cmp-label">${T('样式')}</p><div class="cmp-chips ds-row">${chips(TPLS, 'tpl', sh.tpl)}</div>
+    let h = sh.tpl === 'photo' ? `<p class="ds-tip">${T('拖动、双指缩放照片；拖动卡片换位置；双击复原')}</p>` : '';
+    h += `<p class="cmp-label">${T('样式')}</p><div class="cmp-chips ds-row">${chips(TPLS, 'tpl', sh.tpl)}</div>
       <p class="cmp-label">${T('尺寸')}</p><div class="seg small ds-seg">${RATIOS.map(r => `<button data-ratio="${r[0]}" class="${sh.ratio === r[0] ? 'on' : ''}">${r[1]}</button>`).join('')}</div>
       <p class="cmp-label">${T('数字字体')}</p><div class="cmp-chips">${chips(FONT_NAMES, 'font', sh.font)}</div>`;
     if (sh.tpl === 'photo') h += `<p class="cmp-label">${T('背景照片')}</p><div class="ds-bgs">${[...(/^p/.test(x.cover || '') && !x.photos.some(p => p.id === x.cover) ? [{ id: x.cover }] : []), ...x.photos].map(p => `<button class="ds-bg${sh.bgId === p.id ? ' on' : ''}" data-bg="${p.id}"><img alt="" data-src="${p.id}"></button>`).join('')}<button class="ds-bg add" data-bgpick aria-label="${T('选择照片')}">${UI_IC.plus}</button></div>`;
@@ -1408,18 +1502,104 @@
     const seq = ++drawSeq;
     $('#dsStage').classList.add('busy');
     if (sh.tpl === 'photo' && sh.bgId && !sh.bgImg) { const u = await P.photoURL(sh.bgId); if (u) try { sh.bgImg = await P.loadImg(u); } catch (e) {} }
-    const cv = await render(x, { tpl: sh.tpl, ratio: sh.ratio, font: sh.font, note: sh.note, bg: sh.bgImg });
+    const cv = await render(x, ro());
     if (seq !== drawSeq) return;
     sh.cv = cv;
+    $('#dsStage').classList.toggle('adj', adjOn());
     cv.toBlob(b => { if (seq !== drawSeq || !b) return; if (sh.url) URL.revokeObjectURL(sh.url); sh.url = URL.createObjectURL(b); img.src = sh.url; $('#dsStage').classList.remove('busy'); $('#dsStage').dataset.ratio = sh.ratio; }, 'image/jpeg', .9);
   }
+  // ---------- 在预览上直接调整：拖动 / 双指缩放照片，拖动卡片换位置，双击复原 ----------
+  const stage = $('#dsStage');
+  img.draggable = false;
+  const live = document.createElement('canvas'); live.className = 'ds-live'; live.hidden = true; stage.appendChild(live);
+  img.addEventListener('load', () => { if (!g.on) live.hidden = true; });
+  const g = { pts: new Map(), mode: '', s: null, raf: 0, busy: false, again: false, on: false, moved: false, lastTap: 0 };
+  const dims = () => (RATIOS.find(r => r[0] === sh.ratio) || RATIOS[0]).slice(2);
+  const ptsArr = () => [...g.pts.values()];
+  const dist = () => { const [a, b] = ptsArr(); return Math.hypot(a[0] - b[0], a[1] - b[1]) || 1; };
+  function paintLive() {
+    if (g.raf) return;
+    g.raf = requestAnimationFrame(async () => {
+      g.raf = 0;
+      const x = find(sh.id); if (!x) return;
+      if (g.busy) { g.again = true; return; }
+      g.busy = true;
+      const cv = await render(x, ro());
+      g.busy = false;
+      if (cv._card && sh.cardY != null) sh.cardY = (cv._card.y + cv._card.h / 2) / cv.height;
+      sh.cv = cv;
+      if (g.on) {
+        const dpr = Math.min(3, window.devicePixelRatio || 1), w = img.clientWidth, h = img.clientHeight;
+        live.style.left = img.offsetLeft + 'px'; live.style.top = img.offsetTop + 'px'; live.style.width = w + 'px'; live.style.height = h + 'px';
+        const tw = Math.round(w * dpr), th = Math.round(h * dpr);
+        if (live.width !== tw) live.width = tw; if (live.height !== th) live.height = th;
+        const lx = live.getContext('2d'); lx.imageSmoothingQuality = 'high'; lx.drawImage(cv, 0, 0, tw, th);
+        live.hidden = false;
+      }
+      if (g.again) { g.again = false; paintLive(); }
+    });
+  }
+  function begin() {
+    const r = img.getBoundingClientRect(), [W, H] = dims(), k = W / r.width;
+    if (g.pts.size > 1) { g.mode = 'zoom'; g.s = { r, k, W, H, d: dist(), z: sh.adj.z || 1 }; return; }
+    const [px, py] = ptsArr()[0], cx = (px - r.left) * k, cy = (py - r.top) * k, c = sh.cv && sh.cv._card;
+    const onCard = c && cx >= c.x && cx <= c.x + c.w && cy >= c.y && cy <= c.y + c.h;
+    g.mode = onCard ? 'card' : 'pan';
+    g.s = { r, k, W, H, p: [px, py], adj: { ...sh.adj }, mid: c ? (c.y + c.h / 2) / H : .7 };
+  }
+  img.addEventListener('touchstart', e => { if (adjOn()) e.stopPropagation(); }, { passive: true });
+  img.addEventListener('touchmove', e => { if (adjOn()) e.stopPropagation(); }, { passive: true });
+  img.addEventListener('pointerdown', e => {
+    if (!adjOn()) return;
+    e.preventDefault();
+    try { img.setPointerCapture(e.pointerId); } catch (err) {}
+    g.pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (g.pts.size === 1) g.moved = false;
+    g.on = true; begin();
+  });
+  img.addEventListener('pointermove', e => {
+    if (!g.pts.has(e.pointerId) || !g.s) return;
+    g.pts.set(e.pointerId, [e.clientX, e.clientY]);
+    const s = g.s;
+    if (g.mode === 'zoom' && g.pts.size > 1) { sh.adj.z = Math.max(1, Math.min(5, s.z * dist() / s.d)); g.moved = true; }
+    else if (g.pts.size === 1 && s.p) {
+      const [px, py] = ptsArr()[0], dx = (px - s.p[0]) * s.k, dy = (py - s.p[1]) * s.k;
+      if (!g.moved && Math.hypot(dx, dy) < 6 * s.k) return;
+      g.moved = true;
+      if (g.mode === 'card') sh.cardY = s.mid + dy / s.H;
+      else { const im = sh.bgImg, kk = s.adj.k || Math.max(s.W / im.naturalWidth, s.H / im.naturalHeight) * (s.adj.z || 1); sh.adj.cx = s.adj.cx - dx / kk / im.naturalWidth; sh.adj.cy = s.adj.cy - dy / kk / im.naturalHeight; }
+    } else return;
+    paintLive();
+  });
+  const up = e => {
+    if (!g.pts.has(e.pointerId)) return;
+    g.pts.delete(e.pointerId);
+    if (g.pts.size) { begin(); return; }
+    g.s = null; g.on = false;
+    if (!g.moved) {
+      const now = Date.now();
+      if (now - g.lastTap < 320) { g.lastTap = 0; resetAdj(); draw(); } else g.lastTap = now;
+      return;
+    }
+    g.lastTap = 0; draw();
+  };
+  img.addEventListener('pointerup', up); img.addEventListener('pointercancel', up);
+  // 电脑上：滚轮缩放
+  let wheelT = 0;
+  img.addEventListener('wheel', e => {
+    if (!adjOn()) return;
+    e.preventDefault();
+    sh.adj.z = Math.max(1, Math.min(5, (sh.adj.z || 1) * Math.exp(-e.deltaY / 400)));
+    g.on = true; paintLive();
+    clearTimeout(wheelT); wheelT = setTimeout(() => { g.on = false; draw(); }, 260);
+  }, { passive: false });
   opts.addEventListener('click', e => {
     const t = e.target, b = t.closest('button'); if (!b) return;
     if (b.dataset.tpl) { sh.tpl = b.dataset.tpl; if (sh.tpl === 'photo' && !sh.bgId) { $('#dayBgFile').value = ''; $('#dayBgFile').click(); } }
     else if (b.dataset.ratio) sh.ratio = b.dataset.ratio;
     else if (b.dataset.font) sh.font = b.dataset.font;
     else if (b.dataset.note) sh.note = b.dataset.note;
-    else if (b.dataset.bg) { sh.bgId = b.dataset.bg; sh.bgImg = null; }
+    else if (b.dataset.bg) { if (sh.bgId !== b.dataset.bg) resetAdj(); sh.bgId = b.dataset.bg; sh.bgImg = null; }
     else if (b.hasAttribute('data-bgpick')) { $('#dayBgFile').value = ''; $('#dayBgFile').click(); return; }
     else return;
     paintOpts(); draw();
@@ -1430,7 +1610,7 @@
     if (camCtx) { camUseImage(f); return; }
     const x = find(sh.id); if (!x) return;
     await P.addPhotos(x, [f]);
-    const nx = find(sh.id); sh.bgId = nx && nx.photos[0] ? nx.photos[0].id : ''; sh.bgImg = null; sh.tpl = 'photo';
+    const nx = find(sh.id); sh.bgId = nx && nx.photos[0] ? nx.photos[0].id : ''; sh.bgImg = null; sh.tpl = 'photo'; resetAdj();
     paintOpts(); draw();
   });
   $('#dsSave').onclick = async () => { const x = find(sh.id); if (x && sh.cv) await deliver(sh.cv, fileName(x) + (sh.tpl === 'photo' ? '.jpg' : '.png'), sh.tpl === 'photo' ? 'image/jpeg' : 'image/png'); };
@@ -1438,6 +1618,19 @@
   // ---------- 透明相机 ----------
   let camCtx = null; // { id, stream, facing, style, font, pos:{x,y}, scale, bgImg }
   const CAM_STYLES = [['glass', '玻璃'], ['clear', '透明'], ['light', '浅色'], ['dark', '深色']];
+  const CAM_RATIOS = [['full', '全屏'], ['34', '3:4', 3, 4], ['45', '4:5', 4, 5], ['916', '9:16', 9, 16], ['11', '1:1', 1, 1]];
+  // 画幅：在屏幕里放下所选比例的取景框，拍出来就是这个比例
+  function layoutCam() {
+    const c = camCtx; if (!c) return;
+    const view = c.el.querySelector('.cam-view'), R = CAM_RATIOS.find(r => r[0] === c.ratio);
+    if (!R || !R[2]) { view.style.cssText = ''; c.el.classList.remove('framed'); return; }
+    const vw = c.el.clientWidth, vh = c.el.clientHeight, ar = R[2] / R[3];
+    let w = vw, h = w / ar; if (h > vh) { h = vh; w = h * ar; }
+    const top = Math.max(0, (vh - h) * .42);
+    view.style.cssText = `inset:auto;left:${(vw - w) / 2}px;top:${top}px;width:${w}px;height:${h}px`;
+    c.el.classList.add('framed');
+  }
+  window.addEventListener('resize', () => { if (camCtx) layoutCam(); });
   function camCardHTML(x) {
     const inf = info(x), a = amount(x, inf);
     const head = a.today ? T('就是今天') : (zh ? x.title + stateWord(x, inf) : `${x.title} · ${stateWord(x, inf)}`);
@@ -1453,13 +1646,14 @@
         <div class="cam-card st-glass f-sans" role="img">${camCardHTML(x)}</div></div>
       <div class="cam-top"><button class="cam-btn" data-c="close" aria-label="${T('关闭')}">${UI_IC.close}</button>
         <div class="cam-chips" data-group="style">${CAM_STYLES.map(([v, l], i) => `<button data-style="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
+      <div class="cam-ratios cam-chips" data-group="ratio">${CAM_RATIOS.map(([v, l], i) => `<button data-cr="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
       <div class="cam-fonts cam-chips" data-group="font">${FONT_NAMES.map(([v, l], i) => `<button data-font="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
       <div class="cam-bottom"><button class="cam-btn" data-c="album" aria-label="${T('从相册选择')}">${UI_IC.photo}</button>
         <button class="cam-shutter" data-c="shot" aria-label="${T('拍摄')}"><span></span></button>
         <button class="cam-btn" data-c="flip" aria-label="${T('切换镜头')}">${UI_IC.flip}</button></div>
       <p class="cam-tip">${T('拖动卡片调整位置，双指缩放大小')}</p>`;
     document.body.appendChild(el);
-    camCtx = { id: x.id, el, stream: null, facing: 'environment', style: 'glass', font: 'sans', pos: null, scale: 1, bgImg: null, bgFile: null };
+    camCtx = { id: x.id, el, stream: null, facing: 'environment', style: 'glass', font: 'sans', ratio: 'full', pos: null, scale: 1, bgImg: null, bgFile: null };
     requestAnimationFrame(() => el.classList.add('show'));
     bindCam(el);
     await startStream();
@@ -1506,6 +1700,7 @@
       const b = e.target.closest('button'); if (!b || !camCtx) return;
       const c = camCtx;
       if (b.dataset.style) { c.style = b.dataset.style; card.className = card.className.replace(/st-\w+/, 'st-' + c.style); b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); return; }
+      if (b.dataset.cr) { c.ratio = b.dataset.cr; b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); layoutCam(); return; }
       if (b.dataset.font) { c.font = b.dataset.font; card.className = card.className.replace(/f-\w+/, 'f-' + c.font); b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); return; }
       const a = b.dataset.c;
       if (a === 'close') closeCam();
@@ -1552,7 +1747,7 @@
     ctx.restore();
     const card = el.querySelector('.cam-card'), cr = card.getBoundingClientRect(), cs = getComputedStyle(card);
     const X = (cr.left - vr.left) * f, Y = (cr.top - vr.top) * f, W = cr.width * f, H = cr.height * f, rad = parseFloat(cs.borderTopLeftRadius) * c.scale * f;
-    if (c.style === 'glass') frost(ctx, X, Y, W, H, rad, 'rgba(255,255,255,.14)');
+    if (c.style === 'glass') frost(ctx, X, Y, W, H, rad, 'rgba(255,255,255,.14)', 22 * f * c.scale, 1.4);
     else if (c.style === 'light') { rr(ctx, X, Y, W, H, rad); ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.fill(); }
     else if (c.style === 'dark') { rr(ctx, X, Y, W, H, rad); ctx.fillStyle = 'rgba(12,12,16,.58)'; ctx.fill(); }
     card.querySelectorAll('.cc-head, .cc-num, .cc-unit, .cc-date').forEach(n => {
