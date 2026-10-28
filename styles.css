@@ -1111,3 +1111,17 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-erow .rs-name { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .rs-erow .rs-name > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rs-pre { flex: none; font-style: normal; font-size: 9.5px; font-weight: 650; padding: 1px 5px; border-radius: 5px; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+/* 分段评价（每半小时一段） */
+#cmpSegSec .cmp-label small { font-weight: 500; margin-left: 6px; opacity: .75; }
+.seg-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; margin-bottom: 10px; }
+.seg-b { --k: 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 4px 6px; border-radius: 12px; font-size: 12px; font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--c) calc(var(--k) * 100%), var(--field)); color: var(--text); transition: background .15s, box-shadow .15s; }
+.seg-b i { display: block; width: 100%; height: 0; }
+.seg-b em { font-style: normal; font-size: 10.5px; font-weight: 650; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seg-b.lv1 { --k: .18; } .seg-b.lv2 { --k: .32; } .seg-b.lv3 { --k: .5; } .seg-b.lv4 { --k: .72; }
+.seg-b.lv4 { color: #fff; }
+.seg-b.sel { box-shadow: inset 0 0 0 2px var(--c), 0 0 0 3px color-mix(in srgb, var(--c) 18%, transparent); }
+#cmpSegLv { align-items: center; }
+.seg-mini { display: inline-flex; gap: 1.5px; vertical-align: middle; }
+.seg-mini i { width: 7px; height: 9px; border-radius: 2px; background: var(--c); }
+.rs-sub-seg { margin-bottom: 12px; }

@@ -17,7 +17,7 @@
   const newHeading = () => (newCal && MC.cal(newCal) ? `添加到「${MC.cal(newCal).name}」` : '新建事件');
   const draft = {};
   function resetDraft(date) {
-    Object.assign(draft, { title: '', note: '', priority: 0, rate: 0, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', done: false });
+    Object.assign(draft, { title: '', note: '', priority: 0, rate: 0, segs: {}, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', done: false });
   }
   function chipLabel(d) {
     const n = MC.dayDiff(d.date);
@@ -126,8 +126,40 @@
     const c = presetCal(), p = c && (c.presets || []).find(x => x.id === el.dataset.pid); if (!p) return;
     UI.menu(el, [{ label: `删除常用事件「${p.name}」`, value: 'del', danger: true }], () => { MC.removePreset(c, p.id); paintComposer(); UI.toast('已删除常用事件'); });
   });
+  // ---- 分段评价：开了等级评分、设了开始和结束时间的事件，每半小时一段单独评级 ----
+  let segSel = 0;
+  function paintSegs() {
+    const rc = mode === 'edit' && editing ? editing.cal : newCal, sec = $('#cmpSegSec');
+    sec.hidden = !MC.rateOn(rc) || !draft.time; if (sec.hidden) return;
+    const blocks = MC.segBlocks(draft.time, draft.endTime), labels = MC.rateLabels(rc), color = MC.cal(rc).color;
+    if (!blocks.length) { $('#cmpSegStrip').innerHTML = '<span class="cmp-hint">设了结束时间，就能按每半小时分段评价</span>'; $('#cmpSegLv').innerHTML = ''; return; }
+    draft.segs = draft.segs || {};
+    if (segSel >= blocks.length) segSel = 0;
+    $('#cmpSegStrip').innerHTML = blocks.map((b, i) => { const v = draft.segs[b.k] || 0;
+      return `<button class="seg-b${i === segSel ? ' sel' : ''}${v ? ' lv' + v : ''}" data-i="${i}" style="--c:${color}" aria-label="${b.k}–${b.end}"><i></i><span>${b.k}</span>${v ? `<em data-uc>${esc(labels[v - 1])}</em>` : ''}</button>`; }).join('');
+    const cur = draft.segs[blocks[segSel].k] || 0, n = Object.keys(MC.pruneSegs(draft.segs, draft.time, draft.endTime)).length;
+    $('#cmpSegLv').innerHTML = `<span class="cmp-hint">${blocks[segSel].k}–${blocks[segSel].end}：</span>`
+      + [0, 1, 2, 3, 4].map(v => `<button class="qchip pri rate${v === cur ? ' on' : ''}" data-v="${v}" style="--c:${v ? color : 'var(--p0)'}"><span class="dot"></span><span data-uc>${esc(v ? labels[v - 1] : '无')}</span></button>`).join('')
+      + (blocks.length > 1 && cur ? `<button class="qchip" data-act="all">整段都设为这个</button>` : '')
+      + (n ? `<button class="qchip" data-act="clear">清除 ${n} 段</button>` : '');
+  }
+  $('#cmpSegStrip').addEventListener('click', e => { const b = e.target.closest('.seg-b'); if (!b) return; segSel = Number(b.dataset.i); paintSegs(); });
+  $('#cmpSegLv').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const blocks = MC.segBlocks(draft.time, draft.endTime); if (!blocks.length) return;
+    draft.segs = { ...(draft.segs || {}) };
+    if (b.dataset.act === 'all') { const v = draft.segs[blocks[segSel].k]; blocks.forEach(x => { draft.segs[x.k] = v; }); }
+    else if (b.dataset.act === 'clear') draft.segs = {};
+    else {
+      const v = Number(b.dataset.v);
+      if (v) draft.segs[blocks[segSel].k] = v; else delete draft.segs[blocks[segSel].k];
+      if (v && segSel < blocks.length - 1) segSel++; // 评完自动跳到下一段，连着点就能评完
+    }
+    paintSegs();
+  });
   function paintComposer() {
     paintPresets();
+    paintSegs();
     paintQuick();
     paintTools();
     const rc = mode === 'edit' && editing ? editing.cal : newCal, rated = MC.rateOn(rc);
@@ -158,8 +190,8 @@
       return;
     }
     if (!editing || !MC.data.events.includes(editing)) return;
-    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, done: draft.done };
-    const changed = Object.keys(fields).some(k => (fields[k] ?? null) !== (editing[k] ?? null));
+    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, segs: MC.pruneSegs(draft.segs, draft.time, draft.endTime), date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, done: draft.done };
+    const changed = Object.keys(fields).some(k => (k === 'segs' ? JSON.stringify(fields.segs) !== JSON.stringify(editing.segs || {}) : (fields[k] ?? null) !== (editing[k] ?? null)));
     if (!changed) return;
     if (!title) { UI.toast('名称为空，修改没有保存'); return; }
     MC.updateEvent(editing, fields);
@@ -170,6 +202,7 @@
 
   Editor.openNew = (date, cal, pinDate) => { // pinDate：明确点了某一天（长按日期），草稿也改用这一天
     mode = 'new'; editing = null;
+    segSel = 0;
     newCal = cal && MC.cal(cal) ? cal : '';
     resetDraft(date || MC.Cal.selected() || MC.todayStr());
     const saved = readDraft();
@@ -192,7 +225,8 @@
   };
   Editor.openEdit = e => {
     mode = 'edit'; editing = e;
-    Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, rate: e.rate || 0, date: e.date, days: e.days || 1, time: e.time, endTime: e.endTime, remind: e.remind, repeat: 'none', until: '', done: e.done });
+    segSel = 0;
+    Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, rate: e.rate || 0, segs: { ...(e.segs || {}) }, date: e.date, days: e.days || 1, time: e.time, endTime: e.endTime, remind: e.remind, repeat: 'none', until: '', done: e.done });
     $('#cmpTitle').value = e.title; $('#cmpNote').value = e.note;
     $('#cmpHeading').textContent = '编辑事件';
     $('#cmpClear').hidden = true;
@@ -268,7 +302,7 @@
       setTimeout(() => (t.placeholder = '准备做什么？'), 1800);
       return;
     }
-    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind };
+    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, segs: MC.pruneSegs(draft.segs, draft.time, draft.endTime), date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind };
     if (mode === 'edit') {
       MC.updateEvent(editing, { ...fields, done: draft.done });
       closeComposer(false);

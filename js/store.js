@@ -175,12 +175,29 @@
 
   // ---------- 数据 ----------
   function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', clock: '', lang: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [], days: [], books: [], album: { gist: '', owner: '' } }; }
+  function normSegs(o) {
+    const out = {};
+    if (o && typeof o === 'object') for (const k of Object.keys(o).sort()) { const v = Number(o[k]); if (/^\d{2}:\d{2}$/.test(k) && v >= 1 && v <= 4) out[k] = v; }
+    return out;
+  }
+  // 事件时间段按半小时切成小段（从开始时间起，最后一段可以不满半小时；跨午夜也行，最多 48 段）
+  MC.segBlocks = (time, endTime) => {
+    if (!/^\d{2}:\d{2}$/.test(time || '') || !/^\d{2}:\d{2}$/.test(endTime || '')) return [];
+    const m = t => +t.slice(0, 2) * 60 + +t.slice(3, 5), hm = x => `${pad(Math.floor((x % 1440) / 60))}:${pad(x % 60)}`;
+    const a = m(time); let b = m(endTime); if (b <= a) b += 1440;
+    const out = [];
+    for (let x = a; x < b && out.length < 48; x += 30) out.push({ k: hm(x), a: x, b: Math.min(x + 30, b), end: hm(Math.min(x + 30, b)) });
+    return out;
+  };
+  // 只保留当前时间段里的分段评价
+  MC.pruneSegs = (segs, time, endTime) => { const ks = new Set(MC.segBlocks(time, endTime).map(x => x.k)), out = {}; for (const k in segs || {}) if (ks.has(k) && segs[k]) out[k] = segs[k]; return out; };
   function normEvent(e) {
     const t = Date.now();
     return {
       id: e.id || MC.uid(), date: e.date, title: String(e.title || '').slice(0, 200),
       priority: [0, 1, 2, 3].includes(Number(e.priority)) ? Number(e.priority) : (Number(e.priority) === 4 && (MC.fixPri = true), 0), // 4 = 已取消的绿色优先级，改为无
-      rate: [1, 2, 3, 4].includes(Number(e.rate)) ? Number(e.rate) : 0, // 记录日历的等级（1–4，0 = 未评级）；只在开了「等级评分」的记录日历里使用
+      rate: [1, 2, 3, 4].includes(Number(e.rate)) ? Number(e.rate) : 0,
+      segs: normSegs(e.segs), // 分段评价：事件时间段里每半小时一段，{ '10:00': 1–4, '10:30': … }（键是这一段的开始时间） // 记录日历的等级（1–4，0 = 未评级）；只在开了「等级评分」的记录日历里使用
       done: !!e.done, note: String(e.note || ''),
       time: /^\d{2}:\d{2}$/.test(e.time || '') ? e.time : '',
       endTime: /^\d{2}:\d{2}$/.test(e.endTime || '') && e.time ? e.endTime : '',
@@ -456,7 +473,7 @@
   };
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
-      .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
+      .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, JSON.stringify(e.segs || {}), e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
     const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), JSON.stringify(c.presets || []), c.updatedAt]);
     const ds = [...(d.days || []), ...(d.books || [])].map(x => x.id + ':' + (x.updatedAt || 0)).sort();
     return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, d.coursesAt || 0, cs, ds, (d.album || {}).gist || '']);

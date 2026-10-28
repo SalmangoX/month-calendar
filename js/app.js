@@ -414,6 +414,86 @@
     for (const h of [0, 6, 12, 18, 23]) s += `<text x="${(L + cw * (h + .5)).toFixed(1)}" y="${H - 4}" class="rs-ax" text-anchor="middle">${h}</text>`;
     return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="时段 × 等级">${s}</svg>`;
   }
+  // ---- 分段评价（每半小时一段）的统计 ----
+  function segPoints(evs) {
+    const pts = [];
+    for (const e of evs) {
+      if (!e.segs || !Object.keys(e.segs).length) continue;
+      MC.segBlocks(e.time, e.endTime).forEach((b, i) => { const v = e.segs[b.k]; if (v) pts.push({ e, clock: b.a % 1440, hh: Math.floor((b.a % 1440) / 30), idx: i, v }); });
+    }
+    return pts;
+  }
+  const hhLabel = h => `${Math.floor(h / 2)}:${h % 2 ? '30' : '00'}`;
+  const offLabel = i => (i === 0 ? '开始' : i % 2 ? `+${i > 1 ? Math.floor(i / 2) + '小时' : ''}30分` : `+${i / 2}小时`);
+  function barsSVG(cols, color, H = 130) { // cols: [{ label, v (平均等级), n }]；柱高 = 平均等级，颜色深浅 = 段数
+    const W = 340, T = 14, B = 20, L = 4, ih = H - T - B, n = cols.length, cw = (W - L * 2) / n, bw = Math.max(3, Math.min(26, cw * .7));
+    const maxN = Math.max(1, ...cols.map(c => c.n)), step = Math.ceil(n / 9);
+    let s = '';
+    for (let r = 1; r <= 4; r++) { const y = T + ih * (1 - r / 4); s += `<line x1="${L}" x2="${W - L}" y1="${y}" y2="${y}" class="rs-grid"/>`; }
+    cols.forEach((c, i) => {
+      const x = L + cw * i + (cw - bw) / 2;
+      if (c.n) {
+        const h = ih * c.v / 4;
+        s += `<rect x="${x.toFixed(1)}" y="${(T + ih - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}" fill-opacity="${(.35 + .65 * c.n / maxN).toFixed(2)}"><title>${c.label} · ${fx(c.v, 1)} · ${c.n}</title></rect>`;
+        if (n <= 16) s += `<text x="${(x + bw / 2).toFixed(1)}" y="${(T + ih - h - 3).toFixed(1)}" class="rs-ax strong" text-anchor="middle">${fx(c.v, 1)}</text>`;
+      } else s += `<rect x="${x.toFixed(1)}" y="${(T + ih - 3).toFixed(1)}" width="${bw.toFixed(1)}" height="3" rx="1.5" class="rs-track"/>`;
+      if (i % step === 0) s += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 5}" class="rs-ax" text-anchor="middle">${MC.esc(c.label)}</text>`;
+    });
+    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}" role="img">${s}</svg>`;
+  }
+  function segCards(c, evs, labels) {
+    const pts = segPoints(evs); if (!pts.length) return '';
+    const mean = pts.reduce((s, p) => s + p.v, 0) / pts.length, avgP = l => l.reduce((s, p) => s + p.v, 0) / l.length;
+    // 1. 一天里每个半小时
+    const lo = Math.min(...pts.map(p => p.hh)), hi = Math.max(...pts.map(p => p.hh)), a0 = Math.max(0, Math.min(lo, hi - 3)), cols = [];
+    for (let h = a0; h <= Math.max(hi, a0 + 3); h++) { const l = pts.filter(p => p.hh === h); cols.push({ label: hhLabel(h), v: l.length ? avgP(l) : 0, n: l.length }); }
+    const best = cols.filter(x => x.n >= 2).sort((x, y) => y.v - x.v || y.n - x.n), worst = [...best].reverse();
+    // 2. 时段汇总
+    const rows = SLOTS.map((s, i) => {
+      const l = pts.filter(p => p.clock >= s[1] * 60 && p.clock < s[2] * 60); if (!l.length) return '';
+      const open = rs.openSlot.has(i), cnt = [0, 0, 0, 0, 0]; l.forEach(p => cnt[p.v]++);
+      const bar = [4, 3, 2, 1].map(lv => (cnt[lv] ? `<i style="width:${(cnt[lv] / l.length * 100).toFixed(1)}%;background:${c.color};opacity:${OP[lv]}"></i>` : '')).join('');
+      const evl = [...new Set(l.map(p => p.e))].reverse();
+      return `<div class="rs-item${open ? ' open' : ''}">
+        <button class="rs-trow" data-slot="${i}" aria-expanded="${open}">
+          <span class="rs-name">${s[0]}<small>${s[1]}–${s[2]} 点</small></span>
+          <span class="rs-stack">${bar}</span>
+          <span class="rs-num">${fx(avgP(l), 1)}<small>${l.length} 段</small></span>
+        </button>
+        ${open ? `<div class="rs-sub">${[4, 3, 2, 1].filter(lv => cnt[lv]).map(lv => `<span data-uc>${MC.esc(labels[lv - 1])}</span> ${cnt[lv]} 段`).join(' · ')} · 比平均 ${avgP(l) >= mean ? '+' : ''}${fx(avgP(l) - mean)}</div><ul class="rs-list">${evl.map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>` : ''}
+      </div>`;
+    }).join('');
+    // 3. 开始后的变化：第几个半小时
+    const maxI = Math.min(11, Math.max(...pts.map(p => p.idx))), ic = [];
+    for (let i = 0; i <= maxI; i++) { const l = pts.filter(p => p.idx === i); ic.push({ label: offLabel(i), v: l.length ? avgP(l) : 0, n: l.length }); }
+    const fit = fitLine(pts.filter(p => p.idx <= 11).map(p => [p.idx, p.v])), multi = new Set(pts.map(p => p.e)).size;
+    let model = '';
+    if (maxI < 1) model = '<p class="rs-note">事件都只有一段，还看不出开始后的变化。</p>';
+    else if (!fit || pts.length < 6) model = `<p class="rs-note">分段评价还太少（${pts.length} 段），至少 6 段才估计变化。</p>`;
+    else {
+      const flat = Math.abs(fit.b) < .05 || fit.r2 < .05, bi = ic.map((x, i) => [x, i]).filter(([x]) => x.n >= 2).sort((x, y) => y[0].v - x[0].v)[0];
+      model = `<div class="rs-kv"><span>开始后的走势</span><b>${flat ? '基本稳定' : fit.b > 0 ? '越往后越好' : '越往后越差'}</b></div>
+        <div class="rs-kv"><span>每过半小时</span><b>${fit.b >= 0 ? '+' : ''}${fx(fit.b)} 级</b></div>
+        ${bi ? `<div class="rs-kv"><span>状态最好的一段</span><b>${bi[0].label === '开始' ? '刚开始的半小时' : `开始后 ${bi[0].label.slice(1)}`}<small>${fx(bi[0].v, 1)}</small></b></div>` : ''}
+        <p class="rs-note">拟合度 R² = ${fx(fit.r2)}${fit.r2 < .3 ? '，波动较大，仅供参考' : ''}。模型：段等级 = a + b × 第几段（${pts.length} 段，来自 ${multi} 条记录）。</p>`;
+    }
+    return `<div class="rs-kpis">
+        <div class="rs-kpi"><b>${pts.length}</b><span>评过的半小时</span></div>
+        <div class="rs-kpi"><b>${fx(mean)}</b><span>平均 ≈ <em data-uc>${MC.esc(labels[Math.round(mean) - 1])}</em></span></div>
+      </div>
+      <div class="rs-card glass-panel rs-pad"><div class="rs-h">一天里的状态<small>每半小时的平均等级 · 颜色越深评得越多</small></div>${barsSVG(cols, c.color)}
+        ${best.length >= 2 ? `<div class="rs-kv"><span>最好的半小时</span><b>${best[0].label}<small>${fx(best[0].v, 1)} · ${best[0].n} 段</small></b></div><div class="rs-kv"><span>最差的半小时</span><b>${worst[0].label}<small>${fx(worst[0].v, 1)} · ${worst[0].n} 段</small></b></div>` : ''}
+      </div>
+      <div class="rs-card glass-panel rs-pad"><div class="rs-h">时段汇总<small>按每段的评价 · 点开看记录</small></div><div class="rs-tlist">${rows}</div></div>
+      <div class="rs-card glass-panel rs-pad"><div class="rs-h">开始后的变化<small>第几个半小时的平均等级</small></div>${barsSVG(ic, c.color, 120)}${model}</div>`;
+  }
+  // 某个事件的分段曲线（事件页展开时用）
+  function segLine(list) {
+    const pts = segPoints(list); if (!pts.length) return '';
+    const maxI = Math.min(11, Math.max(...pts.map(p => p.idx))), out = [];
+    for (let i = 0; i <= maxI; i++) { const l = pts.filter(p => p.idx === i); if (l.length) out.push(`${offLabel(i)} ${fx(l.reduce((s, p) => s + p.v, 0) / l.length, 1)}`); }
+    return `<div class="rs-sub">分段平均：${out.join(' · ')}</div>`;
+  }
   function slotCard(c, evs, labels) {
     const timed = evs.filter(e => e.time), tr = timed.filter(e => e.rate);
     if (!timed.length) return '';
@@ -453,7 +533,7 @@
         : ar < .1 ? '时长和等级基本无关。' : `${ar < .3 ? '弱' : ar < .6 ? '中等' : '强'}${r > 0 ? '正' : '负'}相关：时长越长，等级${r > 0 ? '越高' : '越低'}。`;
       dur = `<div class="rs-sh">各等级的平均时长</div>${per}<p class="rs-note">${r === null ? '' : `相关系数 r = ${fx(r)}。`}${desc}</p>`;
     }
-    return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">时段分析<small>按开始时间，数字是平均等级 · 点开看记录</small></div>
+    return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">按开始时间<small>整条事件的等级 · 点开看记录</small></div>
         <div class="rs-tlist">${rows}</div>${best}
         <div class="rs-sh">钟点 × 等级<small>格子越深，那个钟点该等级的记录越多</small></div>${heatSVG(timed, c.color)}
         ${dur}
@@ -523,7 +603,7 @@
         const dl = g.l.map(durOf).filter(d => d !== null), done = g.l.filter(e => e.done).length;
         const ss = SLOTS.map((s, i) => ({ s, r: g.r.filter(e => e.time && slotOf(e) === i) })).filter(x => x.r.length).sort((x, y) => avgOf(y.r) - avgOf(x.r) || y.r.length - x.r.length);
         sub = `<div class="rs-sub">${[`已完成 ${done} / ${g.l.length}`, g.r.length ? `比整体平均 ${avgOf(g.r) >= mean ? '+' : ''}${fx(avgOf(g.r) - mean)}` : '', dl.length ? `平均时长 ${fmtDur(dl.reduce((a, b) => a + b, 0) / dl.length)}` : '', ss.length > 1 ? `${ss[0].s[0]}做得最好（${fx(avgOf(ss[0].r), 1)}）` : ''].filter(Boolean).join(' · ')}</div>
-          <ul class="rs-list">${[...g.l].reverse().map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>`;
+          ${segLine(g.l)}<ul class="rs-list">${[...g.l].reverse().map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>`;
       }
       return `<div class="rs-item${open ? ' open' : ''}">
         <button class="rs-erow" data-ev="${MC.esc(g.name)}" aria-expanded="${open}">
@@ -578,17 +658,25 @@
         </div>
         <div class="rs-card glass-panel"><div class="rs-dist">${seg}</div>${[4, 3, 2, 1, 0].map(row).join('')}</div>`;
     } else if (rs.tab === 'ev') html = evCard(c, evs);
+    else if (rs.tab === 'slot') {
+        const seg = segCards(c, evs, labels), whole = slotCard(c, evs, labels);
+        const mode = rs.slotMode || (seg ? 'seg' : 'ev');
+        html = `<div class="seg small rs-sub-seg" id="rsSlotMode"><button data-v="seg"${mode === 'seg' ? ' class="on"' : ''}>按半小时评价</button><button data-v="ev"${mode === 'ev' ? ' class="on"' : ''}>按整条事件</button></div>`
+          + (mode === 'seg' ? seg || hint('还没有分段评价。编辑一条设了开始和结束时间的事件，在「分段评价」里给每半小时评级，这里就会统计。')
+            : whole || hint('这段时间没有设了时间段的记录。添加事件时选上时间段，这里就会按时段统计。'));
+      }
     else if (!rated) html = hint('给事件评级之后，这里会出现等级趋势、时段分析和备注关键词。');
     else {
       const p = rsAnalysis(c, evs, span, labels);
       if (rs.tab === 'trend') html = p.trend + p.model + p.weekday;
-      else if (rs.tab === 'slot') html = slotCard(c, evs, labels) || hint('这段时间没有设了时间段的记录。添加事件时选上时间段，这里就会按时段统计。');
       else html = (p.noteCmp ? `<div class="rs-card glass-panel rs-pad"><div class="rs-h">备注与等级</div>${p.noteCmp}</div>` : '') + p.kw;
     }
     $('#rsBody').innerHTML = html;
   }
   UI.bindList($('#rsBody'));
   $('#rsBody').addEventListener('click', e => {
+    const sm = e.target.closest('#rsSlotMode button');
+    if (sm) { rs.slotMode = sm.dataset.v; rs.openSlot.clear(); renderRstat(); return; }
     const ev = e.target.closest('.rs-erow');
     if (ev) { const k = ev.dataset.ev; rs.openEv.has(k) ? rs.openEv.delete(k) : rs.openEv.add(k); renderRstat(); return; }
     const t = e.target.closest('.rs-trow');
