@@ -191,7 +191,7 @@
   MC.App = { showPage: p => showPage(p), placeInd: () => placeInd(false), page: () => page };
   $('#fab').onclick = () => page === 'today'
     ? MC.Editor.openNew(MC.todayStr(), '')
-    : MC.Editor.openNew(MC.Cal.selected(), page === 'cal' ? MC.activeCal() : '');
+    : MC.Editor.openNew(MC.Cal.selected(), (page === 'cal' || page === 'rstat') ? MC.activeCal() : '');
   document.body.dataset.page = page;
 
   MC.onChange = () => {
@@ -248,8 +248,8 @@
   UI.bindList($('#quadBody'));
 
   // ---------- 记录日历：等级统计 ----------
-  // 开了「等级评分」的记录日历，底部菜单里的四象限 / 课表换成「统计」：按这个日历自己的 4 个等级汇总事件
-  const rs = { range: 'month', off: 0, notesOnly: false, tab: 'all', open: new Set(), openSlot: new Set(), openEv: new Set() };
+  // 开了「等级评分」的记录日历，底部菜单里的四象限 / 课表换成「统计」
+  const rs = { range: 'month', off: 0, tab: 'all', openEv: null, allEv: false };
   const recCal = () => { const id = MC.activeCal(); return id && MC.rateOn(id) ? MC.cal(id) : null; };
   function syncRecTabs() {
     const stat = tabbar.querySelector('button[data-page="rstat"]'), t3 = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
@@ -261,434 +261,219 @@
     else { if (page === 'rstat') renderRstat(); placeInd(false); }
   }
   MC.onCalChange = syncRecTabs;
-  function rsSpan() {
+  function rsSpan(off = rs.off) {
     const t = new Date(); t.setHours(0, 0, 0, 0);
-    if (rs.range === 'week') { const a = MC.addDays(MC.weekStartOf(t), rs.off * 7); return [a, MC.addDays(a, 6)]; }
-    if (rs.range === 'month') { const a = new Date(t.getFullYear(), t.getMonth() + rs.off, 1); return [a, new Date(a.getFullYear(), a.getMonth() + 1, 0)]; }
-    if (rs.range === 'year') { const y = t.getFullYear() + rs.off; return [new Date(y, 0, 1), new Date(y, 11, 31)]; }
+    if (rs.range === 'week') { const a = MC.addDays(MC.weekStartOf(t), off * 7); return [a, MC.addDays(a, 6)]; }
+    if (rs.range === 'month') { const a = new Date(t.getFullYear(), t.getMonth() + off, 1); return [a, new Date(a.getFullYear(), a.getMonth() + 1, 0)]; }
+    if (rs.range === 'year') { const y = t.getFullYear() + off; return [new Date(y, 0, 1), new Date(y, 11, 31)]; }
     return null;
   }
-  // ---- 统计图表与模型：等级趋势（柱 + 平均线 + 回归线）、星期分布、备注关键词 ----
+
+  // ---- 计算 ----
   const dayNum = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 864e5;
   const numDay = n => { const d = new Date(n * 864e5); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
-  const avgOf = l => (l.length ? l.reduce((s, e) => s + e.rate, 0) / l.length : 0);
-  const fx = (v, n = 2) => (Math.round(v * 10 ** n) / 10 ** n).toFixed(n);
-  // 最小二乘直线：等级 ~ 日期
-  function fitLine(pts) {
+  const mean = l => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 0);
+  const avgOf = l => mean(l.map(e => e.rate));
+  const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
+  const SLOTS = [['凌晨', 0, 6], ['早上', 6, 9], ['上午', 9, 12], ['中午', 12, 14], ['下午', 14, 18], ['晚上', 18, 22], ['深夜', 22, 24]];
+  const WD = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  const durOf = e => { if (!e.time || !e.endTime) return null; const m = t => +t.slice(0, 2) * 60 + +t.slice(3, 5); let d = m(e.endTime) - m(e.time); if (d <= 0) d += 1440; return d; };
+  const fmtDur = m => { m = Math.round(m); return m >= 60 ? `${Math.floor(m / 60)}小时${m % 60 ? (m % 60) + '分' : ''}` : `${m}分钟`; };
+  const hhLabel = h => `${Math.floor(h / 2)}:${h % 2 ? '30' : '00'}`;
+  const offLabel = i => (i === 0 ? '开始' : i % 2 ? `${i > 1 ? Math.floor(i / 2) + '小时' : ''}30分` : `${i / 2}小时`);
+  function slope(pts) { // 最小二乘斜率
     const n = pts.length; if (n < 3) return null;
-    const mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
-    let sxx = 0, sxy = 0, syy = 0;
-    for (const [x, y] of pts) { sxx += (x - mx) ** 2; sxy += (x - mx) * (y - my); syy += (y - my) ** 2; }
-    if (!sxx) return null;
-    const b = sxy / sxx, a = my - b * mx;
-    return { a, b, n, r2: syy ? (sxy * sxy) / (sxx * syy) : 0, at: x => Math.max(1, Math.min(4, a + b * x)) };
+    const mx = mean(pts.map(p => p[0])), my = mean(pts.map(p => p[1]));
+    let sxx = 0, sxy = 0; for (const [x, y] of pts) { sxx += (x - mx) ** 2; sxy += (x - mx) * (y - my); }
+    return sxx ? sxy / sxx : null;
   }
-  // 时间分桶：本周 / 本月按天，本年按月；全部按跨度自动选天 / 月 / 年
-  function rsBins(evs, span) {
-    let x0, x1;
-    if (span) { x0 = dayNum(MC.ymd(span[0])); x1 = dayNum(MC.ymd(span[1])); }
-    else { x0 = dayNum(evs[0].date); x1 = dayNum(evs[evs.length - 1].date); }
-    const len = x1 - x0 + 1;
-    const unit = rs.range === 'year' ? 'm' : span ? 'd' : len <= 62 ? 'd' : len <= 1100 ? 'm' : 'y';
-    const bins = [];
-    if (unit === 'd') for (let x = x0; x <= x1; x++) { const d = numDay(x); bins.push({ x0: x, x1: x, label: String(d.getDate()) }); }
+  // 每半小时一段：没单独评的段跟着整条事件的等级
+  function segPoints(evs) {
+    const pts = [];
+    for (const e of evs) MC.segBlocks(e.time, e.endTime).forEach((b, i) => { const v = MC.segVal(e, b.k); if (v) pts.push({ e, clock: b.a % 1440, hh: Math.floor((b.a % 1440) / 30), idx: i, v }); });
+    return pts;
+  }
+  // 时间分桶（趋势线用）
+  function bins(evs, span) {
+    const x0 = span ? dayNum(MC.ymd(span[0])) : dayNum(evs[0].date), x1 = span ? dayNum(MC.ymd(span[1])) : dayNum(evs[evs.length - 1].date);
+    const unit = rs.range === 'year' ? 'm' : span ? 'd' : x1 - x0 <= 62 ? 'd' : x1 - x0 <= 1100 ? 'm' : 'y', out = [];
+    if (unit === 'd') for (let x = x0; x <= x1; x++) out.push({ x0: x, x1: x, label: `${numDay(x).getMonth() + 1}/${numDay(x).getDate()}` });
     else {
       let d = numDay(x0); d = unit === 'm' ? new Date(d.getFullYear(), d.getMonth(), 1) : new Date(d.getFullYear(), 0, 1);
       while (dayNum(MC.ymd(d)) <= x1) {
         const nx = unit === 'm' ? new Date(d.getFullYear(), d.getMonth() + 1, 1) : new Date(d.getFullYear() + 1, 0, 1);
-        bins.push({ x0: dayNum(MC.ymd(d)), x1: dayNum(MC.ymd(nx)) - 1, label: unit === 'm' ? `${d.getMonth() + 1}月` : String(d.getFullYear()) });
+        out.push({ x0: dayNum(MC.ymd(d)), x1: dayNum(MC.ymd(nx)) - 1, label: unit === 'm' ? `${d.getMonth() + 1}月` : String(d.getFullYear()) });
         d = nx;
       }
     }
-    for (const b of bins) { b.c = [0, 0, 0, 0, 0]; b.r = []; }
-    let j = 0;
-    for (const e of evs) {
-      const x = dayNum(e.date);
-      while (j < bins.length - 1 && x > bins[j].x1) j++;
-      const b = bins[j]; b.c[e.rate || 0]++; if (e.rate) b.r.push(e);
-    }
-    for (const b of bins) { b.n = b.c.reduce((s, v) => s + v, 0); b.avg = avgOf(b.r); }
-    return { bins, unit };
+    for (const b of out) { const l = evs.filter(e => e.rate && dayNum(e.date) >= b.x0 && dayNum(e.date) <= b.x1); b.v = l.length ? avgOf(l) : 0; b.n = l.length; }
+    return out;
   }
-  const OP = [.18, .3, .5, .72, 1];
-  function trendSVG(bins, color, fit) {
-    const W = 340, H = 170, L = 22, R = 20, T = 10, B = 22, ih = H - T - B, n = bins.length, cw = (W - L - R) / n, bw = Math.max(2, Math.min(18, cw * .62));
-    const maxC = Math.max(1, ...bins.map(b => b.n)), yR = v => T + ih * (1 - (v - 1) / 3);
-    const step = Math.ceil(n / 8);
+
+  // ---- 图表（只画必要的东西）----
+  function lineSVG(bs, color) { // 平均等级随时间：折线 + 淡色面积，纵轴固定 1–4
+    const W = 320, H = 110, P = 8, B = 18, ih = H - P - B, n = bs.length, x = i => P + (n > 1 ? (W - P * 2) * i / (n - 1) : (W - P * 2) / 2), y = v => P + ih * (1 - (v - 1) / 3);
+    const pts = bs.map((b, i) => (b.n ? [x(i), y(b.v)] : null)).filter(Boolean);
+    let s = [1, 2.5, 4].map(v => `<line x1="${P}" x2="${W - P}" y1="${y(v)}" y2="${y(v)}" class="rs-gl"/>`).join('');
+    if (pts.length > 1) {
+      const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
+      s += `<path d="${d}L${pts[pts.length - 1][0].toFixed(1)},${H - B}L${pts[0][0].toFixed(1)},${H - B}Z" fill="${color}" fill-opacity=".1"/><path d="${d}" class="rs-ln" stroke="${color}"/>`;
+    }
+    s += pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${pts.length > 20 ? 1.8 : 2.8}" fill="${color}"/>`).join('');
+    const ls = n <= 1 ? [0] : [0, Math.floor((n - 1) / 2), n - 1];
+    s += [...new Set(ls)].map(i => `<text x="${x(i).toFixed(1)}" y="${H - 4}" class="rs-ax" text-anchor="${i === 0 && n > 1 ? 'start' : i === n - 1 && n > 1 ? 'end' : 'middle'}">${MC.esc(bs[i].label)}</text>`).join('');
+    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}">${s}</svg>`;
+  }
+  function colSVG(cols, color, labelEvery) { // 柱高 = 平均等级；最高的一根用实色，其余淡色
+    const W = 320, H = 96, T = 6, B = 18, ih = H - T - B, n = cols.length, cw = W / n, bw = Math.max(3, Math.min(22, cw * .62));
+    const top = Math.max(...cols.map(c => (c.n ? c.v : 0)));
     let s = '';
-    for (let r = 1; r <= 4; r++) s += `<line x1="${L}" x2="${W - R}" y1="${yR(r)}" y2="${yR(r)}" class="rs-grid"/><text x="${W - R + 5}" y="${yR(r) + 3}" class="rs-ax">${r}</text>`;
-    s += `<text x="${L - 5}" y="${T + 3}" class="rs-ax" text-anchor="end">${maxC}</text><text x="${L - 5}" y="${H - B}" class="rs-ax" text-anchor="end">0</text>`;
-    bins.forEach((b, i) => {
-      const x = L + cw * i + (cw - bw) / 2; let y = H - B;
-      for (const lv of [1, 2, 3, 4, 0]) {
-        const k = b.c[lv]; if (!k) continue;
-        const h = ih * k / maxC; y -= h;
-        s += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${lv ? color : 'var(--text2)'}" fill-opacity="${OP[lv]}"/>`;
-      }
-      if (i % step === 0) s += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 7}" class="rs-ax" text-anchor="middle">${MC.esc(b.label)}</text>`;
+    cols.forEach((c, i) => {
+      const x = cw * i + (cw - bw) / 2, h = c.n ? Math.max(3, ih * c.v / 4) : 2;
+      s += `<rect x="${x.toFixed(1)}" y="${(T + ih - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(4, bw / 2).toFixed(1)}" ${c.n ? `fill="${color}" fill-opacity="${c.v === top ? 1 : .32}"` : 'class="rs-empty-bar"'}><title>${c.label}${c.n ? ' · ' + f1(c.v) : ''}</title></rect>`;
+      if (i % labelEvery === 0) s += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 4}" class="rs-ax" text-anchor="middle">${MC.esc(c.label)}</text>`;
     });
-    const cx = b => L + cw * (bins.indexOf(b) + .5);
-    if (fit) {
-      const xa = (bins[0].x0 + bins[0].x1) / 2, xb = (bins[n - 1].x0 + bins[n - 1].x1) / 2;
-      s += `<line x1="${cx(bins[0]).toFixed(1)}" x2="${cx(bins[n - 1]).toFixed(1)}" y1="${yR(fit.at(xa)).toFixed(1)}" y2="${yR(fit.at(xb)).toFixed(1)}" class="rs-fit"/>`;
-    }
-    const pts = bins.filter(b => b.r.length).map(b => [cx(b), yR(b.avg)]);
-    if (pts.length > 1) s += `<polyline points="${pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}" class="rs-avg"/>`;
-    s += pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" class="rs-dot"/>`).join('');
-    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="等级趋势">${s}</svg>`;
+    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}">${s}</svg>`;
   }
-  function weekdaySVG(rated, color) {
-    const W = 340, H = 120, T = 8, B = 30, ih = H - T - B, cw = W / 7, ws = MC.settings.weekStart || 0;
-    const names = ['日', '一', '二', '三', '四', '五', '六'];
-    let s = '';
-    for (let i = 0; i < 7; i++) {
-      const wd = (ws + i) % 7, l = rated.filter(e => MC.parse(e.date).getDay() === wd), v = avgOf(l), x = cw * i + cw * .22, w = cw * .56;
-      s += `<rect x="${x.toFixed(1)}" y="${T}" width="${w.toFixed(1)}" height="${ih}" rx="5" class="rs-track"/>`;
-      if (l.length) {
-        const h = ih * v / 4;
-        s += `<rect x="${x.toFixed(1)}" y="${(T + ih - h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="5" fill="${color}" fill-opacity="${(.3 + .7 * (v - 1) / 3).toFixed(2)}"/>`
-          + `<text x="${(x + w / 2).toFixed(1)}" y="${(T + ih - h - 4).toFixed(1)}" class="rs-ax strong" text-anchor="middle">${fx(v, 1)}</text>`;
+
+  // ---- 各页 ----
+  const card = (title, body, extra = '') => `<section class="rs-card"${extra}>${title ? `<h3>${title}</h3>` : ''}${body}</section>`;
+  const lvName = (labels, v) => `<span class="rs-lv" data-uc>${MC.esc(labels[Math.max(1, Math.min(4, Math.round(v))) - 1])}</span>`;
+  function pageAll(c, evs, rated, span, labels) {
+    const avg = avgOf(rated), done = evs.filter(e => e.done).length;
+    let cmp = '';
+    if (span && rated.length) {
+      const p = rsSpan(rs.off - 1), a = MC.ymd(p[0]), b = MC.ymd(p[1]);
+      const prev = MC.data.events.filter(e => e.cal === c.id && e.rate && e.date >= a && e.date <= b);
+      if (prev.length) { const d = avg - avgOf(prev); cmp = `<span class="${d > .05 ? 'up' : d < -.05 ? 'down' : ''}">较${{ week: '上周', month: '上月', year: '去年' }[rs.range]} ${d > .05 ? '↑' : d < -.05 ? '↓' : ''}${f1(Math.abs(d))}</span>`; }
+    }
+    const max = Math.max(1, ...[1, 2, 3, 4].map(v => rated.filter(e => e.rate === v).length));
+    const dist = [4, 3, 2, 1].map(v => { const k = rated.filter(e => e.rate === v).length;
+      return `<div class="rs-dr"><span data-uc>${MC.esc(labels[v - 1])}</span><i><b style="width:${(k / max * 100).toFixed(1)}%;opacity:${[0, .35, .55, .78, 1][v]}"></b></i><em>${k}</em></div>`; }).join('');
+    const hero = `<section class="rs-hero">
+        <div class="rs-big">${rated.length ? f1(avg) : '–'}${rated.length ? lvName(labels, avg) : ''}</div>
+        <div class="rs-sub">${evs.length} 条 · 完成 ${Math.round(done / evs.length * 100)}%${evs.length - rated.length ? ` · ${evs.length - rated.length} 条未评级` : ''}${cmp ? ' · ' + cmp : ''}</div>
+        ${rated.length ? `<div class="rs-dist">${dist}</div>` : ''}
+      </section>`;
+    if (!rated.length) return hero;
+    const bs = bins(evs, span);
+    const trend = bs.filter(b => b.n).length > 1 ? card('变化', lineSVG(bs, c.color)) : '';
+    // 亮点：最多三句
+    const facts = [];
+    const sp = segPoints(evs), slots = SLOTS.map(s => ({ s, l: sp.filter(p => p.clock >= s[1] * 60 && p.clock < s[2] * 60) })).filter(x => x.l.length >= 2);
+    if (slots.length >= 2) { const b = slots.sort((x, y) => mean(y.l.map(p => p.v)) - mean(x.l.map(p => p.v)))[0]; facts.push(['状态最好的时段', `${b.s[0]} · ${f1(mean(b.l.map(p => p.v)))}`]); }
+    const wd = [0, 1, 2, 3, 4, 5, 6].map(d => ({ d, l: rated.filter(e => MC.parse(e.date).getDay() === d) })).filter(x => x.l.length >= 2);
+    if (wd.length >= 3) { const b = wd.sort((x, y) => avgOf(y.l) - avgOf(x.l))[0]; facts.push(['状态最好的一天', `${WD[b.d]} · ${f1(avgOf(b.l))}`]); }
+    const g = new Map(); rated.forEach(e => { const k = e.title.trim(); g.set(k, [...(g.get(k) || []), e]); });
+    const gs = [...g.entries()].filter(([, l]) => l.length >= 2);
+    if (gs.length >= 2) { const b = gs.sort((x, y) => avgOf(y[1]) - avgOf(x[1]))[0]; facts.push(['评价最高的事件', `<span data-uc>${MC.esc(b[0])}</span> · ${f1(avgOf(b[1]))}`]); }
+    const fc = facts.length ? card('', facts.map(([k, v]) => `<div class="rs-kv"><span>${k}</span><b>${v}</b></div>`).join('')) : '';
+    return hero + trend + fc;
+  }
+  function pageSlot(c, evs, labels) {
+    const pts = segPoints(evs);
+    if (!pts.length) return `<div class="rs-empty">还没有带开始和结束时间、评了级的记录</div>`;
+    const avgP = l => mean(l.map(p => p.v));
+    const lo = Math.min(...pts.map(p => p.hh)), hi = Math.max(...pts.map(p => p.hh)), a0 = Math.max(0, Math.min(lo, hi - 5)), cols = [];
+    for (let h = a0; h <= Math.max(hi, a0 + 5); h++) { const l = pts.filter(p => p.hh === h); cols.push({ label: hhLabel(h), v: l.length ? avgP(l) : 0, n: l.length }); }
+    const ranked = cols.filter(x => x.n).sort((x, y) => y.v - x.v);
+    const day = card('一天里的状态', colSVG(cols, c.color, Math.ceil(cols.length / 6))
+      + (ranked.length >= 2 ? `<div class="rs-pair"><div><span>最好</span><b>${ranked[0].label}</b><em>${f1(ranked[0].v)}</em></div><div><span>最差</span><b>${ranked[ranked.length - 1].label}</b><em>${f1(ranked[ranked.length - 1].v)}</em></div></div>` : ''));
+    const maxI = Math.min(11, Math.max(...pts.map(p => p.idx)));
+    let after = '';
+    if (maxI >= 1) {
+      const ic = []; for (let i = 0; i <= maxI; i++) { const l = pts.filter(p => p.idx === i); ic.push({ label: offLabel(i), v: l.length ? avgP(l) : 0, n: l.length }); }
+      const b = slope(pts.filter(p => p.idx <= 11).map(p => [p.idx, p.v]));
+      const line = b === null ? '' : Math.abs(b) < .05 ? '前后基本稳定' : `${b > 0 ? '越往后越好' : '越往后越差'}，每半小时 ${b > 0 ? '+' : '−'}${f1(Math.abs(b))}`;
+      after = card('开始之后', colSVG(ic, c.color, Math.ceil(ic.length / 6)) + (line ? `<p class="rs-line">${line}</p>` : ''));
+    }
+    const rows = SLOTS.map(s => { const l = pts.filter(p => p.clock >= s[1] * 60 && p.clock < s[2] * 60); return l.length ? `<div class="rs-kv"><span>${s[0]}<small>${s[1]}–${s[2]}点</small></span><b>${f1(avgP(l))}<small>${l.length} 段</small></b></div>` : ''; }).join('');
+    return day + after + card('各时段', rows);
+  }
+  function pageEv(c, evs, labels) {
+    const g = new Map(); evs.forEach(e => { const k = e.title.trim(); g.set(k, [...(g.get(k) || []), e]); });
+    const pre = new Set((c.presets || []).map(p => p.name));
+    const list = [...g.entries()].map(([name, l]) => ({ name, l, r: l.filter(e => e.rate) })).sort((x, y) => y.l.length - x.l.length || avgOf(y.r) - avgOf(x.r)).slice(0, 50);
+    const rows = list.map(x => {
+      const open = rs.openEv === x.name;
+      let det = '';
+      if (open) {
+        const dl = x.l.map(durOf).filter(d => d !== null), sp = segPoints(x.l);
+        const sl = SLOTS.map(s => ({ s, l: sp.filter(p => p.clock >= s[1] * 60 && p.clock < s[2] * 60) })).filter(y => y.l.length).sort((a, b) => mean(b.l.map(p => p.v)) - mean(a.l.map(p => p.v)));
+        const cells = [['完成', `${Math.round(x.l.filter(e => e.done).length / x.l.length * 100)}%`], dl.length ? ['平均时长', fmtDur(mean(dl))] : null, sl.length > 1 ? ['最好时段', sl[0].s[0]] : null].filter(Boolean);
+        const shown = rs.allEv ? [...x.l].reverse() : [...x.l].reverse().slice(0, 5);
+        det = `<div class="rs-det"><div class="rs-cells">${cells.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
+          <ul class="rs-list">${shown.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul>
+          ${x.l.length > 5 ? `<button class="rs-more" data-more>${rs.allEv ? '收起' : `查看全部 ${x.l.length} 条`}</button>` : ''}</div>`;
       }
-      s += `<text x="${(x + w / 2).toFixed(1)}" y="${H - 15}" class="rs-ax" text-anchor="middle">周${names[wd]}</text><text x="${(x + w / 2).toFixed(1)}" y="${H - 3}" class="rs-ax dim" text-anchor="middle">${l.length ? l.length + '条' : ''}</text>`;
-    }
-    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="星期分布">${s}</svg>`;
+      return `<div class="rs-ev${open ? ' open' : ''}"><button class="rs-evh" data-ev="${MC.esc(x.name)}">
+          <span class="rs-evn"><span data-uc>${MC.esc(x.name)}</span>${pre.has(x.name) ? '<i class="rs-dot" title="常用事件"></i>' : ''}</span>
+          <span class="rs-evc">${x.l.length} 次</span>
+          <b>${x.r.length ? f1(avgOf(x.r)) : '–'}</b>
+        </button>${det}</div>`;
+    }).join('');
+    return `<section class="rs-card rs-evs">${rows}</section>`;
   }
-  // 备注分词：浏览器支持 Intl.Segmenter 就按词切，否则汉字按两字一组、字母按单词
+  // 备注：哪些词常和高分 / 低分一起出现
   const STOP = new Set(('的 了 是 我 你 他 她 它 们 也 很 都 就 在 和 与 及 或 有 没 不 这 那 个 一 一个 一些 还 又 再 被 把 给 让 吧 吗 呢 啊 呀 哦 嗯 着 过 到 说 要 会 能 可以 觉得 感觉 比较 有点 一点 非常 特别 真的 然后 但是 但 而且 因为 所以 如果 什么 怎么 自己 没有 就是 还是 已经 之后 之前 时候 今天 昨天 明天 '
     + 'the a an and or of to in is it this that for on with was are be i my me so very but not').split(' '));
   let segr = null; try { segr = new Intl.Segmenter('zh', { granularity: 'word' }); } catch (e) {}
   function tokens(s) {
     const out = new Set(), txt = String(s || '').toLowerCase();
     const add = w => { w = w.trim(); if (!w || STOP.has(w) || /^[\d.,:]+$/.test(w)) return; if (!/[\u3400-\u9fff]/.test(w) && w.length < 3) return; out.add(w.slice(0, 16)); };
-    if (segr) { // 词典里没有的词会被切成单字（文笔 → 文 / 笔）：连续的单个汉字拼回一个词
-      let run = '';
-      const flush = () => { if (run) add(run); run = ''; };
-      for (const t of segr.segment(txt)) {
-        if (!t.isWordLike) { flush(); continue; }
-        const w = t.segment;
-        if (w.length === 1 && /[\u3400-\u9fff]/.test(w) && !STOP.has(w)) run += w; else { flush(); add(w); }
-      }
+    if (segr) { // 词典里没有的词会被切成单字：连续的单个汉字拼回一个词
+      let run = ''; const flush = () => { if (run) add(run); run = ''; };
+      for (const t of segr.segment(txt)) { if (!t.isWordLike) { flush(); continue; } const w = t.segment; if (w.length === 1 && /[\u3400-\u9fff]/.test(w) && !STOP.has(w)) run += w; else { flush(); add(w); } }
       flush();
-    }
-    else {
+    } else {
       (txt.match(/[a-z\u00c0-\u024f0-9']+/g) || []).forEach(add);
       (txt.match(/[\u3400-\u9fff]+/g) || []).forEach(r => { if (r.length === 1) add(r); for (let i = 0; i + 1 < r.length; i++) add(r.slice(i, i + 2)); });
     }
     return out;
   }
-  function keywordStats(evs) {
+  function pageNote(c, rated) {
+    const withNote = rated.filter(e => e.note);
+    if (!withNote.length) return `<div class="rs-empty">这段时间的已评级记录还没有写备注</div>`;
     const m = new Map();
-    for (const e of evs) if (e.note) for (const w of tokens(e.note)) {
-      let k = m.get(w); if (!k) m.set(w, k = { w, n: 0, r: [], lv: [0, 0, 0, 0, 0] });
-      k.n++; k.lv[e.rate || 0]++; if (e.rate) k.r.push(e);
-    }
-    return [...m.values()].map(k => ({ ...k, avg: avgOf(k.r) }));
+    for (const e of withNote) for (const w of tokens(e.note)) m.set(w, [...(m.get(w) || []), e]);
+    const all = avgOf(rated), min = withNote.length >= 8 ? 2 : 1;
+    const ws = [...m.entries()].filter(([, l]) => l.length >= min).map(([w, l]) => ({ w, n: l.length, v: avgOf(l) }));
+    const hi = ws.filter(x => x.v > all + .1).sort((a, b) => b.v - a.v || b.n - a.n).slice(0, 8);
+    const lo = ws.filter(x => x.v < all - .1).sort((a, b) => a.v - b.v || b.n - a.n).slice(0, 8);
+    const chips = l => `<div class="rs-chips">${l.map(x => `<span class="rs-chip"><span data-uc>${MC.esc(x.w)}</span><em>${f1(x.v)}</em></span>`).join('')}</div>`;
+    const nn = rated.filter(e => !e.note);
+    return (hi.length ? card('高分时常写到', chips(hi)) : '') + (lo.length ? card('低分时常写到', chips(lo)) : '')
+      + (!hi.length && !lo.length ? `<div class="rs-empty">备注还太少，看不出规律</div>` : '')
+      + (nn.length ? `<p class="rs-foot">写了备注的平均 ${f1(avgOf(withNote))}，没写的 ${f1(avgOf(nn))}</p>` : '');
   }
-  // ---- 时段分析：只看设了开始时间的事件（按开始时间归入时段）----
-  const SLOTS = [['凌晨', 0, 6], ['早上', 6, 9], ['上午', 9, 12], ['中午', 12, 14], ['下午', 14, 18], ['晚上', 18, 22], ['深夜', 22, 24]];
-  const mins = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
-  const slotOf = e => SLOTS.findIndex(s => mins(e.time) >= s[1] * 60 && mins(e.time) < s[2] * 60);
-  const durOf = e => { if (!e.time || !e.endTime) return null; let d = mins(e.endTime) - mins(e.time); if (d <= 0) d += 1440; return d; };
-  const fmtDur = m => { m = Math.round(m); return m >= 60 ? `${Math.floor(m / 60)}小时${m % 60 ? (m % 60) + '分' : ''}` : `${m}分钟`; };
-  function pearson(pts) {
-    const n = pts.length; if (n < 5) return null;
-    const mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
-    let sxx = 0, syy = 0, sxy = 0;
-    for (const [x, y] of pts) { sxx += (x - mx) ** 2; syy += (y - my) ** 2; sxy += (x - mx) * (y - my); }
-    return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null;
-  }
-  function heatSVG(timed, color) { // 横轴 0–23 点，纵轴等级：格子越深，那个钟点这个等级的记录越多
-    const W = 340, H = 118, L = 40, T = 4, B = 18, cw = (W - L) / 24, ch = (H - T - B) / 4;
-    const grid = [1, 2, 3, 4].map(() => Array(24).fill(0));
-    for (const e of timed) if (e.rate) grid[e.rate - 1][+e.time.slice(0, 2)]++;
-    const max = Math.max(1, ...grid.flat());
-    let s = '';
-    [4, 3, 2, 1].forEach((lv, r) => {
-      const y = T + ch * r;
-      s += `<text x="${L - 6}" y="${(y + ch / 2 + 3).toFixed(1)}" class="rs-ax" text-anchor="end">${lv}</text>`;
-      for (let h = 0; h < 24; h++) {
-        const k = grid[lv - 1][h];
-        s += `<rect x="${(L + cw * h + .8).toFixed(1)}" y="${(y + .8).toFixed(1)}" width="${(cw - 1.6).toFixed(1)}" height="${(ch - 1.6).toFixed(1)}" rx="2.5" ${k ? `fill="${color}" fill-opacity="${(.18 + .82 * k / max).toFixed(2)}"` : 'class="rs-track"'}><title>${h}:00 · ${k}</title></rect>`;
-      }
-    });
-    for (const h of [0, 6, 12, 18, 23]) s += `<text x="${(L + cw * (h + .5)).toFixed(1)}" y="${H - 4}" class="rs-ax" text-anchor="middle">${h}</text>`;
-    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="时段 × 等级">${s}</svg>`;
-  }
-  // ---- 分段评价（每半小时一段）的统计 ----
-  function segPoints(evs) {
-    const pts = [];
-    for (const e of evs) {
-      if (!e.segs || !Object.keys(e.segs).length) continue;
-      MC.segBlocks(e.time, e.endTime).forEach((b, i) => { const v = e.segs[b.k]; if (v) pts.push({ e, clock: b.a % 1440, hh: Math.floor((b.a % 1440) / 30), idx: i, v }); });
-    }
-    return pts;
-  }
-  const hhLabel = h => `${Math.floor(h / 2)}:${h % 2 ? '30' : '00'}`;
-  const offLabel = i => (i === 0 ? '开始' : i % 2 ? `+${i > 1 ? Math.floor(i / 2) + '小时' : ''}30分` : `+${i / 2}小时`);
-  function barsSVG(cols, color, H = 130) { // cols: [{ label, v (平均等级), n }]；柱高 = 平均等级，颜色深浅 = 段数
-    const W = 340, T = 14, B = 20, L = 4, ih = H - T - B, n = cols.length, cw = (W - L * 2) / n, bw = Math.max(3, Math.min(26, cw * .7));
-    const maxN = Math.max(1, ...cols.map(c => c.n)), step = Math.ceil(n / 9);
-    let s = '';
-    for (let r = 1; r <= 4; r++) { const y = T + ih * (1 - r / 4); s += `<line x1="${L}" x2="${W - L}" y1="${y}" y2="${y}" class="rs-grid"/>`; }
-    cols.forEach((c, i) => {
-      const x = L + cw * i + (cw - bw) / 2;
-      if (c.n) {
-        const h = ih * c.v / 4;
-        s += `<rect x="${x.toFixed(1)}" y="${(T + ih - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}" fill-opacity="${(.35 + .65 * c.n / maxN).toFixed(2)}"><title>${c.label} · ${fx(c.v, 1)} · ${c.n}</title></rect>`;
-        if (n <= 16) s += `<text x="${(x + bw / 2).toFixed(1)}" y="${(T + ih - h - 3).toFixed(1)}" class="rs-ax strong" text-anchor="middle">${fx(c.v, 1)}</text>`;
-      } else s += `<rect x="${x.toFixed(1)}" y="${(T + ih - 3).toFixed(1)}" width="${bw.toFixed(1)}" height="3" rx="1.5" class="rs-track"/>`;
-      if (i % step === 0) s += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 5}" class="rs-ax" text-anchor="middle">${MC.esc(c.label)}</text>`;
-    });
-    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}" role="img">${s}</svg>`;
-  }
-  function segCards(c, evs, labels) {
-    const pts = segPoints(evs); if (!pts.length) return '';
-    const mean = pts.reduce((s, p) => s + p.v, 0) / pts.length, avgP = l => l.reduce((s, p) => s + p.v, 0) / l.length;
-    // 1. 一天里每个半小时
-    const lo = Math.min(...pts.map(p => p.hh)), hi = Math.max(...pts.map(p => p.hh)), a0 = Math.max(0, Math.min(lo, hi - 3)), cols = [];
-    for (let h = a0; h <= Math.max(hi, a0 + 3); h++) { const l = pts.filter(p => p.hh === h); cols.push({ label: hhLabel(h), v: l.length ? avgP(l) : 0, n: l.length }); }
-    const best = cols.filter(x => x.n >= 2).sort((x, y) => y.v - x.v || y.n - x.n), worst = [...best].reverse();
-    // 2. 时段汇总
-    const rows = SLOTS.map((s, i) => {
-      const l = pts.filter(p => p.clock >= s[1] * 60 && p.clock < s[2] * 60); if (!l.length) return '';
-      const open = rs.openSlot.has(i), cnt = [0, 0, 0, 0, 0]; l.forEach(p => cnt[p.v]++);
-      const bar = [4, 3, 2, 1].map(lv => (cnt[lv] ? `<i style="width:${(cnt[lv] / l.length * 100).toFixed(1)}%;background:${c.color};opacity:${OP[lv]}"></i>` : '')).join('');
-      const evl = [...new Set(l.map(p => p.e))].reverse();
-      return `<div class="rs-item${open ? ' open' : ''}">
-        <button class="rs-trow" data-slot="${i}" aria-expanded="${open}">
-          <span class="rs-name">${s[0]}<small>${s[1]}–${s[2]} 点</small></span>
-          <span class="rs-stack">${bar}</span>
-          <span class="rs-num">${fx(avgP(l), 1)}<small>${l.length} 段</small></span>
-        </button>
-        ${open ? `<div class="rs-sub">${[4, 3, 2, 1].filter(lv => cnt[lv]).map(lv => `<span data-uc>${MC.esc(labels[lv - 1])}</span> ${cnt[lv]} 段`).join(' · ')} · 比平均 ${avgP(l) >= mean ? '+' : ''}${fx(avgP(l) - mean)}</div><ul class="rs-list">${evl.map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>` : ''}
-      </div>`;
-    }).join('');
-    // 3. 开始后的变化：第几个半小时
-    const maxI = Math.min(11, Math.max(...pts.map(p => p.idx))), ic = [];
-    for (let i = 0; i <= maxI; i++) { const l = pts.filter(p => p.idx === i); ic.push({ label: offLabel(i), v: l.length ? avgP(l) : 0, n: l.length }); }
-    const fit = fitLine(pts.filter(p => p.idx <= 11).map(p => [p.idx, p.v])), multi = new Set(pts.map(p => p.e)).size;
-    let model = '';
-    if (maxI < 1) model = '<p class="rs-note">事件都只有一段，还看不出开始后的变化。</p>';
-    else if (!fit || pts.length < 6) model = `<p class="rs-note">分段评价还太少（${pts.length} 段），至少 6 段才估计变化。</p>`;
-    else {
-      const flat = Math.abs(fit.b) < .05 || fit.r2 < .05, bi = ic.map((x, i) => [x, i]).filter(([x]) => x.n >= 2).sort((x, y) => y[0].v - x[0].v)[0];
-      model = `<div class="rs-kv"><span>开始后的走势</span><b>${flat ? '基本稳定' : fit.b > 0 ? '越往后越好' : '越往后越差'}</b></div>
-        <div class="rs-kv"><span>每过半小时</span><b>${fit.b >= 0 ? '+' : ''}${fx(fit.b)} 级</b></div>
-        ${bi ? `<div class="rs-kv"><span>状态最好的一段</span><b>${bi[0].label === '开始' ? '刚开始的半小时' : `开始后 ${bi[0].label.slice(1)}`}<small>${fx(bi[0].v, 1)}</small></b></div>` : ''}
-        <p class="rs-note">拟合度 R² = ${fx(fit.r2)}${fit.r2 < .3 ? '，波动较大，仅供参考' : ''}。模型：段等级 = a + b × 第几段（${pts.length} 段，来自 ${multi} 条记录）。</p>`;
-    }
-    return `<div class="rs-kpis">
-        <div class="rs-kpi"><b>${pts.length}</b><span>评过的半小时</span></div>
-        <div class="rs-kpi"><b>${fx(mean)}</b><span>平均 ≈ <em data-uc>${MC.esc(labels[Math.round(mean) - 1])}</em></span></div>
-      </div>
-      <div class="rs-card glass-panel rs-pad"><div class="rs-h">一天里的状态<small>每半小时的平均等级 · 颜色越深评得越多</small></div>${barsSVG(cols, c.color)}
-        ${best.length >= 2 ? `<div class="rs-kv"><span>最好的半小时</span><b>${best[0].label}<small>${fx(best[0].v, 1)} · ${best[0].n} 段</small></b></div><div class="rs-kv"><span>最差的半小时</span><b>${worst[0].label}<small>${fx(worst[0].v, 1)} · ${worst[0].n} 段</small></b></div>` : ''}
-      </div>
-      <div class="rs-card glass-panel rs-pad"><div class="rs-h">时段汇总<small>按每段的评价 · 点开看记录</small></div><div class="rs-tlist">${rows}</div></div>
-      <div class="rs-card glass-panel rs-pad"><div class="rs-h">开始后的变化<small>第几个半小时的平均等级</small></div>${barsSVG(ic, c.color, 120)}${model}</div>`;
-  }
-  // 某个事件的分段曲线（事件页展开时用）
-  function segLine(list) {
-    const pts = segPoints(list); if (!pts.length) return '';
-    const maxI = Math.min(11, Math.max(...pts.map(p => p.idx))), out = [];
-    for (let i = 0; i <= maxI; i++) { const l = pts.filter(p => p.idx === i); if (l.length) out.push(`${offLabel(i)} ${fx(l.reduce((s, p) => s + p.v, 0) / l.length, 1)}`); }
-    return `<div class="rs-sub">分段平均：${out.join(' · ')}</div>`;
-  }
-  function slotCard(c, evs, labels) {
-    const timed = evs.filter(e => e.time), tr = timed.filter(e => e.rate);
-    if (!timed.length) return '';
-    if (!tr.length) return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">时段分析</div><p class="rs-note">有 ${timed.length} 条设了时间的记录，但还没有评级。评级之后这里会按时段统计。</p></div>`;
-    const mean = avgOf(tr);
-    const rows = SLOTS.map((s, i) => {
-      const l = timed.filter(e => slotOf(e) === i), r = l.filter(e => e.rate), open = rs.openSlot.has(i);
-      if (!l.length) return '';
-      const cnt = [0, 0, 0, 0, 0]; l.forEach(e => cnt[e.rate || 0]++);
-      const bar = [4, 3, 2, 1, 0].map(lv => (cnt[lv] ? `<i style="width:${(cnt[lv] / l.length * 100).toFixed(1)}%;background:${lv ? c.color : 'var(--text2)'};opacity:${OP[lv]}"></i>` : '')).join('');
-      const dl = l.map(durOf).filter(d => d !== null);
-      return `<div class="rs-item${open ? ' open' : ''}">
-        <button class="rs-trow" data-slot="${i}" aria-expanded="${open}">
-          <span class="rs-name">${s[0]}<small>${s[1]}–${s[2]} 点</small></span>
-          <span class="rs-stack">${bar}</span>
-          <span class="rs-num">${r.length ? fx(avgOf(r), 1) : '–'}<small>${l.length} 条</small></span>
-        </button>
-        ${open ? `<div class="rs-sub">已评级 ${r.length} / ${l.length}${dl.length ? ` · 平均时长 ${fmtDur(dl.reduce((a, b) => a + b, 0) / dl.length)}` : ''}${r.length ? ` · 比整体平均 ${avgOf(r) >= mean ? '+' : ''}${fx(avgOf(r) - mean)}` : ''}</div><ul class="rs-list">${l.map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>` : ''}
-      </div>`;
-    }).join('');
-    // 最好 / 最差的时段（至少 2 条已评级）
-    const ss = SLOTS.map((s, i) => ({ s, r: tr.filter(e => slotOf(e) === i) })).filter(x => x.r.length >= 2).map(x => ({ ...x, a: avgOf(x.r) }));
-    let best = '';
-    if (ss.length >= 2) {
-      ss.sort((x, y) => y.a - x.a);
-      const hi = ss[0], lo = ss[ss.length - 1];
-      best = `<div class="rs-kv"><span>等级最高的时段</span><b>${hi.s[0]} ${fx(hi.a, 1)}<small>${hi.r.length} 条</small></b></div>
-        <div class="rs-kv"><span>等级最低的时段</span><b>${lo.s[0]} ${fx(lo.a, 1)}<small>${lo.r.length} 条</small></b></div>`;
-    }
-    // 时长和等级
-    const dp = tr.map(e => [durOf(e), e.rate]).filter(p => p[0] !== null), r = pearson(dp);
-    let dur = '';
-    if (dp.length) {
-      const per = [4, 3, 2, 1].map(lv => { const d = dp.filter(p => p[1] === lv).map(p => p[0]); return d.length ? `<div class="rs-kv"><span data-uc>${MC.esc(labels[lv - 1])}</span><b>${fmtDur(d.reduce((a, b) => a + b, 0) / d.length)}<small>${d.length} 条</small></b></div>` : ''; }).join('');
-      const ar = r === null ? 0 : Math.abs(r);
-      const desc = r === null ? `有结束时间的已评级记录还太少（${dp.length} 条），至少 5 条才计算相关性。`
-        : ar < .1 ? '时长和等级基本无关。' : `${ar < .3 ? '弱' : ar < .6 ? '中等' : '强'}${r > 0 ? '正' : '负'}相关：时长越长，等级${r > 0 ? '越高' : '越低'}。`;
-      dur = `<div class="rs-sh">各等级的平均时长</div>${per}<p class="rs-note">${r === null ? '' : `相关系数 r = ${fx(r)}。`}${desc}</p>`;
-    }
-    return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">按开始时间<small>整条事件的等级 · 点开看记录</small></div>
-        <div class="rs-tlist">${rows}</div>${best}
-        <div class="rs-sh">钟点 × 等级<small>格子越深，那个钟点该等级的记录越多</small></div>${heatSVG(timed, c.color)}
-        ${dur}
-      </div>`;
-  }
-  function rsAnalysis(c, evs, span, labels) {
-    const rated = evs.filter(e => e.rate);
-    const mean = avgOf(rated), { bins, unit } = rsBins(evs, span);
-    const fit = fitLine(rated.map(e => [dayNum(e.date), e.rate]));
-    // 趋势模型的结论
-    let model = '';
-    if (!fit || fit.n < 5) model = `<p class="rs-note">已评级的记录还太少（${rated.length} 条），至少 5 条才能估计趋势。</p>`;
-    else {
-      const per = unit === 'd' ? 7 : 30, perName = unit === 'd' ? '每周' : '每月', slope = fit.b * per;
-      const flat = Math.abs(slope) < .05 || fit.r2 < .05;
-      const verdict = flat ? '基本平稳' : slope > 0 ? '在上升' : '在下降';
-      const lastX = dayNum(evs[evs.length - 1].date), plen = span ? bins[bins.length - 1].x1 - bins[0].x0 + 1 : (bins[bins.length - 1].x1 - bins[bins.length - 1].x0 + 1);
-      const nextX = (span ? bins[bins.length - 1].x1 : lastX) + plen / 2, pred = fit.at(nextX);
-      const nextName = rs.range === 'week' ? '下周' : rs.range === 'month' ? '下个月' : rs.range === 'year' ? '明年' : unit === 'd' ? '接下来几天' : unit === 'm' ? '下个月' : '明年';
-      const near = labels[Math.round(pred) - 1];
-      model = `<div class="rs-kv"><span>趋势</span><b>${verdict}</b></div>
-        <div class="rs-kv"><span>变化速度</span><b>${perName} ${slope >= 0 ? '+' : ''}${fx(slope)} 级</b></div>
-        <div class="rs-kv"><span>拟合度 R²</span><b>${fx(fit.r2)}</b></div>
-        ${flat ? '' : `<div class="rs-kv"><span>${nextName}预计平均</span><b>${fx(pred, 1)}<small data-uc>${MC.esc(near)}</small></b></div>`}
-        <p class="rs-note">${fit.r2 < .3 ? '拟合度较低：等级波动大，趋势只能作参考。' : '拟合度不错，这个趋势比较可靠。'}模型：等级 = a + b × 日期（最小二乘，${fit.n} 条已评级记录）。</p>`;
-    }
-    // 有备注 / 没备注
-    const wn = rated.filter(e => e.note), nn = rated.filter(e => !e.note);
-    const noteCmp = wn.length && nn.length ? `<div class="rs-kv"><span>写了备注的平均等级</span><b>${fx(avgOf(wn))}<small>${wn.length} 条</small></b></div><div class="rs-kv"><span>没写备注的平均等级</span><b>${fx(avgOf(nn))}<small>${nn.length} 条</small></b></div>` : '';
-    // 备注关键词
-    const kw = keywordStats(evs), minN = kw.some(k => k.n >= 2) ? 2 : 1;
-    const top = kw.filter(k => k.n >= minN).sort((x, y) => y.n - x.n || y.avg - x.avg).slice(0, 12);
-    const scored = kw.filter(k => k.r.length >= 2);
-    const hi = [...scored].sort((x, y) => y.avg - x.avg || y.n - x.n).filter(k => k.avg > mean).slice(0, 5);
-    const lo = [...scored].sort((x, y) => x.avg - y.avg || y.n - x.n).filter(k => k.avg < mean).slice(0, 5);
-    const chip = k => `<span class="rs-kw" style="--k:${k.r.length ? (.15 + .85 * (k.avg - 1) / 3).toFixed(2) : 0}"><b data-uc>${MC.esc(k.w)}</b><small>${k.r.length ? fx(k.avg, 1) : '–'}</small></span>`;
-    const perLv = [4, 3, 2, 1].map(lv => {
-      const ws = kw.filter(k => k.lv[lv]).sort((x, y) => y.lv[lv] - x.lv[lv] || y.n - x.n).slice(0, 5);
-      return ws.length ? `<div class="rs-lvw"><span class="rs-lvn" data-uc style="--k:${OP[lv]}">${MC.esc(labels[lv - 1])}</span><span class="rs-lvl" data-uc>${ws.map(k => MC.esc(k.w)).join('、')}</span></div>` : '';
-    }).join('');
-    const kwCard = top.length ? `<div class="rs-card glass-panel rs-pad"><div class="rs-h">备注关键词<small>数字是含这个词的记录的平均等级</small></div>
-        <div class="rs-kws">${top.map(chip).join('')}</div>
-        ${hi.length ? `<div class="rs-sh">高分常见</div><div class="rs-kws">${hi.map(chip).join('')}</div>` : ''}
-        ${lo.length ? `<div class="rs-sh">低分常见</div><div class="rs-kws">${lo.map(chip).join('')}</div>` : ''}
-        ${perLv ? `<div class="rs-sh">各等级常用词</div>${perLv}` : ''}
-      </div>` : `<div class="rs-card glass-panel rs-pad"><div class="rs-h">备注关键词</div><p class="rs-note">这段时间的记录还没有备注。写了备注之后，这里会分析哪些词常和高分、低分一起出现。</p></div>`;
-    return {
-      trend: `<div class="rs-card glass-panel rs-pad"><div class="rs-h">等级趋势<small>柱：各等级数量 · 实线：平均 · 虚线：趋势</small></div>${trendSVG(bins, c.color, fit && fit.n >= 5 ? fit : null)}</div>`,
-      model: `<div class="rs-card glass-panel rs-pad"><div class="rs-h">趋势模型</div>${model}</div>`,
-      weekday: `<div class="rs-card glass-panel rs-pad"><div class="rs-h">星期分布<small>每天的平均等级</small></div>${weekdaySVG(rated, c.color)}</div>`,
-      noteCmp, kw: kwCard,
-    };
-  }
-  // ---- 按事件统计：同名事件（常用事件）汇总 ----
-  function evCard(c, evs) {
-    const m = new Map();
-    for (const e of evs) { const k = e.title.trim(); if (!m.has(k)) m.set(k, []); m.get(k).push(e); }
-    const pre = new Set((c.presets || []).map(p => p.name));
-    const groups = [...m.entries()].map(([name, l]) => ({ name, l, r: l.filter(e => e.rate) })).sort((x, y) => y.l.length - x.l.length || avgOf(y.r) - avgOf(x.r));
-    if (!groups.length) return '';
-    const mean = avgOf(evs.filter(e => e.rate)), top = groups.slice(0, 40);
-    const rows = top.map(g => {
-      const open = rs.openEv.has(g.name), cnt = [0, 0, 0, 0, 0]; g.l.forEach(e => cnt[e.rate || 0]++);
-      const bar = [4, 3, 2, 1, 0].map(lv => (cnt[lv] ? `<i style="width:${(cnt[lv] / g.l.length * 100).toFixed(1)}%;background:${lv ? c.color : 'var(--text2)'};opacity:${OP[lv]}"></i>` : '')).join('');
-      let sub = '';
-      if (open) {
-        const dl = g.l.map(durOf).filter(d => d !== null), done = g.l.filter(e => e.done).length;
-        const ss = SLOTS.map((s, i) => ({ s, r: g.r.filter(e => e.time && slotOf(e) === i) })).filter(x => x.r.length).sort((x, y) => avgOf(y.r) - avgOf(x.r) || y.r.length - x.r.length);
-        sub = `<div class="rs-sub">${[`已完成 ${done} / ${g.l.length}`, g.r.length ? `比整体平均 ${avgOf(g.r) >= mean ? '+' : ''}${fx(avgOf(g.r) - mean)}` : '', dl.length ? `平均时长 ${fmtDur(dl.reduce((a, b) => a + b, 0) / dl.length)}` : '', ss.length > 1 ? `${ss[0].s[0]}做得最好（${fx(avgOf(ss[0].r), 1)}）` : ''].filter(Boolean).join(' · ')}</div>
-          ${segLine(g.l)}<ul class="rs-list">${[...g.l].reverse().map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>`;
-      }
-      return `<div class="rs-item${open ? ' open' : ''}">
-        <button class="rs-erow" data-ev="${MC.esc(g.name)}" aria-expanded="${open}">
-          <span class="rs-name"><span data-uc>${MC.esc(g.name)}</span>${pre.has(g.name) ? '<em class="rs-pre">常用</em>' : ''}</span>
-          <span class="rs-stack">${bar}</span>
-          <span class="rs-num">${g.r.length ? fx(avgOf(g.r), 1) : '–'}<small>${g.l.length} 次</small></span>
-        </button>${sub}
-      </div>`;
-    }).join('');
-    return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">按事件<small>同名事件放在一起 · 数字是平均等级 · 点开看详情</small></div>
-      <div class="rs-tlist">${rows}</div>${groups.length > top.length ? `<p class="rs-note">只显示次数最多的 ${top.length} 个。</p>` : ''}</div>`;
-  }
-  const RS_TABS = [['all', '概览'], ['trend', '趋势'], ['slot', '时段'], ['ev', '事件'], ['note', '备注']];
+
+  const RS_TABS = [['all', '概览'], ['slot', '时段'], ['ev', '事件'], ['note', '备注']];
   function renderRstat() {
     const c = recCal(); if (!c) return;
     const span = rsSpan(), labels = MC.rateLabels(c.id);
     $('#rsName').textContent = c.name;
     $('#page-rstat').style.setProperty('--c', c.color);
-    $('#rsNotes').classList.toggle('on', rs.notesOnly);
-    $('#rsSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === rs.range));
     $('#rsTabs').innerHTML = RS_TABS.map(([v, l]) => `<button data-v="${v}"${v === rs.tab ? ' class="on"' : ''}>${l}</button>`).join('');
+    $('#rsSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === rs.range));
     $('#rsNav').hidden = !span;
     if (span) $('#rsLabel').textContent = rs.range === 'week' ? `${MC.dateLabel(MC.ymd(span[0]))} – ${MC.dateLabel(MC.ymd(span[1]))}` : rs.range === 'month' ? `${span[0].getFullYear()}年${span[0].getMonth() + 1}月` : `${span[0].getFullYear()}年`;
     const a = span ? MC.ymd(span[0]) : '', b = span ? MC.ymd(span[1]) : '';
-    const evs = MC.data.events.filter(e => e.cal === c.id && (!span || (e.date >= a && e.date <= b)) && (!rs.notesOnly || e.note))
+    const evs = MC.data.events.filter(e => e.cal === c.id && (!span || (e.date >= a && e.date <= b)))
       .sort((x, y) => x.date.localeCompare(y.date) || (x.time || '').localeCompare(y.time || ''));
-    if (!evs.length) { $('#rsBody').innerHTML = `<div class="rs-empty">${rs.notesOnly ? '这段时间没有带备注的记录' : '这段时间还没有记录'}</div>`; return; }
-    const ratedL = evs.filter(e => e.rate), rated = ratedL.length, done = evs.filter(e => e.done).length, mean = avgOf(ratedL);
-    const hint = t => `<div class="rs-card glass-panel rs-pad"><p class="rs-note" style="margin:0">${t}</p></div>`;
-    let html = '';
-    if (rs.tab === 'all') {
-      const by = n => evs.filter(e => (e.rate || 0) === n);
-      const max = Math.max(1, ...[0, 1, 2, 3, 4].map(n => by(n).length));
-      const row = n => {
-        const list = by(n), d = list.filter(e => e.done).length, open = rs.open.has(n);
-        const name = n ? `<span data-uc>${MC.esc(labels[n - 1])}</span>` : '未评级';
-        return `<div class="rs-item${open ? ' open' : ''}" style="--c:${n ? c.color : 'var(--text2)'};--k:${n ? OP[n] : .25}">
-          <button class="rs-row" data-lv="${n}" aria-expanded="${open}"${list.length ? '' : ' disabled'}>
-            <span class="rs-name">${name}</span>
-            <span class="rs-bar"><i style="width:${(list.length / max * 100).toFixed(1)}%"></i></span>
-            <span class="rs-num">${list.length}<small>${Math.round(list.length / evs.length * 100)}%</small></span>
-          </button>
-          ${open && list.length ? `<div class="rs-sub">已完成 ${d} / ${list.length}</div><ul class="rs-list">${[...list].reverse().map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>` : ''}
-        </div>`;
-      };
-      const seg = [4, 3, 2, 1, 0].map(n => { const k = by(n).length; return k ? `<i style="flex:${k};background:${n ? c.color : 'var(--text2)'};opacity:${OP[n]}"></i>` : ''; }).join('');
-      html = `<div class="rs-kpis">
-          <div class="rs-kpi"><b>${evs.length}</b><span>条记录</span></div>
-          <div class="rs-kpi"><b>${rated ? fx(mean) : '–'}</b><span>${rated ? `平均 ≈ <em data-uc>${MC.esc(labels[Math.round(mean) - 1])}</em>` : '平均等级'}</span></div>
-          <div class="rs-kpi"><b>${Math.round(done / evs.length * 100)}%</b><span>完成率</span></div>
-          <div class="rs-kpi"><b>${rated}<small>/${evs.length}</small></b><span>已评级</span></div>
-        </div>
-        <div class="rs-card glass-panel"><div class="rs-dist">${seg}</div>${[4, 3, 2, 1, 0].map(row).join('')}</div>`;
-    } else if (rs.tab === 'ev') html = evCard(c, evs);
-    else if (rs.tab === 'slot') {
-        const seg = segCards(c, evs, labels), whole = slotCard(c, evs, labels);
-        const mode = rs.slotMode || (seg ? 'seg' : 'ev');
-        html = `<div class="seg small rs-sub-seg" id="rsSlotMode"><button data-v="seg"${mode === 'seg' ? ' class="on"' : ''}>按半小时评价</button><button data-v="ev"${mode === 'ev' ? ' class="on"' : ''}>按整条事件</button></div>`
-          + (mode === 'seg' ? seg || hint('还没有分段评价。编辑一条设了开始和结束时间的事件，在「分段评价」里给每半小时评级，这里就会统计。')
-            : whole || hint('这段时间没有设了时间段的记录。添加事件时选上时间段，这里就会按时段统计。'));
-      }
-    else if (!rated) html = hint('给事件评级之后，这里会出现等级趋势、时段分析和备注关键词。');
-    else {
-      const p = rsAnalysis(c, evs, span, labels);
-      if (rs.tab === 'trend') html = p.trend + p.model + p.weekday;
-      else html = (p.noteCmp ? `<div class="rs-card glass-panel rs-pad"><div class="rs-h">备注与等级</div>${p.noteCmp}</div>` : '') + p.kw;
-    }
-    $('#rsBody').innerHTML = html;
+    const rated = evs.filter(e => e.rate);
+    $('#rsBody').innerHTML = !evs.length ? '<div class="rs-empty">这段时间还没有记录</div>'
+      : rs.tab === 'slot' ? pageSlot(c, evs, labels) : rs.tab === 'ev' ? pageEv(c, evs, labels) : rs.tab === 'note' ? pageNote(c, rated) : pageAll(c, evs, rated, span, labels);
   }
   UI.bindList($('#rsBody'));
   $('#rsBody').addEventListener('click', e => {
-    const sm = e.target.closest('#rsSlotMode button');
-    if (sm) { rs.slotMode = sm.dataset.v; rs.openSlot.clear(); renderRstat(); return; }
-    const ev = e.target.closest('.rs-erow');
-    if (ev) { const k = ev.dataset.ev; rs.openEv.has(k) ? rs.openEv.delete(k) : rs.openEv.add(k); renderRstat(); return; }
-    const t = e.target.closest('.rs-trow');
-    if (t) { const i = Number(t.dataset.slot); rs.openSlot.has(i) ? rs.openSlot.delete(i) : rs.openSlot.add(i); renderRstat(); return; }
-    const r = e.target.closest('.rs-row'); if (!r) return;
-    const n = Number(r.dataset.lv); rs.open.has(n) ? rs.open.delete(n) : rs.open.add(n); renderRstat();
+    if (e.target.closest('[data-more]')) { rs.allEv = !rs.allEv; renderRstat(); return; }
+    const h = e.target.closest('.rs-evh'); if (!h) return;
+    rs.openEv = rs.openEv === h.dataset.ev ? null : h.dataset.ev; rs.allEv = false; renderRstat();
   });
-  $('#rsSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.range = b.dataset.v; rs.off = 0; renderRstat(); });
   $('#rsTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.tab = b.dataset.v; renderRstat(); $('.rs-scroll').scrollTop = 0; });
+  $('#rsSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.range = b.dataset.v; rs.off = 0; renderRstat(); });
   $('#rsPrev').onclick = () => { rs.off--; renderRstat(); };
   $('#rsNext').onclick = () => { rs.off++; renderRstat(); };
-  $('#rsNotes').onclick = () => { rs.notesOnly = !rs.notesOnly; renderRstat(); };
   $('#btnQuadDone').onclick = () => { MC.settings.quadShowDone = !MC.settings.quadShowDone; MC.saveSettings(); renderQuad(); };
 
   // ---------- 头像 / 昵称 ----------

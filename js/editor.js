@@ -135,21 +135,21 @@
     if (!blocks.length) { $('#cmpSegStrip').innerHTML = '<span class="cmp-hint">设了结束时间，就能按每半小时分段评价</span>'; $('#cmpSegLv').innerHTML = ''; return; }
     draft.segs = draft.segs || {};
     if (segSel >= blocks.length) segSel = 0;
-    $('#cmpSegStrip').innerHTML = blocks.map((b, i) => { const v = draft.segs[b.k] || 0;
-      return `<button class="seg-b${i === segSel ? ' sel' : ''}${v ? ' lv' + v : ''}" data-i="${i}" style="--c:${color}" aria-label="${b.k}–${b.end}"><i></i><span>${b.k}</span>${v ? `<em data-uc>${esc(labels[v - 1])}</em>` : ''}</button>`; }).join('');
+    // 没单独选的段跟着整条事件的等级（显示成虚线框），自己选了才算这一段的评价
+    const base = draft.rate || 0;
+    $('#cmpSegStrip').innerHTML = blocks.map((b, i) => { const own = draft.segs[b.k] || 0, v = own || base;
+      return `<button class="seg-b${i === segSel ? ' sel' : ''}${v ? ' lv' + v : ''}${own ? ' own' : ' inh'}" data-i="${i}" style="--c:${color}" aria-label="${b.k}–${b.end}"><i></i><span>${b.k}</span><em data-uc>${v ? esc(labels[v - 1]) : '–'}</em></button>`; }).join('');
     const cur = draft.segs[blocks[segSel].k] || 0, n = Object.keys(MC.pruneSegs(draft.segs, draft.time, draft.endTime)).length;
     $('#cmpSegLv').innerHTML = `<span class="cmp-hint">${blocks[segSel].k}–${blocks[segSel].end}：</span>`
-      + [0, 1, 2, 3, 4].map(v => `<button class="qchip pri rate${v === cur ? ' on' : ''}" data-v="${v}" style="--c:${v ? color : 'var(--p0)'}"><span class="dot"></span><span data-uc>${esc(v ? labels[v - 1] : '无')}</span></button>`).join('')
-      + (blocks.length > 1 && cur ? `<button class="qchip" data-act="all">整段都设为这个</button>` : '')
-      + (n ? `<button class="qchip" data-act="clear">清除 ${n} 段</button>` : '');
+      + [0, 1, 2, 3, 4].map(v => `<button class="qchip pri rate${v === cur ? ' on' : ''}" data-v="${v}" style="--c:${v ? color : 'var(--p0)'}"><span class="dot"></span><span data-uc>${esc(v ? labels[v - 1] : base ? `跟随整体（${labels[base - 1]}）` : '跟随整体')}</span></button>`).join('')
+      + (n ? `<button class="qchip" data-act="clear">全部恢复跟随（${n} 段）</button>` : '');
   }
   $('#cmpSegStrip').addEventListener('click', e => { const b = e.target.closest('.seg-b'); if (!b) return; segSel = Number(b.dataset.i); paintSegs(); });
   $('#cmpSegLv').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const blocks = MC.segBlocks(draft.time, draft.endTime); if (!blocks.length) return;
     draft.segs = { ...(draft.segs || {}) };
-    if (b.dataset.act === 'all') { const v = draft.segs[blocks[segSel].k]; blocks.forEach(x => { draft.segs[x.k] = v; }); }
-    else if (b.dataset.act === 'clear') draft.segs = {};
+    if (b.dataset.act === 'clear') draft.segs = {};
     else {
       const v = Number(b.dataset.v);
       if (v) draft.segs[blocks[segSel].k] = v; else delete draft.segs[blocks[segSel].k];
@@ -807,7 +807,25 @@
     $('#batchList').querySelectorAll('.brow').forEach(el => paintFlag(el.querySelector('[data-act="flag"]'), (MC.rateOn(newCal) ? rows[Number(el.dataset.i)].rate : rows[Number(el.dataset.i)].priority)));
     updateBatchCount();
     saveBatchDraft();
+    paintBatchPresets();
   }
+  // 常用事件：点一下填进正在编辑的空行，没有空行就新加一行
+  let batchFocus = -1;
+  function paintBatchPresets() {
+    const c = newCal && MC.cal(newCal), ps = (c && c.kind !== 'days' && c.presets) || [];
+    $('#batchPresets').hidden = !ps.length; if (!ps.length) return;
+    $('#batchPresets').innerHTML = `<span class="cmp-hint">常用</span>` + ps.map(p => `<button class="qchip preset" data-pid="${p.id}" style="--c:${c.color}"><span data-uc>${esc(p.name)}</span></button>`).join('');
+  }
+  $('#batchPresets').addEventListener('mousedown', e => e.preventDefault()); // 点常用事件时不让输入框失焦
+  $('#batchPresets').addEventListener('click', e => {
+    const b = e.target.closest('[data-pid]'); if (!b) return;
+    const c = MC.cal(newCal), p = c && (c.presets || []).find(x => x.id === b.dataset.pid); if (!p) return;
+    let i = batchFocus >= 0 && rows[batchFocus] && !rows[batchFocus].title.trim() ? batchFocus : rows.findIndex(r => !r.title.trim());
+    if (i < 0) { rows.push(blankRow(rows.length ? rows[rows.length - 1].date : draft.date)); i = rows.length - 1; }
+    rows[i].title = p.name;
+    renderBatch();
+    const next = rows.findIndex(r => !r.title.trim()); batchFocus = next;
+  });
   function updateBatchCount() {
     const n = rows.filter(r => r.title.trim()).length;
     $('#batchSave').textContent = n ? `添加 ${n} 项` : '添加';
@@ -819,6 +837,7 @@
     if (e.target.classList.contains('b-note')) r.note = e.target.value;
     saveBatchDraft();
   });
+  $('#batchList').addEventListener('focusin', e => { const el = e.target.closest('.brow'); if (el) batchFocus = Number(el.dataset.i); });
   $('#batchList').addEventListener('focusin', e => {
     // 只滚动列表本身，不能用 scrollIntoView（它会连带滚动整个面板和页面，导致面板“缩没了”）
     if (!e.target.matches('input')) return;
