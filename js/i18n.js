@@ -42,6 +42,10 @@
 
   const DICTS = {
     ja: {
+    "这周每天各时段的状态": "今週の毎日・時間帯別",
+    "这个月平均下来：周几 × 时段": "今月の平均：曜日 × 時間帯",
+    "每个月平均下来的时段状态": "月ごとの平均・時間帯別",
+    "点格子看是哪些记录": "マスをタップで記録を表示",
     "这个月每天的状态": "今月の毎日",
     "这周每天的状态": "今週の毎日",
     "每个月的状态": "毎月",
@@ -825,6 +829,10 @@
     "周{0}": a=>L.wd(a)+'曜日',
     },
     en: {
+    "这周每天各时段的状态": "Each day this week, by time",
+    "这个月平均下来：周几 × 时段": "This month on average: weekday × time",
+    "每个月平均下来的时段状态": "Each month on average, by time",
+    "点格子看是哪些记录": "Tap a square to see its entries",
     "这个月每天的状态": "Each day this month",
     "这周每天的状态": "Each day this week",
     "每个月的状态": "Each month",
@@ -1608,6 +1616,10 @@
     "想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。": "To change banners, sounds or how reminders appear in Notification Center, click “Notification style”.",
     },
     fr: {
+    "这周每天各时段的状态": "Chaque jour de la semaine, par heure",
+    "这个月平均下来：周几 × 时段": "Ce mois en moyenne : jour × heure",
+    "每个月平均下来的时段状态": "Chaque mois en moyenne, par heure",
+    "点格子看是哪些记录": "Touchez une case pour voir les entrées",
     "这个月每天的状态": "Chaque jour du mois",
     "这周每天的状态": "Chaque jour de la semaine",
     "每个月的状态": "Chaque mois",
@@ -2391,6 +2403,10 @@
     "想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。": "Pour régler les bannières, les sons ou l’affichage dans le centre de notifications, cliquez sur « Style des notifications ».",
     },
     'zh-Hant': {
+    "这周每天各时段的状态": "這週每天各時段的狀態",
+    "这个月平均下来：周几 × 时段": "這個月平均下來：週幾 × 時段",
+    "每个月平均下来的时段状态": "每個月平均下來的時段狀態",
+    "点格子看是哪些记录": "點格子看是哪些記錄",
     "这个月每天的状态": "這個月每天的狀態",
     "这周每天的状态": "這週每天的狀態",
     "每个月的状态": "每個月的狀態",

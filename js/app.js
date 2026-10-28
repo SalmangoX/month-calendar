@@ -320,42 +320,67 @@
   const short = (labels, v) => MC.esc(labels[lvOf(v) - 1].slice(0, 3));
   const legend = labels => `<div class="rs-legend">${[1, 2, 3, 4].map(v => `<span><i class="lv${v}"></i><b data-uc>${MC.esc(labels[v - 1])}</b></span>`).join('')}<span><i class="lv0"></i>没记录</span></div>`;
   const pickList = l => `<ul class="rs-list">${[...l].reverse().map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul>`;
-  // 本周 / 本月：日历格子，每格是那天的平均等级；本年 / 全部：每格是一个月
-  function stateGrid(c, rated, span, labels) {
-    const today = MC.todayStr(), byDay = new Map();
-    rated.forEach(e => byDay.set(e.date, [...(byDay.get(e.date) || []), e]));
-    let head = '', cells = '', title;
-    if (span && rs.range !== 'year') {
-      const ws = MC.settings.weekStart || 0, names = '日一二三四五六';
-      head = `<div class="rs-gh">${[0, 1, 2, 3, 4, 5, 6].map(i => `<span>${names[(ws + i) % 7]}</span>`).join('')}</div>`;
-      const lead = (span[0].getDay() - ws + 7) % 7;
-      cells = '<i></i>'.repeat(lead);
-      for (let d = new Date(span[0]); d <= span[1]; d = MC.addDays(d, 1)) {
-        const ds = MC.ymd(d), l = byDay.get(ds) || [], v = l.length ? avgOf(l) : 0;
-        cells += `<button class="rs-day lv${v ? lvOf(v) : 0}${ds === today ? ' today' : ''}${rs.pick === ds ? ' sel' : ''}${ds > today ? ' future' : ''}" data-pick="${ds}">
-          <b>${d.getDate()}</b>${v ? `<span data-uc>${short(labels, v)}</span>` : ''}</button>`;
-      }
-      title = rs.range === 'week' ? '这周每天的状态' : '这个月每天的状态';
-    } else {
-      const months = new Map();
-      rated.forEach(e => { const k = e.date.slice(0, 7); months.set(k, [...(months.get(k) || []), e]); });
-      let keys;
-      if (span) keys = Array.from({ length: 12 }, (_, i) => `${span[0].getFullYear()}-${String(i + 1).padStart(2, '0')}`);
-      else { const ks = [...months.keys()].sort(); keys = []; if (ks.length) for (let d = new Date(+ks[0].slice(0, 4), +ks[0].slice(5) - 1, 1); MC.ymd(d).slice(0, 7) <= ks[ks.length - 1]; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) keys.push(MC.ymd(d).slice(0, 7)); }
-      const multiYear = keys.length && keys[0].slice(0, 4) !== keys[keys.length - 1].slice(0, 4);
-      cells = keys.map(k => { const l = months.get(k) || [], v = l.length ? avgOf(l) : 0;
-        return `<button class="rs-day rs-mon lv${v ? lvOf(v) : 0}${rs.pick === k ? ' sel' : ''}" data-pick="${k}"><b>${multiYear ? k.slice(2, 4) + '年' : ''}${+k.slice(5)}月</b>${v ? `<span data-uc>${short(labels, v)}</span>` : ''}</button>`; }).join('');
-      title = '每个月的状态';
+  // ---- 时段热力图：列 = 日期 / 星期几 / 月份，行 = 半小时；格子颜色越深 = 等级越高 ----
+  function heatmap(id, cols, pts, labels, minN) {
+    const cp = cols.map(col => pts.filter(col.test));
+    const used = cp.flat();
+    if (!used.length) return '<p class="rs-hint">这段时间没有带开始和结束时间的已评级记录，这张图需要时间段</p>';
+    const hs = used.map(p => p.hh);
+    let h0 = Math.min(...hs), h1 = Math.max(...hs); h0 -= h0 % 2; if (h1 % 2 === 0) h1++;
+    const n = cols.length;
+    let html = `<div class="hm" style="grid-template-columns:2.8em repeat(${n},minmax(${n > 8 ? 22 : 30}px,1fr))"><span></span>`;
+    html += cols.map(col => `<div class="hm-h lv${col.avg ? lvOf(col.avg) : 0}"><b>${col.head}</b>${col.sub ? `<small>${col.sub}</small>` : ''}</div>`).join('');
+    const cells = [];
+    for (let h = h0; h <= h1; h++) {
+      html += `<span class="hm-t">${h % 2 ? '' : `${h / 2}:00`}</span>`;
+      cols.forEach((col, ci) => {
+        const l = cp[ci].filter(p => p.hh === h), v = l.length ? mean(l.map(p => p.v)) : 0, key = `${id}${ci}:${h}`;
+        if (l.length) cells.push({ col, h, l, v });
+        html += `<button class="hm-c lv${v ? lvOf(v) : 0}${l.length && l.length < minN ? ' few' : ''}${rs.pick === key ? ' sel' : ''}" data-pick="${key}" aria-label="${col.name} ${hhLabel(h)}"></button>`;
+      });
     }
-    // 点格子：说明这一格是怎么算出来的
-    let det = `<p class="rs-hint">点格子看是哪些记录</p>`;
-    if (rs.pick) {
-      const l = rs.pick.length === 10 ? byDay.get(rs.pick) || [] : rated.filter(e => e.date.startsWith(rs.pick));
-      const name = rs.pick.length === 10 ? `${+rs.pick.slice(5, 7)}月${+rs.pick.slice(8)}日` : `${rs.pick.slice(0, 4)}年${+rs.pick.slice(5)}月`;
-      det = l.length ? `<div class="rs-pickd"><p><b>${name}</b>　平均 ${f1(avgOf(l))}，算作「<span data-uc>${MC.esc(labels[lvOf(avgOf(l)) - 1])}</span>」· ${l.length} 条</p>${pickList(l)}</div>`
-        : `<div class="rs-pickd"><p><b>${name}</b>　没有评了级的记录</p></div>`;
+    html += '</div>';
+    // 一句话：最好 / 最差的格子（样本够的）
+    let pool = cells.filter(x => x.l.length >= minN); if (pool.length < 2) pool = cells;
+    pool.sort((a, b) => b.v - a.v || b.l.length - a.l.length);
+    const said = x => `${x.col.name} ${hhLabel(x.h)}「<span data-uc>${MC.esc(labels[lvOf(x.v) - 1])}</span>」`;
+    const say = pool.length >= 2 ? `<p class="rs-say3">最好：${said(pool[0])}<br>最差：${said(pool[pool.length - 1])}</p>` : '';
+    let det = `<p class="rs-hint">点格子看是哪些记录${minN > 1 ? `；颜色发淡的格子不到 ${minN} 段，只能参考` : ''}</p>`;
+    if (rs.pick && rs.pick.startsWith(id)) {
+      const [ci, h] = rs.pick.slice(id.length).split(':').map(Number), x = cells.find(c => c.col === cols[ci] && c.h === h);
+      if (x) det = `<div class="rs-pickd"><p><b>${x.col.name} ${hhLabel(h)}–${hhLabel(h + 1)}</b>　平均 ${f1(x.v)}，算作「<span data-uc>${MC.esc(labels[lvOf(x.v) - 1])}</span>」· ${x.l.length} 段，来自：</p>${pickList([...new Set(x.l.map(p => p.e))])}</div>`;
     }
-    return card(title, `${head}<div class="rs-grid${head ? '' : ' months'}">${cells}</div>${legend(labels)}${det}`);
+    return say + `<div class="hm-wrap">${html}</div>` + legend(labels) + det;
+  }
+  const WDS = '日一二三四五六';
+  function weekdayCols(rated, ws) {
+    return [0, 1, 2, 3, 4, 5, 6].map(i => { const wd = (ws + i) % 7, l = rated.filter(e => MC.parse(e.date).getDay() === wd);
+      return { head: WDS[wd], name: '周' + WDS[wd], avg: l.length ? avgOf(l) : 0, test: p => MC.parse(p.e.date).getDay() === wd }; });
+  }
+  const monthCols = (rated, keys, multiYear) => keys.map(k => { const l = rated.filter(e => e.date.startsWith(k));
+    return { head: keys.length > 8 ? String(+k.slice(5)) : `${+k.slice(5)}月`, sub: multiYear && (k.endsWith('-01') || k === keys[0]) ? k.slice(2, 4) + '年' : '', name: `${multiYear ? k.slice(0, 4) + '年' : ''}${+k.slice(5)}月`, avg: l.length ? avgOf(l) : 0, test: p => p.e.date.startsWith(k) }; });
+  function timeMap(c, evs, rated, span, labels) {
+    const pts = segPoints(evs), ws = MC.settings.weekStart || 0;
+    if (rs.range === 'week') { // 这周的 7 天：每列是具体的那一天
+      const cols = []; for (let d = new Date(span[0]); d <= span[1]; d = MC.addDays(d, 1)) { const ds = MC.ymd(d), l = rated.filter(e => e.date === ds);
+        cols.push({ head: WDS[d.getDay()], sub: String(d.getDate()), name: `${d.getMonth() + 1}月${d.getDate()}日`, avg: l.length ? avgOf(l) : 0, test: p => p.e.date === ds }); }
+      return card('这周每天各时段的状态', heatmap('w', cols, pts, labels, 1));
+    }
+    if (rs.range === 'month') return card('这个月平均下来：周几 × 时段', heatmap('m', weekdayCols(rated, ws), pts, labels, 2));
+    if (rs.range === 'year') {
+      const y = span[0].getFullYear(), keys = Array.from({ length: 12 }, (_, i) => `${y}-${String(i + 1).padStart(2, '0')}`);
+      return card(`${y}年每个月平均下来的时段状态`, heatmap('y', monthCols(rated, keys, false), pts, labels, 2));
+    }
+    // 全部：上面是每个月的时段状态，下面选一个月看它的「周几 × 时段」
+    const ks = [...new Set(rated.map(e => e.date.slice(0, 7)))].sort();
+    if (!ks.length) return '';
+    const keys = []; for (let d = new Date(+ks[0].slice(0, 4), +ks[0].slice(5) - 1, 1); MC.ymd(d).slice(0, 7) <= ks[ks.length - 1]; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) keys.push(MC.ymd(d).slice(0, 7));
+    const multiYear = keys[0].slice(0, 4) !== keys[keys.length - 1].slice(0, 4);
+    if (!rs.allMonth || !ks.includes(rs.allMonth)) rs.allMonth = ks[ks.length - 1];
+    const mk = rs.allMonth, mRated = rated.filter(e => e.date.startsWith(mk)), mPts = pts.filter(p => p.e.date.startsWith(mk));
+    const chips = `<div class="rs-mchips">${ks.map(k => `<button data-month="${k}"${k === mk ? ' class="on"' : ''}>${multiYear ? k.slice(2, 4) + '年' : ''}${+k.slice(5)}月</button>`).join('')}</div>`;
+    return card('每个月平均下来的时段状态', heatmap('a', monthCols(rated, keys, multiYear), pts, labels, 2))
+      + card(`${multiYear ? mk.slice(0, 4) + '年' : ''}${+mk.slice(5)}月平均下来：周几 × 时段`, chips + heatmap('b', weekdayCols(mRated, ws), mPts, labels, 2));
   }
   function pageAll(c, evs, rated, span, labels) {
     const avg = avgOf(rated), done = evs.filter(e => e.done).length;
@@ -385,7 +410,7 @@
     const gs = [...g.entries()].filter(([, l]) => l.length >= MIN_N);
     if (gs.length >= 2) { const b = gs.sort((x, y) => avgOf(y[1]) - avgOf(x[1]))[0]; facts.push(['评价最高的事件', `<span data-uc>${MC.esc(b[0])}</span>　<span data-uc>${MC.esc(labels[lvOf(avgOf(b[1])) - 1])}</span>`, `${b[1].length} 次`]); }
     const fc = facts.length ? card('', facts.map(([k, v, n]) => `<div class="rs-kv"><span>${k}</span><b>${v}<small>${n}</small></b></div>`).join('')) : '';
-    return hero + stateGrid(c, rated, span, labels) + fc;
+    return hero + timeMap(c, evs, rated, span, labels) + fc;
   }
   // 时段：按钟点排成一张「时间表」，每格写着等级名和段数，一看就知道几点状态好
   function pageSlot(c, evs, labels) {
@@ -511,6 +536,8 @@
   UI.bindList($('#rsBody'));
   $('#rsBody').addEventListener('click', e => {
     if (e.target.closest('[data-more]')) { rs.allEv = !rs.allEv; renderRstat(); return; }
+    const mo = e.target.closest('[data-month]');
+    if (mo) { rs.allMonth = mo.dataset.month; rs.pick = null; renderRstat(); return; }
     const pk = e.target.closest('[data-pick]');
     if (pk) { rs.pick = rs.pick === pk.dataset.pick ? null : pk.dataset.pick; renderRstat(); return; }
     const h = e.target.closest('.rs-evh'); if (!h) return;
