@@ -268,10 +268,174 @@
     if (rs.range === 'year') { const y = t.getFullYear() + rs.off; return [new Date(y, 0, 1), new Date(y, 11, 31)]; }
     return null;
   }
+  // ---- 统计图表与模型：等级趋势（柱 + 平均线 + 回归线）、星期分布、备注关键词 ----
+  const dayNum = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 864e5;
+  const numDay = n => { const d = new Date(n * 864e5); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
+  const avgOf = l => (l.length ? l.reduce((s, e) => s + e.rate, 0) / l.length : 0);
+  const fx = (v, n = 2) => (Math.round(v * 10 ** n) / 10 ** n).toFixed(n);
+  // 最小二乘直线：等级 ~ 日期
+  function fitLine(pts) {
+    const n = pts.length; if (n < 3) return null;
+    const mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
+    let sxx = 0, sxy = 0, syy = 0;
+    for (const [x, y] of pts) { sxx += (x - mx) ** 2; sxy += (x - mx) * (y - my); syy += (y - my) ** 2; }
+    if (!sxx) return null;
+    const b = sxy / sxx, a = my - b * mx;
+    return { a, b, n, r2: syy ? (sxy * sxy) / (sxx * syy) : 0, at: x => Math.max(1, Math.min(4, a + b * x)) };
+  }
+  // 时间分桶：本周 / 本月按天，本年按月；全部按跨度自动选天 / 月 / 年
+  function rsBins(evs, span) {
+    let x0, x1;
+    if (span) { x0 = dayNum(MC.ymd(span[0])); x1 = dayNum(MC.ymd(span[1])); }
+    else { x0 = dayNum(evs[0].date); x1 = dayNum(evs[evs.length - 1].date); }
+    const len = x1 - x0 + 1;
+    const unit = rs.range === 'year' ? 'm' : span ? 'd' : len <= 62 ? 'd' : len <= 1100 ? 'm' : 'y';
+    const bins = [];
+    if (unit === 'd') for (let x = x0; x <= x1; x++) { const d = numDay(x); bins.push({ x0: x, x1: x, label: String(d.getDate()) }); }
+    else {
+      let d = numDay(x0); d = unit === 'm' ? new Date(d.getFullYear(), d.getMonth(), 1) : new Date(d.getFullYear(), 0, 1);
+      while (dayNum(MC.ymd(d)) <= x1) {
+        const nx = unit === 'm' ? new Date(d.getFullYear(), d.getMonth() + 1, 1) : new Date(d.getFullYear() + 1, 0, 1);
+        bins.push({ x0: dayNum(MC.ymd(d)), x1: dayNum(MC.ymd(nx)) - 1, label: unit === 'm' ? `${d.getMonth() + 1}月` : String(d.getFullYear()) });
+        d = nx;
+      }
+    }
+    for (const b of bins) { b.c = [0, 0, 0, 0, 0]; b.r = []; }
+    let j = 0;
+    for (const e of evs) {
+      const x = dayNum(e.date);
+      while (j < bins.length - 1 && x > bins[j].x1) j++;
+      const b = bins[j]; b.c[e.rate || 0]++; if (e.rate) b.r.push(e);
+    }
+    for (const b of bins) { b.n = b.c.reduce((s, v) => s + v, 0); b.avg = avgOf(b.r); }
+    return { bins, unit };
+  }
+  const OP = [.18, .3, .5, .72, 1];
+  function trendSVG(bins, color, fit) {
+    const W = 340, H = 170, L = 22, R = 20, T = 10, B = 22, ih = H - T - B, n = bins.length, cw = (W - L - R) / n, bw = Math.max(2, Math.min(18, cw * .62));
+    const maxC = Math.max(1, ...bins.map(b => b.n)), yR = v => T + ih * (1 - (v - 1) / 3);
+    const step = Math.ceil(n / 8);
+    let s = '';
+    for (let r = 1; r <= 4; r++) s += `<line x1="${L}" x2="${W - R}" y1="${yR(r)}" y2="${yR(r)}" class="rs-grid"/><text x="${W - R + 5}" y="${yR(r) + 3}" class="rs-ax">${r}</text>`;
+    s += `<text x="${L - 5}" y="${T + 3}" class="rs-ax" text-anchor="end">${maxC}</text><text x="${L - 5}" y="${H - B}" class="rs-ax" text-anchor="end">0</text>`;
+    bins.forEach((b, i) => {
+      const x = L + cw * i + (cw - bw) / 2; let y = H - B;
+      for (const lv of [1, 2, 3, 4, 0]) {
+        const k = b.c[lv]; if (!k) continue;
+        const h = ih * k / maxC; y -= h;
+        s += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${lv ? color : 'var(--text2)'}" fill-opacity="${OP[lv]}"/>`;
+      }
+      if (i % step === 0) s += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 7}" class="rs-ax" text-anchor="middle">${MC.esc(b.label)}</text>`;
+    });
+    const cx = b => L + cw * (bins.indexOf(b) + .5);
+    if (fit) {
+      const xa = (bins[0].x0 + bins[0].x1) / 2, xb = (bins[n - 1].x0 + bins[n - 1].x1) / 2;
+      s += `<line x1="${cx(bins[0]).toFixed(1)}" x2="${cx(bins[n - 1]).toFixed(1)}" y1="${yR(fit.at(xa)).toFixed(1)}" y2="${yR(fit.at(xb)).toFixed(1)}" class="rs-fit"/>`;
+    }
+    const pts = bins.filter(b => b.r.length).map(b => [cx(b), yR(b.avg)]);
+    if (pts.length > 1) s += `<polyline points="${pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}" class="rs-avg"/>`;
+    s += pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" class="rs-dot"/>`).join('');
+    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="等级趋势">${s}</svg>`;
+  }
+  function weekdaySVG(rated, color) {
+    const W = 340, H = 120, T = 8, B = 30, ih = H - T - B, cw = W / 7, ws = MC.settings.weekStart || 0;
+    const names = ['日', '一', '二', '三', '四', '五', '六'];
+    let s = '';
+    for (let i = 0; i < 7; i++) {
+      const wd = (ws + i) % 7, l = rated.filter(e => MC.parse(e.date).getDay() === wd), v = avgOf(l), x = cw * i + cw * .22, w = cw * .56;
+      s += `<rect x="${x.toFixed(1)}" y="${T}" width="${w.toFixed(1)}" height="${ih}" rx="5" class="rs-track"/>`;
+      if (l.length) {
+        const h = ih * v / 4;
+        s += `<rect x="${x.toFixed(1)}" y="${(T + ih - h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="5" fill="${color}" fill-opacity="${(.3 + .7 * (v - 1) / 3).toFixed(2)}"/>`
+          + `<text x="${(x + w / 2).toFixed(1)}" y="${(T + ih - h - 4).toFixed(1)}" class="rs-ax strong" text-anchor="middle">${fx(v, 1)}</text>`;
+      }
+      s += `<text x="${(x + w / 2).toFixed(1)}" y="${H - 15}" class="rs-ax" text-anchor="middle">周${names[wd]}</text><text x="${(x + w / 2).toFixed(1)}" y="${H - 3}" class="rs-ax dim" text-anchor="middle">${l.length ? l.length + '条' : ''}</text>`;
+    }
+    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="星期分布">${s}</svg>`;
+  }
+  // 备注分词：浏览器支持 Intl.Segmenter 就按词切，否则汉字按两字一组、字母按单词
+  const STOP = new Set(('的 了 是 我 你 他 她 它 们 也 很 都 就 在 和 与 及 或 有 没 不 这 那 个 一 一个 一些 还 又 再 被 把 给 让 吧 吗 呢 啊 呀 哦 嗯 着 过 到 说 要 会 能 可以 觉得 感觉 比较 有点 一点 非常 特别 真的 然后 但是 但 而且 因为 所以 如果 什么 怎么 自己 没有 就是 还是 已经 之后 之前 时候 今天 昨天 明天 '
+    + 'the a an and or of to in is it this that for on with was are be i my me so very but not').split(' '));
+  let segr = null; try { segr = new Intl.Segmenter('zh', { granularity: 'word' }); } catch (e) {}
+  function tokens(s) {
+    const out = new Set(), txt = String(s || '').toLowerCase();
+    const add = w => { w = w.trim(); if (!w || STOP.has(w) || /^[\d.,:]+$/.test(w)) return; if (!/[\u3400-\u9fff]/.test(w) && w.length < 3) return; out.add(w.slice(0, 16)); };
+    if (segr) { // 词典里没有的词会被切成单字（文笔 → 文 / 笔）：连续的单个汉字拼回一个词
+      let run = '';
+      const flush = () => { if (run) add(run); run = ''; };
+      for (const t of segr.segment(txt)) {
+        if (!t.isWordLike) { flush(); continue; }
+        const w = t.segment;
+        if (w.length === 1 && /[\u3400-\u9fff]/.test(w) && !STOP.has(w)) run += w; else { flush(); add(w); }
+      }
+      flush();
+    }
+    else {
+      (txt.match(/[a-z\u00c0-\u024f0-9']+/g) || []).forEach(add);
+      (txt.match(/[\u3400-\u9fff]+/g) || []).forEach(r => { if (r.length === 1) add(r); for (let i = 0; i + 1 < r.length; i++) add(r.slice(i, i + 2)); });
+    }
+    return out;
+  }
+  function keywordStats(evs) {
+    const m = new Map();
+    for (const e of evs) if (e.note) for (const w of tokens(e.note)) {
+      let k = m.get(w); if (!k) m.set(w, k = { w, n: 0, r: [], lv: [0, 0, 0, 0, 0] });
+      k.n++; k.lv[e.rate || 0]++; if (e.rate) k.r.push(e);
+    }
+    return [...m.values()].map(k => ({ ...k, avg: avgOf(k.r) }));
+  }
+  function rsAnalysis(c, evs, span, labels) {
+    const rated = evs.filter(e => e.rate);
+    if (!rated.length) return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">分析</div><p class="rs-note">给事件评级之后，这里会出现等级趋势、星期分布和备注关键词分析。</p></div>`;
+    const mean = avgOf(rated), { bins, unit } = rsBins(evs, span);
+    const fit = fitLine(rated.map(e => [dayNum(e.date), e.rate]));
+    // 趋势模型的结论
+    let model = '';
+    if (!fit || fit.n < 5) model = `<p class="rs-note">已评级的记录还太少（${rated.length} 条），至少 5 条才能估计趋势。</p>`;
+    else {
+      const per = unit === 'd' ? 7 : 30, perName = unit === 'd' ? '每周' : '每月', slope = fit.b * per;
+      const flat = Math.abs(slope) < .05 || fit.r2 < .05;
+      const verdict = flat ? '基本平稳' : slope > 0 ? '在上升' : '在下降';
+      const lastX = dayNum(evs[evs.length - 1].date), plen = span ? bins[bins.length - 1].x1 - bins[0].x0 + 1 : (bins[bins.length - 1].x1 - bins[bins.length - 1].x0 + 1);
+      const nextX = (span ? bins[bins.length - 1].x1 : lastX) + plen / 2, pred = fit.at(nextX);
+      const nextName = rs.range === 'week' ? '下周' : rs.range === 'month' ? '下个月' : rs.range === 'year' ? '明年' : unit === 'd' ? '接下来几天' : unit === 'm' ? '下个月' : '明年';
+      const near = labels[Math.round(pred) - 1];
+      model = `<div class="rs-kv"><span>趋势</span><b>${verdict}</b></div>
+        <div class="rs-kv"><span>变化速度</span><b>${perName} ${slope >= 0 ? '+' : ''}${fx(slope)} 级</b></div>
+        <div class="rs-kv"><span>拟合度 R²</span><b>${fx(fit.r2)}</b></div>
+        ${flat ? '' : `<div class="rs-kv"><span>${nextName}预计平均</span><b>${fx(pred, 1)}<small data-uc>${MC.esc(near)}</small></b></div>`}
+        <p class="rs-note">${fit.r2 < .3 ? '拟合度较低：等级波动大，趋势只能作参考。' : '拟合度不错，这个趋势比较可靠。'}模型：等级 = a + b × 日期（最小二乘，${fit.n} 条已评级记录）。</p>`;
+    }
+    // 有备注 / 没备注
+    const wn = rated.filter(e => e.note), nn = rated.filter(e => !e.note);
+    const noteCmp = wn.length && nn.length ? `<div class="rs-kv"><span>写了备注的平均等级</span><b>${fx(avgOf(wn))}<small>${wn.length} 条</small></b></div><div class="rs-kv"><span>没写备注的平均等级</span><b>${fx(avgOf(nn))}<small>${nn.length} 条</small></b></div>` : '';
+    // 备注关键词
+    const kw = keywordStats(evs), minN = kw.some(k => k.n >= 2) ? 2 : 1;
+    const top = kw.filter(k => k.n >= minN).sort((x, y) => y.n - x.n || y.avg - x.avg).slice(0, 12);
+    const scored = kw.filter(k => k.r.length >= 2);
+    const hi = [...scored].sort((x, y) => y.avg - x.avg || y.n - x.n).filter(k => k.avg > mean).slice(0, 5);
+    const lo = [...scored].sort((x, y) => x.avg - y.avg || y.n - x.n).filter(k => k.avg < mean).slice(0, 5);
+    const chip = k => `<span class="rs-kw" style="--k:${k.r.length ? (.15 + .85 * (k.avg - 1) / 3).toFixed(2) : 0}"><b data-uc>${MC.esc(k.w)}</b><small>${k.r.length ? fx(k.avg, 1) : '–'}</small></span>`;
+    const perLv = [4, 3, 2, 1].map(lv => {
+      const ws = kw.filter(k => k.lv[lv]).sort((x, y) => y.lv[lv] - x.lv[lv] || y.n - x.n).slice(0, 5);
+      return ws.length ? `<div class="rs-lvw"><span class="rs-lvn" data-uc style="--k:${OP[lv]}">${MC.esc(labels[lv - 1])}</span><span class="rs-lvl" data-uc>${ws.map(k => MC.esc(k.w)).join('、')}</span></div>` : '';
+    }).join('');
+    const kwCard = top.length ? `<div class="rs-card glass-panel rs-pad"><div class="rs-h">备注关键词<small>数字是含这个词的记录的平均等级</small></div>
+        <div class="rs-kws">${top.map(chip).join('')}</div>
+        ${hi.length ? `<div class="rs-sh">高分常见</div><div class="rs-kws">${hi.map(chip).join('')}</div>` : ''}
+        ${lo.length ? `<div class="rs-sh">低分常见</div><div class="rs-kws">${lo.map(chip).join('')}</div>` : ''}
+        ${perLv ? `<div class="rs-sh">各等级常用词</div>${perLv}` : ''}
+      </div>` : `<div class="rs-card glass-panel rs-pad"><div class="rs-h">备注关键词</div><p class="rs-note">这段时间的记录还没有备注。写了备注之后，这里会分析哪些词常和高分、低分一起出现。</p></div>`;
+    return `<div class="rs-card glass-panel rs-pad" style="--c:${c.color}"><div class="rs-h">等级趋势<small>柱：各等级数量 · 实线：平均等级 · 虚线：趋势</small></div>${trendSVG(bins, c.color, fit && fit.n >= 5 ? fit : null)}</div>
+      <div class="rs-card glass-panel rs-pad"><div class="rs-h">趋势模型</div>${model}${noteCmp}</div>
+      <div class="rs-card glass-panel rs-pad"><div class="rs-h">星期分布<small>每天的平均等级</small></div>${weekdaySVG(rated, c.color)}</div>
+      ${kwCard}`;
+  }
   function renderRstat() {
     const c = recCal(); if (!c) return;
     const span = rsSpan(), labels = MC.rateLabels(c.id);
     $('#rsName').textContent = c.name;
+    $('#page-rstat').style.setProperty('--c', c.color);
     $('#rsNotes').classList.toggle('on', rs.notesOnly);
     $('#rsSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === rs.range));
     $('#rsNav').hidden = !span;
@@ -296,9 +460,11 @@
     };
     $('#rsBody').innerHTML = evs.length ? `<div class="rs-sum glass-panel">
         <div class="rs-big">${evs.length}<small>条记录</small></div>
+        ${rated ? `<div class="rs-avgbox"><b>${fx(avgOf(evs.filter(e => e.rate)))}</b><small>平均等级 · ≈ <span data-uc>${MC.esc(labels[Math.round(avgOf(evs.filter(e => e.rate))) - 1])}</span></small></div>` : ''}
         <div class="rs-meta"><span>已评级 ${rated}</span><span>未评级 ${evs.length - rated}</span><span>已完成 ${done}</span></div>
       </div>
-      <div class="rs-card glass-panel">${[4, 3, 2, 1, 0].map(row).join('')}</div>`
+      <div class="rs-card glass-panel">${[4, 3, 2, 1, 0].map(row).join('')}</div>
+      ${rsAnalysis(c, evs, span, labels)}`
       : `<div class="rs-empty">${rs.notesOnly ? '这段时间没有带备注的记录' : '这段时间还没有记录'}</div>`;
   }
   UI.bindList($('#rsBody'));
