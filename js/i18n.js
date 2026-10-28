@@ -42,6 +42,11 @@
 
   const DICTS = {
     ja: {
+    "每天平均等级": "日ごとの平均",
+    "每月平均等级": "月ごとの平均",
+    "每年平均等级": "年ごとの平均",
+    "虚线是平均 {0} · 点柱子看当天": "破線は平均 {0} · 棒をタップでその日",
+    "虚线是平均 {0} · 点柱子看详情": "破線は平均 {0} · 棒をタップで詳細",
     "周": "週",
     "月": "月",
     "年": "年",
@@ -809,6 +814,11 @@
     "周{0}": a=>L.wd(a)+'曜日',
     },
     en: {
+    "每天平均等级": "Daily average",
+    "每月平均等级": "Monthly average",
+    "每年平均等级": "Yearly average",
+    "虚线是平均 {0} · 点柱子看当天": "Dashed line = average {0} · tap a bar for that day",
+    "虚线是平均 {0} · 点柱子看详情": "Dashed line = average {0} · tap a bar for details",
     "周": "Week",
     "月": "Month",
     "年": "Year",
@@ -1576,6 +1586,11 @@
     "想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。": "To change banners, sounds or how reminders appear in Notification Center, click “Notification style”.",
     },
     fr: {
+    "每天平均等级": "Moyenne par jour",
+    "每月平均等级": "Moyenne par mois",
+    "每年平均等级": "Moyenne par an",
+    "虚线是平均 {0} · 点柱子看当天": "Pointillés = moyenne {0} · touchez une barre pour le jour",
+    "虚线是平均 {0} · 点柱子看详情": "Pointillés = moyenne {0} · touchez une barre pour le détail",
     "周": "Semaine",
     "月": "Mois",
     "年": "Année",
@@ -2343,6 +2358,11 @@
     "想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。": "Pour régler les bannières, les sons ou l’affichage dans le centre de notifications, cliquez sur « Style des notifications ».",
     },
     'zh-Hant': {
+    "每天平均等级": "每天平均等級",
+    "每月平均等级": "每月平均等級",
+    "每年平均等级": "每年平均等級",
+    "虚线是平均 {0} · 点柱子看当天": "虛線是平均 {0} · 點柱子看當天",
+    "虚线是平均 {0} · 点柱子看详情": "虛線是平均 {0} · 點柱子看詳情",
     "周": "週",
     "月": "月",
     "年": "年",

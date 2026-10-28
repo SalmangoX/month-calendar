@@ -297,12 +297,12 @@
   function bins(evs, span) {
     const x0 = span ? dayNum(MC.ymd(span[0])) : dayNum(evs[0].date), x1 = span ? dayNum(MC.ymd(span[1])) : dayNum(evs[evs.length - 1].date);
     const unit = rs.range === 'year' ? 'm' : span ? 'd' : x1 - x0 <= 62 ? 'd' : x1 - x0 <= 1100 ? 'm' : 'y', out = [];
-    if (unit === 'd') for (let x = x0; x <= x1; x++) out.push({ x0: x, x1: x, label: `${numDay(x).getMonth() + 1}/${numDay(x).getDate()}` });
+    if (unit === 'd') for (let x = x0; x <= x1; x++) { const d = numDay(x); out.push({ x0: x, x1: x, label: `${d.getMonth() + 1}月${d.getDate()}日`, short: rs.range === 'week' ? WD[d.getDay()].slice(1) : rs.range === 'month' ? String(d.getDate()) : `${d.getMonth() + 1}/${d.getDate()}` }); }
     else {
       let d = numDay(x0); d = unit === 'm' ? new Date(d.getFullYear(), d.getMonth(), 1) : new Date(d.getFullYear(), 0, 1);
       while (dayNum(MC.ymd(d)) <= x1) {
         const nx = unit === 'm' ? new Date(d.getFullYear(), d.getMonth() + 1, 1) : new Date(d.getFullYear() + 1, 0, 1);
-        out.push({ x0: dayNum(MC.ymd(d)), x1: dayNum(MC.ymd(nx)) - 1, label: unit === 'm' ? `${d.getMonth() + 1}月` : String(d.getFullYear()) });
+        out.push({ x0: dayNum(MC.ymd(d)), x1: dayNum(MC.ymd(nx)) - 1, label: unit === 'm' ? `${d.getFullYear()}年${d.getMonth() + 1}月` : `${d.getFullYear()}年`, short: unit === 'm' ? String(d.getMonth() + 1) : String(d.getFullYear()).slice(2) });
         d = nx;
       }
     }
@@ -311,19 +311,28 @@
   }
 
   // ---- 图表（只画必要的东西）----
-  function lineSVG(bs, color) { // 平均等级随时间：折线 + 淡色面积，纵轴固定 1–4
-    const W = 320, H = 110, P = 8, B = 18, ih = H - P - B, n = bs.length, x = i => P + (n > 1 ? (W - P * 2) * i / (n - 1) : (W - P * 2) / 2), y = v => P + ih * (1 - (v - 1) / 3);
-    const pts = bs.map((b, i) => (b.n ? [x(i), y(b.v)] : null)).filter(Boolean);
-    let s = [1, 2.5, 4].map(v => `<line x1="${P}" x2="${W - P}" y1="${y(v)}" y2="${y(v)}" class="rs-gl"/>`).join('');
-    if (pts.length > 1) {
-      const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
-      s += `<path d="${d}L${pts[pts.length - 1][0].toFixed(1)},${H - B}L${pts[0][0].toFixed(1)},${H - B}Z" fill="${color}" fill-opacity=".1"/><path d="${d}" class="rs-ln" stroke="${color}"/>`;
-    }
-    s += pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${pts.length > 20 ? 1.8 : 2.8}" fill="${color}"/>`).join('');
-    const ls = n <= 1 ? [0] : [0, Math.floor((n - 1) / 2), n - 1];
-    s += [...new Set(ls)].map(i => `<text x="${x(i).toFixed(1)}" y="${H - 4}" class="rs-ax" text-anchor="${i === 0 && n > 1 ? 'start' : i === n - 1 && n > 1 ? 'end' : 'middle'}">${MC.esc(bs[i].label)}</text>`).join('');
-    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}">${s}</svg>`;
+  // 每天（本年 / 全部按月）的平均等级：柱子越高、颜色越深 = 越好；左边直接写等级名，虚线是这段时间的平均
+  function dailySVG(bs, color, labels, avg) {
+    const W = 320, H = 150, L = 40, R = 6, T = 8, B = 20, ih = H - T - B, n = bs.length, cw = (W - L - R) / n, bw = Math.max(3, Math.min(20, cw * .66));
+    const y = v => T + ih * (1 - v / 4), today = dayNum(MC.todayStr());
+    let s = '';
+    [1, 2, 3, 4].forEach(v => {
+      s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="rs-gl"/><text x="${L - 6}" y="${y(v) + 3}" class="rs-ax rs-axl" text-anchor="end">${MC.esc(labels[v - 1].slice(0, 4))}</text>`;
+    });
+    s += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" class="rs-base"/>`;
+    const every = n > 20 ? 5 : n > 12 ? 2 : 1;
+    bs.forEach((b, i) => {
+      const cx = L + cw * (i + .5), x = cx - bw / 2, isToday = today >= b.x0 && today <= b.x1;
+      if (b.n) s += `<rect x="${x.toFixed(1)}" y="${y(b.v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(y(0) - y(b.v)).toFixed(1)}" rx="${Math.min(4, bw / 2).toFixed(1)}" fill="${color}" fill-opacity="${(.3 + .7 * (b.v - 1) / 3).toFixed(2)}"${rs.pick === i ? ' class="rs-picked"' : ''}/>`;
+      else s += `<circle cx="${cx.toFixed(1)}" cy="${(y(0) - 3).toFixed(1)}" r="1.6" class="rs-nodot"/>`;
+      s += `<rect x="${(L + cw * i).toFixed(1)}" y="${T}" width="${cw.toFixed(1)}" height="${ih + B}" fill="transparent" data-bin="${i}" style="cursor:pointer"/>`; // 点按区域
+      const lab = (i === 0 || (i + 1) % every === 0 || i === n - 1) && !(every > 1 && i === n - 2);
+      if (lab || isToday) s += `<text x="${cx.toFixed(1)}" y="${H - 5}" class="rs-ax${isToday ? ' rs-today' : ''}" text-anchor="middle">${MC.esc(b.short)}</text>`;
+    });
+    if (avg) s += `<line x1="${L}" x2="${W - R}" y1="${y(avg).toFixed(1)}" y2="${y(avg).toFixed(1)}" class="rs-avgl" stroke="${color}"/>`;
+    return `<svg class="rs-svg rs-daily" viewBox="0 0 ${W} ${H}">${s}</svg>`;
   }
+  const pickText = (b, labels) => (b.n ? `${b.label} · 平均 ${f1(b.v)}（${labels[Math.max(1, Math.round(b.v)) - 1]}）· ${b.n} 条` : `${b.label} · 没有评级记录`);
   function colSVG(cols, color, labelEvery) { // 柱高 = 平均等级；最高的一根用实色，其余淡色
     const W = 320, H = 96, T = 6, B = 18, ih = H - T - B, n = cols.length, cw = W / n, bw = Math.max(3, Math.min(22, cw * .62));
     const top = Math.max(...cols.map(c => (c.n ? c.v : 0)));
@@ -357,7 +366,10 @@
       </section>`;
     if (!rated.length) return hero;
     const bs = bins(evs, span);
-    const trend = bs.filter(b => b.n).length > 1 ? card('变化', lineSVG(bs, c.color)) : '';
+    rs.bins = bs; rs.labels = labels; if (rs.pick >= bs.length) rs.pick = null;
+    const unitName = bs[0] && bs[0].x0 === bs[0].x1 ? '每天' : bs[0] && bs[0].label.endsWith('月') ? '每月' : '每年';
+    const trend = card(`${unitName}平均等级`, dailySVG(bs, c.color, labels, avg)
+      + `<p class="rs-pick" id="rsPick">${rs.pick !== null && rs.pick !== undefined && bs[rs.pick] ? pickText(bs[rs.pick], labels) : `虚线是平均 ${f1(avg)} · 点柱子看${unitName === '每天' ? '当天' : '详情'}`}</p>`);
     // 亮点：最多三句
     const facts = [];
     const sp = segPoints(evs), slots = SLOTS.map(s => ({ s, l: sp.filter(p => p.clock >= s[1] * 60 && p.clock < s[2] * 60) })).filter(x => x.l.length >= 2);
@@ -467,13 +479,15 @@
   UI.bindList($('#rsBody'));
   $('#rsBody').addEventListener('click', e => {
     if (e.target.closest('[data-more]')) { rs.allEv = !rs.allEv; renderRstat(); return; }
+    const bin = e.target.closest('[data-bin]');
+    if (bin) { const i = Number(bin.dataset.bin); rs.pick = rs.pick === i ? null : i; renderRstat(); return; }
     const h = e.target.closest('.rs-evh'); if (!h) return;
     rs.openEv = rs.openEv === h.dataset.ev ? null : h.dataset.ev; rs.allEv = false; renderRstat();
   });
   $('#rsTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.tab = b.dataset.v; renderRstat(); $('.rs-scroll').scrollTop = 0; });
-  $('#rsSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.range = b.dataset.v; rs.off = 0; renderRstat(); });
-  $('#rsPrev').onclick = () => { rs.off--; renderRstat(); };
-  $('#rsNext').onclick = () => { rs.off++; renderRstat(); };
+  $('#rsSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.range = b.dataset.v; rs.off = 0; rs.pick = null; renderRstat(); });
+  $('#rsPrev').onclick = () => { rs.off--; rs.pick = null; renderRstat(); };
+  $('#rsNext').onclick = () => { rs.off++; rs.pick = null; renderRstat(); };
   $('#btnQuadDone').onclick = () => { MC.settings.quadShowDone = !MC.settings.quadShowDone; MC.saveSettings(); renderQuad(); };
 
   // ---------- 头像 / 昵称 ----------
