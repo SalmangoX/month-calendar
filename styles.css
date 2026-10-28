@@ -1125,3 +1125,51 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-today { fill: var(--c); font-weight: 700; }
 .rs-picked { stroke: var(--text); stroke-width: 1.5; }
 .rs-pick { margin: 8px 0 0; font-size: 13px; color: var(--text2); text-align: center; font-variant-numeric: tabular-nums; }
+/* ---- 一眼看懂：等级颜色（越深越好）、日历格子、时间表 ---- */
+#rsBody .lv0 { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent); }
+#rsBody .lv1 { background: color-mix(in srgb, var(--c) 22%, var(--surface)); }
+#rsBody .lv2 { background: color-mix(in srgb, var(--c) 42%, var(--surface)); }
+#rsBody .lv3 { background: color-mix(in srgb, var(--c) 68%, var(--surface)); color: #fff; }
+#rsBody .lv4 { background: var(--c); color: #fff; }
+#rsBody .rs-dr b { opacity: 1; }
+#rsBody .rs-day.today { box-shadow: inset 0 0 0 2px var(--text); }
+#rsBody .rs-day.sel, #rsBody .rs-tc.sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
+.rs-say { margin: 0 0 4px; font-size: 15px; color: var(--text2); }
+.rs-say b { color: var(--c); font-weight: 700; }
+.rs-big small { font-size: 18px; font-weight: 500; color: var(--text2); letter-spacing: 0; }
+.rs-dr { grid-template-columns: 4.2em 1fr 3em; }
+.rs-gh { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 5px; }
+.rs-gh span { text-align: center; font-size: 11px; color: var(--text2); }
+.rs-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.rs-grid.months { grid-template-columns: repeat(4, 1fr); }
+.rs-day { aspect-ratio: 1 / 1.05; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 2px; min-width: 0; color: var(--text); }
+.rs-day.lv3, .rs-day.lv4 { color: #fff; }
+.rs-mon { aspect-ratio: auto; padding: 10px 2px; }
+.rs-day b { font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.rs-day span { font-size: 10px; font-weight: 600; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: clip; }
+.rs-day.lv0 b { color: var(--text2); font-weight: 500; }
+.rs-day.future { opacity: .35; }
+.rs-day.today { box-shadow: inset 0 0 0 2px var(--text); }
+.rs-day.sel, .rs-tc.sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
+.rs-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 12px; font-size: 11.5px; color: var(--text2); }
+.rs-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.rs-legend i { width: 12px; height: 12px; border-radius: 4px; }
+.rs-legend b { font-weight: 500; }
+.rs-hint { margin: 10px 0 0; font-size: 12px; color: var(--text2); }
+.rs-pickd { margin-top: 12px; padding-top: 10px; border-top: .5px solid color-mix(in srgb, var(--text) 10%, transparent); }
+.rs-pickd > p { margin: 0 0 2px; font-size: 13.5px; }
+.rs-v { color: var(--text) !important; text-align: right; }
+.rs-v small { display: block; margin: 2px 0 0; }
+.rs-tt { display: grid; gap: 5px; }
+.rs-tr { display: grid; grid-template-columns: 3em 1fr 1fr; gap: 5px; align-items: stretch; }
+.rs-th { font-size: 12px; color: var(--text2); align-self: center; font-variant-numeric: tabular-nums; }
+.rs-tc { min-height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; color: var(--text); }
+.rs-tc.lv3, .rs-tc.lv4 { color: #fff; }
+.rs-tc b { font-size: 13px; font-weight: 650; }
+.rs-tc small { font-size: 11px; opacity: .8; font-variant-numeric: tabular-nums; }
+.rs-tc.few { opacity: .55; outline: 1.5px dashed color-mix(in srgb, var(--text) 30%, transparent); outline-offset: -1.5px; }
+.rs-say2 { margin: 0 0 12px; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.rs-dr2 { grid-template-columns: 8.5em 1fr 4.5em; margin-top: 8px; }
+.rs-dr2 > span { font-size: 12.5px; color: var(--text2); }
+.rs-dr2 em { display: flex; justify-content: flex-end; gap: 5px; align-items: baseline; color: var(--text); font-weight: 600; }
+.rs-dr2 em small { font-weight: 400; color: var(--text2); font-size: 11px; }

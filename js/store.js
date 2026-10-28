@@ -304,7 +304,7 @@
       for (const ds of MC.repeatDates(e.date, e.rep.freq, ymd(MC.addDays(today, h))).slice(1)) {
         const id = `${sid}-${ds}`;
         if (have.has(id) || MC.data.deleted[id]) continue;
-        add.push(MC.makeEvent({ id, cal: e.cal, date: ds, title: e.title, note: e.note, priority: e.priority, rate: e.rate, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, series: sid, rep: e.rep, done: false }));
+        add.push(MC.makeEvent({ id, cal: e.cal, date: ds, title: e.title, note: e.note, priority: e.priority, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, series: sid, rep: e.rep, done: false }));
       }
     }
     if (add.length) MC.addEvents(add);
