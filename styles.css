@@ -1015,8 +1015,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 
 /* ---------- 记录日历：等级评分 & 统计 ---------- */
 .rate-tag { flex: none; align-self: center; margin-left: 8px; max-width: 8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 650; line-height: 1; padding: 4px 9px; border-radius: 999px;
-  --k: 1; background: color-mix(in srgb, var(--c) calc(var(--k) * 20%), transparent); color: color-mix(in srgb, var(--c) 72%, var(--text)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent); }
-.rate-tag.lv1 { --k: .5; } .rate-tag.lv2 { --k: .85; } .rate-tag.lv3 { --k: 1.25; } .rate-tag.lv4 { --k: 1.7; }
+  background: color-mix(in srgb, var(--lc) 18%, transparent); color: var(--lt); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc) 40%, transparent); }
 .qchip.pri.rate.on { background: color-mix(in srgb, var(--c) 16%, transparent); }
 .rate-inputs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
 .rate-inputs input { min-width: 0; width: 100%; text-align: center; padding: 10px 4px; border-radius: 12px; background: var(--field); font-size: 14px; }
@@ -1036,17 +1035,12 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
   background: color-mix(in srgb, var(--c) calc(var(--k) * 100%), var(--field)); color: var(--text); transition: background .15s, box-shadow .15s; }
 .seg-b i { display: block; width: 100%; height: 0; }
 .seg-b em { font-style: normal; font-size: 10.5px; font-weight: 650; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.seg-b.lv1 { --k: .18; } .seg-b.lv2 { --k: .32; } .seg-b.lv3 { --k: .5; } .seg-b.lv4 { --k: .72; }
-.seg-b.lv4 { color: #fff; }
 .seg-b.sel { box-shadow: inset 0 0 0 2px var(--c), 0 0 0 3px color-mix(in srgb, var(--c) 18%, transparent); }
 #cmpSegLv { align-items: center; }
 .seg-mini { display: inline-flex; gap: 1.5px; vertical-align: middle; }
-.seg-mini i { width: 7px; height: 9px; border-radius: 2px; background: var(--c); }
 /* 跟随整体等级的段：虚线框、颜色淡一些；自己选过的段实心 */
-.seg-b.inh { background: color-mix(in srgb, var(--c) calc(var(--k) * 55%), var(--field)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent); color: var(--text); }
 .seg-b.inh em { font-weight: 500; opacity: .7; }
 .seg-b.inh.sel, .seg-b.own.sel { box-shadow: inset 0 0 0 2px var(--c), 0 0 0 3px color-mix(in srgb, var(--c) 18%, transparent); }
-.seg-b.inh { border: 1px dashed color-mix(in srgb, var(--c) 45%, transparent); }
 .batch-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
 
 /* ---------- 统计页（记录日历·等级评分）：一列卡片，少字少线 ---------- */
@@ -1068,7 +1062,6 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 :root[data-theme="dark"] .rs-card, :root[data-theme="dark"] .rs-hero { background: rgba(255,255,255,.06); box-shadow: none; }
 .rs-card h3 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--text2); }
 .rs-big { display: flex; align-items: baseline; gap: 10px; font-size: 48px; font-weight: 700; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
-.rs-lv { font-size: 15px; font-weight: 650; letter-spacing: 0; padding: 4px 10px; border-radius: 999px; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
 .rs-hero .rs-sub { margin-top: 10px; font-size: 13px; color: var(--text2); }
 .rs-sub .up { color: #2f9e6a; } .rs-sub .down { color: #d0573f; }
 .rs-dist { margin-top: 16px; display: grid; gap: 9px; }
@@ -1113,7 +1106,6 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-more { display: block; margin: 4px auto 0; padding: 6px 12px; font-size: 13px; color: var(--c); font-weight: 600; }
 
 .rs-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.rs-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 14px; background: color-mix(in srgb, var(--c) 10%, transparent); }
 .rs-chip em { font-style: normal; font-size: 11.5px; color: var(--text2); font-variant-numeric: tabular-nums; }
 .rs-foot { margin: 4px 6px 0; font-size: 12.5px; color: var(--text2); }
 .rs-empty { padding: 70px 20px; text-align: center; color: var(--text2); font-size: 14px; }
@@ -1127,15 +1119,10 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-pick { margin: 8px 0 0; font-size: 13px; color: var(--text2); text-align: center; font-variant-numeric: tabular-nums; }
 /* ---- 一眼看懂：等级颜色（越深越好）、日历格子、时间表 ---- */
 #rsBody .lv0 { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent); }
-#rsBody .lv1 { background: color-mix(in srgb, var(--c) 22%, var(--surface)); }
-#rsBody .lv2 { background: color-mix(in srgb, var(--c) 42%, var(--surface)); }
-#rsBody .lv3 { background: color-mix(in srgb, var(--c) 68%, var(--surface)); color: #fff; }
-#rsBody .lv4 { background: var(--c); color: #fff; }
 #rsBody .rs-dr b { opacity: 1; }
 #rsBody .rs-day.today { box-shadow: inset 0 0 0 2px var(--text); }
 #rsBody .rs-day.sel, #rsBody .rs-tc.sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
 .rs-say { margin: 0 0 4px; font-size: 15px; color: var(--text2); }
-.rs-say b { color: var(--c); font-weight: 700; }
 .rs-big small { font-size: 18px; font-weight: 500; color: var(--text2); letter-spacing: 0; }
 .rs-dr { grid-template-columns: 4.2em 1fr 3em; }
 .rs-gh { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 5px; }
@@ -1143,7 +1130,6 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
 .rs-grid.months { grid-template-columns: repeat(4, 1fr); }
 .rs-day { aspect-ratio: 1 / 1.05; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 2px; min-width: 0; color: var(--text); }
-.rs-day.lv3, .rs-day.lv4 { color: #fff; }
 .rs-mon { aspect-ratio: auto; padding: 10px 2px; }
 .rs-day b { font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .rs-day span { font-size: 10px; font-weight: 600; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: clip; }
@@ -1164,12 +1150,11 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-tr { display: grid; grid-template-columns: 3em 1fr 1fr; gap: 5px; align-items: stretch; }
 .rs-th { font-size: 12px; color: var(--text2); align-self: center; font-variant-numeric: tabular-nums; }
 .rs-tc { min-height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; color: var(--text); }
-.rs-tc.lv3, .rs-tc.lv4 { color: #fff; }
 .rs-tc b { font-size: 13px; font-weight: 650; }
 .rs-tc small { font-size: 11px; opacity: .8; font-variant-numeric: tabular-nums; }
 .rs-tc.few { opacity: .55; outline: 1.5px dashed color-mix(in srgb, var(--text) 30%, transparent); outline-offset: -1.5px; }
 .rs-say2 { margin: 0 0 12px; font-size: 14px; font-weight: 600; line-height: 1.5; }
-.rs-dr2 { grid-template-columns: 8.5em 1fr 4.5em; margin-top: 8px; }
+.rs-dr2 { grid-template-columns: 7.5em 1fr 7em; margin-top: 8px; }
 .rs-dr2 > span { font-size: 12.5px; color: var(--text2); }
 .rs-dr2 em { display: flex; justify-content: flex-end; gap: 5px; align-items: baseline; color: var(--text); font-weight: 600; }
 .rs-dr2 em small { font-weight: 400; color: var(--text2); font-size: 11px; }
@@ -1191,3 +1176,32 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-mchips::-webkit-scrollbar { display: none; }
 .rs-mchips button { flex: none; padding: 5px 11px; border-radius: 999px; font-size: 12.5px; color: var(--text2); background: color-mix(in srgb, var(--text) 5%, transparent); }
 .rs-mchips button.on { color: #fff; background: var(--c); font-weight: 600; }
+
+/* ---------- 等级配色：用色彩心理学，红 = 差、橙黄 = 一般、浅绿 = 好、深绿 = 最好（从低到高） ---------- */
+:root { --lv1: #E5564D; --lv2: #F2A23A; --lv3: #8CC363; --lv4: #2E9E63;
+  --lv1-t: #C43B33; --lv2-t: #B8700C; --lv3-t: #4C8A2B; --lv4-t: #1F7C4B;
+  --lv1-on: #fff; --lv2-on: #3D2A06; --lv3-on: #1E3610; --lv4-on: #fff; }
+:root[data-theme="dark"] { --lv1: #E0645C; --lv2: #E5A04A; --lv3: #86C268; --lv4: #39B072;
+  --lv1-t: #F08B84; --lv2-t: #F2BA6C; --lv3-t: #A8D98D; --lv4-t: #6CCB98; }
+.lv1 { --lc: var(--lv1); --lt: var(--lv1-t); --lon: var(--lv1-on); }
+.lv2 { --lc: var(--lv2); --lt: var(--lv2-t); --lon: var(--lv2-on); }
+.lv3 { --lc: var(--lv3); --lt: var(--lv3-t); --lon: var(--lv3-on); }
+.lv4 { --lc: var(--lv4); --lt: var(--lv4-t); --lon: var(--lv4-on); }
+/* 填色的地方：格子、条、图例、列头 */
+#rsBody :is(.hm-c, .hm-h, .rs-tc, .rs-day, .rs-dr b, .rs-legend i):is(.lv1, .lv2, .lv3, .lv4) { background: var(--lc); color: var(--lon); }
+/* 只给字上色的地方 */
+.rs-t { color: var(--lt); font-weight: 650; }
+.rs-lv { font-size: 15px; font-weight: 650; letter-spacing: 0; padding: 4px 10px; border-radius: 999px; color: var(--lt); background: color-mix(in srgb, var(--lc) 16%, transparent); }
+.rs-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 14px; background: color-mix(in srgb, var(--lc, var(--c)) 14%, transparent); }
+.rs-chip em { color: var(--lt, var(--text2)); }
+.lvdot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: var(--lc); }
+/* 分段评价：自己选的段实色；跟随整体的段淡色虚线框 */
+.seg-b.own { background: var(--lc); color: var(--lon); }
+.seg-b.inh { background: color-mix(in srgb, var(--lc, transparent) 24%, var(--field)); color: var(--text); border: 1px dashed color-mix(in srgb, var(--lc, var(--text)) 55%, transparent); }
+.seg-b.sel, .seg-b.inh.sel, .seg-b.own.sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
+.seg-mini i { width: 7px; height: 9px; border-radius: 2px; background: var(--lc, color-mix(in srgb, var(--text) 12%, transparent)); }
+.rate-swatch { width: 10px; height: 10px; border-radius: 50%; background: var(--lc); flex: none; }
+.rate-in { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.rate-in input { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--lc) 55%, transparent); }
+.rate-cap { display: flex; justify-content: space-between; margin: 6px 2px 0; font-size: 11.5px; color: var(--text2); }
+#calRateRev { margin-top: 8px; font-size: 13px; }

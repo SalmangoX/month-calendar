@@ -203,7 +203,7 @@
   UI.flagSVG = p => `<svg class="flag" viewBox="0 0 24 24" style="--c:${MC.priOf(p).color}"><path d="M6 21V4h11l-2.2 4.2L17 12.5H6"/></svg>`;
   // 等级评分：名称是用户自定义的，所以用文字徽标（颜色深浅随等级）而不是旗子
   UI.rateTag = e => `<span class="rate-tag lv${e.rate}" data-uc>${esc(MC.rateName(e))}</span>`;
-  UI.rateMenuItems = (calId, cur) => [{ label: '未评级', value: 0, on: !cur }, ...MC.rateLabels(calId).map((n, i) => ({ label: n, value: i + 1, on: cur === i + 1 }))];
+  UI.rateMenuItems = (calId, cur) => [{ label: '未评级', value: 0, on: !cur }, ...MC.rateLabels(calId).map((n, i) => ({ label: n, value: i + 1, on: cur === i + 1, icon: `<span class="lvdot lv${i + 1}"></span>` }))];
   UI.priMenuItems = cur => MC.PRI.map(p => ({ label: p.full, value: p.v, on: p.v === cur, icon: UI.flagSVG(p.v) }));
   const checkSVG = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
@@ -222,7 +222,7 @@
     if (ec) bits.unshift(`<span class="cal-tag" data-uc style="--cc:${ec.color}">${esc(ec.name)}</span>`);
     if (e.segs && Object.keys(e.segs).length && MC.rateOn(e.cal)) { // 分段评价：每半小时一个小格，颜色越深等级越高
       const bl = MC.segBlocks(e.time, e.endTime);
-      if (bl.length) bits.push(`<span class="seg-mini" title="分段评价">${bl.map(b => `<i style="opacity:${[.12, .3, .5, .72, 1][MC.segVal(e, b.k)]}"></i>`).join('')}</span>`);
+      if (bl.length) bits.push(`<span class="seg-mini" title="分段评价">${bl.map(b => `<i class="lv${MC.segVal(e, b.k)}"></i>`).join('')}</span>`);
     }
     if (e.note) bits.push(`<span class="note">${esc(e.note)}</span>`); // 备注是用户写的，不翻译
     return `<li class="item${e.done ? ' done' : ''}${e.done && UI.justDone === e.id ? ' just-done' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)}">

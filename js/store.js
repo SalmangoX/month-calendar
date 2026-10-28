@@ -401,6 +401,14 @@
     MC.data.cals.push(c); MC.commit(); return c;
   };
   MC.updateCal = (c, fields) => { Object.assign(c, fields, { updatedAt: Date.now() }); MC.commit(); if (MC.onCalChange) MC.onCalChange(); };
+  // 等级顺序填反了：名称倒过来，这个日历里已有的评级（含分段评价）也跟着换，意思不变
+  MC.reverseRates = c => {
+    const t = Date.now(), flip = v => (v ? 5 - v : 0);
+    for (const e of MC.data.events) if (e.cal === c.id && (e.rate || (e.segs && Object.keys(e.segs).length))) {
+      e.rate = flip(e.rate); const s = {}; for (const k in e.segs || {}) s[k] = flip(e.segs[k]); e.segs = s; e.updatedAt = t;
+    }
+    MC.updateCal(c, { rateLabels: [...MC.normRateLabels(c.rateLabels)].reverse() });
+  };
   // 常用事件
   MC.addPreset = (c, name) => { name = String(name || '').trim().slice(0, 60); if (!name || (c.presets || []).some(p => p.name === name)) return null; const p = { id: MC.uid(), name, time: '', endTime: '' }; MC.updateCal(c, { presets: [...(c.presets || []), p] }); return p; };
   MC.removePreset = (c, id) => MC.updateCal(c, { presets: (c.presets || []).filter(p => p.id !== id) });

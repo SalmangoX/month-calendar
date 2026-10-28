@@ -313,7 +313,8 @@
   // ---- 图表（只画必要的东西）----
   // ---- 各页 ----
   const card = (title, body, extra = '') => `<section class="rs-card"${extra}>${title ? `<h3>${title}</h3>` : ''}${body}</section>`;
-  const lvName = (labels, v) => `<span class="rs-lv" data-uc>${MC.esc(labels[Math.max(1, Math.min(4, Math.round(v))) - 1])}</span>`;
+  const lvName = (labels, v) => `<span class="rs-lv lv${Math.max(1, Math.min(4, Math.round(v)))}" data-uc>${MC.esc(labels[Math.max(1, Math.min(4, Math.round(v))) - 1])}</span>`;
+  const lvText = (labels, v) => `<span class="rs-t lv${Math.max(1, Math.min(4, Math.round(v)))}" data-uc>${MC.esc(labels[Math.max(1, Math.min(4, Math.round(v))) - 1])}</span>`; // 等级名用它自己的颜色
   // ---- 一眼能看懂：用日历格子 + 等级名，颜色越深 = 等级越高 ----
   const MIN_N = 3; // 少于 3 段 / 条的不参与「最好 / 最差」，避免一两条记录说了算
   const lvOf = v => Math.max(1, Math.min(4, Math.round(v)));
@@ -343,12 +344,12 @@
     // 一句话：最好 / 最差的格子（样本够的）
     let pool = cells.filter(x => x.l.length >= minN); if (pool.length < 2) pool = cells;
     pool.sort((a, b) => b.v - a.v || b.l.length - a.l.length);
-    const said = x => `${x.col.name} ${hhLabel(x.h)}「<span data-uc>${MC.esc(labels[lvOf(x.v) - 1])}</span>」`;
+    const said = x => `${x.col.name} ${hhLabel(x.h)}「${lvText(labels, x.v)}」`;
     const say = pool.length >= 2 ? `<p class="rs-say3">最好：${said(pool[0])}<br>最差：${said(pool[pool.length - 1])}</p>` : '';
     let det = `<p class="rs-hint">点格子看是哪些记录${minN > 1 ? `；颜色发淡的格子不到 ${minN} 段，只能参考` : ''}</p>`;
     if (rs.pick && rs.pick.startsWith(id)) {
       const [ci, h] = rs.pick.slice(id.length).split(':').map(Number), x = cells.find(c => c.col === cols[ci] && c.h === h);
-      if (x) det = `<div class="rs-pickd"><p><b>${x.col.name} ${hhLabel(h)}–${hhLabel(h + 1)}</b>　平均 ${f1(x.v)}，算作「<span data-uc>${MC.esc(labels[lvOf(x.v) - 1])}</span>」· ${x.l.length} 段，来自：</p>${pickList([...new Set(x.l.map(p => p.e))])}</div>`;
+      if (x) det = `<div class="rs-pickd"><p><b>${x.col.name} ${hhLabel(h)}–${hhLabel(h + 1)}</b>　平均 ${f1(x.v)}，算作「${lvText(labels, x.v)}」· ${x.l.length} 段，来自：</p>${pickList([...new Set(x.l.map(p => p.e))])}</div>`;
     }
     return say + `<div class="hm-wrap">${html}</div>` + legend(labels) + det;
   }
@@ -394,7 +395,7 @@
     const dist = [4, 3, 2, 1].map(v => { const k = rated.filter(e => e.rate === v).length;
       return `<div class="rs-dr"><span data-uc>${MC.esc(labels[v - 1])}</span><i><b class="lv${v}" style="width:${(k / max * 100).toFixed(1)}%"></b></i><em>${k} 条</em></div>`; }).join('');
     const hero = `<section class="rs-hero">
-        <p class="rs-say">${rated.length ? `整体是「<b data-uc>${MC.esc(labels[lvOf(avg) - 1])}</b>」` : '还没有评级'}</p>
+        <p class="rs-say">${rated.length ? `整体是「${lvText(labels, avg)}」` : '还没有评级'}</p>
         <div class="rs-big">${rated.length ? f1(avg) : '–'}<small> / 4</small></div>
         <div class="rs-sub">${[`${evs.length} 条记录`, `完成 ${Math.round(done / evs.length * 100)}%`, evs.length - rated.length ? `${evs.length - rated.length} 条没评级` : '', cmp].filter(Boolean).join(' · ')}</div>
         ${rated.length ? `<div class="rs-dist">${dist}</div>` : ''}
@@ -403,12 +404,12 @@
     // 亮点：只用样本够的数据，并写明是几条算出来的
     const facts = [];
     const sp = segPoints(evs), slots = SLOTS.map(s => ({ s, l: sp.filter(p => p.clock >= s[1] * 60 && p.clock < s[2] * 60) })).filter(x => x.l.length >= MIN_N);
-    if (slots.length >= 2) { const b = slots.sort((x, y) => mean(y.l.map(p => p.v)) - mean(x.l.map(p => p.v)))[0], v = mean(b.l.map(p => p.v)); facts.push(['状态最好的时段', `${b.s[0]}　<span data-uc>${MC.esc(labels[lvOf(v) - 1])}</span>`, `${b.l.length} 个半小时`]); }
+    if (slots.length >= 2) { const b = slots.sort((x, y) => mean(y.l.map(p => p.v)) - mean(x.l.map(p => p.v)))[0], v = mean(b.l.map(p => p.v)); facts.push(['状态最好的时段', `${b.s[0]}　${lvText(labels, v)}`, `${b.l.length} 个半小时`]); }
     const wd = [0, 1, 2, 3, 4, 5, 6].map(d => ({ d, l: rated.filter(e => MC.parse(e.date).getDay() === d) })).filter(x => x.l.length >= MIN_N);
-    if (wd.length >= 3) { const b = wd.sort((x, y) => avgOf(y.l) - avgOf(x.l))[0]; facts.push(['状态最好的星期', `${WD[b.d]}　<span data-uc>${MC.esc(labels[lvOf(avgOf(b.l)) - 1])}</span>`, `${b.l.length} 条`]); }
+    if (wd.length >= 3) { const b = wd.sort((x, y) => avgOf(y.l) - avgOf(x.l))[0]; facts.push(['状态最好的星期', `${WD[b.d]}　${lvText(labels, avgOf(b.l))}`, `${b.l.length} 条`]); }
     const g = new Map(); rated.forEach(e => { const k = e.title.trim(); g.set(k, [...(g.get(k) || []), e]); });
     const gs = [...g.entries()].filter(([, l]) => l.length >= MIN_N);
-    if (gs.length >= 2) { const b = gs.sort((x, y) => avgOf(y[1]) - avgOf(x[1]))[0]; facts.push(['评价最高的事件', `<span data-uc>${MC.esc(b[0])}</span>　<span data-uc>${MC.esc(labels[lvOf(avgOf(b[1])) - 1])}</span>`, `${b[1].length} 次`]); }
+    if (gs.length >= 2) { const b = gs.sort((x, y) => avgOf(y[1]) - avgOf(x[1]))[0]; facts.push(['评价最高的事件', `<span data-uc>${MC.esc(b[0])}</span>　${lvText(labels, avgOf(b[1]))}`, `${b[1].length} 次`]); }
     const fc = facts.length ? card('', facts.map(([k, v, n]) => `<div class="rs-kv"><span>${k}</span><b>${v}<small>${n}</small></b></div>`).join('')) : '';
     return hero + timeMap(c, evs, rated, span, labels) + fc;
   }
@@ -423,7 +424,7 @@
     let pool = [...byH.entries()].filter(([, l]) => l.length >= MIN_N), few = false;
     if (pool.length < 2) { pool = [...byH.entries()]; few = true; }
     pool.sort((a, b) => avgP(b[1]) - avgP(a[1]) || b[1].length - a[1].length);
-    const say = (h, l) => `<b>${range(h)}</b>　「<span data-uc>${MC.esc(labels[lvOf(avgP(l)) - 1])}</span>」<small>平均 ${f1(avgP(l))} · ${l.length} 段</small>`;
+    const say = (h, l) => `<b>${range(h)}</b>　「${lvText(labels, avgP(l))}」<small>平均 ${f1(avgP(l))} · ${l.length} 段</small>`;
     const sum = pool.length >= 2 ? card('', `<div class="rs-kv"><span>状态最好</span><span class="rs-v">${say(...pool[0])}</span></div><div class="rs-kv"><span>状态最差</span><span class="rs-v">${say(...pool[pool.length - 1])}</span></div>`
       + (few ? `<p class="rs-hint">每个半小时的记录都还很少（不到 ${MIN_N} 段），结论只能参考</p>` : '')) : '';
     // 时间表：每行一个钟点，左右两格是 :00 和 :30
@@ -436,7 +437,7 @@
     let det = `<p class="rs-hint">每格是这半小时所有记录的平均；虚线格记录少于 ${MIN_N} 段。点格子看是哪些记录</p>`;
     if (rs.pick && rs.pick[0] === 'h') {
       const h = +rs.pick.slice(1), l = byH.get(h) || [];
-      det = l.length ? `<div class="rs-pickd"><p><b>${range(h)}</b>　平均 ${f1(avgP(l))}，算作「<span data-uc>${MC.esc(labels[lvOf(avgP(l)) - 1])}</span>」· ${l.length} 段，来自这些记录：</p>${pickList([...new Set(l.map(p => p.e))])}</div>` : '';
+      det = l.length ? `<div class="rs-pickd"><p><b>${range(h)}</b>　平均 ${f1(avgP(l))}，算作「${lvText(labels, avgP(l))}」· ${l.length} 段，来自这些记录：</p>${pickList([...new Set(l.map(p => p.e))])}</div>` : '';
     }
     const table = card('每个半小时的状态', `<div class="rs-tt">${rows}</div>${legend(labels)}${det}`);
     // 开始之后：第几个半小时，用横条 + 等级名
@@ -447,7 +448,7 @@
       const lines = []; for (let i = 0; i <= maxI; i++) { const l = pts.filter(p => p.idx === i); if (l.length) lines.push({ i, l, v: avgP(l) }); }
       const vl = lines.filter(x => x.l.length >= MIN_N).length >= 2 ? lines.filter(x => x.l.length >= MIN_N) : lines;
       const firstV = vl[0].v, lastV = vl[vl.length - 1].v, d = lastV - firstV;
-      const verdict = Math.abs(d) < .3 ? '从头到尾差不多' : d < 0 ? `越往后越差：刚开始是「${labels[lvOf(firstV) - 1]}」，到后面降到「${labels[lvOf(lastV) - 1]}」` : `越往后越好：刚开始是「${labels[lvOf(firstV) - 1]}」，后面升到「${labels[lvOf(lastV) - 1]}」`;
+      const verdict = Math.abs(d) < .3 ? '从头到尾差不多' : d < 0 ? `越往后越差：刚开始是「${lvText(labels, firstV)}」，到后面降到「${lvText(labels, lastV)}」` : `越往后越好：刚开始是「${lvText(labels, firstV)}」，后面升到「${lvText(labels, lastV)}」`;
       after = card('做一件事时，开始之后的变化', `<p class="rs-say2">${verdict}</p>` + lines.map(x => `<div class="rs-dr rs-dr2"><span>${span2(x.i)}</span><i><b class="lv${lvOf(x.v)}" style="width:${(x.v / 4 * 100).toFixed(1)}%"></b></i><em><span data-uc>${short(labels, x.v)}</span><small>${x.l.length} 段</small></em></div>`).join(''));
     }
     return sum + table + after;
@@ -471,7 +472,7 @@
       return `<div class="rs-ev${open ? ' open' : ''}"><button class="rs-evh" data-ev="${MC.esc(x.name)}">
           <span class="rs-evn"><span data-uc>${MC.esc(x.name)}</span>${pre.has(x.name) ? '<i class="rs-dot" title="常用事件"></i>' : ''}</span>
           <span class="rs-evc">${x.l.length} 次</span>
-          <b>${x.r.length ? f1(avgOf(x.r)) : '–'}</b>
+          <b${x.r.length ? ` class="rs-t lv${lvOf(avgOf(x.r))}"` : ''}>${x.r.length ? f1(avgOf(x.r)) : '–'}</b>
         </button>${det}</div>`;
     }).join('');
     return `<section class="rs-card rs-evs">${rows}</section>`;
@@ -502,7 +503,7 @@
     const ws = [...m.entries()].filter(([, l]) => l.length >= min).map(([w, l]) => ({ w, n: l.length, v: avgOf(l) }));
     const hi = ws.filter(x => x.v > all + .1).sort((a, b) => b.v - a.v || b.n - a.n).slice(0, 8);
     const lo = ws.filter(x => x.v < all - .1).sort((a, b) => a.v - b.v || b.n - a.n).slice(0, 8);
-    const chips = l => `<div class="rs-chips">${l.map(x => `<span class="rs-chip"><span data-uc>${MC.esc(x.w)}</span><em>${f1(x.v)}</em></span>`).join('')}</div>`;
+    const chips = l => `<div class="rs-chips">${l.map(x => `<span class="rs-chip lv${lvOf(x.v)}"><span data-uc>${MC.esc(x.w)}</span><em>${f1(x.v)}</em></span>`).join('')}</div>`;
     const nn = rated.filter(e => !e.note);
     return (hi.length ? card('高分时常写到', chips(hi)) : '') + (lo.length ? card('低分时常写到', chips(lo)) : '')
       + (!hi.length && !lo.length ? `<div class="rs-empty">备注还太少，看不出规律</div>` : '')
