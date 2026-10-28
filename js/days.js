@@ -1121,9 +1121,10 @@
     wasOn = on;
     tb.querySelectorAll('button[data-page]').forEach(b => {
       const p = b.dataset.page;
-      b.hidden = on ? !['cal', 'days', 'dsum', 'set'].includes(p) : p === 'days' || p === 'dsum';
+      b.hidden = on ? !['cal', 'days', 'dsum', 'set'].includes(p) : p === 'days' || p === 'dsum' || p === 'rstat';
     });
     body.classList.toggle('days-mode', on);
+    if (!on && MC.onCalChange) MC.onCalChange(); // 回到记录日历：按它有没有开等级评分决定显示「统计」还是四象限
     if (!MC.App) return;
     const pg = MC.App.page();
     if (on && (entering || pg === 'today' || pg === 'quad' || pg === 'sched')) MC.App.showPage('days');

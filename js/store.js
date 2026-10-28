@@ -180,6 +180,7 @@
     return {
       id: e.id || MC.uid(), date: e.date, title: String(e.title || '').slice(0, 200),
       priority: [0, 1, 2, 3].includes(Number(e.priority)) ? Number(e.priority) : (Number(e.priority) === 4 && (MC.fixPri = true), 0), // 4 = 已取消的绿色优先级，改为无
+      rate: [1, 2, 3, 4].includes(Number(e.rate)) ? Number(e.rate) : 0, // 记录日历的等级（1–4，0 = 未评级）；只在开了「等级评分」的记录日历里使用
       done: !!e.done, note: String(e.note || ''),
       time: /^\d{2}:\d{2}$/.test(e.time || '') ? e.time : '',
       endTime: /^\d{2}:\d{2}$/.test(e.endTime || '') && e.time ? e.endTime : '',
@@ -213,11 +214,15 @@
   // 和整套配色同一个体系；浅色时白字都清楚，深色时用 MC.darkTone 生成同色的深色调
   MC.CAL_COLORS = ['#B76271', '#B86652', '#B06F35', '#539156', '#269573', '#009390', '#138DB1', '#4086BD', '#607EC2', '#8074BD', '#9B6AAB', '#AE648F', '#656970', '#627887'];
   MC.MAIN_CAL = { id: '', name: '主日历', color: 'var(--accent)' };
+  MC.RATE_DEFAULT = ['低', '中', '高', '超高'];
+  MC.normRateLabels = a => MC.RATE_DEFAULT.map((d, i) => (Array.isArray(a) && typeof a[i] === 'string' && a[i].trim() ? a[i].trim().slice(0, 8) : d));
   function normCal(c) {
     const t = Date.now();
     return { id: String(c.id).slice(0, 40), name: String(c.name || '记录').slice(0, 24), color: /^#[0-9a-fA-F]{6}$/.test(c.color || '') ? c.color : MC.CAL_COLORS[0],
       showInMain: !!c.showInMain, // 事件也显示在主日历里
       notify: !!c.notify,         // 这个日历的事件到点提醒
+      rateOn: c.kind !== 'days' && !!c.rateOn, // 记录日历：不按优先级，改用 4 个等级给事件评级并统计
+      rateLabels: MC.normRateLabels(c.rateLabels), // 4 个等级的名称（可自定义，整个日历通用），从低到高
       kind: c.kind === 'days' ? 'days' : '', // 'days' = 纪念日历（倒数日 / 纪念日），其余为记录日历
       createdAt: c.createdAt || t, updatedAt: c.updatedAt || c.createdAt || t };
   }
@@ -272,7 +277,7 @@
       for (const ds of MC.repeatDates(e.date, e.rep.freq, ymd(MC.addDays(today, h))).slice(1)) {
         const id = `${sid}-${ds}`;
         if (have.has(id) || MC.data.deleted[id]) continue;
-        add.push(MC.makeEvent({ id, cal: e.cal, date: ds, title: e.title, note: e.note, priority: e.priority, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, series: sid, rep: e.rep, done: false }));
+        add.push(MC.makeEvent({ id, cal: e.cal, date: ds, title: e.title, note: e.note, priority: e.priority, rate: e.rate, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, series: sid, rep: e.rep, done: false }));
       }
     }
     if (add.length) MC.addEvents(add);
@@ -290,20 +295,25 @@
   MC.saveSettings = () => localStorage.setItem(SET_KEY, JSON.stringify(MC.settings));
   MC.saveSettings();
 
-  const cmp = (a, b) => (a.done - b.done) || (b.priority - a.priority) || ((a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0) || (a.createdAt - b.createdAt);
+  const sortPri = e => (MC.rateOn(e.cal) ? 0 : e.priority); // 开了等级评分的记录日历不按优先级排序
+  const cmp = (a, b) => (a.done - b.done) || (sortPri(b) - sortPri(a)) || ((a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0) || (a.createdAt - b.createdAt);
   MC.cmp = cmp;
   // 当前在日历页显示的是哪个日历（'' = 主日历）。每个日历的事件各自独立：
   // 日历页只显示当前日历；主日历还会带上打开了「在主日历显示」的记录日历；
   // 今日页、四象限、每日提醒只看主日历自己的事件。
   MC.cal = id => (id ? MC.data.cals.find(c => c.id === id) : MC.MAIN_CAL) || null;
   MC.activeCal = () => (MC.settings.activeCal && MC.cal(MC.settings.activeCal) ? MC.settings.activeCal : '');
-  MC.setActiveCal = id => { MC.settings.activeCal = id || ''; MC.saveSettings(); MC.reindex(); };
+  MC.setActiveCal = id => { MC.settings.activeCal = id || ''; MC.saveSettings(); MC.reindex(); if (MC.onCalChange) MC.onCalChange(); };
   MC.inCal = (e, id) => (e.cal || '') === (id || '');
   MC.mainEvents = () => MC.data.events.filter(e => !e.cal);
   // 记录日历的事件是否提醒：主日历永远提醒（由通知总开关控制），记录日历看自己的开关
   MC.notifies = e => !e.cal || !!(MC.cal(e.cal) || {}).notify;
-  // 事件颜色：记录日历里没设优先级的事件用日历颜色
-  MC.evColor = e => (e.cal && !e.priority && MC.cal(e.cal) ? MC.cal(e.cal).color : MC.priOf(e.priority).color);
+  // 等级评分：开了之后这个记录日历里的事件不再按优先级排序 / 着色，改用 4 个等级（名称可自定义）
+  MC.rateOn = id => { const c = id ? MC.cal(id) : null; return !!(c && c.kind !== 'days' && c.rateOn); };
+  MC.rateLabels = id => MC.normRateLabels((MC.cal(id) || {}).rateLabels);
+  MC.rateName = e => (e.rate ? MC.rateLabels(e.cal)[e.rate - 1] : '');
+  // 事件颜色：记录日历里没设优先级的事件用日历颜色（开了等级评分的日历一律用日历颜色）
+  MC.evColor = e => (e.cal && (MC.rateOn(e.cal) || !e.priority) && MC.cal(e.cal) ? MC.cal(e.cal).color : MC.priOf(e.priority).color);
   MC.byDate = new Map();    // 当前日历
   MC.mainByDate = new Map(); // 主日历自己的事件（待办）
   function indexOf(list) {
@@ -363,7 +373,7 @@
     const c = normCal({ id: 'c' + MC.uid(), name, color, ...opts });
     MC.data.cals.push(c); MC.commit(); return c;
   };
-  MC.updateCal = (c, fields) => { Object.assign(c, fields, { updatedAt: Date.now() }); MC.commit(); };
+  MC.updateCal = (c, fields) => { Object.assign(c, fields, { updatedAt: Date.now() }); MC.commit(); if (MC.onCalChange) MC.onCalChange(); };
   MC.deleteCal = id => { // 连同里面的事件一起删除
     const t = Date.now();
     for (const e of MC.data.events) if (e.cal === id) MC.data.deleted[e.id] = t;
@@ -430,8 +440,8 @@
   };
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
-      .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
-    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', c.updatedAt]);
+      .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
+    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), c.updatedAt]);
     const ds = [...(d.days || []), ...(d.books || [])].map(x => x.id + ':' + (x.updatedAt || 0)).sort();
     return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, d.coursesAt || 0, cs, ds, (d.album || {}).gist || '']);
   }

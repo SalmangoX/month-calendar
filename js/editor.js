@@ -17,7 +17,7 @@
   const newHeading = () => (newCal && MC.cal(newCal) ? `添加到「${MC.cal(newCal).name}」` : '新建事件');
   const draft = {};
   function resetDraft(date) {
-    Object.assign(draft, { title: '', note: '', priority: 0, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', done: false });
+    Object.assign(draft, { title: '', note: '', priority: 0, rate: 0, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', done: false });
   }
   function chipLabel(d) {
     const n = MC.dayDiff(d.date);
@@ -29,7 +29,7 @@
     return s + extra;
   }
   function paintFlag(btn, p) {
-    const c = MC.priOf(p).color;
+    const c = MC.rateOn(newCal) ? MC.cal(newCal).color : MC.priOf(p).color; // 开了等级评分的日历：标记用日历颜色
     btn.style.setProperty('--pc', p ? c : 'var(--text2)');
     btn.style.setProperty('--pf', p ? c : 'none');
   }
@@ -94,7 +94,10 @@
   function paintComposer() {
     paintQuick();
     paintTools();
-    $('#cmpPri').innerHTML = MC.PRI.map(p => `<button class="qchip pri${p.v === draft.priority ? ' on' : ''}" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span>${p.name}</button>`).join('');
+    const rc = mode === 'edit' && editing ? editing.cal : newCal, rated = MC.rateOn(rc);
+    $('#cmpPriLabel').textContent = rated ? '等级' : '优先级';
+    if (rated) $('#cmpPri').innerHTML = [{ v: 0, name: '无' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n }))].map(p => `<button class="qchip pri rate${p.v === (draft.rate || 0) ? ' on' : ''}" data-v="${p.v}" style="--c:${p.v ? MC.cal(rc).color : 'var(--p0)'}"><span class="dot"></span><span data-uc>${esc(p.name)}</span></button>`).join('');
+    else $('#cmpPri').innerHTML = MC.PRI.map(p => `<button class="qchip pri${p.v === draft.priority ? ' on' : ''}" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span>${p.name}</button>`).join('');
     $('#cmpSave').classList.toggle('disabled', !$('#cmpTitle').value.trim());
     $('#cmpDone').setAttribute('aria-pressed', String(!!draft.done));
   }
@@ -119,7 +122,7 @@
       return;
     }
     if (!editing || !MC.data.events.includes(editing)) return;
-    const fields = { title, note, priority: draft.priority, date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, done: draft.done };
+    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, done: draft.done };
     const changed = Object.keys(fields).some(k => (fields[k] ?? null) !== (editing[k] ?? null));
     if (!changed) return;
     if (!title) { UI.toast('名称为空，修改没有保存'); return; }
@@ -153,7 +156,7 @@
   };
   Editor.openEdit = e => {
     mode = 'edit'; editing = e;
-    Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, date: e.date, days: e.days || 1, time: e.time, endTime: e.endTime, remind: e.remind, repeat: 'none', until: '', done: e.done });
+    Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, rate: e.rate || 0, date: e.date, days: e.days || 1, time: e.time, endTime: e.endTime, remind: e.remind, repeat: 'none', until: '', done: e.done });
     $('#cmpTitle').value = e.title; $('#cmpNote').value = e.note;
     $('#cmpHeading').textContent = '编辑事件';
     $('#cmpClear').hidden = true;
@@ -185,7 +188,8 @@
   });
   $('#cmpPri').addEventListener('click', e => {
     const b = e.target.closest('.qchip'); if (!b) return;
-    draft.priority = Number(b.dataset.v); paintComposer();
+    if (MC.rateOn(mode === 'edit' && editing ? editing.cal : newCal)) draft.rate = Number(b.dataset.v); else draft.priority = Number(b.dataset.v);
+    paintComposer();
   });
   $('#cmpDone').onclick = () => { draft.done = !draft.done; paintComposer(); };
   $('#cmpDate').onclick = () => {
@@ -228,7 +232,7 @@
       setTimeout(() => (t.placeholder = '准备做什么？'), 1800);
       return;
     }
-    const fields = { title, note, priority: draft.priority, date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind };
+    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind };
     if (mode === 'edit') {
       MC.updateEvent(editing, { ...fields, done: draft.done });
       closeComposer(false);
@@ -669,7 +673,7 @@
   let rows = [];
   // 草稿：随时自动保存在本机，关掉再打开会恢复；添加成功或选择清空后删除
   const BATCH_KEY = 'mcal.batchDraft';
-  const rowHasContent = r => !!(r.title.trim() || r.note.trim() || r.priority || r.time || (r.remind !== null && r.remind !== undefined) || (r.repeat && r.repeat !== 'none'));
+  const rowHasContent = r => !!(r.title.trim() || r.note.trim() || r.priority || r.rate || r.time || (r.remind !== null && r.remind !== undefined) || (r.repeat && r.repeat !== 'none'));
   const batchHasContent = () => rows.some(rowHasContent);
   function saveBatchDraft() {
     try {
@@ -692,7 +696,7 @@
       else { rows = []; localStorage.removeItem(BATCH_KEY); proceed(); }
     });
   });
-  const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', ...extra });
+  const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, rate: 0, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', ...extra });
   // 行里日期按钮上的摘要：日期 + 时间，有提醒 / 重复时各加一个小图标
   const I_BELL = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="有提醒"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
   const I_REP = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="重复"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"/></svg>';
@@ -729,7 +733,7 @@
           <input class="b-note" value="${esc(r.note)}" placeholder="备注（选填）">
         </div>
       </div>`).join('');
-    $('#batchList').querySelectorAll('.brow').forEach(el => paintFlag(el.querySelector('[data-act="flag"]'), rows[Number(el.dataset.i)].priority));
+    $('#batchList').querySelectorAll('.brow').forEach(el => paintFlag(el.querySelector('[data-act="flag"]'), (MC.rateOn(newCal) ? rows[Number(el.dataset.i)].rate : rows[Number(el.dataset.i)].priority)));
     updateBatchCount();
     saveBatchDraft();
   }
@@ -764,7 +768,7 @@
     const a = e.target.closest('[data-act]'); if (!a) return;
     const el = a.closest('.brow'), i = Number(el.dataset.i), r = rows[i];
     if (a.dataset.act === 'del') { rows.splice(i, 1); renderBatch(); }
-    else if (a.dataset.act === 'flag') UI.menu(a, UI.priMenuItems(r.priority), v => { r.priority = v; paintFlag(a, v); saveBatchDraft(); });
+    else if (a.dataset.act === 'flag') UI.menu(a, MC.rateOn(newCal) ? UI.rateMenuItems(newCal, r.rate) : UI.priMenuItems(r.priority), v => { if (MC.rateOn(newCal)) r.rate = v; else r.priority = v; paintFlag(a, v); saveBatchDraft(); });
     else if (a.dataset.act === 'date') {
       document.activeElement && document.activeElement.blur();
       // 和单个添加一样的完整选择：日期、时间段、多天、提醒、重复
@@ -814,7 +818,7 @@
     if (!valid.length) { UI.toast('至少填写一个名称'); return; }
     let all = [], repeated = 0;
     for (const r of valid) {
-      const fields = { title: r.title.trim(), note: r.note.trim(), priority: r.priority, date: r.date, days: r.time ? 1 : (r.days || 1), time: r.time, endTime: r.endTime, remind: r.remind };
+      const fields = { title: r.title.trim(), note: r.note.trim(), priority: r.priority, rate: MC.rateOn(newCal) ? (r.rate || 0) : 0, date: r.date, days: r.time ? 1 : (r.days || 1), time: r.time, endTime: r.endTime, remind: r.remind };
       const b = buildEvents(fields, r.repeat, r.until);
       if (b.rep) repeated++;
       all = all.concat(b.events);

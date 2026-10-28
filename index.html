@@ -83,6 +83,21 @@
     <div class="pscroll dv-scroll" id="dvSum"></div>
   </section>
 
+  <!-- 记录日历：等级统计 -->
+  <section class="page" id="page-rstat">
+    <header class="ptitle">
+      <div><h1>统计</h1><p id="rsName" data-uc></p></div>
+      <button class="chip-btn glass" id="rsNotes">只看有备注</button>
+    </header>
+    <div class="pscroll rs-scroll">
+      <div class="rs-ctl">
+        <div class="seg" id="rsSeg"><button data-v="week">本周</button><button data-v="month" class="on">本月</button><button data-v="year">本年</button><button data-v="all">全部</button></div>
+        <div class="rs-nav" id="rsNav"><button id="rsPrev" aria-label="上一个">‹</button><span id="rsLabel"></span><button id="rsNext" aria-label="下一个">›</button></div>
+      </div>
+      <div id="rsBody"></div>
+    </div>
+  </section>
+
   <!-- 四象限 -->
   <section class="page" id="page-quad">
     <header class="ptitle">
@@ -148,6 +163,10 @@
       <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="9" rx="2"/><rect x="13.5" y="3.5" width="7" height="5" rx="2"/><rect x="13.5" y="11.5" width="7" height="9" rx="2"/><rect x="3.5" y="15.5" width="7" height="5" rx="2"/></svg>
       <span>总览</span>
     </button>
+    <button data-page="rstat" aria-label="统计" hidden>
+      <svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>
+      <span>统计</span>
+    </button>
     <button data-page="quad" aria-label="四象限">
       <svg viewBox="0 0 24 24" class="filled"><rect x="4" y="4" width="7" height="7" rx="2.2"/><rect x="13" y="4" width="7" height="7" rx="2.2"/><rect x="4" y="13" width="7" height="7" rx="2.2"/><rect x="13" y="13" width="7" height="7" rx="2.2"/></svg>
       <span>四象限</span>
@@ -197,7 +216,7 @@
     <textarea id="cmpNote" rows="2" placeholder="备注（选填）"></textarea>
   </div>
   <div class="cmp-sec">
-    <span class="cmp-label">优先级</span>
+    <span class="cmp-label" id="cmpPriLabel">优先级</span>
     <div class="cmp-chips" id="cmpPri"></div>
   </div>
   <div class="cmp-sec">

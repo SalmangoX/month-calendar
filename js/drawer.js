@@ -67,6 +67,7 @@
     const body = document.body;
     if (id) { body.dataset.cal = id; body.style.setProperty('--cc', c.color); $('#calSub').dataset.cal = c.name; }
     else { delete body.dataset.cal; body.style.removeProperty('--cc'); delete $('#calSub').dataset.cal; }
+    if (MC.onCalChange) setTimeout(MC.onCalChange, 0);
     if (id && c.kind === 'days') body.dataset.kind = 'days'; else delete body.dataset.kind; // 纪念日历：日历页换成倒数日 / 纪念日的样子（days.js）
     if (MC.Days) MC.Days.paint();
     if (isOpen) render();
@@ -135,7 +136,7 @@
     UI.menu(b, [
       { label: '在主日历显示', value: 'main', on: c.showInMain },
       { label: '通知', value: 'notify', on: c.notify },
-      { label: '名称和颜色', value: 'edit' },
+      { label: '名称、颜色和等级', value: 'edit' },
       { label: '删除这个日历', value: 'del', danger: true },
     ], async v => {
       if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? `「${c.name}」的事件会显示在主日历` : `「${c.name}」不再显示在主日历`); }
@@ -170,18 +171,24 @@
       extra: sw() + (days ? '' : `<div class="group dr-switches">
         <label class="pk-row"><span>在主日历显示<small>这个日历的事件也出现在主日历里</small></span><input type="checkbox" class="switch" id="calMain"${c && c.showInMain ? ' checked' : ''}></label>
         <label class="pk-row"><span>通知<small>事件设了提醒时到点通知</small></span><input type="checkbox" class="switch" id="calNotify"${c && c.notify ? ' checked' : ''}></label>
+        <label class="pk-row"><span>等级评分<small>不按优先级排列，改用 4 个等级给事件评级，并在「统计」里汇总</small></span><input type="checkbox" class="switch" id="calRate"${c && c.rateOn ? ' checked' : ''}></label>
+      </div>
+      <div class="field rate-fields" id="calRateF"${c && c.rateOn ? '' : ' hidden'}><span>等级名称（从低到高，这个日历通用）</span>
+        <div class="rate-inputs">${MC.normRateLabels(c && c.rateLabels).map((n, i) => `<input type="text" id="calRL${i}" maxlength="8" value="${MC.esc(n)}" placeholder="${MC.RATE_DEFAULT[i]}" aria-label="等级 ${i + 1}">`).join('')}</div>
       </div>`),
       onSubmit: async v => {
         const name = v.calName.trim();
         if (!name) throw new Error('请填写名称');
         const showInMain = !days && $('#calMain').checked, notify = !days && $('#calNotify').checked;
-        if (c) { MC.updateCal(c, { name, color, showInMain, notify }); MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast('已保存'); return; }
-        const nc = MC.addCal(name, color, { showInMain, notify, kind: days ? 'days' : '' });
+        const rateOn = !days && $('#calRate').checked, rateLabels = days ? undefined : MC.normRateLabels([0, 1, 2, 3].map(i => $('#calRL' + i).value));
+        if (c) { MC.updateCal(c, days ? { name, color, showInMain, notify } : { name, color, showInMain, notify, rateOn, rateLabels }); MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast('已保存'); return; }
+        const nc = MC.addCal(name, color, { showInMain, notify, rateOn, rateLabels, kind: days ? 'days' : '' });
         MC.setActiveCal(nc.id); D.paint(); render(); MC.Cal.render();
         UI.toast(`已新建「${name}」，现在显示的就是它`);
         setTimeout(D.close, 260);
       },
     });
+    const rsw = $('#calRate'); if (rsw) rsw.addEventListener('change', () => { $('#calRateF').hidden = !rsw.checked; });
     $('#calSw').addEventListener('click', e => {
       const b = e.target.closest('.dr-sw'); if (!b) return;
       color = b.dataset.c;

@@ -1012,3 +1012,33 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .sc-tbtn.on { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .sc-wheel { margin-top: -4px; }
 
+
+/* ---------- 记录日历：等级评分 & 统计 ---------- */
+.rate-tag { flex: none; align-self: center; margin-left: 8px; max-width: 8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 650; line-height: 1; padding: 4px 9px; border-radius: 999px;
+  --k: 1; background: color-mix(in srgb, var(--c) calc(var(--k) * 20%), transparent); color: color-mix(in srgb, var(--c) 72%, var(--text)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent); }
+.rate-tag.lv1 { --k: .5; } .rate-tag.lv2 { --k: .85; } .rate-tag.lv3 { --k: 1.25; } .rate-tag.lv4 { --k: 1.7; }
+.qchip.pri.rate.on { background: color-mix(in srgb, var(--c) 16%, transparent); }
+.rate-inputs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+.rate-inputs input { min-width: 0; width: 100%; text-align: center; padding: 10px 4px; border-radius: 12px; background: var(--field); font-size: 14px; }
+
+.rs-scroll { padding-top: 2px; }
+.rs-ctl { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.rs-nav { display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 14px; font-weight: 600; }
+.rs-nav button { width: 34px; height: 34px; border-radius: 50%; font-size: 20px; line-height: 1; color: var(--text2); background: var(--field); }
+.rs-nav span { min-width: 8.5em; text-align: center; }
+.rs-sum { padding: 16px 18px; margin-bottom: 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.rs-big { font-size: 38px; font-weight: 720; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.rs-big small { font-size: 13px; font-weight: 500; color: var(--text2); margin-left: 6px; letter-spacing: 0; }
+.rs-meta { display: flex; gap: 12px; font-size: 12.5px; color: var(--text2); }
+.rs-card { padding: 6px 6px; }
+.rs-item + .rs-item { border-top: .5px solid color-mix(in srgb, var(--text) 8%, transparent); }
+.rs-row { width: 100%; display: grid; grid-template-columns: minmax(3.2em, 5.2em) 1fr auto; align-items: center; gap: 12px; padding: 13px 12px; text-align: left; border-radius: 14px; }
+.rs-row:disabled { opacity: .55; }
+.rs-name { font-size: 14.5px; font-weight: 620; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-bar { height: 9px; border-radius: 99px; background: color-mix(in srgb, var(--text) 7%, transparent); overflow: hidden; }
+.rs-bar i { display: block; height: 100%; min-width: 0; border-radius: 99px; background: color-mix(in srgb, var(--c) calc(var(--k) * 100%), transparent); transition: width .35s cubic-bezier(.3, .8, .3, 1); }
+.rs-num { min-width: 3.4em; text-align: right; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.rs-num small { display: block; font-size: 10.5px; font-weight: 500; color: var(--text2); }
+.rs-sub { padding: 0 14px 4px; font-size: 12px; color: var(--text2); }
+.rs-list { list-style: none; margin: 0; padding: 0 4px 8px; }
+.rs-empty { padding: 60px 0; text-align: center; color: var(--text2); font-size: 14px; }

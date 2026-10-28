@@ -96,7 +96,7 @@
     const btn = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
     if (MC.settings.tab3 !== 'sched') MC.settings.tab3 = 'quad'; // 不再提供「不显示」，在页面左上角切换四象限 / 课表
     const v = MC.settings.tab3;
-    btn.hidden = document.body.dataset.kind === 'days'; // 纪念日历的菜单里没有这一项
+    btn.hidden = document.body.dataset.kind === 'days' || !!recCal(); // 纪念日历的菜单里没有这一项；开了等级评分的记录日历换成「统计」
     if (v !== 'off') { btn.dataset.page = v; btn.setAttribute('aria-label', TAB3[v].label); btn.innerHTML = TAB3[v].svg + `<span>${TAB3[v].label}</span>`; }
     if ((page === 'quad' || page === 'sched') && page !== v) showPage('cal'); else placeInd(false);
   }
@@ -113,6 +113,7 @@
     else if (page === 'days' || page === 'dsum') { if (MC.Days) MC.Days.render(); }
     else if (page === 'today') renderToday();
     else if (page === 'quad') renderQuad();
+    else if (page === 'rstat') renderRstat();
     else renderSettings();
   }
   let pd = null;
@@ -245,6 +246,70 @@
     }).join('');
   }
   UI.bindList($('#quadBody'));
+
+  // ---------- 记录日历：等级统计 ----------
+  // 开了「等级评分」的记录日历，底部菜单里的四象限 / 课表换成「统计」：按这个日历自己的 4 个等级汇总事件
+  const rs = { range: 'month', off: 0, notesOnly: false, open: new Set() };
+  const recCal = () => { const id = MC.activeCal(); return id && MC.rateOn(id) ? MC.cal(id) : null; };
+  function syncRecTabs() {
+    const stat = tabbar.querySelector('button[data-page="rstat"]'), t3 = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
+    if (!stat || !t3 || document.body.dataset.kind === 'days') return; // 纪念日历的菜单由 days.js 管
+    const rc = !!recCal();
+    stat.hidden = !rc; t3.hidden = rc;
+    if (!rc && page === 'rstat') showPage('cal');
+    else if (rc && (page === 'quad' || page === 'sched')) showPage('cal');
+    else { if (page === 'rstat') renderRstat(); placeInd(false); }
+  }
+  MC.onCalChange = syncRecTabs;
+  function rsSpan() {
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    if (rs.range === 'week') { const a = MC.addDays(MC.weekStartOf(t), rs.off * 7); return [a, MC.addDays(a, 6)]; }
+    if (rs.range === 'month') { const a = new Date(t.getFullYear(), t.getMonth() + rs.off, 1); return [a, new Date(a.getFullYear(), a.getMonth() + 1, 0)]; }
+    if (rs.range === 'year') { const y = t.getFullYear() + rs.off; return [new Date(y, 0, 1), new Date(y, 11, 31)]; }
+    return null;
+  }
+  function renderRstat() {
+    const c = recCal(); if (!c) return;
+    const span = rsSpan(), labels = MC.rateLabels(c.id);
+    $('#rsName').textContent = c.name;
+    $('#rsNotes').classList.toggle('on', rs.notesOnly);
+    $('#rsSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === rs.range));
+    $('#rsNav').hidden = !span;
+    if (span) $('#rsLabel').textContent = rs.range === 'week' ? `${MC.dateLabel(MC.ymd(span[0]))} – ${MC.dateLabel(MC.ymd(span[1]))}` : rs.range === 'month' ? `${span[0].getFullYear()}年${span[0].getMonth() + 1}月` : `${span[0].getFullYear()}年`;
+    const a = span ? MC.ymd(span[0]) : '', b = span ? MC.ymd(span[1]) : '';
+    const evs = MC.data.events.filter(e => e.cal === c.id && (!span || (e.date >= a && e.date <= b)) && (!rs.notesOnly || e.note))
+      .sort((x, y) => x.date.localeCompare(y.date) || (x.time || '').localeCompare(y.time || ''));
+    const by = n => evs.filter(e => (e.rate || 0) === n);
+    const rated = evs.filter(e => e.rate).length, done = evs.filter(e => e.done).length;
+    const max = Math.max(1, ...[0, 1, 2, 3, 4].map(n => by(n).length));
+    const row = n => {
+      const list = by(n), d = list.filter(e => e.done).length, open = rs.open.has(n);
+      const name = n ? `<span data-uc>${MC.esc(labels[n - 1])}</span>` : '未评级';
+      return `<div class="rs-item${open ? ' open' : ''}" style="--c:${n ? c.color : 'var(--text2)'};--k:${n ? [0, .4, .58, .76, 1][n] : .25}">
+        <button class="rs-row" data-lv="${n}" aria-expanded="${open}"${list.length ? '' : ' disabled'}>
+          <span class="rs-name">${name}</span>
+          <span class="rs-bar"><i style="width:${(list.length / max * 100).toFixed(1)}%"></i></span>
+          <span class="rs-num">${list.length}<small>${evs.length ? Math.round(list.length / evs.length * 100) + '%' : ''}</small></span>
+        </button>
+        ${open && list.length ? `<div class="rs-sub">已完成 ${d} / ${list.length}</div><ul class="rs-list">${list.map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>` : ''}
+      </div>`;
+    };
+    $('#rsBody').innerHTML = evs.length ? `<div class="rs-sum glass-panel">
+        <div class="rs-big">${evs.length}<small>条记录</small></div>
+        <div class="rs-meta"><span>已评级 ${rated}</span><span>未评级 ${evs.length - rated}</span><span>已完成 ${done}</span></div>
+      </div>
+      <div class="rs-card glass-panel">${[4, 3, 2, 1, 0].map(row).join('')}</div>`
+      : `<div class="rs-empty">${rs.notesOnly ? '这段时间没有带备注的记录' : '这段时间还没有记录'}</div>`;
+  }
+  UI.bindList($('#rsBody'));
+  $('#rsBody').addEventListener('click', e => {
+    const r = e.target.closest('.rs-row'); if (!r) return;
+    const n = Number(r.dataset.lv); rs.open.has(n) ? rs.open.delete(n) : rs.open.add(n); renderRstat();
+  });
+  $('#rsSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.range = b.dataset.v; rs.off = 0; renderRstat(); });
+  $('#rsPrev').onclick = () => { rs.off--; renderRstat(); };
+  $('#rsNext').onclick = () => { rs.off++; renderRstat(); };
+  $('#rsNotes').onclick = () => { rs.notesOnly = !rs.notesOnly; renderRstat(); };
   $('#btnQuadDone').onclick = () => { MC.settings.quadShowDone = !MC.settings.quadShowDone; MC.saveSettings(); renderQuad(); };
 
   // ---------- 头像 / 昵称 ----------
@@ -999,6 +1064,7 @@
   if (MC.vault.locked()) showLock(); else document.documentElement.classList.remove('locked');
   showPage('cal');
   applyTab3();
+  syncRecTabs();
   requestAnimationFrame(() => placeInd(false));
   MC.extendSeries();
   if (MC.session.token) MC.sync().then(() => MC.extendSeries());

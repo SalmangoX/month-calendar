@@ -201,6 +201,9 @@
 
   // ---------- 图标与事件行 ----------
   UI.flagSVG = p => `<svg class="flag" viewBox="0 0 24 24" style="--c:${MC.priOf(p).color}"><path d="M6 21V4h11l-2.2 4.2L17 12.5H6"/></svg>`;
+  // 等级评分：名称是用户自定义的，所以用文字徽标（颜色深浅随等级）而不是旗子
+  UI.rateTag = e => `<span class="rate-tag lv${e.rate}" data-uc>${esc(MC.rateName(e))}</span>`;
+  UI.rateMenuItems = (calId, cur) => [{ label: '未评级', value: 0, on: !cur }, ...MC.rateLabels(calId).map((n, i) => ({ label: n, value: i + 1, on: cur === i + 1 }))];
   UI.priMenuItems = cur => MC.PRI.map(p => ({ label: p.full, value: p.v, on: p.v === cur, icon: UI.flagSVG(p.v) }));
   const checkSVG = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
@@ -224,7 +227,7 @@
         <div class="item-title"><span class="ttxt">${esc(e.title)}</span></div>
         ${bits.length ? `<div class="item-sub">${bits.join(' · ')}</div>` : ''}
       </div>
-      ${e.priority && !opts.noFlag ? UI.flagSVG(e.priority) : ''}
+      ${MC.rateOn(e.cal) ? (e.rate && !opts.noFlag ? UI.rateTag(e) : '') : (e.priority && !opts.noFlag ? UI.flagSVG(e.priority) : '')}
     </li>`;
   };
   // ---------- 完成反馈：清脆的一声 + 一点点触感 ----------
@@ -291,13 +294,13 @@
     const items = [{ label: e.done ? '标为未完成' : '标为完成', value: 'toggle' }];
     if (!e.done && e.date !== today) items.push({ label: '移到今天', value: 'today' });
     if (!e.done && e.date !== tmr) items.push({ label: '移到明天', value: 'tmr' });
-    items.push({ label: '优先级', value: 'pri' }, { label: '编辑', value: 'edit' }, { label: '删除', value: 'del', danger: true });
+    items.push({ label: MC.rateOn(e.cal) ? '等级' : '优先级', value: 'pri' }, { label: '编辑', value: 'edit' }, { label: '删除', value: 'del', danger: true });
     UI.menu(anchor, items, v => {
       if (!MC.data.events.includes(e)) return;
       if (v === 'toggle') { if (!e.done) { UI.justDone = e.id; UI.doneFeedback(); } MC.updateEvent(e, { done: !e.done }); }
       else if (v === 'today') UI.moveEvents([e], today, '已移到今天');
       else if (v === 'tmr') UI.moveEvents([e], tmr, '已移到明天');
-      else if (v === 'pri') setTimeout(() => UI.menu(anchor, UI.priMenuItems(e.priority), p => MC.updateEvent(e, { priority: p })), 60);
+      else if (v === 'pri') setTimeout(() => (MC.rateOn(e.cal) ? UI.menu(anchor, UI.rateMenuItems(e.cal, e.rate), p => MC.updateEvent(e, { rate: p })) : UI.menu(anchor, UI.priMenuItems(e.priority), p => MC.updateEvent(e, { priority: p }))), 60);
       else if (v === 'edit') MC.Editor.openEdit(e);
       else if (v === 'del') UI.removeEvents([e], '已删除');
     });
