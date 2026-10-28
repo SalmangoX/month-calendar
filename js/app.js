@@ -249,7 +249,7 @@
 
   // ---------- 记录日历：等级统计 ----------
   // 开了「等级评分」的记录日历，底部菜单里的四象限 / 课表换成「统计」：按这个日历自己的 4 个等级汇总事件
-  const rs = { range: 'month', off: 0, notesOnly: false, open: new Set() };
+  const rs = { range: 'month', off: 0, notesOnly: false, open: new Set(), openSlot: new Set() };
   const recCal = () => { const id = MC.activeCal(); return id && MC.rateOn(id) ? MC.cal(id) : null; };
   function syncRecTabs() {
     const stat = tabbar.querySelector('button[data-page="rstat"]'), t3 = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
@@ -384,6 +384,81 @@
     }
     return [...m.values()].map(k => ({ ...k, avg: avgOf(k.r) }));
   }
+  // ---- 时段分析：只看设了开始时间的事件（按开始时间归入时段）----
+  const SLOTS = [['凌晨', 0, 6], ['早上', 6, 9], ['上午', 9, 12], ['中午', 12, 14], ['下午', 14, 18], ['晚上', 18, 22], ['深夜', 22, 24]];
+  const mins = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+  const slotOf = e => SLOTS.findIndex(s => mins(e.time) >= s[1] * 60 && mins(e.time) < s[2] * 60);
+  const durOf = e => { if (!e.time || !e.endTime) return null; let d = mins(e.endTime) - mins(e.time); if (d <= 0) d += 1440; return d; };
+  const fmtDur = m => { m = Math.round(m); return m >= 60 ? `${Math.floor(m / 60)}小时${m % 60 ? (m % 60) + '分' : ''}` : `${m}分钟`; };
+  function pearson(pts) {
+    const n = pts.length; if (n < 5) return null;
+    const mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
+    let sxx = 0, syy = 0, sxy = 0;
+    for (const [x, y] of pts) { sxx += (x - mx) ** 2; syy += (y - my) ** 2; sxy += (x - mx) * (y - my); }
+    return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null;
+  }
+  function heatSVG(timed, color) { // 横轴 0–23 点，纵轴等级：格子越深，那个钟点这个等级的记录越多
+    const W = 340, H = 118, L = 40, T = 4, B = 18, cw = (W - L) / 24, ch = (H - T - B) / 4;
+    const grid = [1, 2, 3, 4].map(() => Array(24).fill(0));
+    for (const e of timed) if (e.rate) grid[e.rate - 1][+e.time.slice(0, 2)]++;
+    const max = Math.max(1, ...grid.flat());
+    let s = '';
+    [4, 3, 2, 1].forEach((lv, r) => {
+      const y = T + ch * r;
+      s += `<text x="${L - 6}" y="${(y + ch / 2 + 3).toFixed(1)}" class="rs-ax" text-anchor="end">${lv}</text>`;
+      for (let h = 0; h < 24; h++) {
+        const k = grid[lv - 1][h];
+        s += `<rect x="${(L + cw * h + .8).toFixed(1)}" y="${(y + .8).toFixed(1)}" width="${(cw - 1.6).toFixed(1)}" height="${(ch - 1.6).toFixed(1)}" rx="2.5" ${k ? `fill="${color}" fill-opacity="${(.18 + .82 * k / max).toFixed(2)}"` : 'class="rs-track"'}><title>${h}:00 · ${k}</title></rect>`;
+      }
+    });
+    for (const h of [0, 6, 12, 18, 23]) s += `<text x="${(L + cw * (h + .5)).toFixed(1)}" y="${H - 4}" class="rs-ax" text-anchor="middle">${h}</text>`;
+    return `<svg class="rs-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="时段 × 等级">${s}</svg>`;
+  }
+  function slotCard(c, evs, labels) {
+    const timed = evs.filter(e => e.time), tr = timed.filter(e => e.rate);
+    if (!timed.length) return '';
+    if (!tr.length) return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">时段分析</div><p class="rs-note">有 ${timed.length} 条设了时间的记录，但还没有评级。评级之后这里会按时段统计。</p></div>`;
+    const mean = avgOf(tr);
+    const rows = SLOTS.map((s, i) => {
+      const l = timed.filter(e => slotOf(e) === i), r = l.filter(e => e.rate), open = rs.openSlot.has(i);
+      if (!l.length) return '';
+      const cnt = [0, 0, 0, 0, 0]; l.forEach(e => cnt[e.rate || 0]++);
+      const bar = [4, 3, 2, 1, 0].map(lv => (cnt[lv] ? `<i style="width:${(cnt[lv] / l.length * 100).toFixed(1)}%;background:${lv ? c.color : 'var(--text2)'};opacity:${OP[lv]}"></i>` : '')).join('');
+      const dl = l.map(durOf).filter(d => d !== null);
+      return `<div class="rs-item${open ? ' open' : ''}">
+        <button class="rs-trow" data-slot="${i}" aria-expanded="${open}">
+          <span class="rs-name">${s[0]}<small>${s[1]}–${s[2]} 点</small></span>
+          <span class="rs-stack">${bar}</span>
+          <span class="rs-num">${r.length ? fx(avgOf(r), 1) : '–'}<small>${l.length} 条</small></span>
+        </button>
+        ${open ? `<div class="rs-sub">已评级 ${r.length} / ${l.length}${dl.length ? ` · 平均时长 ${fmtDur(dl.reduce((a, b) => a + b, 0) / dl.length)}` : ''}${r.length ? ` · 比整体平均 ${avgOf(r) >= mean ? '+' : ''}${fx(avgOf(r) - mean)}` : ''}</div><ul class="rs-list">${l.map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>` : ''}
+      </div>`;
+    }).join('');
+    // 最好 / 最差的时段（至少 2 条已评级）
+    const ss = SLOTS.map((s, i) => ({ s, r: tr.filter(e => slotOf(e) === i) })).filter(x => x.r.length >= 2).map(x => ({ ...x, a: avgOf(x.r) }));
+    let best = '';
+    if (ss.length >= 2) {
+      ss.sort((x, y) => y.a - x.a);
+      const hi = ss[0], lo = ss[ss.length - 1];
+      best = `<div class="rs-kv"><span>等级最高的时段</span><b>${hi.s[0]} ${fx(hi.a, 1)}<small>${hi.r.length} 条</small></b></div>
+        <div class="rs-kv"><span>等级最低的时段</span><b>${lo.s[0]} ${fx(lo.a, 1)}<small>${lo.r.length} 条</small></b></div>`;
+    }
+    // 时长和等级
+    const dp = tr.map(e => [durOf(e), e.rate]).filter(p => p[0] !== null), r = pearson(dp);
+    let dur = '';
+    if (dp.length) {
+      const per = [4, 3, 2, 1].map(lv => { const d = dp.filter(p => p[1] === lv).map(p => p[0]); return d.length ? `<div class="rs-kv"><span data-uc>${MC.esc(labels[lv - 1])}</span><b>${fmtDur(d.reduce((a, b) => a + b, 0) / d.length)}<small>${d.length} 条</small></b></div>` : ''; }).join('');
+      const ar = r === null ? 0 : Math.abs(r);
+      const desc = r === null ? `有结束时间的已评级记录还太少（${dp.length} 条），至少 5 条才计算相关性。`
+        : ar < .1 ? '时长和等级基本无关。' : `${ar < .3 ? '弱' : ar < .6 ? '中等' : '强'}${r > 0 ? '正' : '负'}相关：时长越长，等级${r > 0 ? '越高' : '越低'}。`;
+      dur = `<div class="rs-sh">各等级的平均时长</div>${per}<p class="rs-note">${r === null ? '' : `相关系数 r = ${fx(r)}。`}${desc}</p>`;
+    }
+    return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">时段分析<small>按开始时间，数字是平均等级 · 点开看记录</small></div>
+        <div class="rs-tlist">${rows}</div>${best}
+        <div class="rs-sh">钟点 × 等级<small>格子越深，那个钟点该等级的记录越多</small></div>${heatSVG(timed, c.color)}
+        ${dur}
+      </div>`;
+  }
   function rsAnalysis(c, evs, span, labels) {
     const rated = evs.filter(e => e.rate);
     if (!rated.length) return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">分析</div><p class="rs-note">给事件评级之后，这里会出现等级趋势、星期分布和备注关键词分析。</p></div>`;
@@ -429,6 +504,7 @@
     return `<div class="rs-card glass-panel rs-pad" style="--c:${c.color}"><div class="rs-h">等级趋势<small>柱：各等级数量 · 实线：平均等级 · 虚线：趋势</small></div>${trendSVG(bins, c.color, fit && fit.n >= 5 ? fit : null)}</div>
       <div class="rs-card glass-panel rs-pad"><div class="rs-h">趋势模型</div>${model}${noteCmp}</div>
       <div class="rs-card glass-panel rs-pad"><div class="rs-h">星期分布<small>每天的平均等级</small></div>${weekdaySVG(rated, c.color)}</div>
+      ${slotCard(c, evs, labels)}
       ${kwCard}`;
   }
   function renderRstat() {
@@ -469,6 +545,8 @@
   }
   UI.bindList($('#rsBody'));
   $('#rsBody').addEventListener('click', e => {
+    const t = e.target.closest('.rs-trow');
+    if (t) { const i = Number(t.dataset.slot); rs.openSlot.has(i) ? rs.openSlot.delete(i) : rs.openSlot.add(i); renderRstat(); return; }
     const r = e.target.closest('.rs-row'); if (!r) return;
     const n = Number(r.dataset.lv); rs.open.has(n) ? rs.open.delete(n) : rs.open.add(n); renderRstat();
   });

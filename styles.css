@@ -1074,3 +1074,10 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-lvn { flex: none; min-width: 3.5em; padding: 2px 8px; border-radius: 6px; text-align: center; font-size: 12px; font-weight: 650;
   background: color-mix(in srgb, var(--c) calc(var(--k) * 30%), transparent); }
 .rs-lvl { color: var(--text2); line-height: 1.5; }
+/* 时段分析 */
+.rs-tlist { margin: 0 -6px 4px; }
+.rs-trow { width: 100%; display: grid; grid-template-columns: 5.6em 1fr auto; align-items: center; gap: 12px; padding: 10px 6px; text-align: left; border-radius: 12px; }
+.rs-trow .rs-name small { display: block; font-size: 10.5px; font-weight: 500; color: var(--text2); margin-top: 1px; }
+.rs-stack { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: color-mix(in srgb, var(--text) 7%, transparent); }
+.rs-stack i { display: block; height: 100%; }
+.rs-sh small { font-weight: 500; margin-left: 6px; font-size: 11px; }
