@@ -189,6 +189,8 @@
     for (let x = a; x < b && out.length < 48; x += 30) out.push({ k: hm(x), a: x, b: Math.min(x + 30, b), end: hm(Math.min(x + 30, b)) });
     return out;
   };
+  // 某一段实际的等级：自己单独选过的用自己的，没选的跟着整条事件的等级
+  MC.segVal = (e, k) => (e.segs && e.segs[k]) || e.rate || 0;
   // 只保留当前时间段里的分段评价
   MC.pruneSegs = (segs, time, endTime) => { const ks = new Set(MC.segBlocks(time, endTime).map(x => x.k)), out = {}; for (const k in segs || {}) if (ks.has(k) && segs[k]) out[k] = segs[k]; return out; };
   function normEvent(e) {

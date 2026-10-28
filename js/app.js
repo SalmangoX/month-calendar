@@ -461,7 +461,8 @@
 
   const RS_TABS = [['all', '概览'], ['slot', '时段'], ['ev', '事件'], ['note', '备注']];
   function renderRstat() {
-    const c = recCal(); if (!c) return;
+    const c = recCal();
+    if (!c) { $('#rsBody').innerHTML = '<div class="rs-empty">当前日历没有开等级评分</div>'; return; }
     const span = rsSpan(), labels = MC.rateLabels(c.id);
     $('#rsName').textContent = c.name;
     $('#page-rstat').style.setProperty('--c', c.color);
@@ -473,8 +474,13 @@
     const evs = MC.data.events.filter(e => e.cal === c.id && (!span || (e.date >= a && e.date <= b)))
       .sort((x, y) => x.date.localeCompare(y.date) || (x.time || '').localeCompare(y.time || ''));
     const rated = evs.filter(e => e.rate);
-    $('#rsBody').innerHTML = !evs.length ? '<div class="rs-empty">这段时间还没有记录</div>'
-      : rs.tab === 'slot' ? pageSlot(c, evs, labels) : rs.tab === 'ev' ? pageEv(c, evs, labels) : rs.tab === 'note' ? pageNote(c, rated) : pageAll(c, evs, rated, span, labels);
+    try {
+      $('#rsBody').innerHTML = !evs.length ? '<div class="rs-empty">这段时间还没有记录</div>'
+        : rs.tab === 'slot' ? pageSlot(c, evs, labels) : rs.tab === 'ev' ? pageEv(c, evs, labels) : rs.tab === 'note' ? pageNote(c, rated) : pageAll(c, evs, rated, span, labels);
+    } catch (err) { // 出错时不留白页：把原因显示出来
+      console.error(err);
+      $('#rsBody').innerHTML = `<div class="rs-empty">统计页出错了：${MC.esc(err && err.message || err)}<br><small>多半是有文件没更新到同一版本，把最新的包整个覆盖后刷新</small></div>`;
+    }
   }
   UI.bindList($('#rsBody'));
   $('#rsBody').addEventListener('click', e => {

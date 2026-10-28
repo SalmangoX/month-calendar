@@ -222,7 +222,7 @@
     if (ec) bits.unshift(`<span class="cal-tag" data-uc style="--cc:${ec.color}">${esc(ec.name)}</span>`);
     if (e.segs && Object.keys(e.segs).length && MC.rateOn(e.cal)) { // 分段评价：每半小时一个小格，颜色越深等级越高
       const bl = MC.segBlocks(e.time, e.endTime);
-      if (bl.length) bits.push(`<span class="seg-mini" title="分段评价">${bl.map(b => `<i style="opacity:${[.12, .3, .5, .72, 1][e.segs[b.k] || 0]}"></i>`).join('')}</span>`);
+      if (bl.length) bits.push(`<span class="seg-mini" title="分段评价">${bl.map(b => `<i style="opacity:${[.12, .3, .5, .72, 1][MC.segVal(e, b.k)]}"></i>`).join('')}</span>`);
     }
     if (e.note) bits.push(`<span class="note">${esc(e.note)}</span>`); // 备注是用户写的，不翻译
     return `<li class="item${e.done ? ' done' : ''}${e.done && UI.justDone === e.id ? ' just-done' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)}">

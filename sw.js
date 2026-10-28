@@ -12,7 +12,7 @@ const ASSETS = [
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(ASSETS.map(u =>
-    fetch(new Request(u, { cache: 'reload' })).then(r => (r.ok ? c.put(u, r) : null)).catch(() => null)
+    fetch(u + (u.includes('?') ? '&' : '?') + '_sw=' + Date.now(), { cache: 'no-store' }).then(r => (r.ok ? c.put(u, r) : null)).catch(() => null)
   ))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
@@ -41,7 +41,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(caches.open(CACHE).then(async c => {
       const hit = await c.match(req);
       if (hit) return hit;
-      const res = await fetch(req);
+      const res = await freshFetch(req); // 绕过 CDN：刚发布时 CDN 可能还给旧文件，不能把旧内容存进新版本的缓存
       if (res.ok) c.put(req, res.clone());
       return res;
     }));
