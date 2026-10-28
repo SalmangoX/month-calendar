@@ -1081,3 +1081,33 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-stack { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: color-mix(in srgb, var(--text) 7%, transparent); }
 .rs-stack i { display: block; height: 100%; }
 .rs-sh small { font-weight: 500; margin-left: 6px; font-size: 11px; }
+/* 常用事件 */
+.cmp-presets { margin-top: 4px; margin-bottom: 12px; }
+.cmp-presets .cmp-label small { font-weight: 500; margin-left: 6px; opacity: .7; }
+.qchip.preset { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 35%, transparent); }
+.qchip.preset.on { background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--c); font-weight: 600; }
+.qchip.preset-add { color: var(--accent); }
+.cmp-next { margin-top: 10px; align-items: center; }
+.cmp-hint { font-size: 12.5px; color: var(--text2); align-self: center; }
+/* 统计页：吸顶的范围 + 分栏，概览数字卡 */
+.rs-ctl { position: sticky; top: 0; z-index: 3; margin: 0 -16px 12px; padding: 4px 16px 10px; gap: 8px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); }
+.rs-nav { gap: 10px; }
+.rs-nav button { width: 30px; height: 30px; font-size: 18px; }
+.rs-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.rs-tabs::-webkit-scrollbar { display: none; }
+.rs-tabs button { flex: 1 0 auto; padding: 7px 14px; border-radius: 999px; font-size: 13.5px; font-weight: 600; color: var(--text2); transition: background .2s, color .2s; }
+.rs-tabs button.on { background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--text); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 55%, transparent); }
+.rs-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.rs-kpi { padding: 13px 15px; border-radius: 18px; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.04), inset 0 0 0 .5px color-mix(in srgb, var(--text) 8%, transparent); }
+:root[data-theme="dark"] .rs-kpi { background: rgba(255,255,255,.06); }
+.rs-kpi b { display: block; font-size: 26px; font-weight: 720; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.rs-kpi b small { font-size: 14px; font-weight: 550; color: var(--text2); }
+.rs-kpi span { font-size: 12px; color: var(--text2); }
+.rs-kpi em { font-style: normal; color: var(--text); font-weight: 600; }
+.rs-dist { display: flex; height: 12px; margin: 12px 12px 4px; border-radius: 99px; overflow: hidden; gap: 2px; }
+.rs-dist i { display: block; height: 100%; }
+.rs-erow { width: 100%; display: grid; grid-template-columns: minmax(5em, 8.5em) 1fr auto; align-items: center; gap: 12px; padding: 10px 6px; text-align: left; border-radius: 12px; }
+.rs-erow .rs-name { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.rs-erow .rs-name > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-pre { flex: none; font-style: normal; font-size: 9.5px; font-weight: 650; padding: 1px 5px; border-radius: 5px; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }

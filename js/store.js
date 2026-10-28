@@ -216,6 +216,13 @@
   MC.MAIN_CAL = { id: '', name: '主日历', color: 'var(--accent)' };
   MC.RATE_DEFAULT = ['低', '中', '高', '超高'];
   MC.normRateLabels = a => MC.RATE_DEFAULT.map((d, i) => (Array.isArray(a) && typeof a[i] === 'string' && a[i].trim() ? a[i].trim().slice(0, 8) : d));
+  const HM = /^\d{2}:\d{2}$/;
+  function normPresets(a) {
+    if (!Array.isArray(a)) return [];
+    const seen = new Set();
+    return a.filter(p => p && String(p.name || '').trim() && !seen.has(String(p.name).trim()) && seen.add(String(p.name).trim())).slice(0, 40)
+      .map(p => ({ id: String(p.id || MC.uid()).slice(0, 40), name: String(p.name).trim().slice(0, 60), time: HM.test(p.time || '') ? p.time : '', endTime: HM.test(p.endTime || '') && HM.test(p.time || '') ? p.endTime : '' }));
+  }
   function normCal(c) {
     const t = Date.now();
     return { id: String(c.id).slice(0, 40), name: String(c.name || '记录').slice(0, 24), color: /^#[0-9a-fA-F]{6}$/.test(c.color || '') ? c.color : MC.CAL_COLORS[0],
@@ -223,6 +230,7 @@
       notify: !!c.notify,         // 这个日历的事件到点提醒
       rateOn: c.kind !== 'days' && !!c.rateOn, // 记录日历：不按优先级，改用 4 个等级给事件评级并统计
       rateLabels: MC.normRateLabels(c.rateLabels), // 4 个等级的名称（可自定义，整个日历通用），从低到高
+      presets: normPresets(c.presets), // 常用事件：存好名称，添加时一点就填上（time / endTime 记住上次用的时段）
       kind: c.kind === 'days' ? 'days' : '', // 'days' = 纪念日历（倒数日 / 纪念日），其余为记录日历
       createdAt: c.createdAt || t, updatedAt: c.updatedAt || c.createdAt || t };
   }
@@ -374,6 +382,14 @@
     MC.data.cals.push(c); MC.commit(); return c;
   };
   MC.updateCal = (c, fields) => { Object.assign(c, fields, { updatedAt: Date.now() }); MC.commit(); if (MC.onCalChange) MC.onCalChange(); };
+  // 常用事件
+  MC.addPreset = (c, name) => { name = String(name || '').trim().slice(0, 60); if (!name || (c.presets || []).some(p => p.name === name)) return null; const p = { id: MC.uid(), name, time: '', endTime: '' }; MC.updateCal(c, { presets: [...(c.presets || []), p] }); return p; };
+  MC.removePreset = (c, id) => MC.updateCal(c, { presets: (c.presets || []).filter(p => p.id !== id) });
+  MC.touchPreset = (calId, name, time, endTime) => { // 用常用事件添加时记住这次的时段，下次可以一键沿用
+    const c = calId && MC.cal(calId), p = c && (c.presets || []).find(x => x.name === name);
+    if (!p || !time || (p.time === time && p.endTime === (endTime || ''))) return;
+    MC.updateCal(c, { presets: c.presets.map(x => (x === p ? { ...x, time, endTime: endTime || '' } : x)) });
+  };
   MC.deleteCal = id => { // 连同里面的事件一起删除
     const t = Date.now();
     for (const e of MC.data.events) if (e.cal === id) MC.data.deleted[e.id] = t;
@@ -441,7 +457,7 @@
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
       .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
-    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), c.updatedAt]);
+    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), JSON.stringify(c.presets || []), c.updatedAt]);
     const ds = [...(d.days || []), ...(d.books || [])].map(x => x.id + ':' + (x.updatedAt || 0)).sort();
     return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, d.coursesAt || 0, cs, ds, (d.album || {}).gist || '']);
   }

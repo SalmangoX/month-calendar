@@ -91,7 +91,43 @@
     if (draft.remind !== null && draft.remind !== undefined) extra.push('提醒');
     $('#cmpDateLabel').textContent = extra.length ? extra.join(' · ') : '时间 · 提醒 · 重复';
   }
+  // ---- 常用事件（记录日历）：点一下填好名称，再决定要不要设时段 ----
+  const presetCal = () => (mode === 'new' && newCal && MC.cal(newCal) && MC.cal(newCal).kind !== 'days' ? MC.cal(newCal) : null);
+  function paintPresets() {
+    const c = presetCal(), sec = $('#cmpPresetSec');
+    sec.hidden = !c; if (!c) return;
+    const title = $('#cmpTitle').value.trim(), ps = c.presets || [], cur = ps.find(p => p.name === title);
+    $('#cmpPresets').innerHTML = ps.map(p => `<button class="qchip preset${p === cur ? ' on' : ''}" data-pid="${p.id}" style="--c:${c.color}"><span data-uc>${esc(p.name)}</span></button>`).join('')
+      + (title && !cur ? `<button class="qchip preset-add" data-act="add">＋ 存为常用</button>` : !ps.length ? `<span class="cmp-hint">写好名称后点「存为常用」，以后一点就能添加</span>` : '');
+    let next = '';
+    if (cur) {
+      const same = draft.time && cur.time === draft.time && (cur.endTime || '') === (draft.endTime || '');
+      next = `<span class="cmp-hint">下一步：</span>`
+        + (cur.time && !same ? `<button class="qchip" data-act="last">沿用上次 ${esc(MC.fmtRange(cur.time, cur.endTime))}</button>` : '')
+        + `<button class="qchip" data-act="time">${draft.time ? '修改时段' : '选择时段'}</button>`
+        + (draft.time ? `<button class="qchip" data-act="notime">不设时段</button>` : '');
+    }
+    $('#cmpPresetNext').innerHTML = next; $('#cmpPresetNext').hidden = !next;
+  }
+  $('#cmpPresetSec').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const c = presetCal(); if (!c) return;
+    const cur = (c.presets || []).find(p => p.name === $('#cmpTitle').value.trim());
+    if (b.dataset.pid) {
+      const p = (c.presets || []).find(x => x.id === b.dataset.pid); if (!p) return;
+      $('#cmpTitle').value = p.name; $('#cmpTitle').classList.remove('err'); $('#cmpTitle').blur(); growTitle();
+    } else if (b.dataset.act === 'add') { if (MC.addPreset(c, $('#cmpTitle').value)) UI.toast('已存为常用事件'); }
+    else if (b.dataset.act === 'last' && cur) Object.assign(draft, { time: cur.time, endTime: cur.endTime || '', days: 1 });
+    else if (b.dataset.act === 'notime') Object.assign(draft, { time: '', endTime: '' });
+    else if (b.dataset.act === 'time') { $('#cmpDate').click(); return; }
+    paintComposer();
+  });
+  UI.longPress($('#cmpPresets'), '.preset', el => {
+    const c = presetCal(), p = c && (c.presets || []).find(x => x.id === el.dataset.pid); if (!p) return;
+    UI.menu(el, [{ label: `删除常用事件「${p.name}」`, value: 'del', danger: true }], () => { MC.removePreset(c, p.id); paintComposer(); UI.toast('已删除常用事件'); });
+  });
   function paintComposer() {
+    paintPresets();
     paintQuick();
     paintTools();
     const rc = mode === 'edit' && editing ? editing.cal : newCal, rated = MC.rateOn(rc);
@@ -241,6 +277,7 @@
     }
     const { dates, rep, events } = buildEvents(fields, draft.repeat, draft.until);
     MC.addEvents(events);
+    MC.touchPreset(newCal, title, fields.time, fields.endTime);
     const quiet = draft.remind !== null && draft.remind !== undefined && newCal && !MC.notifies({ cal: newCal });
     UI.toast((rep ? (rep.forever ? `已添加，${MC.repeatLabel(rep.freq)}重复` : `已添加 ${dates.length} 个重复事件`) : `已添加到${MC.dayDiff(draft.date) === 0 ? '今天' : ' ' + MC.dateLabel(draft.date)}`)
       + (quiet ? `。「${MC.cal(newCal).name}」的通知没有打开，不会提醒` : ''));

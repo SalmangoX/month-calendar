@@ -93,6 +93,7 @@
       <div class="rs-ctl">
         <div class="seg" id="rsSeg"><button data-v="week">本周</button><button data-v="month" class="on">本月</button><button data-v="year">本年</button><button data-v="all">全部</button></div>
         <div class="rs-nav" id="rsNav"><button id="rsPrev" aria-label="上一个">‹</button><span id="rsLabel"></span><button id="rsNext" aria-label="下一个">›</button></div>
+        <div class="rs-tabs" id="rsTabs" role="tablist"></div>
       </div>
       <div id="rsBody"></div>
     </div>
@@ -210,6 +211,11 @@
     <button class="text-btn muted" id="cmpClear" hidden>清空</button>
     <button class="cmp-batch" id="cmpBatch">批量</button>
     <button class="cmp-save" id="cmpSave">添加</button>
+  </div>
+  <div class="cmp-sec cmp-presets" id="cmpPresetSec" hidden>
+    <span class="cmp-label">常用事件<small>长按可删除</small></span>
+    <div class="cmp-chips" id="cmpPresets"></div>
+    <div class="cmp-chips cmp-next" id="cmpPresetNext" hidden></div>
   </div>
   <div class="cmp-card">
     <textarea id="cmpTitle" rows="1" placeholder="准备做什么？" enterkeyhint="done"></textarea>

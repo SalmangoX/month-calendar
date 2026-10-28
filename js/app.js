@@ -249,7 +249,7 @@
 
   // ---------- 记录日历：等级统计 ----------
   // 开了「等级评分」的记录日历，底部菜单里的四象限 / 课表换成「统计」：按这个日历自己的 4 个等级汇总事件
-  const rs = { range: 'month', off: 0, notesOnly: false, open: new Set(), openSlot: new Set() };
+  const rs = { range: 'month', off: 0, notesOnly: false, tab: 'all', open: new Set(), openSlot: new Set(), openEv: new Set() };
   const recCal = () => { const id = MC.activeCal(); return id && MC.rateOn(id) ? MC.cal(id) : null; };
   function syncRecTabs() {
     const stat = tabbar.querySelector('button[data-page="rstat"]'), t3 = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
@@ -461,7 +461,6 @@
   }
   function rsAnalysis(c, evs, span, labels) {
     const rated = evs.filter(e => e.rate);
-    if (!rated.length) return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">分析</div><p class="rs-note">给事件评级之后，这里会出现等级趋势、星期分布和备注关键词分析。</p></div>`;
     const mean = avgOf(rated), { bins, unit } = rsBins(evs, span);
     const fit = fitLine(rated.map(e => [dayNum(e.date), e.rate]));
     // 趋势模型的结论
@@ -501,12 +500,43 @@
         ${lo.length ? `<div class="rs-sh">低分常见</div><div class="rs-kws">${lo.map(chip).join('')}</div>` : ''}
         ${perLv ? `<div class="rs-sh">各等级常用词</div>${perLv}` : ''}
       </div>` : `<div class="rs-card glass-panel rs-pad"><div class="rs-h">备注关键词</div><p class="rs-note">这段时间的记录还没有备注。写了备注之后，这里会分析哪些词常和高分、低分一起出现。</p></div>`;
-    return `<div class="rs-card glass-panel rs-pad" style="--c:${c.color}"><div class="rs-h">等级趋势<small>柱：各等级数量 · 实线：平均等级 · 虚线：趋势</small></div>${trendSVG(bins, c.color, fit && fit.n >= 5 ? fit : null)}</div>
-      <div class="rs-card glass-panel rs-pad"><div class="rs-h">趋势模型</div>${model}${noteCmp}</div>
-      <div class="rs-card glass-panel rs-pad"><div class="rs-h">星期分布<small>每天的平均等级</small></div>${weekdaySVG(rated, c.color)}</div>
-      ${slotCard(c, evs, labels)}
-      ${kwCard}`;
+    return {
+      trend: `<div class="rs-card glass-panel rs-pad"><div class="rs-h">等级趋势<small>柱：各等级数量 · 实线：平均 · 虚线：趋势</small></div>${trendSVG(bins, c.color, fit && fit.n >= 5 ? fit : null)}</div>`,
+      model: `<div class="rs-card glass-panel rs-pad"><div class="rs-h">趋势模型</div>${model}</div>`,
+      weekday: `<div class="rs-card glass-panel rs-pad"><div class="rs-h">星期分布<small>每天的平均等级</small></div>${weekdaySVG(rated, c.color)}</div>`,
+      noteCmp, kw: kwCard,
+    };
   }
+  // ---- 按事件统计：同名事件（常用事件）汇总 ----
+  function evCard(c, evs) {
+    const m = new Map();
+    for (const e of evs) { const k = e.title.trim(); if (!m.has(k)) m.set(k, []); m.get(k).push(e); }
+    const pre = new Set((c.presets || []).map(p => p.name));
+    const groups = [...m.entries()].map(([name, l]) => ({ name, l, r: l.filter(e => e.rate) })).sort((x, y) => y.l.length - x.l.length || avgOf(y.r) - avgOf(x.r));
+    if (!groups.length) return '';
+    const mean = avgOf(evs.filter(e => e.rate)), top = groups.slice(0, 40);
+    const rows = top.map(g => {
+      const open = rs.openEv.has(g.name), cnt = [0, 0, 0, 0, 0]; g.l.forEach(e => cnt[e.rate || 0]++);
+      const bar = [4, 3, 2, 1, 0].map(lv => (cnt[lv] ? `<i style="width:${(cnt[lv] / g.l.length * 100).toFixed(1)}%;background:${lv ? c.color : 'var(--text2)'};opacity:${OP[lv]}"></i>` : '')).join('');
+      let sub = '';
+      if (open) {
+        const dl = g.l.map(durOf).filter(d => d !== null), done = g.l.filter(e => e.done).length;
+        const ss = SLOTS.map((s, i) => ({ s, r: g.r.filter(e => e.time && slotOf(e) === i) })).filter(x => x.r.length).sort((x, y) => avgOf(y.r) - avgOf(x.r) || y.r.length - x.r.length);
+        sub = `<div class="rs-sub">${[`已完成 ${done} / ${g.l.length}`, g.r.length ? `比整体平均 ${avgOf(g.r) >= mean ? '+' : ''}${fx(avgOf(g.r) - mean)}` : '', dl.length ? `平均时长 ${fmtDur(dl.reduce((a, b) => a + b, 0) / dl.length)}` : '', ss.length > 1 ? `${ss[0].s[0]}做得最好（${fx(avgOf(ss[0].r), 1)}）` : ''].filter(Boolean).join(' · ')}</div>
+          <ul class="rs-list">${[...g.l].reverse().map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>`;
+      }
+      return `<div class="rs-item${open ? ' open' : ''}">
+        <button class="rs-erow" data-ev="${MC.esc(g.name)}" aria-expanded="${open}">
+          <span class="rs-name"><span data-uc>${MC.esc(g.name)}</span>${pre.has(g.name) ? '<em class="rs-pre">常用</em>' : ''}</span>
+          <span class="rs-stack">${bar}</span>
+          <span class="rs-num">${g.r.length ? fx(avgOf(g.r), 1) : '–'}<small>${g.l.length} 次</small></span>
+        </button>${sub}
+      </div>`;
+    }).join('');
+    return `<div class="rs-card glass-panel rs-pad"><div class="rs-h">按事件<small>同名事件放在一起 · 数字是平均等级 · 点开看详情</small></div>
+      <div class="rs-tlist">${rows}</div>${groups.length > top.length ? `<p class="rs-note">只显示次数最多的 ${top.length} 个。</p>` : ''}</div>`;
+  }
+  const RS_TABS = [['all', '概览'], ['trend', '趋势'], ['slot', '时段'], ['ev', '事件'], ['note', '备注']];
   function renderRstat() {
     const c = recCal(); if (!c) return;
     const span = rsSpan(), labels = MC.rateLabels(c.id);
@@ -514,43 +544,60 @@
     $('#page-rstat').style.setProperty('--c', c.color);
     $('#rsNotes').classList.toggle('on', rs.notesOnly);
     $('#rsSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === rs.range));
+    $('#rsTabs').innerHTML = RS_TABS.map(([v, l]) => `<button data-v="${v}"${v === rs.tab ? ' class="on"' : ''}>${l}</button>`).join('');
     $('#rsNav').hidden = !span;
     if (span) $('#rsLabel').textContent = rs.range === 'week' ? `${MC.dateLabel(MC.ymd(span[0]))} – ${MC.dateLabel(MC.ymd(span[1]))}` : rs.range === 'month' ? `${span[0].getFullYear()}年${span[0].getMonth() + 1}月` : `${span[0].getFullYear()}年`;
     const a = span ? MC.ymd(span[0]) : '', b = span ? MC.ymd(span[1]) : '';
     const evs = MC.data.events.filter(e => e.cal === c.id && (!span || (e.date >= a && e.date <= b)) && (!rs.notesOnly || e.note))
       .sort((x, y) => x.date.localeCompare(y.date) || (x.time || '').localeCompare(y.time || ''));
-    const by = n => evs.filter(e => (e.rate || 0) === n);
-    const rated = evs.filter(e => e.rate).length, done = evs.filter(e => e.done).length;
-    const max = Math.max(1, ...[0, 1, 2, 3, 4].map(n => by(n).length));
-    const row = n => {
-      const list = by(n), d = list.filter(e => e.done).length, open = rs.open.has(n);
-      const name = n ? `<span data-uc>${MC.esc(labels[n - 1])}</span>` : '未评级';
-      return `<div class="rs-item${open ? ' open' : ''}" style="--c:${n ? c.color : 'var(--text2)'};--k:${n ? [0, .4, .58, .76, 1][n] : .25}">
-        <button class="rs-row" data-lv="${n}" aria-expanded="${open}"${list.length ? '' : ' disabled'}>
-          <span class="rs-name">${name}</span>
-          <span class="rs-bar"><i style="width:${(list.length / max * 100).toFixed(1)}%"></i></span>
-          <span class="rs-num">${list.length}<small>${evs.length ? Math.round(list.length / evs.length * 100) + '%' : ''}</small></span>
-        </button>
-        ${open && list.length ? `<div class="rs-sub">已完成 ${d} / ${list.length}</div><ul class="rs-list">${list.map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>` : ''}
-      </div>`;
-    };
-    $('#rsBody').innerHTML = evs.length ? `<div class="rs-sum glass-panel">
-        <div class="rs-big">${evs.length}<small>条记录</small></div>
-        ${rated ? `<div class="rs-avgbox"><b>${fx(avgOf(evs.filter(e => e.rate)))}</b><small>平均等级 · ≈ <span data-uc>${MC.esc(labels[Math.round(avgOf(evs.filter(e => e.rate))) - 1])}</span></small></div>` : ''}
-        <div class="rs-meta"><span>已评级 ${rated}</span><span>未评级 ${evs.length - rated}</span><span>已完成 ${done}</span></div>
-      </div>
-      <div class="rs-card glass-panel">${[4, 3, 2, 1, 0].map(row).join('')}</div>
-      ${rsAnalysis(c, evs, span, labels)}`
-      : `<div class="rs-empty">${rs.notesOnly ? '这段时间没有带备注的记录' : '这段时间还没有记录'}</div>`;
+    if (!evs.length) { $('#rsBody').innerHTML = `<div class="rs-empty">${rs.notesOnly ? '这段时间没有带备注的记录' : '这段时间还没有记录'}</div>`; return; }
+    const ratedL = evs.filter(e => e.rate), rated = ratedL.length, done = evs.filter(e => e.done).length, mean = avgOf(ratedL);
+    const hint = t => `<div class="rs-card glass-panel rs-pad"><p class="rs-note" style="margin:0">${t}</p></div>`;
+    let html = '';
+    if (rs.tab === 'all') {
+      const by = n => evs.filter(e => (e.rate || 0) === n);
+      const max = Math.max(1, ...[0, 1, 2, 3, 4].map(n => by(n).length));
+      const row = n => {
+        const list = by(n), d = list.filter(e => e.done).length, open = rs.open.has(n);
+        const name = n ? `<span data-uc>${MC.esc(labels[n - 1])}</span>` : '未评级';
+        return `<div class="rs-item${open ? ' open' : ''}" style="--c:${n ? c.color : 'var(--text2)'};--k:${n ? OP[n] : .25}">
+          <button class="rs-row" data-lv="${n}" aria-expanded="${open}"${list.length ? '' : ' disabled'}>
+            <span class="rs-name">${name}</span>
+            <span class="rs-bar"><i style="width:${(list.length / max * 100).toFixed(1)}%"></i></span>
+            <span class="rs-num">${list.length}<small>${Math.round(list.length / evs.length * 100)}%</small></span>
+          </button>
+          ${open && list.length ? `<div class="rs-sub">已完成 ${d} / ${list.length}</div><ul class="rs-list">${[...list].reverse().map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>` : ''}
+        </div>`;
+      };
+      const seg = [4, 3, 2, 1, 0].map(n => { const k = by(n).length; return k ? `<i style="flex:${k};background:${n ? c.color : 'var(--text2)'};opacity:${OP[n]}"></i>` : ''; }).join('');
+      html = `<div class="rs-kpis">
+          <div class="rs-kpi"><b>${evs.length}</b><span>条记录</span></div>
+          <div class="rs-kpi"><b>${rated ? fx(mean) : '–'}</b><span>${rated ? `平均 ≈ <em data-uc>${MC.esc(labels[Math.round(mean) - 1])}</em>` : '平均等级'}</span></div>
+          <div class="rs-kpi"><b>${Math.round(done / evs.length * 100)}%</b><span>完成率</span></div>
+          <div class="rs-kpi"><b>${rated}<small>/${evs.length}</small></b><span>已评级</span></div>
+        </div>
+        <div class="rs-card glass-panel"><div class="rs-dist">${seg}</div>${[4, 3, 2, 1, 0].map(row).join('')}</div>`;
+    } else if (rs.tab === 'ev') html = evCard(c, evs);
+    else if (!rated) html = hint('给事件评级之后，这里会出现等级趋势、时段分析和备注关键词。');
+    else {
+      const p = rsAnalysis(c, evs, span, labels);
+      if (rs.tab === 'trend') html = p.trend + p.model + p.weekday;
+      else if (rs.tab === 'slot') html = slotCard(c, evs, labels) || hint('这段时间没有设了时间段的记录。添加事件时选上时间段，这里就会按时段统计。');
+      else html = (p.noteCmp ? `<div class="rs-card glass-panel rs-pad"><div class="rs-h">备注与等级</div>${p.noteCmp}</div>` : '') + p.kw;
+    }
+    $('#rsBody').innerHTML = html;
   }
   UI.bindList($('#rsBody'));
   $('#rsBody').addEventListener('click', e => {
+    const ev = e.target.closest('.rs-erow');
+    if (ev) { const k = ev.dataset.ev; rs.openEv.has(k) ? rs.openEv.delete(k) : rs.openEv.add(k); renderRstat(); return; }
     const t = e.target.closest('.rs-trow');
     if (t) { const i = Number(t.dataset.slot); rs.openSlot.has(i) ? rs.openSlot.delete(i) : rs.openSlot.add(i); renderRstat(); return; }
     const r = e.target.closest('.rs-row'); if (!r) return;
     const n = Number(r.dataset.lv); rs.open.has(n) ? rs.open.delete(n) : rs.open.add(n); renderRstat();
   });
   $('#rsSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.range = b.dataset.v; rs.off = 0; renderRstat(); });
+  $('#rsTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.tab = b.dataset.v; renderRstat(); $('.rs-scroll').scrollTop = 0; });
   $('#rsPrev').onclick = () => { rs.off--; renderRstat(); };
   $('#rsNext').onclick = () => { rs.off++; renderRstat(); };
   $('#rsNotes').onclick = () => { rs.notesOnly = !rs.notesOnly; renderRstat(); };
