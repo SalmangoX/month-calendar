@@ -795,7 +795,7 @@
       srow({ act: 'icfile', icon: 'cloud', tone: 'sky', label: '与 iCloud 云盘同步', help: 'icloud', chev: false,
         sub: S.icFileDirty ? '手机上有改动还没存回去' : S.icFileAt ? '上次 · ' + new Date(S.icFileAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '读取 Mac 的数据，合并后存回去' }),
     ], '给 Mac 的 iCloud 云盘同步用：浏览器不能自己读写 iCloud 云盘，只能你来点。用过一次后，打开节律或手机上有改动时会自动提醒你同步。');
-    const h = gRemind + gDisplay + gSync + gIcFile + gWidgets + gData;
+    const h = gSync + gIcFile + gRemind + gDisplay + gWidgets + gData; // 同步放最上面：最常要看的就是有没有同步上
     $('#setGroups').innerHTML = h;
     const total = MC.data.events.length, done = MC.data.events.filter(e => e.done).length;
     $('#statLine').innerHTML = `版本 ${MC.versionText()} · 共 ${total} 个事件，已完成 ${done} 个<small class="dbg"${showDbg ? '' : ' hidden'}>${esc(MC.screenInfo || '')}</small>`;
@@ -958,6 +958,7 @@
     }
     renderSettings();
   });
+  MC.onProfileRecovered = () => { paintTabAvatar(); renderSettings(); UI.toast('已找回之前的头像和昵称'); };
   MC.onSyncStatus = () => { if (page === 'set') { paintStatus(); const r = $('#setGroups [data-act="sync"] small'); if (r) r.textContent = syncText()[0]; } };
 
   // ---------- 表单 ----------
@@ -1212,22 +1213,29 @@
         : `<div class="help-tip">点「10 秒后测试」后马上回到桌面并锁屏，10 秒左右收到「后台提醒测试」，就说明 App 关着也能准时提醒。<br>想让提醒在锁屏显示、响铃或弹出横幅，点「通知样式」分别设置「事件提醒」和「每日未完成提醒」。</div>`}`,
       };
     },
+    // iCloud 云盘同步：上面一张动图（iPhone、Mac 和中间的云，数据在它们之间来回流动），下面三步；网页版另外说明手动的做法
     icloud: () => ({
       title: 'iCloud 云盘同步',
-      html: `<div class="sgroup-title">Mac：全自动</div>
-      <ol class="steps">
-        <li>设置 → 同步 → 使用 iCloud 云盘。已经连着 GitHub 的话，点「更换同步方式」→「使用 iCloud 云盘」。</li>
-        <li>在 iCloud 云盘里新建一个文件夹（比如「节律」）并选中它。这台 Mac 上已有事件时，选「合并」。</li>
-        <li>另一台 Mac 做同样的事，选同一个文件夹。之后两台 Mac 自动互相同步，不用再管。</li>
+      html: `<div class="ic-anim" aria-hidden="true"><svg viewBox="0 0 300 120">
+        <path id="icL" class="ic-path" d="M58 78 C 90 30, 120 24, 150 30"/><path id="icR" class="ic-path" d="M242 78 C 210 30, 180 24, 150 30"/>
+        <g class="ic-dev"><rect x="34" y="52" width="40" height="64" rx="9"/><rect x="48" y="56" width="12" height="3" rx="1.5" class="ic-fill"/></g>
+        <g class="ic-dev"><rect x="214" y="60" width="66" height="42" rx="5"/><path d="M204 108 h86 l-6 6 h-74 z" class="ic-fill"/></g>
+        <path class="ic-cloud" d="M128 40 a14 14 0 0 1 4-27 a19 19 0 0 1 36 4 a12 12 0 0 1 4 23 z"/>
+        <circle r="3.5" class="ic-dot"><animateMotion dur="2.4s" repeatCount="indefinite"><mpath href="#icL"/></animateMotion></circle>
+        <circle r="3.5" class="ic-dot"><animateMotion dur="2.4s" begin="1.2s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#icL"/></animateMotion></circle>
+        <circle r="3.5" class="ic-dot"><animateMotion dur="2.4s" begin=".6s" repeatCount="indefinite"><mpath href="#icR"/></animateMotion></circle>
+        <circle r="3.5" class="ic-dot"><animateMotion dur="2.4s" begin="1.8s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#icR"/></animateMotion></circle>
+      </svg></div>
+      ${MC.Native.on || !Push.isIOS ? `<ol class="steps">
+        <li>每台 iPhone、Mac：设置 → 同步 → 使用 iCloud 云盘</li>
+        <li>选同一个文件夹（第一次可以新建一个「节律」）</li>
+        <li>完成。以后改了什么，几秒到一两分钟就会出现在其他设备上</li>
       </ol>
-      <div class="sgroup-title">iPhone 网页版：手动，会提醒你</div>
-      <ol class="steps">
-        <li>先在 Mac 上按上面设好，确认那个文件夹里已经有 cadence-calendar.json。</li>
-        <li>iPhone 上打开节律 → 设置 → 与 iCloud 云盘同步 → 在「文件」里打开 iCloud 云盘 → 那个文件夹 → 选 cadence-calendar.json。</li>
-        <li>手机上有新改动时会让你存回去：点「存回去」→「存储到“文件”」→ 选同一个文件夹 → 存储；问到时选「替换」。</li>
-        <li>之后打开节律、或在手机上改完东西，会自动弹出带「同步」按钮的提示，点一下就从选文件开始。</li>
+      <div class="help-tip">用的是这台设备已经登录的 Apple ID，不用另外注册账号。</div>` : `<ol class="steps">
+        <li>点「与 iCloud 云盘同步」，在「文件」里选 Mac 同步用的 cadence-calendar.json</li>
+        <li>手机上有改动时点「存回去」，存到同一个文件夹</li>
       </ol>
-      <div class="help-tip">iPhone 为什么要手动：Safari 不能自己读写 iCloud 云盘，每次只能由你选文件、存文件。想让 iPhone 也全自动，所有设备都改用 GitHub 同步。<br>存回去时如果没有「替换」、存成了「cadence-calendar 2.json」也没关系，Mac 会把它合并进来再删掉。<br>同步快慢由 iCloud 决定，一般几秒到一两分钟。</div>`,
+      <div class="help-tip">网页版不能自己读写 iCloud 云盘，所以要手动点；装了 Cadence App 就是全自动的。</div>`}`,
     }),
     mwidget: () => ({
       title: 'Mac 桌面小组件',

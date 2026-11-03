@@ -319,7 +319,16 @@ private enum TabSize {
     #if os(macOS)
     static let h: CGFloat = 52, icon: CGFloat = 17, iconH: CGFloat = 21, label: CGFloat = 10.5, gap: CGFloat = 3
     #else
-    static let h: CGFloat = 60, icon: CGFloat = 20, iconH: CGFloat = 24, label: CGFloat = 10.5, gap: CGFloat = 4
+    static let h: CGFloat = 57, icon: CGFloat = 20, iconH: CGFloat = 23, label: CGFloat = 10.5, gap: CGFloat = 3.5
+    #endif
+}
+
+/// 弹出菜单的尺寸：Mac 和系统菜单一样小巧；iPhone 用手指点，行高 44、字 17（和系统的弹出菜单一样）
+private enum MenuSize {
+    #if os(macOS)
+    static let font: CGFloat = 14, row: CGFloat = 36, padH: CGFloat = 14, minW: CGFloat = 180, maxW: CGFloat = 280
+    #else
+    static let font: CGFloat = 17, row: CGFloat = 44, padH: CGFloat = 16, minW: CGFloat = 220, maxW: CGFloat = 300
     #endif
 }
 
@@ -365,21 +374,23 @@ struct GlassMenu: View {
             ZStack(alignment: .topLeading) {
                 if let mm = m.menu {
                     Color.clear.contentShape(Rectangle()).onTapGesture { m.pickMenu(-1) }
-                    let w: CGFloat = max(180, min(280, CGFloat(mm.items.map { $0.label.count }.max() ?? 6) * 14 + 70))
-                    let hgt = CGFloat(mm.items.count) * 36 + 12
+                    let w: CGFloat = max(MenuSize.minW, min(MenuSize.maxW, CGFloat(mm.items.map { $0.label.count }.max() ?? 6) * MenuSize.font + 70))
+                    let hgt = CGFloat(mm.items.count) * MenuSize.row + 12
                     let below = mm.anchor.maxY + 8 + hgt < g.size.height - 8
-                    let x = min(max(8, mm.anchor.minX < 80 ? mm.anchor.minX : mm.anchor.midX - w / 2), g.size.width - w - 8)
+                    // 靠左的按钮：菜单左边对齐按钮；靠右的按钮（设置里的选项值）：右边对齐按钮；中间的居中
+                    let ax = mm.anchor.minX < 80 ? mm.anchor.minX : mm.anchor.midX > g.size.width * 0.6 ? mm.anchor.maxX - w : mm.anchor.midX - w / 2
+                    let x = min(max(8, ax), g.size.width - w - 8)
                     let y = below ? mm.anchor.maxY + 8 : mm.anchor.minY - 8 - hgt
                     VStack(spacing: 0) {
                         ForEach(Array(mm.items.enumerated()), id: \.offset) { i, it in
                             Button { m.pickMenu(i) } label: {
                                 HStack(spacing: 10) {
-                                    Text(it.label).font(.system(size: 14, weight: it.on ? .semibold : .regular)).lineLimit(1)
+                                    Text(it.label).font(.system(size: MenuSize.font, weight: it.on ? .semibold : .regular)).lineLimit(1)
                                     Spacer(minLength: 8)
-                                    if it.on { Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)) }
+                                    if it.on { Image(systemName: "checkmark").font(.system(size: MenuSize.font - 1, weight: .bold)) }
                                 }
                                 .foregroundStyle(it.danger ? Color.red : Color.primary)
-                                .padding(.horizontal, 14).frame(height: 36)
+                                .padding(.horizontal, MenuSize.padH).frame(height: MenuSize.row)
                                 .background { if hoverRow == i { RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.1)) } }
                                 .contentShape(Rectangle())
                             }

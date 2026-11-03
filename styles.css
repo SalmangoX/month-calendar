@@ -635,6 +635,14 @@ html.kb-open .sheet.tall.show {
 .steps li:not(:last-child)::after { content: ""; position: absolute; left: 12.5px; top: 30px; bottom: 4px; width: 1px; background: var(--group-line); }
 .steps b { font-weight: 650; }
 .steps code, .help-body code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: var(--field); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
+.ic-anim { margin: 2px 0 14px; border-radius: var(--r-l); background: var(--field); padding: 10px 8px 4px; }
+.ic-anim svg { display: block; width: 100%; height: auto; max-height: 150px; }
+.ic-dev rect, .ic-dev path { fill: none; stroke: var(--text2); stroke-width: 2; }
+.ic-dev .ic-fill { fill: var(--text2); stroke: none; }
+.ic-cloud { fill: var(--accent); opacity: .9; }
+.ic-path { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3 4; opacity: .35; }
+.ic-dot { fill: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .ic-dot { display: none; } }
 .help-tip { border-radius: var(--r-m); padding: 12px 14px; font-size: 13.5px; line-height: 1.6; color: var(--text2); background: var(--field); margin-top: 4px; }
 .help-copy { margin: 4px 0 18px; display: flex; gap: 8px; flex-wrap: wrap; }
 .help-body a.chip-btn { display: inline-block; margin: 6px 0 4px; text-decoration: none; } /* 向导里当按钮用的链接 */

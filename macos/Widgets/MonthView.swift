@@ -15,9 +15,17 @@ import WidgetKit
 struct MonthView: View {
     let entry: CalEntry
 
-    private static let headH: CGFloat = 26, wdH: CGFloat = 15, topPad: CGFloat = 4, sp: CGFloat = 0.6
+    #if os(macOS)
     // Mac 桌面上看得比手机远，字和色条比 iOS / 安卓大一档（样式不变）
+    private static let headH: CGFloat = 26, wdH: CGFloat = 15, topPad: CGFloat = 4, sp: CGFloat = 0.6
     private static let slot: CGFloat = 16.5, chipH: CGFloat = 15.5, dateH: CGFloat = 18, cellTop: CGFloat = 1.5
+    private static let dateFS: CGFloat = 12.5, chipFS: CGFloat = 10.5, wdFS: CGFloat = 10, chipR: CGFloat = 3.5
+    #else
+    // iPhone：和网页版的 Scriptable 小组件同一套尺寸（字小一号、细，色条矮），手机上看着清爽不挤
+    private static let headH: CGFloat = 19, wdH: CGFloat = 12, topPad: CGFloat = 3, sp: CGFloat = 0.5
+    private static let slot: CGFloat = 12.5, chipH: CGFloat = 11.5, dateH: CGFloat = 14.5, cellTop: CGFloat = 1.5
+    private static let dateFS: CGFloat = 11, chipFS: CGFloat = 9, wdFS: CGFloat = 8, chipR: CGFloat = 3
+    #endif
 
     /// 每格能放几条事件：≥1 显示色条；0 显示圆点；-1 只显示日期
     private static func capacity(_ cell: CGFloat) -> Int {
@@ -42,7 +50,7 @@ struct MonthView: View {
                     header(ym, pal)
                     HStack(spacing: MonthView.sp) {
                         ForEach(0..<7, id: \.self) { k in
-                            Text(I18n.wdHead((k + entry.weekStart) % 7)).font(.system(size: 10)).foregroundStyle(pal.text2).frame(width: cw)
+                            Text(I18n.wdHead((k + entry.weekStart) % 7)).font(.system(size: MonthView.wdFS, weight: .medium)).foregroundStyle(pal.text2).frame(width: cw)
                         }
                     }
                     .frame(height: MonthView.wdH)
@@ -59,6 +67,49 @@ struct MonthView: View {
         }
     }
 
+    #if os(iOS)
+    /// iPhone：和 Scriptable 小组件一样——左边年份，中间主色的月份，右边本月完成数；翻月的小箭头放在最右边
+    private func header(_ ym: YMD, _ pal: Pal) -> some View {
+        let st = monthStats(ym)
+        return ZStack {
+            Text(I18n.mon(ym.m)).font(.system(size: 12.5, weight: .bold)).foregroundStyle(pal.accent).widgetAccentable()
+            HStack(spacing: 0) {
+                Text(String(ym.y)).font(.system(size: 9, weight: .medium)).foregroundStyle(pal.text2)
+                Spacer(minLength: 0)
+                if entry.moff != 0 {
+                    Button(intent: ShiftMonthIntent(delta: 0)) {
+                        Text(I18n.t("本月")).font(.system(size: 9, weight: .bold)).foregroundStyle(pal.accent)
+                            .padding(.horizontal, 5).frame(height: MonthView.headH).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain).widgetAccentable()
+                } else if st.1 > 0 {
+                    Text("\(st.0)/\(st.1)").font(.system(size: 9, weight: .medium)).monospacedDigit().foregroundStyle(pal.text2).padding(.trailing, 3)
+                }
+                ForEach([-1, 1], id: \.self) { k in
+                    Button(intent: ShiftMonthIntent(delta: k)) {
+                        Image(systemName: k < 0 ? "chevron.left" : "chevron.right")
+                            .font(.system(size: 9, weight: .semibold)).foregroundStyle(pal.text2.opacity(0.8))
+                            .frame(width: 22, height: MonthView.headH).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.leading, 10).padding(.trailing, 2)
+        .frame(height: MonthView.headH)
+    }
+
+    /// 本月的事件：完成了几个 / 一共几个（右上角显示）
+    private func monthStats(_ ym: YMD) -> (Int, Int) {
+        var seen = Set<String>(), done = 0
+        var day = ym
+        while day.m == ym.m {
+            for e in entry.data.on(day) where seen.insert(e.id).inserted { if e.done { done += 1 } }
+            day = day.adding(1)
+        }
+        return (done, seen.count)
+    }
+    #else
     private func header(_ ym: YMD, _ pal: Pal) -> some View {
         HStack(spacing: 0) {
             Text(I18n.mon(ym.m)).font(.system(size: 14, weight: .bold)).foregroundStyle(pal.accent).widgetAccentable()
@@ -83,6 +134,7 @@ struct MonthView: View {
         .padding(.leading, 11).padding(.trailing, 2)
         .frame(height: MonthView.headH)
     }
+    #endif
 
     @ViewBuilder
     private func week(_ wk: [YMD], ym: YMD, today: YMD, cap: Int, cw: CGFloat, rowH: CGFloat, pal: Pal) -> some View {
@@ -109,7 +161,11 @@ struct MonthView: View {
     }
 
     /// 时间行的高度、字号
+    #if os(macOS)
     private static let timeH: CGFloat = 11, timeFS: CGFloat = 9
+    #else
+    private static let timeH: CGFloat = 9, timeFS: CGFloat = 7.5
+    #endif
 
     /// 色条下面那一行时间：放得下完整时间段就写时间段，否则只写开始时间
     private func timeText(_ e: CEvent, width: CGFloat, h12: Bool) -> String {
@@ -136,17 +192,17 @@ struct MonthView: View {
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
                 Text("\(day.d)")
-                    .font(.system(size: 12.5, weight: isToday && pal.glass ? .bold : .regular))
+                    .font(.system(size: MonthView.dateFS, weight: MonthView.dateWeight(isToday, glass: pal.glass)))
                     .foregroundStyle(isToday ? Color.white : inMonth ? pal.text : pal.dim)
                     .padding(.horizontal, 3)
-                    .frame(minWidth: 18, minHeight: MonthView.dateH, maxHeight: MonthView.dateH)
-                    .background { if isToday { RoundedRectangle(cornerRadius: 9).fill(pal.todayFill).widgetAccentable() } }
+                    .frame(minWidth: MonthView.dateH, minHeight: MonthView.dateH, maxHeight: MonthView.dateH)
+                    .background { if isToday { RoundedRectangle(cornerRadius: MonthView.dateH / 2).fill(pal.todayFill).widgetAccentable() } }
                     .padding(.leading, 2)
                 Spacer(minLength: 0)
                 if hidden > 0 {
                     // 今天还有放不下的事：用主色小标签，比其他日子的灰色「+n」醒目
                     Text(isToday ? " +\(hidden) " : "+\(hidden)")
-                        .font(.system(size: 9))
+                        .font(.system(size: MonthView.chipFS - 1, weight: isToday ? .bold : .medium))
                         .foregroundStyle(isToday ? Color.white : pal.text2)
                         .background { if isToday { RoundedRectangle(cornerRadius: 5).fill(pal.todayFill) } }
                         .padding(.trailing, 2)
@@ -189,11 +245,27 @@ struct MonthView: View {
         .padding(.top, MonthView.cellTop)
     }
 
+    /// 日期的字重：Mac 照旧（今天只在玻璃样式下加粗）；iPhone 和 Scriptable 一样，日期中等粗、今天加粗
+    private static func dateWeight(_ isToday: Bool, glass: Bool) -> Font.Weight {
+        #if os(macOS)
+        return isToday && glass ? .bold : .regular
+        #else
+        return isToday ? .bold : .medium
+        #endif
+    }
+
+    /// 色条上的字：Mac 粗体；iPhone 和 Scriptable 一样用半粗，小字不糊
+    #if os(macOS)
+    private static let chipW: Font.Weight = .bold
+    #else
+    private static let chipW: Font.Weight = .semibold
+    #endif
+
     /// tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致）
     private func chip(_ e: CEvent, soft: Bool, width: CGFloat, pal: Pal, tm: Bool = false) -> some View {
         let (fill, ink) = pal.chip(e, entry.data, soft: soft)
         return Text(e.displayTitle)
-            .font(.system(size: 10.5, weight: pal.dark ? .medium : .bold))
+            .font(.system(size: MonthView.chipFS, weight: pal.dark ? .medium : MonthView.chipW))
             .strikethrough(e.done)
             .foregroundStyle(ink)
             .lineLimit(1)
@@ -205,7 +277,7 @@ struct MonthView: View {
             .overlay(alignment: .trailing) {
                 if tm { Circle().fill(ink).frame(width: 3.5, height: 3.5).opacity(0.75).padding(.trailing, 3) }
             }
-            .background(RoundedRectangle(cornerRadius: 3.5).fill(fill))
+            .background(RoundedRectangle(cornerRadius: MonthView.chipR).fill(fill))
             .padding(.horizontal, 1)
             .widgetAccentable()
     }
@@ -217,9 +289,9 @@ struct MonthView: View {
         let x0 = CGFloat(s.a) * (cw + MonthView.sp) + (s.openL ? 0 : 1)
         let x1 = CGFloat(s.b) * (cw + MonthView.sp) + cw - (s.openR ? 0 : 1)
         let y = MonthView.cellTop + MonthView.dateH + 1 + CGFloat(s.slot) * MonthView.slot
-        let rl: CGFloat = s.openL ? 0 : 3.5, rr: CGFloat = s.openR ? 0 : 3.5
+        let rl: CGFloat = s.openL ? 0 : MonthView.chipR, rr: CGFloat = s.openR ? 0 : MonthView.chipR
         return Text(s.e.displayTitle)
-            .font(.system(size: 10.5, weight: pal.dark ? .medium : .bold))
+            .font(.system(size: MonthView.chipFS, weight: pal.dark ? .medium : MonthView.chipW))
             .strikethrough(s.e.done)
             .foregroundStyle(ink)
             .lineLimit(1)

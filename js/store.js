@@ -11,6 +11,7 @@
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';
   const GIST_FILE = 'mcal-calendar.json';
+  const PROFILE_KEYS = ['name', 'avatar', 'clock', 'lang'];
   const GIST_DESC = '节律 App 数据（请勿手动修改）';
 
   // ---------- 优先级 ----------
@@ -220,7 +221,11 @@
     out.updatedAt = d.updatedAt || 0;
     out.deleted = d.deleted || {};
     out.events = (d.events || []).filter(e => /^\d{4}-\d{2}-\d{2}$/.test(e.date || '')).map(normEvent);
-    if (d.profile) out.profile = { name: d.profile.name || '', avatar: d.profile.avatar || '', clock: ['auto', '12', '24'].includes(d.profile.clock) ? d.profile.clock : '', lang: ['auto', 'zh-Hans', 'zh-Hant', 'en', 'fr'].includes(d.profile.lang) ? d.profile.lang : '', updatedAt: d.profile.updatedAt || 0 };
+    if (d.profile) {
+      out.profile = { name: d.profile.name || '', avatar: d.profile.avatar || '', clock: ['auto', '12', '24'].includes(d.profile.clock) ? d.profile.clock : '', lang: ['auto', 'zh-Hans', 'zh-Hant', 'en', 'fr', 'ja'].includes(d.profile.lang) ? d.profile.lang : '', updatedAt: d.profile.updatedAt || 0 };
+      const at = d.profile.at; // 每一项各自的修改时间（见 MC.setProfile）
+      if (at && typeof at === 'object') out.profile.at = Object.fromEntries(PROFILE_KEYS.map(k => [k, +at[k] || 0]));
+    }
     if (Array.isArray(d.courses)) out.courses = d.courses.filter(c => c && c.code && c.day >= 1 && c.day <= 7 && /^\d{2}:\d{2}$/.test(c.start) && /^\d{2}:\d{2}$/.test(c.end))
       .map(c => ({ id: c.id || MC.uid(), code: String(c.code).slice(0, 40), type: c.type || '', day: Number(c.day), start: c.start, end: c.end, room: c.room || '',
         from: /^\d{4}-\d{2}-\d{2}$/.test(c.from || '') ? c.from : '', to: /^\d{4}-\d{2}-\d{2}$/.test(c.to || '') ? c.to : '', every: c.every === 2 ? 2 : 1 }));
@@ -398,7 +403,14 @@
     for (const e of list) { delete MC.data.deleted[e.id]; if (!have.has(e.id)) MC.data.events.push({ ...e, updatedAt: t }); }
     MC.commit();
   };
-  MC.setProfile = fields => { Object.assign(MC.data.profile, fields, { updatedAt: Date.now() }); MC.commit(); };
+  // 头像、昵称、时间格式、语言各记各的修改时间：合并时一项一项比，改语言不会把另一台设备上的头像和昵称冲掉
+  MC.setProfile = fields => {
+    const p = MC.data.profile, now = Date.now();
+    p.at = p.at || Object.fromEntries(PROFILE_KEYS.map(k => [k, p.updatedAt || 0]));
+    for (const k of Object.keys(fields)) if (PROFILE_KEYS.includes(k)) p.at[k] = now;
+    Object.assign(p, fields, { updatedAt: now });
+    MC.commit();
+  };
   MC.setCourses = list => { MC.data.courses = list; MC.data.coursesAt = Date.now(); MC.commit(); };
   MC.addCal = (name, color, opts = {}) => {
     const c = normCal({ id: 'c' + MC.uid(), name, color, ...opts });
@@ -460,8 +472,15 @@
     const events = [...map.values()].filter(e => !(deleted[e.id] && deleted[e.id] >= (e.updatedAt || 0)));
     const cutoff = Date.now() - 180 * 864e5;
     for (const k of Object.keys(deleted)) if (deleted[k] < cutoff) delete deleted[k];
+    // 资料一项一项合并（旧数据没有分项时间，就用整份的修改时间）
     const pa = a.profile || {}, pb = b.profile || {};
-    const profile = (pb.updatedAt || 0) > (pa.updatedAt || 0) ? { ...pb } : { ...pa };
+    const pt = (p, k) => (p.at ? +p.at[k] || 0 : p.updatedAt || 0);
+    const profile = { at: {}, updatedAt: Math.max(pa.updatedAt || 0, pb.updatedAt || 0) };
+    for (const k of PROFILE_KEYS) {
+      const ta = pt(pa, k), tb = pt(pb, k);
+      profile[k] = (tb > ta ? pb[k] : pa[k]) || '';
+      profile.at[k] = Math.max(ta, tb);
+    }
     const da = a.daily || {}, db = b.daily || {};
     const daily = (db.updatedAt || 0) > (da.updatedAt || 0) ? { ...db } : { ...(a.daily || blank().daily) };
     const newerCourses = (b.coursesAt || 0) > (a.coursesAt || 0) ? b : a;
@@ -581,6 +600,27 @@
     etag = r.headers.get('ETag') || '';
     lastRemote = MC.normalize(JSON.parse(text));
     return { remote: lastRemote, unchanged: false };
+  }
+  // 以前的版本把资料整份按时间覆盖：一台新设备改了语言，会用空的头像和昵称冲掉其他设备上的。
+  // 发现头像和昵称都是空的：往回翻一次 Gist 的历史版本，找到最近一个还有头像或昵称的版本，把它们找回来（每台设备只找一次）
+  async function recoverProfile() {
+    const p = MC.data.profile, id = MC.settings.gistId;
+    if (p.name || p.avatar || !id || MC.settings.profileRecovered) return;
+    MC.settings.profileRecovered = true; MC.saveSettings();
+    const commits = await gh(`/gists/${id}/commits?per_page=60`);
+    for (const c of commits.slice(1)) {
+      const g = await gh(`/gists/${id}/${c.version}`);
+      const f = g.files && g.files[GIST_FILE];
+      if (!f) continue;
+      let old;
+      try { old = JSON.parse(f.truncated ? await (await fetch(f.raw_url, { cache: 'no-store' })).text() : f.content).profile; } catch (e) { continue; }
+      if (old && (old.name || old.avatar)) {
+        if (MC.data.profile.name || MC.data.profile.avatar) return; // 这期间自己改过了：不覆盖
+        MC.setProfile({ name: old.name || '', avatar: old.avatar || '' });
+        if (MC.onProfileRecovered) MC.onProfileRecovered();
+        return;
+      }
+    }
   }
   async function writeGist(d) {
     const body = { files: { [GIST_FILE]: { content: JSON.stringify(d) } } };
@@ -771,6 +811,7 @@
       await ensureICS(merged);
       MC.settings.lastSync = Date.now(); MC.saveSettings();
       MC.syncState.error = ''; ok = true;
+      if (!ic && !dav) recoverProfile().catch(() => {});
     } catch (e) {
       MC.syncState.error = e.message || '同步失败';
     } finally {

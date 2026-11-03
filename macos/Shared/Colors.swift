@@ -152,9 +152,15 @@ struct Pal {
     func ink(_ v: UInt32) -> Color { glass ? .white : Color(argb: v) }
     func wash(_ v: UInt32) -> Color { glass ? .white.opacity(0.15) : Color(argb: v) }
     var appBg: Color { Color(argb: dark ? 0xFF05_0608 : 0xFFF7_FAFC) }
+    #if os(iOS)
+    // iPhone 小组件：中性的底色和分隔线（和系统自带的小组件一样，不带蓝；蓝色只留给今天的日期和事件）
+    var bg: Color { Color(argb: dark ? 0xFF1C_1C1E : 0xFFFB_FBFC) }
+    var line: Color { glass ? .white.opacity(0.18) : Color(argb: dark ? 0xFF2C_2C2F : 0xFFEA_EAED) }
+    #else
     // 和安卓 colors.xml、iOS 小组件同一套颜色
     var bg: Color { Color(argb: dark ? 0xFF1B_1C21 : 0xFFEC_F2F5) }
     var line: Color { glass ? .white.opacity(0.18) : Color(argb: dark ? 0xFF29_2A2F : 0xFFDA_E1E5) }
+    #endif
     var text: Color { glass ? .white : Color(argb: dark ? 0xFFEE_EEF1 : 0xFF17_1B20) }
     var text2: Color { glass ? .white.opacity(0.72) : Color(argb: dark ? 0xFF8C_8E97 : 0xFF74_7B83) }
     var live: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(accentV, dark ? 0x3D : 0x29)) }
@@ -164,7 +170,12 @@ struct Pal {
     /// 当前周的底：中性的浅灰（网页 --field），不带蓝
     var weekBand: Color { glass ? .white.opacity(0.07) : Color(argb: dark ? 0x13EC_EEFA : 0x176E_7D91) }
     private var text2V: UInt32 { dark ? 0xFF8F_929B : 0xFF6E_757E }
+    #if os(iOS)
+    /// iPhone：今天那一格 / 那一列用中性的浅灰，不是蓝色的一片
+    var todayCell: Color { glass ? .white.opacity(0.16) : Color(argb: dark ? 0x1AFF_FFFF : 0x0D00_0000) }
+    #else
     var todayCell: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(accentV, dark ? 0x33 : 0x1F)) }
+    #endif
     var dim: Color { glass ? .white.opacity(0.42) : Color(argb: 0x8088_8890) }
     /// 「今天」那个实色圆 / 小标签：玻璃样式下改成半透明的白底，上面的字才看得清
     var todayFill: Color { glass ? .white.opacity(0.3) : accent }

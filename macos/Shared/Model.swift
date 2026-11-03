@@ -301,6 +301,21 @@ final class CalData {
     }
 
     // ---------- 合并（与网页 MC.merge 相同的规则） ----------
+    /// 资料（头像、昵称、时间格式、语言）一项一项合并，和网页的 MC.merge 一致：每项有自己的修改时间（profile.at），
+    /// 旧数据没有分项时间就用整份的 updatedAt。不然一台设备改了语言，会用空的头像和昵称冲掉其他设备上的
+    static func mergeProfile(_ a: JObj, _ b: JObj) -> JObj {
+        func t(_ p: JObj, _ k: String) -> Int64 { if let at = p.obj("at") { return at.long(k) }; return p.long("updatedAt") }
+        var out: JObj = [:], at: JObj = [:]
+        for k in ["name", "avatar", "clock", "lang"] {
+            let ta = t(a, k), tb = t(b, k)
+            out[k] = (tb > ta ? b[k] : a[k]) ?? ""
+            at[k] = max(ta, tb)
+        }
+        out["at"] = at
+        out["updatedAt"] = max(a.long("updatedAt"), b.long("updatedAt"))
+        return out
+    }
+
     static func merge(_ a: JObj, _ b: JObj) -> JObj {
         let ua = a.long("updatedAt"), ub = b.long("updatedAt")
         var out = ub > ua ? b : a // 先整体复制较新的一份，不认识的字段也一起保留
@@ -342,7 +357,7 @@ final class CalData {
         out["updatedAt"] = max(ua, ub)
         out["events"] = events
         out["deleted"] = deleted
-        out["profile"] = newer("profile")
+        out["profile"] = mergeProfile(a.obj("profile") ?? [:], b.obj("profile") ?? [:])
         out["daily"] = newer("daily")
         out["courses"] = nc["courses"] as? [Any] ?? []
         out["coursesAt"] = nc.long("coursesAt")
