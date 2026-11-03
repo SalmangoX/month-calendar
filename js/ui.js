@@ -265,7 +265,7 @@
   // 等级评分：名称是用户自定义的，所以用文字徽标（颜色深浅随等级）而不是旗子
   UI.rateTag = e => `<span class="rate-tag lv${e.rate}" data-uc>${esc(MC.rateName(e))}</span>`;
   UI.rateMenuItems = (calId, cur) => [{ label: '未评级', value: 0, on: !cur }, ...MC.rateLabels(calId).map((n, i) => ({ label: n, value: i + 1, on: cur === i + 1, icon: `<span class="lvdot lv${i + 1}"></span>` }))];
-  UI.priMenuItems = cur => MC.PRI.map(p => ({ label: p.full, value: p.v, on: p.v === cur, icon: UI.flagSVG(p.v) }));
+  UI.priMenuItems = cur => MC.PRI_ASC.map(p => ({ label: p.full, value: p.v, on: p.v === cur, icon: UI.flagSVG(p.v) }));
   const checkSVG = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
   // opts: { showDate: true } 在副标题显示日期

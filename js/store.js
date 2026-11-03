@@ -21,6 +21,8 @@
     { v: 1, name: '低', full: '低优先级', quad: '不重要但紧急', roman: 'Ⅲ', color: 'var(--p1)' },
     { v: 0, name: '无', full: '无优先级', quad: '不重要不紧急', roman: 'Ⅳ', color: 'var(--p0)' },
   ];
+  // 选优先级时从左到右（菜单里从上到下）都是 无 → 低 → 中 → 高；四象限还是按 Ⅰ–Ⅳ 用 MC.PRI
+  MC.PRI_ASC = [...MC.PRI].reverse();
   MC.priOf = v => MC.PRI.find(p => p.v === v) || MC.PRI[3];
 
   // ---------- 颜色：浅色用 styles.css 里的 --p*；深色每个优先级有专门设计的深色调（OKLCH 里定的） ----------

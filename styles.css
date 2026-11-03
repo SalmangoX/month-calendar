@@ -619,20 +619,27 @@ body:not([data-page="cal"]) .back-today { display: none; }
 #batchParse:disabled { opacity: .4; }
 .batch-list { flex: 1; overflow-y: auto; padding: 4px 14px; }
 .brow { position: relative; margin-bottom: 10px; border-radius: var(--r-l); overflow: hidden; }
-/* 卡片：三行——名称 / 优先级 / 时间框 + 备注框；往左滑露出后面的「删除」 */
+/* 卡片：三行——名称和备注（上下合在一起）/ 优先级 / 时间、提醒、重复三个小框；往左滑露出后面的「删除」 */
 .b-card { position: relative; z-index: 1; border-radius: var(--r-l); padding: 10px 12px 12px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); touch-action: pan-y; }
 .brow.err .b-card { box-shadow: inset 0 0 0 1.5px var(--p3); }
 .b-swdel { position: absolute; top: 0; right: 0; bottom: 0; width: 76px; border-radius: 0 var(--r-l) var(--r-l) 0; background: var(--p3); color: #fff; font-size: 15px; font-weight: 600; opacity: 0; transition: opacity .2s; }
 .brow.swiped .b-swdel, .brow:has(.b-card[style*="translateX"]) .b-swdel { opacity: 1; }
-.b-top { display: flex; align-items: center; gap: 8px; }
-.b-pri { display: flex; gap: 6px; margin: 6px 0 0 24px; flex-wrap: wrap; }
-.b-pri .qchip.sm { height: 28px; padding: 0 10px; font-size: 13px; }
+.b-top { display: flex; align-items: flex-start; gap: 8px; }
+.b-top .b-idx { padding-top: 10px; }
+.b-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.b-pri { display: flex; gap: 6px; margin: 8px 0 0 24px; }
+.b-pri .qchip.sm { flex: 1; min-width: 0; justify-content: center; height: 30px; padding: 0 6px; font-size: 13px; } /* 优先级和下面一行一样铺满整行、平分宽度 */
 .b-idx { font-size: 12px; color: var(--text3); width: 16px; font-variant-numeric: tabular-nums; }
-.b-title { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 16px; font-weight: 600; padding: 6px 0; }
+.b-title { min-width: 0; border: 0; background: none; outline: none; font-size: 16px; font-weight: 600; padding: 6px 0 4px; border-bottom: .5px solid var(--group-line); }
 .b-del { width: 28px; height: 28px; border-radius: 50%; color: var(--text3); font-size: 18px; line-height: 1; }
-.b-tools { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-left: 24px; }
-.b-when { flex: none; max-width: 52%; height: 34px; padding: 0 12px; border-radius: 17px; background: var(--field); color: var(--accent-text); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-flex; align-items: center; gap: 4px; }
-.b-note { flex: 1; min-width: 0; height: 34px; border: 0; border-radius: 17px; background: var(--field); outline: none; font-size: 14px; padding: 0 12px; color: var(--text); }
+.b-tools { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding-left: 24px; }
+.b-when { flex: 1.25; min-width: 0; justify-content: center; height: 32px; padding: 0 8px; border-radius: 17px; background: var(--field); color: var(--accent-text); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-flex; align-items: center; gap: 4px; }
+.b-note { min-width: 0; border: 0; background: none; outline: none; font-size: 14px; padding: 6px 0 2px; color: var(--text); }
+.b-note::placeholder { color: var(--text3); }
+.b-opt { flex: 1; min-width: 0; justify-content: center; height: 32px; padding: 0 8px; border-radius: 16px; background: var(--field); color: var(--text2); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; }
+.b-opt span { overflow: hidden; text-overflow: ellipsis; }
+.b-opt.on { color: var(--accent-text); }
+.b-opt .b-ic { width: 14px; height: 14px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .batch-foot { padding: 6px 14px 4px; display: flex; justify-content: center; flex: none; }
 
 /* 日期选择 */

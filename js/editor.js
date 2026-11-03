@@ -169,7 +169,7 @@
     const rc = mode === 'edit' && editing ? editing.cal : newCal, rated = MC.rateOn(rc);
     $('#cmpPriLabel').textContent = rated ? '等级' : '优先级';
     if (rated) $('#cmpPri').innerHTML = [{ v: 0, name: '无' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n }))].map(p => `<button class="qchip pri rate${p.v === (draft.rate || 0) ? ' on' : ''}" data-v="${p.v}" style="--c:${p.v ? `var(--lv${p.v})` : 'var(--p0)'}"><span class="dot"></span><span data-uc>${esc(p.name)}</span></button>`).join('');
-    else $('#cmpPri').innerHTML = MC.PRI.map(p => `<button class="qchip pri${p.v === draft.priority ? ' on' : ''}" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span>${p.name}</button>`).join('');
+    else $('#cmpPri').innerHTML = MC.PRI_ASC.map(p => `<button class="qchip pri${p.v === draft.priority ? ' on' : ''}" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span>${p.name}</button>`).join('');
     $('#cmpSave').classList.toggle('disabled', !$('#cmpTitle').value.trim());
     $('#cmpDone').setAttribute('aria-pressed', String(!!draft.done));
   }
@@ -819,8 +819,20 @@
   const whenHTML = r => {
     const d = MC.dayDiff(r.date) === 0 ? '今天' : MC.dateLabel(r.date);
     const t = r.time ? ` ${esc(MC.fmtTime(r.time))}` : r.days > 1 ? ` · ${r.days} 天` : '';
-    return `<span>${esc(d)}${t}</span>${r.remind !== null && r.remind !== undefined ? I_BELL : ''}${r.repeat && r.repeat !== 'none' ? I_REP : ''}`;
+    return `<span>${esc(d)}${t}</span>`;
   };
+  // 第三行的「提醒」「重复」两个小框：没设时是灰的「提醒」「重复」，设了就显示选的是什么
+  const remindHTML = r => { const on = r.remind !== null && r.remind !== undefined; return `${I_BELL}<span>${on ? esc(shortRemind(r.remind, !!r.time)) : '提醒'}</span>`; };
+  // 小框里放不下完整的「提前 15 分钟」「提前 1 天 09:00」：用短的写法（菜单里还是完整的）
+  const shortRemind = (v, hasTime) => v === 0 ? (hasTime ? '准时' : '当天') : v % 10080 === 0 ? `前 ${v / 10080} 周` : v % 1440 === 0 ? `前 ${v / 1440} 天` : v % 60 === 0 ? `前 ${v / 60} 小时` : `前 ${v} 分钟`;
+  const repeatHTML = r => { const on = r.repeat && r.repeat !== 'none'; return `${I_REP}<span>${on ? esc(MC.repeatLabel(r.repeat)) : '重复'}</span>`; };
+  function paintBatchTools(el, r) {
+    const q = s => el.querySelector(s);
+    q('[data-act=date]').innerHTML = whenHTML(r);
+    const rm = q('[data-act=remind]'), rp = q('[data-act=repeat]');
+    rm.innerHTML = remindHTML(r); rm.classList.toggle('on', r.remind !== null && r.remind !== undefined);
+    rp.innerHTML = repeatHTML(r); rp.classList.toggle('on', !!r.repeat && r.repeat !== 'none');
+  }
   function openBatch() {
     const t = $('#cmpTitle').value.trim(), n = $('#cmpNote').value.trim();
     const saved = readBatchDraft();
@@ -863,7 +875,7 @@
   // 卡片往左滑露出「删除」，点了先确认再删
   function priChips(r) {
     const rc = MC.rateOn(newCal) && MC.cal(newCal);
-    const list = rc ? [{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n, color: `var(--lv${i + 1})` }))] : MC.PRI;
+    const list = rc ? [{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n, color: `var(--lv${i + 1})` }))] : MC.PRI_ASC;
     const cur = rc ? r.rate || 0 : r.priority;
     return list.map(p => `<button class="qchip pri sm${p.v === cur ? ' on' : ''}" data-act="pri" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span><span data-uc>${esc(p.name)}</span></button>`).join('');
   }
@@ -874,12 +886,16 @@
         <div class="b-card">
           <div class="b-top">
             <span class="b-idx">${i + 1}</span>
-            <input class="b-title" value="${esc(r.title)}" placeholder="名称（必填）" enterkeyhint="next">
+            <div class="b-name">
+              <input class="b-title" value="${esc(r.title)}" placeholder="名称（必填）" enterkeyhint="next">
+              <input class="b-note" value="${esc(r.note)}" placeholder="备注（选填）">
+            </div>
           </div>
           <div class="b-pri">${priChips(r)}</div>
           <div class="b-tools">
-            <button class="b-when" data-act="date" aria-label="日期、时间、提醒与重复">${whenHTML(r)}</button>
-            <input class="b-note" value="${esc(r.note)}" placeholder="备注（选填）">
+            <button class="b-when" data-act="date" aria-label="日期和时间">${whenHTML(r)}</button>
+            <button class="b-opt${r.remind !== null && r.remind !== undefined ? ' on' : ''}" data-act="remind" aria-label="提醒">${remindHTML(r)}</button>
+            <button class="b-opt${r.repeat && r.repeat !== 'none' ? ' on' : ''}" data-act="repeat" aria-label="重复">${repeatHTML(r)}</button>
           </div>
         </div>
       </div>`).join('');
@@ -946,7 +962,15 @@
     else if (a.dataset.act === 'date') {
       document.activeElement && document.activeElement.blur();
       // 和单个添加一样的完整选择：日期、时间段、多天、提醒、重复
-      Editor.openPicker({ ...r, allowRepeat: true }, s => { Object.assign(r, s); a.innerHTML = whenHTML(r); saveBatchDraft(); });
+      Editor.openPicker({ ...r, allowRepeat: true }, s => { Object.assign(r, s); paintBatchTools(el, r); saveBatchDraft(); });
+    }
+    else if (a.dataset.act === 'remind') {
+      document.activeElement && document.activeElement.blur();
+      UI.menu(a, MC.remindOptions(!!r.time).map(o => ({ label: o.label, value: o.v, on: o.v === (r.remind ?? null) })), v => { r.remind = v; paintBatchTools(el, r); saveBatchDraft(); });
+    }
+    else if (a.dataset.act === 'repeat') {
+      document.activeElement && document.activeElement.blur();
+      UI.menu(a, MC.REPEATS.map(o => ({ label: o.label, value: o.v, on: o.v === (r.repeat || 'none') })), v => { r.repeat = v; if (v === 'none') r.until = ''; paintBatchTools(el, r); saveBatchDraft(); });
     }
   });
   // 左滑删除：只在明显横着拖时才拖动卡片（竖着拖照常滚动列表）；拖过一半就停在露出「删除」的位置
