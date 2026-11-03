@@ -52,7 +52,16 @@ if [ "${1:-}" = "--renew" ]; then
   due=$(( $(date +%s) - last >= 5 * 86400 ))
   [ "$due" = 0 ] && [ "$latest" -le "$have" ] && exit 0   # 签名还新、也没有新版本：什么都不做
   echo "---- $(date '+%F %T') $([ "$latest" -gt "$have" ] && echo "有新版本（第 $latest 版，手机上是第 $have 版）" || echo "到期续签")"
-  [ -n "$(find_phone)" ] || { echo "手机不在身边（或没解锁、不在同一个 Wi-Fi），下次再试"; exit 0; }
+  if [ -z "$(find_phone)" ]; then
+    echo "手机不在身边（或没解锁、不在同一个 Wi-Fi），下次再试"
+    # 签名第 6 天了还连不上手机（比如校园网不让设备之间直连）：在 Mac 上提醒一下插线，每天最多一次
+    NOTE="$HOME_DIR/iphone-renew-noted"
+    if [ $(( $(date +%s) - last )) -ge $(( 6 * 86400 )) ] && [ "$(cat "$NOTE" 2>/dev/null)" != "$(date +%F)" ]; then
+      osascript -e 'display notification "Cadence 的签名明天到期。用数据线把 iPhone 连上这台 Mac，几分钟内会自动续签。" with title "插上 iPhone 续签 Cadence"' 2>/dev/null
+      date +%F > "$NOTE"
+    fi
+    exit 0
+  fi
   # 从 GitHub 下载最新代码（续签时也顺便用最新的，这样续签就是更新）
   T=$(mktemp -d)
   if curl -fsSL --max-time 120 "https://codeload.github.com/$REPO/tar.gz/refs/heads/main" | tar -xz -C "$T" 2>/dev/null; then
