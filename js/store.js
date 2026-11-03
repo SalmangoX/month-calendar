@@ -745,11 +745,11 @@
     try {
       const ic = MC.isICloud(), dav = !ic && MC.isDav();
       if (!ic && !dav && !MC.settings.gistId) { MC.settings.gistId = await MC.findGist(); MC.saveSettings(); }
-      let remote = null;
+      let remote = null, force = false;
       if (ic || dav || MC.settings.gistId) {
         const res = ic ? await icRead() : dav ? await davRead() : await readGist(MC.settings.gistId);
         if (res.skip) { MC.syncState.error = '正在从 iCloud 下载数据，稍后自动同步'; return false; }
-        remote = res.remote;
+        remote = res.remote; force = !!res.force;
         if (res.unchanged && !MC.dirty) { // 两边都没变化，直接结束
           await ensureICS(MC.data);
           MC.settings.lastSync = Date.now(); MC.saveSettings(); MC.syncState.error = ''; ok = true;
@@ -760,7 +760,7 @@
       if (signature(merged) !== signature(MC.data)) {
         MC.data = merged; MC.saveData(); MC.reindex(); MC.onChange();
       }
-      if (!remote || MC.fixPri || res.force || signature(merged) !== signature(remote)) {
+      if (!remote || MC.fixPri || force || signature(merged) !== signature(remote)) {
         MC.fixPri = false;
         const out = { ...merged, updatedAt: Date.now() };
         MC.dirty = false;
