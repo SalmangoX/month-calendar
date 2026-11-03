@@ -141,24 +141,33 @@ func mix(_ a: UInt32, _ b: UInt32, _ t: Double) -> UInt32 {
 /// 与网页 styles.css、安卓 colors.xml 相同的配色；深色是专门设计的深色调（不是把浅色压暗）
 struct Pal {
     let dark: Bool
+    /// 小组件的「透明 / 着色」样式（macOS 26 起，系统设置 → 外观）：系统把背景换成液态玻璃，所有颜色都画成白色（着色时是主题色）。
+    /// 这时颜色不再能区分东西，只剩不透明度：字一律实色，次要文字约 70%，色块改成约 15% 的白色淡底（和 Apple 自带小组件的透明样式一样），
+    /// 白字永远不压在实色的白块上
+    var glass = false
 
     var accentV: UInt32 { dark ? 0xFF8B_A8DE : 0xFF4C_6EAC }
-    var accent: Color { Color(argb: accentV) }
+    var accent: Color { glass ? .white : Color(argb: accentV) }
+    /// 玻璃样式下：色条、圆点、彩色的字 → 实色白；色块的底 → 淡淡的白
+    func ink(_ v: UInt32) -> Color { glass ? .white : Color(argb: v) }
+    func wash(_ v: UInt32) -> Color { glass ? .white.opacity(0.15) : Color(argb: v) }
     var appBg: Color { Color(argb: dark ? 0xFF05_0608 : 0xFFF7_FAFC) }
     // 和安卓 colors.xml、iOS 小组件同一套颜色
     var bg: Color { Color(argb: dark ? 0xFF1B_1C21 : 0xFFEC_F2F5) }
-    var line: Color { Color(argb: dark ? 0xFF29_2A2F : 0xFFDA_E1E5) }
-    var text: Color { Color(argb: dark ? 0xFFEE_EEF1 : 0xFF17_1B20) }
-    var text2: Color { Color(argb: dark ? 0xFF8C_8E97 : 0xFF74_7B83) }
-    var live: Color { Color(argb: withAlpha(accentV, dark ? 0x3D : 0x29)) }
+    var line: Color { glass ? .white.opacity(0.18) : Color(argb: dark ? 0xFF29_2A2F : 0xFFDA_E1E5) }
+    var text: Color { glass ? .white : Color(argb: dark ? 0xFFEE_EEF1 : 0xFF17_1B20) }
+    var text2: Color { glass ? .white.opacity(0.72) : Color(argb: dark ? 0xFF8C_8E97 : 0xFF74_7B83) }
+    var live: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(accentV, dark ? 0x3D : 0x29)) }
     /// 与网页一致：--accent-text、--today-dim（今天的淡主色圆）、--sel-bg（当前周的淡底）、--text2
-    var accentText: Color { Color(argb: dark ? 0xFFAD_C5EF : 0xFF3B_5993) }
-    var todayDim: Color { Color(argb: withAlpha(accentV, dark ? 0x47 : 0x33)) }
+    var accentText: Color { glass ? .white : Color(argb: dark ? 0xFFAD_C5EF : 0xFF3B_5993) }
+    var todayDim: Color { glass ? .white.opacity(0.2) : Color(argb: withAlpha(accentV, dark ? 0x47 : 0x33)) }
     /// 当前周的底：中性的浅灰（网页 --field），不带蓝
-    var weekBand: Color { Color(argb: dark ? 0x13EC_EEFA : 0x176E_7D91) }
+    var weekBand: Color { glass ? .white.opacity(0.07) : Color(argb: dark ? 0x13EC_EEFA : 0x176E_7D91) }
     private var text2V: UInt32 { dark ? 0xFF8F_929B : 0xFF6E_757E }
-    var todayCell: Color { Color(argb: withAlpha(accentV, dark ? 0x33 : 0x1F)) }
-    var dim: Color { Color(argb: 0x8088_8890) }
+    var todayCell: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(accentV, dark ? 0x33 : 0x1F)) }
+    var dim: Color { glass ? .white.opacity(0.42) : Color(argb: 0x8088_8890) }
+    /// 「今天」那个实色圆 / 小标签：玻璃样式下改成半透明的白底，上面的字才看得清
+    var todayFill: Color { glass ? .white.opacity(0.3) : accent }
 
     static let P: [UInt32] = [0xFF97_9CA2, 0xFF3C_7DC2, 0xFFD8_8018, 0xFFD9_453E]
     static let DARK_FILL: [UInt32] = [0xFF38_3B3F, 0xFF25_5593, 0xFFBB_6800, 0xFFAC_312C]
@@ -171,6 +180,7 @@ struct Pal {
     /// 已完成和网页 .chip.done 一样：同色淡底（浅色 18%、深色 28%）+ 同色偏灰的字
     func chip(_ e: CEvent, _ d: CalData, soft: Bool) -> (Color, Color) {
         let col = base(e, d)
+        if glass { return soft ? (.white.opacity(0.08), .white.opacity(0.62)) : (.white.opacity(0.18), .white) }
         if soft { return (Color(argb: withAlpha(col, dark ? 0x4D : 0x40)), Color(argb: col)) } // 和安卓一样
         if !dark { return (Color(argb: col), .white) }
         if let cc = d.calColorOf(e) { let t = CourseColors.darkTone(cc); return (Color(argb: t.0), Color(argb: t.1)) }
@@ -180,6 +190,7 @@ struct Pal {
     /// 课程小色块：(底色, 字色)
     func courseChip(_ code: String, _ d: CalData) -> (Color, Color) {
         let t = d.toneOf(code)
+        if glass { return (.white.opacity(0.17), .white) }
         return dark ? (Color(argb: t[CourseColors.CHIP_D]), Color(argb: t[CourseColors.CHIP_INK_D])) : (Color(argb: t[CourseColors.BASE]), .white)
     }
 }

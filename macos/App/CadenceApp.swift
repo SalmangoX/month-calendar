@@ -46,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// 小组件点进来：cadence://open?hash=today
     func application(_ application: NSApplication, open urls: [URL]) {
         for u in urls where u.scheme == Shared.urlScheme {
+            if u.host == "menubar" { bar?.open(); continue }
             let h = URLComponents(url: u, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "hash" }?.value ?? ""
             let hash = h.isEmpty ? "" : "#" + h
             // 节律还没启动完（比如直接点小组件把它打开）：主窗口还没建好，等建好再跳过去，不然会闪退

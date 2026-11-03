@@ -75,7 +75,7 @@ struct TodayView: View {
                             switch r {
                             case .head(let t, let overdue):
                                 Text(t).font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(overdue ? Color(argb: Pal.P[3]) : pal.text2).lineLimit(1)
+                                    .foregroundStyle(overdue ? pal.ink(Pal.P[3]) : pal.text2).lineLimit(1)
                                     .padding(.leading, 3).padding(.top, 7).padding(.bottom, 1)
                             case .ev(let e, let prefix):
                                 eventRow(e, prefix, pal)
@@ -95,7 +95,7 @@ struct TodayView: View {
         if e.days > 1 { sub += " · " + I18n.t("{0} 天", e.days) }
         if !e.note.isEmpty { sub += " · " + e.note.replacingOccurrences(of: "\n", with: " ") }
         return HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 2).fill(Color(argb: e.done ? withAlpha(col, 0x40) : col)).frame(width: 3.5, height: 28).widgetAccentable()
+            RoundedRectangle(cornerRadius: 2).fill(pal.ink(col).opacity(e.done ? 0.25 : 1)).frame(width: 3.5, height: 28).widgetAccentable()
             VStack(alignment: .leading, spacing: 0) {
                 Text(e.displayTitle).font(.system(size: 13.5)).strikethrough(e.done).foregroundStyle(pal.text).lineLimit(1)
                 Text(sub).font(.system(size: 11)).foregroundStyle(pal.text2).lineLimit(1)
@@ -169,7 +169,7 @@ struct SchedDay: View {
     private func courseRow(_ c: Course, state: String, live: Bool) -> some View {
         let t = entry.data.toneOf(c.code)
         return HStack(spacing: 0) {
-            Rectangle().fill(Color(argb: t[pal.dark ? CourseColors.BAR_D : CourseColors.BASE])).frame(width: 3.5, height: 30).widgetAccentable()
+            Rectangle().fill(pal.ink(t[pal.dark ? CourseColors.BAR_D : CourseColors.BASE])).frame(width: 3.5, height: 30).widgetAccentable()
             VStack(alignment: .leading, spacing: 0) {
                 Text(c.type.isEmpty ? c.code : c.code + "  " + I18n.t(c.type)).font(.system(size: 13.5, weight: .bold)).foregroundStyle(pal.text).lineLimit(1)
                 Text(fmtRange(c.start, c.end, entry.data.h12) + (c.room.isEmpty ? "" : " · " + c.room))
@@ -278,7 +278,7 @@ struct SchedGrid: View {
         let nm = YMD.cal.component(.hour, from: entry.date) * 60 + YMD.cal.component(.minute, from: entry.date)
         let nowCol: Int? = todayCol.flatMap { nm >= minH * 60 && nm <= maxH * 60 ? $0 : nil }
         let ny = gy + (CGFloat(nm) / 60 - CGFloat(minH)) * hourH
-        let red = Color(argb: Pal.P[3])
+        let red = pal.ink(Pal.P[3])
 
         return ZStack(alignment: .topLeading) {
             // 今天那一列：淡淡的主色底
@@ -333,7 +333,7 @@ struct SchedGrid: View {
                 Text(fmtTime(String(format: "%02d:%02d", nm / 60, nm % 60), h12, true))
                     .font(.system(size: 7.5, weight: .bold)).monospacedDigit().foregroundStyle(.white).lineLimit(1)
                     .padding(.horizontal, 2).frame(minHeight: 11)
-                    .background(RoundedRectangle(cornerRadius: 3, style: .continuous).fill(red))
+                    .background(RoundedRectangle(cornerRadius: 3, style: .continuous).fill(pal.glass ? pal.todayFill : red))
                     .fixedSize()
                     .frame(width: pad + axis, alignment: .trailing) // 时间轴变窄了，标签可以伸到左边距里
                     .offset(x: 0, y: ny - 5.5)
@@ -375,7 +375,7 @@ struct SchedGrid: View {
         let t = entry.data.toneOf(c.code)
         let x0 = x + 1.5, x1 = x0 + w - 3, y0 = top + 1, y1 = bottom - 1
         // 课程代码和上课时间一定显示：一节课的色块矮时，两行一起缩小一点也要放下；还有空间再加教室、类型
-        let ink = Color(argb: t[pal.dark ? CourseColors.INK_D : CourseColors.INK_L])
+        let ink = pal.ink(t[pal.dark ? CourseColors.INK_D : CourseColors.INK_L])
         let time = h12 ? fmtTime(c.start, true, true) + "–" + fmtTime(c.end, true, true) : c.start + "–" + c.end
         let avail = y1 - y0 - 3, lh: CGFloat = 1.18
         let sc = min(1, max(0.72, avail / ((11.5 + 9.5) * fk * lh)))
@@ -388,8 +388,8 @@ struct SchedGrid: View {
             fit.append(ln)
         }
         return ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 6).fill(Color(argb: t[pal.dark ? CourseColors.FILL_D : CourseColors.FILL_L]))
-            RoundedRectangle(cornerRadius: 1.5).fill(Color(argb: t[pal.dark ? CourseColors.BAR_D : CourseColors.BASE]))
+            RoundedRectangle(cornerRadius: 6).fill(pal.wash(t[pal.dark ? CourseColors.FILL_D : CourseColors.FILL_L]))
+            RoundedRectangle(cornerRadius: 1.5).fill(pal.ink(t[pal.dark ? CourseColors.BAR_D : CourseColors.BASE]))
                 .frame(width: 3).widgetAccentable()
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(fit.enumerated()), id: \.offset) { _, ln in
@@ -403,7 +403,7 @@ struct SchedGrid: View {
         .clipped()
         // 正在上的课：微微放大一点，带一层很淡的阴影
         .scaleEffect(live ? 1.03 : 1)
-        .shadow(color: live ? (pal.dark ? Color.black.opacity(0.45) : Color(argb: t[CourseColors.BASE]).opacity(0.25)) : .clear, radius: 5, y: 2.5)
+        .shadow(color: live && !pal.glass ? (pal.dark ? Color.black.opacity(0.45) : Color(argb: t[CourseColors.BASE]).opacity(0.25)) : .clear, radius: 5, y: 2.5)
         .offset(x: x0, y: y0)
     }
 }

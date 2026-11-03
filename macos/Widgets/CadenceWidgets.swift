@@ -116,9 +116,13 @@ struct SchedWidget: Widget {
 struct WidgetShell<Content: View>: View {
     var hash = ""
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.widgetRenderingMode) private var mode
     @ViewBuilder var content: (Pal) -> Content
     var body: some View {
-        let pal = Pal(dark: scheme == .dark)
+        // 透明 / 着色样式（系统设置 → 外观 → 图标和小组件样式）：所有颜色被画成白色，内容换成玻璃配色才看得清
+        // 默认（彩色）样式下 macOS 不让桌面小组件透出壁纸（实测：透明背景会被画成纯黑，不声明背景直接报错），
+        // 所以这里照旧用自己的底色；系统的液态玻璃只在「透明 / 着色」样式下出现，那时 containerBackground 这层会被换成玻璃
+        let pal = Pal(dark: scheme == .dark, glass: mode != .fullColor)
         content(pal)
             .containerBackground(for: .widget) { pal.bg }
             .widgetURL(Shared.openURL(hash))

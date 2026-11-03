@@ -130,11 +130,11 @@ struct MonthView: View {
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
                 Text("\(day.d)")
-                    .font(.system(size: 12.5))
+                    .font(.system(size: 12.5, weight: isToday && pal.glass ? .bold : .regular))
                     .foregroundStyle(isToday ? Color.white : inMonth ? pal.text : pal.dim)
                     .padding(.horizontal, 3)
                     .frame(minWidth: 18, minHeight: MonthView.dateH, maxHeight: MonthView.dateH)
-                    .background { if isToday { RoundedRectangle(cornerRadius: 9).fill(pal.accent).widgetAccentable() } }
+                    .background { if isToday { RoundedRectangle(cornerRadius: 9).fill(pal.todayFill).widgetAccentable() } }
                     .padding(.leading, 2)
                 Spacer(minLength: 0)
                 if hidden > 0 {
@@ -142,7 +142,7 @@ struct MonthView: View {
                     Text(isToday ? " +\(hidden) " : "+\(hidden)")
                         .font(.system(size: 9))
                         .foregroundStyle(isToday ? Color.white : pal.text2)
-                        .background { if isToday { RoundedRectangle(cornerRadius: 5).fill(pal.accent) } }
+                        .background { if isToday { RoundedRectangle(cornerRadius: 5).fill(pal.todayFill) } }
                         .padding(.trailing, 2)
                         .lineLimit(1)
                 }
@@ -173,7 +173,7 @@ struct MonthView: View {
             } else if !dots.isEmpty {
                 HStack(spacing: 2) {
                     ForEach(Array(dots.enumerated()), id: \.offset) { _, e in
-                        Circle().fill(Color(argb: pal.base(e, d))).frame(width: 5, height: 5)
+                        Circle().fill(pal.ink(pal.base(e, d))).frame(width: 5, height: 5)
                     }
                 }
                 .frame(maxWidth: .infinity)

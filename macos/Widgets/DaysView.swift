@@ -33,9 +33,9 @@ struct DaysView: View {
     private func tone(_ i: Item, _ pal: Pal) -> Color {
         if !i.x.hl.isEmpty, let v = UInt32(i.x.hl.dropFirst(), radix: 16) {
             let c = 0xFF00_0000 | v
-            return Color(argb: pal.dark ? lighten(c) : c)
+            return pal.ink(pal.dark ? lighten(c) : c)
         }
-        return Color(argb: i.diff < 0 ? (pal.dark ? 0xFFE2_A673 : 0xFFB6_733B) : (pal.dark ? 0xFF8E_B0E6 : 0xFF47_76B4))
+        return pal.ink(i.diff < 0 ? (pal.dark ? 0xFFE2_A673 : 0xFFB6_733B) : (pal.dark ? 0xFF8E_B0E6 : 0xFF47_76B4))
     }
     /// 深色背景上把高亮色提亮一点（和安卓小组件一致）
     private func lighten(_ c: UInt32) -> UInt32 {
