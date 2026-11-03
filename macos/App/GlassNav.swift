@@ -19,6 +19,9 @@ final class NavModel: ObservableObject {
     @Published var fab = true
     @Published var drawer: Drawer?
     @Published var drawerOpen = false
+    /// 日历栏被左右拉动的距离：负 = 往回推（收起），正 = 往外拉（果冻一样变宽）
+    @Published var drawerPull: CGFloat = 0
+    var wheeling = false
     /// 网页的弹出菜单（用原生玻璃画）：在哪个按钮下面、有哪些项
     struct Menu: Identifiable { let id: String; let items: [MenuItem]; let anchor: CGRect }
     struct MenuItem: Decodable { let label: String; let on: Bool; let danger: Bool }
@@ -44,8 +47,27 @@ final class NavModel: ObservableObject {
     func add() { eval("document.getElementById('fab').click()", nil) }
 
     // ---------- 日历栏 ----------
-    func openDrawer() { refresh { [weak self] in self?.drawerOpen = true } }
-    func closeDrawer() { drawerOpen = false }
+    func openDrawer() {
+        refresh { [weak self] in
+            guard let self else { return }
+            self.drawerPull = 0
+            self.drawerOpen = true
+            // 果冻：弹出来时往外多冲一点，再弹回
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                withAnimation(.spring(response: 0.22, dampingFraction: 0.7)) { self.drawerPull = 22 }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) { withAnimation(.spring(response: 0.5, dampingFraction: 0.45)) { self.drawerPull = 0 } }
+            }
+        }
+    }
+    func closeDrawer() {
+        drawerOpen = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in if self?.drawerOpen == false { self?.drawerPull = 0 } }
+    }
+    /// 松手：往回推得够多（或甩得够快）就收起，否则带回弹落回原位
+    func releaseDrawer(predicted: CGFloat) {
+        if drawerPull < -90 || predicted < -220 { closeDrawer(); return }
+        withAnimation(.spring(response: 0.46, dampingFraction: 0.48)) { drawerPull = 0 }
+    }
     private func refresh(_ done: (() -> Void)? = nil) {
         eval("JSON.stringify(MC.Drawer.model())") { [weak self] r in
             guard let s = r as? String, let d = s.data(using: .utf8), let m = try? JSONDecoder().decode(Drawer.self, from: d) else { return }
@@ -126,12 +148,26 @@ struct LensEffect: ViewModifier, Animatable {
 }
 
 /// 显示出来时，自己范围内的点击全部接住，不漏给后面的网页
-final class SolidHostingView<Content: View>: NSHostingView<Content> {
+class SolidHostingView<Content: View>: NSHostingView<Content> {
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard !isHidden, let p = superview.map({ convert(point, from: $0) }), bounds.contains(p) else { return nil }
         return super.hitTest(point) ?? self
     }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
+/// 日历栏那一层：打开时整个窗口只和日历栏互动；触控板双指左右划直接拉动日历栏（上下划照常滚动列表）
+final class DrawerHostingView<Content: View>: SolidHostingView<Content> {
+    weak var nav: NavModel?
+    override func scrollWheel(with e: NSEvent) {
+        guard let nav, nav.drawerOpen else { super.scrollWheel(with: e); return }
+        if e.momentumPhase != [] { return } // 惯性滚动不算
+        if e.phase == .began { nav.wheeling = abs(e.scrollingDeltaX) > abs(e.scrollingDeltaY) }
+        guard nav.wheeling else { super.scrollWheel(with: e); return }
+        if e.phase == .ended || e.phase == .cancelled { nav.wheeling = false; nav.releaseDrawer(predicted: nav.drawerPull); return }
+        let dx = e.isDirectionInvertedFromDevice ? e.scrollingDeltaX : -e.scrollingDeltaX
+        nav.drawerPull += dx
+    }
 }
 
 /// 底部菜单栏：一整条胶囊形的玻璃。点一下切页；按住左右拖，选中块浮起成一块玻璃透镜跟手走，
@@ -311,7 +347,6 @@ struct GlassDrawer: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var pull: CGFloat = 0
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -320,24 +355,21 @@ struct GlassDrawer: View {
                     .contentShape(Rectangle())
                     .onTapGesture { m.closeDrawer() }
                     .transition(.opacity)
-                panel(d)
-                    .scaleEffect(x: 1 + rubber(max(0, pull), 70) / 300, y: 1, anchor: .leading) // 往外拉：被拉长
-                    .offset(x: min(0, pull))                                                    // 往回推：跟着收
-                    .gesture(DragGesture(minimumDistance: 10)
-                        .onChanged { pull = $0.translation.width }
-                        .onEnded { v in
-                            if v.translation.width < -90 || v.predictedEndTranslation.width < -200 { m.closeDrawer() }
-                            withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.55)) { pull = 0 }
-                        })
+                panel(d, width: 300 + rubber(max(0, m.drawerPull), 90)) // 往外拉：像果冻一样变宽
+                    .offset(x: min(0, m.drawerPull))                       // 往回推：跟着收
                     .transition(.move(edge: .leading).combined(with: .opacity))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        // 打开时，在窗口任何地方左右拖都是拉动日历栏
+        .gesture(DragGesture(minimumDistance: 6)
+            .onChanged { m.drawerPull = $0.translation.width }
+            .onEnded { m.releaseDrawer(predicted: $0.predictedEndTranslation.width) })
         .animation(reduceMotion ? nil : .spring(response: 0.46, dampingFraction: 0.72), value: m.drawerOpen) // 弹出带一点回弹
         .onExitCommand { m.closeDrawer() }
     }
 
-    private func panel(_ d: NavModel.Drawer) -> some View {
+    private func panel(_ d: NavModel.Drawer, width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(d.title).font(.system(size: 22, weight: .bold))
@@ -370,7 +402,7 @@ struct GlassDrawer: View {
             .fixedSize()
             .padding(16)
         }
-        .frame(width: 300)
+        .frame(width: width)
         .frame(maxHeight: .infinity)
         .glassEffect(.regular, in: .rect(cornerRadius: 26))
         .padding(10)
@@ -383,13 +415,14 @@ struct GlassDrawer: View {
 
     private func row(_ r: NavModel.Row) -> some View {
         let color = Color(hex: r.color) ?? Pal(dark: scheme == .dark).accent
-        let icon = r.kind == "days" ? "heart.fill" : r.kind == "rec" ? "book.closed.fill" : "checklist"
+        let icon = r.kind == "days" ? "heart.fill" : r.kind == "rec" ? "bookmark.fill" : "calendar"
         return HStack(spacing: 6) {
             Button { m.pick(r.id) } label: {
                 HStack(spacing: 11) {
-                    Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(color)
+                    // 和网页同一套：中性的灰底块 + 实心、饱和的彩色图形
+                    Image(systemName: icon).font(.system(size: 16, weight: .bold)).symbolRenderingMode(.monochrome).foregroundStyle(color)
                         .frame(width: 34, height: 34)
-                        .background(color.opacity(0.18), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .background(Color.primary.opacity(scheme == .dark ? 0.1 : 0.06), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(r.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
                         HStack(spacing: 5) {

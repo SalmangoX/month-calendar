@@ -158,7 +158,8 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         }
         let bar = SolidHostingView(rootView: GlassTabBar(m: nav))
         let fab = SolidHostingView(rootView: GlassFab(m: nav))
-        let drawer = SolidHostingView(rootView: GlassDrawer(m: nav))
+        let drawer = DrawerHostingView(rootView: GlassDrawer(m: nav))
+        drawer.nav = nav
         let menu = SolidHostingView(rootView: GlassMenu(m: nav))
         for v in [bar, fab, drawer, menu] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
         drawer.isHidden = true

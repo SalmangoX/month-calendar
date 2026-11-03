@@ -80,9 +80,10 @@
   };
 
   // ---------- 列表 ----------
-  const ICON_MAIN = '<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.2h17M8 2.8v3.4M16 2.8v3.4"/></svg>';
-  const ICON_REC = '<svg viewBox="0 0 24 24"><path d="M6.5 3.5h11a2 2 0 0 1 2 2v15l-7.5-4-7.5 4v-15a2 2 0 0 1 2-2z"/></svg>';
-  const ICON_DAYS = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+  // 实心图形（和设置页同一套：.f 填色、.s 粗线、.k 挖空），放在中性灰底块上，图形用日历的颜色
+  const ICON_MAIN = '<svg viewBox="0 0 24 24"><rect class="f" x="3.5" y="5" width="17" height="15.5" rx="3.6"/><path class="k" d="M3.5 10h17"/><path class="s" d="M8.5 3v3.6M15.5 3v3.6"/><circle class="k2" cx="8.5" cy="14.5" r="1.3"/><circle class="k2" cx="12" cy="14.5" r="1.3"/><circle class="k2" cx="15.5" cy="14.5" r="1.3"/></svg>';
+  const ICON_REC = '<svg viewBox="0 0 24 24"><path class="f" d="M6.5 3h11a2.2 2.2 0 0 1 2.2 2.2V21l-7.7-4.2L4.3 21V5.2A2.2 2.2 0 0 1 6.5 3z"/></svg>';
+  const ICON_DAYS = '<svg viewBox="0 0 24 24"><path class="f" d="M12 20.5s-7.8-4.6-7.8-10.6a4.3 4.3 0 0 1 7.8-2.6 4.3 4.3 0 0 1 7.8 2.6c0 6-7.8 10.6-7.8 10.6z"/></svg>';
   const T = s => (MC.Days ? MC.Days.T(s) : s);
   const TICK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   const BELL = '<svg viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';

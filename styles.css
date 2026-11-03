@@ -18,6 +18,8 @@
   --ease: cubic-bezier(.22, .8, .26, 1);
   --ease-spring: cubic-bezier(.32, 1.3, .5, 1);
   --r-s: 10px; --r-m: 14px; --r-l: 20px; --r-xl: 26px;
+  --tile: #EFF1F4;      /* 图标的灰底块（不透明：实心图标里挖空的细节和它同色） */
+  --tile-line: rgba(20, 24, 32, .06);
 }
 :root[data-theme="light"] {
   /* 配色取自图标、偏清爽：浅色底是带一丝凉意的近白（像清晨的空气），卡片纯白；主色是提亮的暮蓝 */
@@ -63,6 +65,8 @@
   --done-mix: 18%;
 }
 :root[data-theme="dark"] {
+  --tile: #2A2A2E;
+  --tile-line: rgba(255, 255, 255, .06);
   /* 深色：底色用系统的中性灰（和 macOS / iOS 的深色界面一致，有层次、不是一片死黑）；主色还是柔和的蓝紫 */
   color-scheme: dark;
   --bg: #141416;
@@ -329,7 +333,7 @@ svg.filled { fill: currentColor; stroke: none; }
 .sec h3.over { color: var(--p3); }
 .card { list-style: none; margin: 0; border-radius: var(--r-l); padding: 2px 8px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); }
 .big-empty { text-align: center; color: var(--text2); padding: 64px 20px; font-size: 15px; line-height: 1.7; }
-.big-empty .em-ico { width: 54px; height: 54px; margin: 0 auto 12px; border-radius: 18px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-text); }
+.big-empty .em-ico { width: 54px; height: 54px; margin: 0 auto 12px; border-radius: 17px; display: grid; place-items: center; background: var(--tile); box-shadow: inset 0 0 0 .5px var(--tile-line); color: var(--accent); }
 .big-empty .em-ico svg { width: 26px; height: 26px; }
 
 /* ---------- 四象限 ---------- */
@@ -376,13 +380,19 @@ svg.filled { fill: currentColor; stroke: none; }
 .srow + .srow::before { content: ""; position: absolute; top: 0; left: 55px; right: 0; height: .5px; background: var(--group-line); }
 button.srow:active, .srow.tap:active { background: var(--field); }
 .sicon {
-  /* 设置图标：中性的底块 + 低彩度的彩色线条图标（颜色由 app.js 的 SET_TONES 给出），能分辨又不抢眼 */
+  /* 设置图标：中性的灰底块 + 实心、饱和的彩色图形（颜色由 app.js 的 SET_TONES 给出）；图形的写法见下面的 .ico-solid */
   --ic: var(--icl, var(--accent));
   flex: none; width: 29px; height: 29px; border-radius: 8px; display: grid; place-items: center;
-  color: var(--ic); background: rgba(20, 24, 32, .05); box-shadow: inset 0 0 0 .5px rgba(20, 24, 32, .06);
+  color: var(--ic); background: var(--tile); box-shadow: inset 0 0 0 .5px var(--tile-line);
 }
-:root[data-theme="dark"] .sicon { --ic: var(--icd, var(--accent)); background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .06); }
-.sicon svg { width: 17px; height: 17px; stroke-width: 2.1; }
+:root[data-theme="dark"] .sicon { --ic: var(--icd, var(--accent)); }
+.sicon svg { width: 18px; height: 18px; }
+/* 实心图标的三种笔画：.f 填色，.s 粗线条，.k / .k2 用底块颜色「挖空」细节（时钟指针、日历横线、眼睛……） */
+:is(.sicon, .dr-ico, .em-ico) svg { fill: none; stroke: none; stroke-linecap: round; stroke-linejoin: round; }
+:is(.sicon, .dr-ico, .em-ico) svg .f { fill: currentColor; }
+:is(.sicon, .dr-ico, .em-ico) svg .s { stroke: currentColor; stroke-width: 2.4; }
+:is(.sicon, .dr-ico, .em-ico) svg .k { stroke: var(--tile); stroke-width: 1.9; }
+:is(.sicon, .dr-ico, .em-ico) svg .k2 { fill: var(--tile); }
 .slabel { flex: 1; min-width: 0; }
 .slabel small { display: block; font-size: 12px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .srow.danger .slabel { color: var(--p3); }
@@ -941,9 +951,9 @@ html.locked .lock { display: grid; }
 .dr-row.on { background: color-mix(in srgb, var(--cc) 13%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cc) 28%, transparent); }
 .dr-pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 11px 10px; text-align: left; border-radius: 20px; }
 .dr-pick:active { background: var(--field); }
-.dr-ico { flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--cc);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), 0 3px 8px color-mix(in srgb, var(--cc) 35%, transparent); }
-.dr-ico svg { width: 19px; height: 19px; stroke-width: 1.9; }
+.dr-ico { flex: none; width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; color: var(--cc);
+  background: var(--tile); box-shadow: inset 0 0 0 .5px var(--tile-line); }
+.dr-ico svg { width: 20px; height: 20px; }
 .dr-txt { flex: 1; min-width: 0; }
 .dr-txt b { display: block; font-size: 16px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dr-txt small { display: block; font-size: 12px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

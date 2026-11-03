@@ -308,7 +308,7 @@
     $('#schedFit').hidden = zoom <= 1;
     $('#schedNav').hidden = !all.length;
     if (!all.length) {
-      body.innerHTML = `<div class="big-empty"><span class="em-ico"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3.5"/><path d="M4 10h16M9 10v10"/></svg></span>还没有课表<br><small style="color:var(--text3)">点右上角「导入」，粘贴课程表文字即可</small></div>`;
+      body.innerHTML = `<div class="big-empty"><span class="em-ico"><svg viewBox="0 0 24 24"><rect class="f" x="3.5" y="4.5" width="17" height="16" rx="3.6"/><path class="k" d="M3.5 10h17M9.2 10v10.5M3.5 15.2h17"/></svg></span>还没有课表<br><small style="color:var(--text3)">点右上角「导入」，粘贴课程表文字即可</small></div>`;
       return;
     }
     const byDay = {};

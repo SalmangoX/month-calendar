@@ -218,8 +218,8 @@
     if (overdue.length) h += `<section class="sec"><h3 class="over"><span>已逾期</span><span class="sec-r"><button class="sec-act" data-sec="overdue">全部移到今天</button><span>${overdue.length}</span></span></h3><ul class="card glass-panel">${overdue.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
     if (open.length) h += `<section class="sec"><h3><span>待完成</span><span>${open.length}</span></h3><ul class="card glass-panel">${open.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
     if (done.length) h += `<section class="sec"><h3><span>已完成</span><span>${done.length}</span></h3><ul class="card glass-panel">${done.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
-    const sun = '<span class="em-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></svg></span>';
-    const tick = '<span class="em-ico"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
+    const sun = '<span class="em-ico"><svg viewBox="0 0 24 24"><circle class="f" cx="12" cy="12" r="4.4"/><path class="s" d="M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.5 5.5l1.5 1.5M17 17l1.5 1.5M5.5 18.5L7 17M17 7l1.5-1.5"/></svg></span>';
+    const tick = '<span class="em-ico"><svg viewBox="0 0 24 24"><circle class="f" cx="12" cy="12" r="9"/><path class="k" d="M7.6 12.3l3 3 5.8-6.2"/></svg></span>';
     if (!today.length && !overdue.length) h = `<div class="big-empty">${sun}今天没有安排<br><small style="color:var(--text3)">点右下角 ＋ 添加</small></div>`;
     else if (!open.length && !overdue.length) h = `<div class="big-empty" style="padding:30px 20px 6px">${tick}今天的事都完成了</div>` + h;
     if (soon.length) h += `<section class="sec"><h3><span>接下来 7 天</span><span>${soon.length}</span></h3><ul class="card glass-panel">${soon.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
@@ -595,33 +595,33 @@
 
   // ---------- 设置 ----------
   let iosScript = '', workflowYml = '';
+  // 图标：实心的形状（.f），线条加粗（.s），细节用底块颜色挖空（.k / .k2），见 styles.css 的 .sicon
   const IC = {
-    globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.4 2.3 3.6 5 3.6 8s-1.2 5.7-3.6 8c-2.4-2.3-3.6-5-3.6-8s1.2-5.7 3.6-8z"/></svg>',
-    theme: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M12 4.5a7.5 7.5 0 0 1 0 15z" fill="currentColor"/></svg>',
-    week: '<svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="3.5"/><path d="M4 10h16M8.5 3.5v3.5M15.5 3.5v3.5"/></svg>',
-    link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>',
-    cloud: '<svg viewBox="0 0 24 24"><path d="M7.5 18.5a4.5 4.5 0 0 1-.5-8.97 5.5 5.5 0 0 1 10.6 1.47A3.75 3.75 0 0 1 17.25 18.5z"/></svg>',
-    refresh: '<svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.05-4.95"/><path d="M19 4.5V9h-4.5"/></svg>',
-    lock: '<svg viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>',
-    lockNow: '<svg viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.2v2"/></svg>',
-    key: '<svg viewBox="0 0 24 24"><circle cx="8.5" cy="12" r="3.5"/><path d="M12 12h8.5M17.5 12v3M20.5 12v2.2"/></svg>',
-    unlink: '<svg viewBox="0 0 24 24"><path d="M10 14l-1 1a3 3 0 0 1-4.2-4.2l2-2M14 10l1-1a3 3 0 0 1 4.2 4.2l-2 2M5 5l14 14"/></svg>',
-    bell: '<svg viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>',
-    send: '<svg viewBox="0 0 24 24"><path d="M4.5 11.5l15-6.5-5.5 15-2.6-6z"/><path d="M11.4 14l3.1-3.1"/></svg>',
-    laptop: '<svg viewBox="0 0 24 24"><rect x="5" y="5.5" width="14" height="10" rx="2"/><path d="M3 18.5h18"/></svg>',
-    phone: '<svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.8"/><path d="M11 18h2"/></svg>',
-    android: '<svg viewBox="0 0 24 24"><rect x="5.5" y="9" width="13" height="10" rx="2.5"/><path d="M8.5 9a3.5 3.5 0 0 1 7 0M8 4.5l1.5 2M16 4.5l-1.5 2"/><circle cx="10" cy="13" r=".6" fill="currentColor"/><circle cx="14" cy="13" r=".6" fill="currentColor"/></svg>',
-    export: '<svg viewBox="0 0 24 24"><path d="M12 14.5V4M8 8l4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
-    import: '<svg viewBox="0 0 24 24"><path d="M12 4v10.5M8 10.5l4 4 4-4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
-    grid: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="6.5" height="6.5" rx="1.8"/><rect x="13" y="4.5" width="6.5" height="6.5" rx="1.8"/><rect x="4.5" y="13" width="6.5" height="6.5" rx="1.8"/><rect x="13" y="13" width="6.5" height="6.5" rx="1.8"/></svg>',
-    sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.6"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M6 18l1.4-1.4M16.6 7.4L18 6"/></svg>',
-    clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>',
-    heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+    globe: '<svg viewBox="0 0 24 24"><circle class="f" cx="12" cy="12" r="8.5"/><path class="k" d="M3.5 12h17M12 3.5c2.5 2.4 3.7 5.2 3.7 8.5s-1.2 6.1-3.7 8.5c-2.5-2.4-3.7-5.2-3.7-8.5s1.2-6.1 3.7-8.5z"/></svg>',
+    theme: '<svg viewBox="0 0 24 24"><circle class="s" cx="12" cy="12" r="7.6"/><path class="f" d="M12 4.4a7.6 7.6 0 0 1 0 15.2z"/></svg>',
+    week: '<svg viewBox="0 0 24 24"><rect class="f" x="3.5" y="5" width="17" height="15.5" rx="3.6"/><path class="k" d="M3.5 10h17"/><path class="s" d="M8.5 3v3.6M15.5 3v3.6"/><circle class="k2" cx="8.5" cy="14.5" r="1.3"/><circle class="k2" cx="12" cy="14.5" r="1.3"/><circle class="k2" cx="15.5" cy="14.5" r="1.3"/></svg>',
+    link: '<svg viewBox="0 0 24 24"><path class="s" d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path class="s" d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24"><path class="f" d="M7.5 19a4.75 4.75 0 0 1-.6-9.46 5.8 5.8 0 0 1 11.2 1.55A3.95 3.95 0 0 1 17.6 19z"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24"><path class="s" d="M19 12a7 7 0 1 1-2.05-4.95"/><path class="f" d="M20 3.5v6.2h-6.2z"/></svg>',
+    lock: '<svg viewBox="0 0 24 24"><rect class="f" x="5" y="10" width="14" height="10.5" rx="2.8"/><path class="s" d="M8.3 10V8a3.7 3.7 0 0 1 7.4 0v2"/></svg>',
+    lockNow: '<svg viewBox="0 0 24 24"><rect class="f" x="5" y="10" width="14" height="10.5" rx="2.8"/><path class="s" d="M8.3 10V8a3.7 3.7 0 0 1 7.4 0v2"/><path class="k" d="M12 13.7v3"/></svg>',
+    key: '<svg viewBox="0 0 24 24"><circle class="f" cx="8.2" cy="12" r="4.4"/><circle class="k2" cx="7.4" cy="12" r="1.4"/><path class="s" d="M12 12h8.5M17.4 12v3.2M20.5 12v2.4"/></svg>',
+    unlink: '<svg viewBox="0 0 24 24"><path class="s" d="M10 14l-1 1a3 3 0 0 1-4.2-4.2l2-2M14 10l1-1a3 3 0 0 1 4.2 4.2l-2 2M5 5l14 14"/></svg>',
+    bell: '<svg viewBox="0 0 24 24"><path class="f" d="M12 3.2a6 6 0 0 0-6 6v5.3l-1.8 2.3c-.4.5 0 1.2.6 1.2h14.4c.6 0 1-.7.6-1.2L18 14.5V9.2a6 6 0 0 0-6-6z"/><path class="f" d="M9.6 19.4h4.8a2.4 2.4 0 0 1-4.8 0z"/></svg>',
+    send: '<svg viewBox="0 0 24 24"><path class="f" d="M3.8 11.3L20.2 4.2c.5-.2 1 .3.8.8l-7.1 16.4c-.3.6-1.2.5-1.3-.1l-1.5-5.7-5.7-1.5c-.6-.2-.7-1-.1-1.3z"/><path class="k" d="M11.2 14.1l4-4"/></svg>',
+    laptop: '<svg viewBox="0 0 24 24"><rect class="f" x="4.5" y="5" width="15" height="10.8" rx="2.2"/><path class="s" d="M2.8 18.8h18.4"/></svg>',
+    phone: '<svg viewBox="0 0 24 24"><rect class="f" x="6.5" y="2.5" width="11" height="19" rx="3"/><path class="k" d="M10.6 18.2h2.8"/></svg>',
+    android: '<svg viewBox="0 0 24 24"><path class="f" d="M5 11a7 7 0 0 1 14 0v7a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18z"/><path class="s" d="M8 4.2l1.5 2M16 4.2l-1.5 2"/><circle class="k2" cx="9.6" cy="12" r="1.1"/><circle class="k2" cx="14.4" cy="12" r="1.1"/></svg>',
+    export: '<svg viewBox="0 0 24 24"><path class="f" d="M5 12.5h3.5v4.5h7v-4.5H19v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path class="s" d="M12 14V4.2M8.2 7.8L12 4l3.8 3.8"/></svg>',
+    import: '<svg viewBox="0 0 24 24"><path class="f" d="M5 12.5h3.5v4.5h7v-4.5H19v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path class="s" d="M12 3.8v10M8.2 10.2L12 14l3.8-3.8"/></svg>',
+    grid: '<svg viewBox="0 0 24 24"><rect class="f" x="4" y="4" width="7" height="7" rx="2"/><rect class="f" x="13" y="4" width="7" height="7" rx="2"/><rect class="f" x="4" y="13" width="7" height="7" rx="2"/><rect class="f" x="13" y="13" width="7" height="7" rx="2"/></svg>',
+    sun: '<svg viewBox="0 0 24 24"><circle class="f" cx="12" cy="12" r="4.4"/><path class="s" d="M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.5 5.5l1.5 1.5M17 17l1.5 1.5M5.5 18.5L7 17M17 7l1.5-1.5"/></svg>',
+    clock: '<svg viewBox="0 0 24 24"><circle class="f" cx="12" cy="12" r="8.6"/><path class="k" d="M12 7.2V12l3.2 2"/></svg>',
+    heart: '<svg viewBox="0 0 24 24"><path class="f" d="M12 20.5s-7.8-4.6-7.8-10.6a4.3 4.3 0 0 1 7.8-2.6 4.3 4.3 0 0 1 7.8 2.6c0 6-7.8 10.6-7.8 10.6z"/></svg>',
   };
   const CHEV = '<span class="chev"><svg viewBox="0 0 8 13"><path d="M1.5 1.5l5 5-5 5"/></svg></span>';
-  // 设置图标的颜色（参考 Things 3、Linear 这类讲究质感的 App）：底块是中性的，图标本身上色；
-  // 各色明度相同、彩度很低，能靠颜色分辨又不抢眼。[浅色, 深色]
-  const SET_TONES = { rose: ['#B35A6B', '#E6A3AF'], coral: ['#B4614E', '#E8AA96'], apricot: ['#A8742F', '#E2BD8C'], sage: ['#4F8A5B', '#A6CFAC'], jade: ['#2E8C7E', '#92D0C4'], teal: ['#2F8796', '#8FCAD6'], sky: ['#3B7DB5', '#9EC4EA'], periwinkle: ['#5A6FC0', '#AAB7EF'], lavender: ['#7D66BD', '#C2B3EE'], orchid: ['#9A5FA6', '#D8AAE0'] };
+  // 图标颜色：中性的灰底块 + 实心、饱和的彩色图形（App 里所有图标底块都是这一套）。[浅色, 深色]
+  const SET_TONES = { rose: ['#E04A63', '#FF6F86'], coral: ['#E25B3A', '#FF8366'], apricot: ['#E08A16', '#FFB547'], sage: ['#2FA352', '#58D27C'], jade: ['#109E8C', '#3FD3BE'], teal: ['#1A93B8', '#4CC3E2'], sky: ['#2F7BE0', '#5EA8FF'], periwinkle: ['#5260DB', '#8492FF'], lavender: ['#8A55DB', '#B48CFF'], orchid: ['#BD48BA', '#E27BDD'] };
   const DT = s => (MC.Days ? MC.Days.T(s) : s); // 纪念日历（js/days.js）的文字
   function srow(o) {
     const sub = o.sub ? `<small>${esc(o.sub)}</small>` : '';

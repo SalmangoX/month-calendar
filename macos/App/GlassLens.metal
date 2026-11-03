@@ -14,12 +14,13 @@ using namespace metal;
     float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; // 到胶囊边的距离（里面是负的）
     if (sd > 0.0) return layer.sample(pos);
     float t = clamp(1.0 + sd / r, 0.0, 1.0);                     // 0 = 中间，1 = 边上
-    // 中间放大约 16%，靠边往里收得越来越多：边缘像水滴一样扭曲
-    float k = 1.0 / (1.0 + 0.16 * strength) - pow(t, 3.0) * 0.32 * strength;
+    // 只在靠外的一圈起作用：中间几乎不变（轻微放大），越靠边往里收得越多，像水滴边缘那样扭曲
+    float edge = smoothstep(0.5, 1.0, t);
+    float k = 1.0 / (1.0 + 0.1 * strength) - edge * edge * 0.24 * strength;
     float2 base = center + d * k;
-    // 色散：越靠边三色错开得越多
+    // 色散：中间只有一点点（不是完全没有），越靠边三色错开得越多
     float2 n = normalize(d + float2(0.0001, 0.0001));
-    float disp = (0.4 + 2.6 * t * t) * strength;
+    float disp = (0.15 + 1.9 * edge * edge) * strength;
     half4 cr = layer.sample(base + n * disp);
     half4 cg = layer.sample(base);
     half4 cb = layer.sample(base - n * disp);
