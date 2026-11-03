@@ -355,8 +355,11 @@ struct GlassDrawer: View {
                     .contentShape(Rectangle())
                     .onTapGesture { m.closeDrawer() }
                     .transition(.opacity)
-                panel(d, width: 300 + rubber(max(0, m.drawerPull), 90)) // 往外拉：像果冻一样变宽
-                    .offset(x: min(0, m.drawerPull))                       // 往回推：跟着收
+                let stretch = rubber(max(0, m.drawerPull), 90)
+                panel(d, width: 300)
+                    // 往外拉：整块日历栏从左边缘被拉长（内容跟着一起变形，不会重新排版），高度略微收一点，像果冻
+                    .scaleEffect(x: 1 + stretch / 300, y: 1 - stretch / 1600, anchor: .leading)
+                    .offset(x: min(0, m.drawerPull)) // 往回推：整块跟着移动
                     .transition(.move(edge: .leading).combined(with: .opacity))
             }
         }
