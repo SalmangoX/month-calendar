@@ -35,11 +35,11 @@ final class Updater: ObservableObject {
         defer { checking = false }
         // 先问 GitHub API：上传后立刻就能查到（raw.githubusercontent.com 有大约 5 分钟的缓存）；
         // API 每小时限 60 次，万一超了再退回 raw
-        func fetch(_ url: String, _ accept: String?) async -> JObj? {
+        func fetch(_ url: String, _ accept: String?, needBuild: Bool = true) async -> JObj? {
             var req = URLRequest(url: URL(string: url)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
             if let a = accept { req.setValue(a, forHTTPHeaderField: "Accept") }
             guard let res = try? await URLSession.shared.data(for: req), (res.1 as? HTTPURLResponse)?.statusCode == 200,
-                  let o = (try? JSONSerialization.jsonObject(with: res.0)) as? JObj, o.int("build") > 0 else { return nil }
+                  let o = (try? JSONSerialization.jsonObject(with: res.0)) as? JObj, !needBuild || o.int("build") > 0 else { return nil }
             return o
         }
         var found = await fetch("https://api.github.com/repos/\(repo)/contents/macos/version.json?ref=main", "application/vnd.github.raw")
@@ -48,12 +48,15 @@ final class Updater: ObservableObject {
             if manual { alert(I18n.t("检查更新失败"), I18n.t("连不上 GitHub，稍后再试。")) }
             return
         }
-        latest = Latest(version: o.str("version"), build: o.int("build"))
+        // 版本号三端共用仓库根目录的 version.json；macos/version.json 只放 Mac 的构建号
+        var ver = await fetch("https://api.github.com/repos/\(repo)/contents/version.json?ref=main", "application/vnd.github.raw", needBuild: false)
+        if ver == nil { ver = await fetch("https://raw.githubusercontent.com/\(repo)/main/version.json", nil, needBuild: false) }
+        latest = Latest(version: ver?.str("version") ?? currentVersion, build: o.int("build"))
         if available {
             notifyOnce()
             if manual { install() }
         } else if manual {
-            alert(I18n.t("已经是最新版本"), I18n.t("Mac 版 {0}（{1}）", currentVersion, currentBuild))
+            alert(I18n.t("已经是最新版本"), I18n.t("Mac 版 {0}（{1}）", currentVersion, "Mac \(currentBuild)"))
         }
     }
 

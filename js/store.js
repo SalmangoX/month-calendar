@@ -3,6 +3,8 @@
   'use strict';
   const MC = (window.MC = {});
   MC.VERSION = '0.22.0';
+  // 显示用：「1.4.0-b80」→「1.4.0（网页 80）」；版本号三端共用，括号里是这一端自己的构建号
+  MC.versionText = (v = MC.VERSION, what = '网页') => { const m = String(v).match(/^(.*?)-b(\d+)$/); return m ? `${m[1]}（${what} ${m[2]}）` : String(v); };
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';

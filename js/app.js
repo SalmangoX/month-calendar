@@ -723,7 +723,7 @@
         srow({ act: 'mwidget', icon: 'grid', tone: 'periwinkle', label: '添加桌面小组件', sub: '整月、今日、课表、纪念日', help: 'mwidget', chev: false }),
       ], '菜单栏右上角的日历图标也能随时查看本月和当天的事件。');
       gWidgets += group('Mac App', [
-        srow({ act: 'macapp', icon: 'laptop', tone: 'sage', label: 'Mac App', sub: '点一下检查更新', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
+        srow({ act: 'macapp', icon: 'laptop', tone: 'sage', label: 'Mac App', sub: '点一下检查更新', val: `${I.app || ''}（Mac ${I.code || 0}）`, chev: false }),
         ...(MC.Native.has('makeInstaller') ? [srow({ act: 'macpkg', icon: 'export', tone: 'apricot', label: '生成安装包', sub: '打包成 .dmg 放在桌面，可以直接发给别人', chev: false })] : []),
       ], '改网页不需要重新编译，打开就是最新的；只有原生部分（菜单栏、小组件、提醒）改了才需要在 Mac 上重新运行 macos/build.sh。');
     } else if (MC.Native.on) {
@@ -735,7 +735,7 @@
       ], '也可以长按桌面空白处 → 小组件 → 节律，按住拖到桌面。');
       const up = MC.Native.updateAvailable(), I = MC.Native.info;
       gWidgets += group('安卓 App', [
-        srow({ act: 'apk', icon: 'android', tone: 'sage', label: '安卓 App', sub: up ? `有新版本 ${up.name}，点这里下载安装` : '点这里检查 App 更新', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
+        srow({ act: 'apk', icon: 'android', tone: 'sage', label: '安卓 App', sub: up ? `有新版本 ${up.name}，点这里下载安装` : '点这里检查 App 更新', val: `${I.app || ''}（安卓 ${I.code || 0}）`, chev: false }),
       ], '改网页不需要更新 App，打开就是最新的；只有原生部分（小组件、提醒）改了才需要装新的 APK。');
     } else gWidgets += group('桌面小组件', [
       srow({ act: 'ios', icon: 'phone', tone: 'periwinkle', label: 'iOS 小组件', sub: '复制 Scriptable 脚本', help: 'ios', chev: false }),
@@ -747,13 +747,13 @@
     const gData = group('数据', [
       srow({ act: 'export', icon: 'export', tone: 'jade', label: '导出备份', chev: false }),
       srow({ act: 'import', icon: 'import', tone: 'sky', label: '导入备份', sub: '与现有数据合并', chev: false }),
-      srow({ act: 'update', icon: 'refresh', tone: 'lavender', label: '检查更新', sub: `当前版本 ${MC.VERSION}`, chev: false }),
+      srow({ act: 'update', icon: 'refresh', tone: 'lavender', label: '检查更新', sub: `当前版本 ${MC.versionText()}`, chev: false }),
     ]);
     // 按重要程度排：最常来设置的是提醒，其次是显示，同步、小组件和数据放后面
     const h = gRemind + gDisplay + gSync + gWidgets + gData;
     $('#setGroups').innerHTML = h;
     const total = MC.data.events.length, done = MC.data.events.filter(e => e.done).length;
-    $('#statLine').innerHTML = `版本 ${MC.VERSION} · 共 ${total} 个事件，已完成 ${done} 个<small class="dbg"${showDbg ? '' : ' hidden'}>${esc(MC.screenInfo || '')}</small>`;
+    $('#statLine').innerHTML = `版本 ${MC.versionText()} · 共 ${total} 个事件，已完成 ${done} 个<small class="dbg"${showDbg ? '' : ' hidden'}>${esc(MC.screenInfo || '')}</small>`;
     if (!iosScript) fetch('widget-ios-scriptable.js', { cache: 'no-cache' }).then(r => r.text()).then(t => (iosScript = t)).catch(() => {});
     if (!workflowYml) fetch('scripts/reminders.yml', { cache: 'no-cache' }).then(r => r.text()).then(t => (workflowYml = t)).catch(() => {});
   }
