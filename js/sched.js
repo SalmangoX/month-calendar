@@ -197,6 +197,9 @@
     return list.filter(c => { const k = `${c.code}|${c.day}|${c.start}|${c.from || ''}|${c.to || ''}`; if (seen.has(k)) return false; seen.add(k); return true; });
   }
 
+  // 网页、照片识别（schedread.js）复用同一套规则
+  Sched._u = { parseDays, to24, TIME_RE, TYPE_RE, TYPE_CN, CODE_RE, EVERY2, looksRoom, findRange, dedupe, toMin, stripDT };
+
   // ---------- 解析：.ics 文件 ----------
   Sched.parseICS = text => {
     const raw = String(text).replace(/\r?\n[ \t]/g, '').split(/\r?\n/);
@@ -553,10 +556,11 @@
     $('#schedTitle').textContent = '导入课表';
     $('#schedOk').textContent = '导入';
     $('#schedForm').innerHTML = `
-      <p class="hint" style="margin:0 2px 10px">从学校选课系统、教务网站、Excel 表格或任何日历里复制课程表文字，粘贴到下面即可，App 会自动识别课程、星期、时间和教室。</p>
-      <div class="help-tip" style="margin-bottom:10px">小技巧：网页上的课程表如果有「列表视图」，切到列表再复制，识别最准确（uoZone 就是「List View」）。<br>也可以自己一行写一节：<code>MAT 2348 周二 14:30-15:50 Tabaret 333</code><br>或从 Excel 复制带表头的表格（课程 / 星期 / 开始 / 结束 / 教室）。</div>
+      <p class="hint" style="margin:0 2px 10px">从学校选课系统、教务网站、Excel 表格或任何日历里复制课程表，粘贴到下面即可；也可以导入 .ics 文件、保存下来的网页，或者拍一张课表照片。识别结果会画成课表，确认后再导入。</p>
+      <div class="help-tip" style="margin-bottom:10px">小技巧：网页上的周课表可以直接全选复制（电脑按 ⌘A / Ctrl+A，手机长按后「全选」），表格的行和列会一起带过来。有「列表视图」的系统（比如 uoZone 的「List View」）切到列表再复制更准。<br>也可以自己一行写一节：<code>MAT 2348 周二 14:30-15:50 Tabaret 333</code><br>或从 Excel 复制带表头的表格（课程 / 星期 / 开始 / 结束 / 教室）。</div>
       <textarea id="schedText" rows="6" placeholder="在这里粘贴课程表…"></textarea>
-      <div class="btn-line"><span><button class="chip-btn glass" id="schedIcs">.ics 文件</button> <button class="chip-btn glass" id="schedManual">手动添加</button></span><label class="replace-opt"><input type="checkbox" id="schedReplace" checked> 替换现有课表</label></div>
+      <div class="btn-line imp-src"><span><button class="chip-btn glass" id="schedIcs">.ics / 网页文件</button> <button class="chip-btn glass" id="schedPhotoBtn">照片识别</button> <button class="chip-btn glass" id="schedManual">手动添加</button></span><label class="replace-opt"><input type="checkbox" id="schedReplace" checked> 替换现有课表</label></div>
+      <p class="hint imp-status" id="impStatus" hidden></p>
       <div class="imp-range" id="impRange" hidden>
         <p class="hint" style="margin:12px 4px 8px">有些课程没有写日期，请选择它们的上课时间：</p>
         <div class="sc-times"><label class="field"><span>从</span><input type="month" id="impFromM"></label><label class="field"><span>到</span><input type="month" id="impToM"></label></div>
@@ -570,7 +574,21 @@
     $('#impExact').onchange = () => { $('#impExactBox').hidden = !$('#impExact').checked; preview(); };
     ['impFromM', 'impToM', 'impFrom', 'impTo'].forEach(id => $('#' + id).addEventListener('change', preview));
     $('#schedText').addEventListener('input', () => { parsed = Sched.parseText($('#schedText').value); impSel = -1; preview(); });
+    // 从网页复制时，剪贴板里还带着 HTML：周课表的行列结构比纯文字准，能认出更多课就用它
+    $('#schedText').addEventListener('paste', e => {
+      const html = e.clipboardData && e.clipboardData.getData('text/html');
+      if (!html || !Sched.readHTML) return;
+      const plain = e.clipboardData.getData('text/plain');
+      let r; try { r = Sched.readHTML(html); } catch (err) { return; }
+      const t = Sched.parseText(plain);
+      if (!(r.list.length > t.length || (r.kind === 'grid' && r.list.length && r.list.length >= t.length))) return; // 照常粘贴
+      e.preventDefault();
+      const ta = e.target; ta.setRangeText(plain, ta.selectionStart, ta.selectionEnd, 'end');
+      parsed = r.list; impSel = -1; preview();
+      status(r.kind === 'site' ? `已按 ${r.site} 的格式识别 ${r.list.length} 节课` : `已从网页表格识别 ${r.list.length} 节课`);
+    });
     $('#schedIcs').onclick = () => $('#schedFile').click();
+    $('#schedPhotoBtn').onclick = () => $('#schedPhoto').click();
     $('#schedManual').onclick = () => openEdit(null);
     preview();
     UI.open('schedSheet');
@@ -691,13 +709,36 @@
     $('#ieDone').onclick = () => { impSel = -1; renderImpGrid(); renderImpEdit(); };
     $('#ieDel').onclick = () => { parsed.splice(impSel, 1); impSel = -1; preview(); };
   }
+  const status = msg => { const el = $('#impStatus'); if (!el) return; el.hidden = !msg; el.textContent = msg || ''; };
   $('#schedFile').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = '';
     if (!f) return;
     impSel = -1;
-    parsed = Sched.parseICS(await f.text());
+    const text = await f.text();
+    // 保存下来的网页（.html / .htm / .webarchive 里的 HTML）走网页识别，其他按 .ics
+    if (/\.html?$/i.test(f.name) || /html/.test(f.type) || /^\s*<(!doctype|html)/i.test(text)) parsed = Sched.readHTML(text).list;
+    else parsed = /BEGIN:VCALENDAR/.test(text) ? Sched.parseICS(text) : Sched.parseText(text);
+    status('');
     if (!parsed.length) UI.toast('文件里没有找到课程');
     preview();
+  });
+  $('#schedPhoto').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f || mode !== 'import') return;
+    const btn = $('#schedPhotoBtn');
+    btn.classList.add('disabled');
+    status('正在准备识别…');
+    try {
+      const list = await Sched.readImage(f, (stage, p) => status(stage === 'load' ? `正在下载识别模型（只有第一次需要）… ${Math.round(p * 100)}%` : `正在识别照片… ${Math.round(p * 100)}%`));
+      if (mode !== 'import' || !$('#impStatus')) return; // 面板已经关掉或换了
+      if (!list.length) { status('照片里没有认出课程。可以换一张更清楚、拍得更正的照片，或者手动添加。'); return; }
+      parsed = list; impSel = -1; preview();
+      status(`已从照片识别 ${list.length} 节课，照片识别可能有错字，请对照检查一遍`);
+    } catch (err) {
+      status('识别没有完成，请检查网络后再试一次');
+    } finally {
+      btn.classList.remove('disabled');
+    }
   });
   function openEdit(c) {
     mode = 'edit'; editing = c || null; editDay = c ? c.day : 1;

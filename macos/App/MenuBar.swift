@@ -229,6 +229,8 @@ struct MenuBarView: View {
                             Button(I18n.t("备份到 iCloud 云盘…")) { chooseBackup() }
                         }
                         Button(I18n.t("检查更新…")) { Task { await updater.check(manual: true) } }
+                        Button(I18n.t("生成安装包…")) { updater.makeInstaller() }
+                            .help(I18n.t("打包成 .dmg 放在桌面，可以直接发给别的 Mac"))
                         Divider()
                         Button(I18n.t("退出节律")) { NSApp.terminate(nil) }
                     } label: { Image(systemName: "ellipsis") }

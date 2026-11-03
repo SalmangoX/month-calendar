@@ -17,12 +17,13 @@
 | 文件 | 作用 |
 | --- | --- |
 | `index.html` `styles.css` `js/` | App 本体（网页） |
+| `js/schedread.js` | 课表识别：从网页复制的表格、保存的 .html、课表照片（三端共用，照片在网页里识别，第一次用时下载识别模型） |
 | `js/native.js` | 原生 App 桥接（安卓、Mac 共用），只在 App 里生效，浏览器和 iPhone 上什么都不做 |
 | `manifest.webmanifest` `sw.js` `icons/` | 添加到主屏幕、离线打开、接收推送 |
 | `widget-ios-scriptable.js` `widget-sched-scriptable.js` | iOS 小组件脚本（Scriptable） |
 | `widget.html` | 网页版安卓小组件（不装 App 时用） |
 | `android/` | 安卓原生 App：网页外壳 + 原生小组件 + 系统精确闹钟提醒 |
-| `macos/` | Mac 原生 App：网页外壳 + 菜单栏月历 + 桌面小组件 + 系统通知（在自己的 Mac 上用 `macos/build.sh` 编译） |
+| `macos/` | Mac 原生 App：网页外壳 + 菜单栏月历 + 桌面小组件 + 系统通知（在自己的 Mac 上用 `macos/build.sh` 编译；菜单栏 ⋯ →「生成安装包…」或 `macos/make-dmg.sh` 打包成可以发给别人的 .dmg） |
 | `.github/workflows/pages.yml` | 发布网页，并自动生成版本号 |
 | `.github/workflows/android.yml` | 编译、签名并发布安卓 App 到 Releases |
 | `.github/workflows/reminders.yml` `scripts/` | 网页版在 App 关闭时的提醒推送（iPhone 用） |

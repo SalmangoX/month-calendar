@@ -822,6 +822,10 @@ html.locked .lock { display: grid; }
 #schedForm textarea { min-height: 130px; }
 #schedForm .steps li { font-size: 14px; padding-bottom: 12px; }
 .btn-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
+.btn-line.imp-src { flex-wrap: wrap; }
+.imp-src > span { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-btn.disabled { opacity: .45; pointer-events: none; }
+.imp-status { margin: 8px 4px 0; color: var(--accent-text); }
 .replace-opt { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); }
 /* 导入确认：一张小周课表，点色块在下面就地修改 */
 .imp-grid { --hw: 30px; background: var(--surface); border-radius: var(--r-l); box-shadow: inset 0 0 0 .5px var(--group-line); padding: 8px 6px 10px 0; }

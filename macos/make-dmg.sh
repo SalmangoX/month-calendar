@@ -44,10 +44,11 @@ cat > "$STAGE/打不开请看这里.txt" <<'TXT'
 桌面小组件：桌面空白处右键 → 编辑小组件 → 搜索「节律」。
 TXT
 
-OUT="$HOME/Desktop/节律-Cadence.dmg"
+VER=$(defaults read "$APP/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "")
+OUT="$HOME/Desktop/节律-Cadence${VER:+-$VER}.dmg" # 文件名带上版本号，发给别人时分得清
 rm -f "$OUT"
 echo "→ 制作安装盘…"
 hdiutil create -volname "节律" -srcfolder "$STAGE" -ov -format UDZO "$OUT" >/dev/null || { rm -rf "$WORK"; exit 1; }
 rm -rf "$WORK"
-echo "✅ 安装盘在桌面：节律-Cadence.dmg"
+echo "✅ 安装盘在桌面：$(basename "$OUT")"
 open -R "$OUT"

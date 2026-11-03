@@ -70,11 +70,21 @@ final class Updater: ObservableObject {
 
     /// 复制更新命令并打开终端（App 在沙盒里，不能自己运行编译）
     func install() {
+        runInTerminal(command, I18n.t("更新命令已复制"), I18n.t("在打开的终端窗口里按 ⌘V 粘贴，再按回车。编译大约一两分钟，完成后节律会自动重新打开。"))
+    }
+
+    /// 一键生成可以发给别人的安装包：把「应用程序」里这份节律打包成桌面上的 .dmg（同样要在终端里运行）
+    func makeInstaller() {
+        runInTerminal("curl -fsSL https://raw.githubusercontent.com/\(repo)/main/macos/make-dmg.sh | bash",
+                      I18n.t("打包命令已复制"), I18n.t("在打开的终端窗口里按 ⌘V 粘贴，再按回车。大约半分钟后，桌面上会出现可以直接发给别人的安装包（.dmg），并自动在访达里选中。"))
+    }
+
+    private func runInTerminal(_ cmd: String, _ title: String, _ text: String) {
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(command, forType: .string)
+        NSPasteboard.general.setString(cmd, forType: .string)
         NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app"),
                                            configuration: NSWorkspace.OpenConfiguration())
-        alert(I18n.t("更新命令已复制"), I18n.t("在打开的终端窗口里按 ⌘V 粘贴，再按回车。编译大约一两分钟，完成后节律会自动重新打开。"))
+        alert(title, text)
     }
 
     private func alert(_ title: String, _ text: String) {
