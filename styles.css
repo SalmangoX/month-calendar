@@ -823,10 +823,28 @@ html.locked .lock { display: grid; }
 #schedForm .steps li { font-size: 14px; padding-bottom: 12px; }
 .btn-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
 .replace-opt { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); }
-.sc-prev { gap: 10px; min-height: 46px; }
-.sc-prev i { width: 4px; height: 26px; border-radius: 2px; flex: none; }
-.sc-prev span { flex: 1; font-size: 14px; }
-.sc-prev small { display: block; font-size: 12px; color: var(--text2); }
+/* 导入确认：一张小周课表，点色块在下面就地修改 */
+.imp-grid { --hw: 30px; background: var(--surface); border-radius: var(--r-l); box-shadow: inset 0 0 0 .5px var(--group-line); padding: 8px 6px 10px 0; }
+.ig-head { display: grid; grid-template-columns: var(--hw) repeat(var(--n), 1fr); font-size: 11px; color: var(--text2); text-align: center; padding-bottom: 6px; }
+.ig-body { position: relative; display: grid; grid-template-columns: var(--hw) 1fr; }
+.ig-hours { position: relative; }
+.ig-hr { position: absolute; right: 5px; font-size: 9.5px; line-height: 1; color: var(--text2); transform: translateY(-50%); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ig-hr small { font-size: 7.5px; }
+.ig-cols { position: relative; display: grid; grid-template-columns: repeat(var(--n), 1fr); }
+.ig-col { position: relative; }
+.ig-line { position: absolute; left: 0; right: 0; height: .5px; background: var(--group-line); pointer-events: none; }
+.ig-blk { padding: 3px 2px 3px 6px; border-radius: 7px; gap: 0; }
+.ig-blk b { font-size: 11px; }
+.ig-blk .un { font-size: 11px; color: var(--text2); }
+.ig-blk .t { font-size: 9px; }
+.ig-blk.sel { z-index: 3; outline: 2px solid var(--accent); outline-offset: 1px; }
+.imp-edit { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; padding: 14px; background: var(--surface); border-radius: var(--r-l); box-shadow: inset 0 0 0 .5px var(--group-line); }
+.ie-head { display: flex; align-items: center; justify-content: space-between; font-size: 15px; }
+.imp-edit .form-err { min-height: 0; }
+.imp-edit .form-err:empty { display: none; }
+.imp-edit .pk-clear { margin: 4px auto 0; }
+.imp-edit .sc-times > * { min-width: 0; }
+.imp-edit input { min-width: 0; width: 100%; box-sizing: border-box; }
 .sc-times { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 #scDay button { padding: 7px 0; }
 

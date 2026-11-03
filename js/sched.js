@@ -49,17 +49,17 @@
     inkD: oklchHex(.86, .065, h), chipD: oklchHex(.42, .075, h), chipInkD: oklchHex(.935, .03, h), barD: oklchHex(.70, .095, h) });
   let hueKey = '', hues = new Map();
   const toneCache = new Map();
+  const toneByHue = h => { if (!toneCache.has(h)) toneCache.set(h, courseTone(h)); return toneCache.get(h); };
   const toneOf = code => {
     const codes = (MC.data.courses || []).map(c => c.code), key = [...new Set(codes)].sort().join('|');
     if (key !== hueKey) { hueKey = key; hues = courseHues(codes); }
-    const h = hues.has(code) ? hues.get(code) : 240;
-    if (!toneCache.has(h)) toneCache.set(h, courseTone(h));
-    return toneCache.get(h);
+    return toneByHue(hues.has(code) ? hues.get(code) : 240);
   };
   MC.courseTone = toneOf;
   const colorOf = code => toneOf(code).base;
   // 课程块用的颜色变量：浅色 / 深色各一套，由 styles.css 按当前外观挑
-  const toneVars = code => { const t = toneOf(code); return `--c:${t.base};--cfl:${t.fillL};--cil:${t.inkL};--cfd:${t.fillD};--cid:${t.inkD};--cbd:${t.barD}`; };
+  const varsOf = t => `--c:${t.base};--cfl:${t.fillL};--cil:${t.inkL};--cfd:${t.fillD};--cid:${t.inkD};--cbd:${t.barD}`;
+  const toneVars = code => varsOf(toneOf(code));
   const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   const pad = MC.pad;
 
@@ -549,7 +549,7 @@
   // ---------- 导入 / 编辑面板 ----------
   let parsed = [], mode = 'import', editing = null, editDay = 1, editEvery = 1;
   function openImport() {
-    mode = 'import'; parsed = [];
+    mode = 'import'; parsed = []; impSel = -1;
     $('#schedTitle').textContent = '导入课表';
     $('#schedOk').textContent = '导入';
     $('#schedForm').innerHTML = `
@@ -569,7 +569,7 @@
     $('#impToM').value = `${ym1.getFullYear()}-${pad(ym1.getMonth() + 1)}`;
     $('#impExact').onchange = () => { $('#impExactBox').hidden = !$('#impExact').checked; preview(); };
     ['impFromM', 'impToM', 'impFrom', 'impTo'].forEach(id => $('#' + id).addEventListener('change', preview));
-    $('#schedText').addEventListener('input', () => { parsed = Sched.parseText($('#schedText').value); preview(); });
+    $('#schedText').addEventListener('input', () => { parsed = Sched.parseText($('#schedText').value); impSel = -1; preview(); });
     $('#schedIcs').onclick = () => $('#schedFile').click();
     $('#schedManual').onclick = () => openEdit(null);
     preview();
@@ -591,18 +591,110 @@
     if (from && to && to < from) to = '';
     return list.map(c => (c.from || c.to ? c : { ...c, from, to }));
   }
+  // 识别结果：画成一张小周课表，点色块在下面就地修改，也可以补一节；确认无误再导入
+  // （粘贴、.ics，以及以后的网页导入、照片识别，都走这一张表）
+  let impSel = -1;
+  // 只滚动面板里面（scrollIntoView 会连带把整个面板推出屏幕）
+  function reveal(el) {
+    const f = $('#schedForm'), r = el.getBoundingClientRect(), fr = f.getBoundingClientRect();
+    if (r.bottom > fr.bottom) f.scrollTo({ top: f.scrollTop + Math.min(r.bottom - fr.bottom + 12, r.top - fr.top - 12), behavior: 'smooth' });
+  }
   function preview() {
     const el = $('#schedPreview');
-    if (!parsed.length) { el.innerHTML = ''; $('#schedOk').classList.add('disabled'); return; }
+    if (!parsed.length) { el.innerHTML = ''; impSel = -1; $('#schedOk').classList.add('disabled'); fillDates(parsed); return; }
     $('#schedOk').classList.remove('disabled');
     $('#schedOk').textContent = `导入 ${parsed.length} 节`;
-    const sorted = fillDates([...parsed]).sort((a, b) => a.day - b.day || toMin(a.start) - toMin(b.start));
-    el.innerHTML = `<p class="hint" style="margin:10px 4px 6px">识别到 ${parsed.length} 节课，确认无误后点右上角导入：</p>
-      <div class="group">${sorted.map(c => `<div class="grow sc-prev"><i style="background:${colorOf(c.code)}"></i><span><b>${esc(c.code)}</b> ${esc(c.type)}<small>周${DAYS[c.day]} ${MC.fmtRange(c.start, c.end)}${c.room ? ' · ' + esc(c.room) : ''}${c.from ? ` · ${c.from.slice(5).replace('-', '/')}${c.to && c.to !== c.from ? '–' + c.to.slice(5).replace('-', '/') : ''}` : ''}${c.every === 2 ? ' · 隔周' : ''}</small></span></div>`).join('')}</div>`;
+    fillDates(parsed); // 有没写日期的课程时显示月份选择
+    el.innerHTML = `<p class="hint" style="margin:10px 4px 6px">识别到 ${parsed.length} 节课，点色块可以修改，确认无误后点右上角导入：</p>
+      <div class="imp-grid" id="impGrid"></div>
+      <div class="btn-line"><button class="chip-btn glass" id="impAdd">补一节课</button></div>
+      <div id="impEdit"></div>`;
+    renderImpGrid();
+    renderImpEdit();
+    $('#impGrid').onclick = e => {
+      const b = e.target.closest('[data-i]'); if (!b) return;
+      impSel = impSel === +b.dataset.i ? -1 : +b.dataset.i;
+      renderImpGrid(); renderImpEdit();
+      if (impSel >= 0) reveal($('#impEdit'));
+    };
+    $('#impAdd').onclick = () => {
+      const last = parsed[impSel] || parsed[parsed.length - 1];
+      parsed.push({ code: '', type: '', day: last ? last.day : 1, start: '08:30', end: '09:50', room: '', from: last ? last.from : '', to: last ? last.to : '', every: 1 });
+      impSel = parsed.length - 1;
+      preview();
+      $('#ieCode').focus({ preventScroll: true });
+      reveal($('#impEdit'));
+    };
+  }
+  function renderImpGrid() {
+    const g = $('#impGrid'); if (!g) return;
+    const list = parsed.map((c, i) => ({ ...c, _i: i }));
+    const hs = courseHues(list.map(c => c.code));
+    const days = [1, 2, 3, 4, 5, ...[6, 7].filter(d => list.some(c => c.day === d))];
+    const minH = Math.min(8, ...list.map(c => Math.floor(toMin(c.start) / 60)));
+    const maxH = Math.max(17, ...list.map(c => Math.ceil(toMin(c.end) / 60)));
+    const H = 30, h12 = MC.use12(); // 每小时的高度
+    let hours = '', lines = '';
+    for (let h = minH; h <= maxH; h++) {
+      if (h < maxH) hours += `<div class="ig-hr" style="top:${(h - minH) * H}px">${h12 ? MC.hourLabel(h, true) : h}</div>`;
+      lines += `<div class="ig-line" style="top:${(h - minH) * H}px"></div>`;
+    }
+    const cols = days.map(d => `<div class="ig-col">${lanes(list.filter(c => c.day === d)).map(c => {
+      const top = (toMin(c.start) / 60 - minH) * H + 1, hgt = Math.max(14, (toMin(c.end) - toMin(c.start)) / 60 * H - 2);
+      const w = 100 / c._lanes;
+      return `<button class="sc-blk ig-blk${c._lanes > 1 ? ' narrow' : ''}${c._i === impSel ? ' sel' : ''}" data-i="${c._i}" style="top:${top}px;height:${hgt}px;left:calc(${c._lane * w}% + 1px);width:calc(${w}% - 2px);${varsOf(toneByHue(hs.get(c.code) ?? 240))}">
+        ${c.code ? `<b>${esc(c.code)}</b>` : '<span class="un">未命名</span>'}${c._lanes > 1 || hgt <= 34 ? '' : `<small class="t">${hgt > 70 ? MC.fmtRange(c.start, c.end) : MC.fmtTime(c.start)}</small>`}</button>`;
+    }).join('')}</div>`).join('');
+    g.style.setProperty('--n', days.length);
+    g.innerHTML = `<div class="ig-head"><span></span>${days.map(d => `<span>周${DAYS[d]}</span>`).join('')}</div>
+      <div class="ig-body" style="height:${(maxH - minH) * H}px"><div class="ig-hours">${hours}</div><div class="ig-cols">${cols}${lines}</div></div>`;
+  }
+  function renderImpEdit() {
+    const box = $('#impEdit'); if (!box) return;
+    const c = parsed[impSel];
+    if (!c) { box.innerHTML = ''; return; }
+    box.innerHTML = `<div class="imp-edit">
+      <div class="ie-head"><b>修改这节课</b><button class="text-btn strong" id="ieDone">完成</button></div>
+      <label class="field"><span>课程</span><input id="ieCode" value="${esc(c.code)}" placeholder="例如 MAT 2348"></label>
+      <label class="field"><span>类型（选填）</span><input id="ieType" value="${esc(c.type)}" placeholder="讲座 / 实验 / 辅导"></label>
+      <div class="field"><span>星期</span><div class="seg" id="ieDay">${[1, 2, 3, 4, 5, 6, 7].map(d => `<button data-d="${d}" class="${d === c.day ? 'on' : ''}">${DAYS[d]}</button>`).join('')}</div></div>
+      <div class="sc-times"><label class="field"><span>开始</span><input type="time" id="ieStart" value="${c.start}"></label>
+      <label class="field"><span>结束</span><input type="time" id="ieEnd" value="${c.end}"></label></div>
+      <small class="form-err" id="ieErr"></small>
+      <label class="field"><span>地点（选填）</span><input id="ieRoom" value="${esc(c.room)}" placeholder="例如 Tabaret Hall 333"></label>
+      <div class="sc-times"><label class="field"><span>开课日期（选填）</span><input type="date" id="ieFrom" value="${c.from || ''}"></label>
+      <label class="field"><span>结课日期（选填）</span><input type="date" id="ieTo" value="${c.to || ''}"></label></div>
+      <div class="field"><span>频率</span><div class="seg" id="ieEvery"><button data-e="1" class="${c.every !== 2 ? 'on' : ''}">每周</button><button data-e="2" class="${c.every === 2 ? 'on' : ''}">隔周</button></div></div>
+      <button class="pk-clear" id="ieDel">删除这节课</button></div>`;
+    // 改一项就马上画到上面的表里
+    const text = { ieCode: 'code', ieType: 'type', ieRoom: 'room' };
+    for (const id in text) $('#' + id).addEventListener('input', e => { c[text[id]] = e.target.value.trim(); renderImpGrid(); });
+    const times = () => {
+      const s = $('#ieStart').value, e = $('#ieEnd').value, ok = s && e && toMin(e) > toMin(s);
+      $('#ieErr').textContent = ok ? '' : '结束时间要晚于开始时间';
+      if (ok) { c.start = s; c.end = e; renderImpGrid(); }
+    };
+    $('#ieStart').addEventListener('change', times); $('#ieEnd').addEventListener('change', times);
+    const dates = () => {
+      const f = $('#ieFrom').value, t = $('#ieTo').value;
+      $('#ieErr').textContent = f && t && t < f ? '结课日期要晚于开课日期' : '';
+      if (!(f && t && t < f)) { c.from = f; c.to = t; fillDates(parsed); }
+    };
+    $('#ieFrom').addEventListener('change', dates); $('#ieTo').addEventListener('change', dates);
+    const seg = (id, fn) => $('#' + id).onclick = e => {
+      const b = e.target.closest('button'); if (!b) return;
+      $('#' + id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      fn(b); renderImpGrid();
+    };
+    seg('ieDay', b => (c.day = +b.dataset.d));
+    seg('ieEvery', b => (c.every = +b.dataset.e));
+    $('#ieDone').onclick = () => { impSel = -1; renderImpGrid(); renderImpEdit(); };
+    $('#ieDel').onclick = () => { parsed.splice(impSel, 1); impSel = -1; preview(); };
   }
   $('#schedFile').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = '';
     if (!f) return;
+    impSel = -1;
     parsed = Sched.parseICS(await f.text());
     if (!parsed.length) UI.toast('文件里没有找到课程');
     preview();
@@ -642,6 +734,7 @@
   $('#schedOk').onclick = () => {
     if (mode === 'import') {
       if (!parsed.length) return;
+      if (parsed.some(c => !c.code)) { UI.toast('还有课程没有填名称'); return; }
       const items = fillDates(parsed).map(c => ({ ...c, id: MC.uid() }));
       MC.setCourses($('#schedReplace').checked ? items : [...(MC.data.courses || []), ...items]);
       UI.close('schedSheet'); UI.toast(`已导入 ${items.length} 节课`);

@@ -198,12 +198,13 @@ struct SchedWeek: View {
         }
         return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(I18n.t("本周课表")).font(.system(size: 13.5, weight: .bold)).foregroundStyle(pal.accent).widgetAccentable()
-                Text("\(mon.m)/\(mon.d) – \(sun.m)/\(sun.d)").font(.system(size: 10.5)).foregroundStyle(pal.text2)
+                Text(I18n.t("本周课表")).font(.system(size: 11.5, weight: .bold)).foregroundStyle(pal.accent).widgetAccentable()
+                Text("\(mon.m)/\(mon.d) – \(sun.m)/\(sun.d)").font(.system(size: 9.5)).foregroundStyle(pal.text2)
             }
-            .padding(.leading, 6).frame(height: 20)
+            .padding(.leading, 6).frame(height: 15)
+            // 标题和日期都压成一行，省下来的高度全给课程色块
             GeometryReader { g in
-                let slotH = min(34, (g.size.height - 28 - 3 - 5 * 2) / 5)
+                let slotH = min(38, (g.size.height - 14 - 3 - 5 * 2) / 5)
                 HStack(spacing: 0) {
                     ForEach(Array(cols.enumerated()), id: \.offset) { _, col in
                         column(col.0, col.1, isToday: col.0 == today, slotH: slotH)
@@ -211,18 +212,17 @@ struct SchedWeek: View {
                 }
             }
         }
-        .padding(.horizontal, 5).padding(.top, 7)
+        .padding(.horizontal, 5).padding(.top, 5)
     }
 
     private func column(_ day: YMD, _ l: [Course], isToday: Bool, slotH: CGFloat) -> some View {
         let shown = l.count > 5 ? 4 : l.count
+        let fs: CGFloat = slotH >= 26 ? 10 : 8.5 // 色块高了，字也跟着大一点
         return VStack(spacing: 0) {
-            VStack(spacing: -2) {
-                Text(I18n.wk(day.jsDay)).font(.system(size: 9.5))
-                Text("\(day.d)").font(.system(size: 9.5))
-            }
-            .foregroundStyle(isToday ? pal.accent : pal.text2)
-            .frame(height: 28)
+            Text(I18n.wk(day.jsDay) + " \(day.d)").font(.system(size: 8.5, weight: isToday ? .bold : .regular))
+                .lineLimit(1).minimumScaleFactor(0.7)
+                .foregroundStyle(isToday ? pal.accent : pal.text2)
+                .frame(height: 14)
             ForEach(0..<shown, id: \.self) { k in
                 let c = l[k]
                 let chip = pal.courseChip(c.code, entry.data)
@@ -230,7 +230,7 @@ struct SchedWeek: View {
                     Text(c.code).lineLimit(1)
                     Text(fmtTime(c.start, entry.data.h12, true)).lineLimit(1)
                 }
-                .font(.system(size: 8.5)).foregroundStyle(chip.1)
+                .font(.system(size: fs)).foregroundStyle(chip.1)
                 .padding(.leading, 3).padding(.trailing, 2)
                 .frame(maxWidth: .infinity, alignment: .leading).frame(height: slotH)
                 .background(RoundedRectangle(cornerRadius: 5).fill(chip.0).widgetAccentable())
@@ -267,7 +267,8 @@ struct SchedGrid: View {
         // 时间轴只覆盖这周真正有课的时段（没有课时显示 8–18 点），这样每小时更高、课程色块里能写下更多字
         if minH >= maxH { minH = 8; maxH = 18 }
         if maxH - minH < 4 { maxH = min(24, minH + 4) }
-        let pad: CGFloat = 8, axis: CGFloat = 34, headH: CGFloat = 22, dayH: CGFloat = 20
+        // 时间轴只写数字、标题和星期行都压矮，省下来的宽高都给课程色块
+        let pad: CGFloat = 6, axis: CGFloat = 18, headH: CGFloat = 16, dayH: CGFloat = 15
         let gx = pad + axis, gy = pad + headH + dayH, gw = W - gx - pad, gh = H - gy - pad
         let colW = gw / CGFloat(days.count), hourH = gh / CGFloat(maxH - minH)
         let fk = max(0.85, min(1.15, colW / 56))
@@ -288,16 +289,16 @@ struct SchedGrid: View {
                     .widgetAccentable()
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(I18n.t("本周课表")).font(.system(size: 13, weight: .bold)).foregroundStyle(pal.accent).widgetAccentable()
-                Text("\(mon.m)/\(mon.d) – \(sun.m)/\(sun.d)").font(.system(size: 10.5)).foregroundStyle(pal.text2)
+                Text(I18n.t("本周课表")).font(.system(size: 11.5, weight: .bold)).foregroundStyle(pal.accent).widgetAccentable()
+                Text("\(mon.m)/\(mon.d) – \(sun.m)/\(sun.d)").font(.system(size: 9.5)).foregroundStyle(pal.text2)
             }
-            .offset(x: pad + 4, y: pad + 1)
+            .offset(x: pad + 3, y: pad)
             ForEach(Array(days.enumerated()), id: \.offset) { ci, i in
                 let dd = mon.adding(i)
                 let isT = dd == today
-                Text(I18n.wk(dd.jsDay) + " \(dd.d)").font(.system(size: 10, weight: isT ? .bold : .regular))
-                    .foregroundStyle(isT ? pal.accent : pal.text2).lineLimit(1)
-                    .frame(width: colW).offset(x: gx + CGFloat(ci) * colW, y: pad + headH + 3)
+                Text(I18n.wk(dd.jsDay) + " \(dd.d)").font(.system(size: 8.5, weight: isT ? .bold : .regular))
+                    .foregroundStyle(isT ? pal.accent : pal.text2).lineLimit(1).minimumScaleFactor(0.7)
+                    .frame(width: colW).offset(x: gx + CGFloat(ci) * colW, y: pad + headH + 1)
             }
             // 时间轴和横线、竖线
             Path { p in
@@ -312,8 +313,9 @@ struct SchedGrid: View {
             }
             .stroke(pal.line, lineWidth: 0.6)
             ForEach(Array(stride(from: minH, to: maxH, by: hourStep)), id: \.self) { h in
-                Text(hourLabel(h, h12)).font(.system(size: 9)).foregroundStyle(pal.text2).lineLimit(1).minimumScaleFactor(0.6)
-                    .frame(width: axis - 4, alignment: .trailing)
+                Text(SchedGrid.axisLabel(h, h12)).font(.system(size: 8)).monospacedDigit().foregroundStyle(pal.text2)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .frame(width: axis - 2, alignment: .trailing)
                     .offset(x: pad, y: gy + CGFloat(h - minH) * hourH + 1)
             }
             // 课程色块（同一时间有几节课就并排）
@@ -329,11 +331,12 @@ struct SchedGrid: View {
                 // 现在时间：整周一条半透明的线压在课程上面；左边一个实色的圆角时间标签，右边缘接上这条线
                 Rectangle().fill(red.opacity(0.5)).frame(width: W - pad - gx, height: 1.5).offset(x: gx, y: ny - 0.75)
                 Text(fmtTime(String(format: "%02d:%02d", nm / 60, nm % 60), h12, true))
-                    .font(.system(size: 8, weight: .bold)).monospacedDigit().foregroundStyle(.white).lineLimit(1)
-                    .padding(.horizontal, 2.5).frame(minWidth: axis - 4, minHeight: 12)
-                    .background(RoundedRectangle(cornerRadius: 3.5, style: .continuous).fill(red))
-                    .frame(width: axis + 2, alignment: .trailing)
-                    .offset(x: gx - axis - 2, y: ny - 6)
+                    .font(.system(size: 7.5, weight: .bold)).monospacedDigit().foregroundStyle(.white).lineLimit(1)
+                    .padding(.horizontal, 2).frame(minHeight: 11)
+                    .background(RoundedRectangle(cornerRadius: 3, style: .continuous).fill(red))
+                    .fixedSize()
+                    .frame(width: pad + axis, alignment: .trailing) // 时间轴变窄了，标签可以伸到左边距里
+                    .offset(x: 0, y: ny - 5.5)
             }
             if d.courses.isEmpty {
                 Text(I18n.t("还没有导入课表")).font(.system(size: 13)).foregroundStyle(pal.text2)
@@ -341,6 +344,12 @@ struct SchedGrid: View {
             }
         }
         .frame(width: W, height: H, alignment: .topLeading)
+    }
+
+    /// 时间轴上的简写：24 小时制只写「8」「14」；12 小时制写「8a」「2p」，上午下午不丢
+    private static func axisLabel(_ h: Int, _ h12: Bool) -> String {
+        if !h12 { return "\(h)" }
+        return "\(h % 12 == 0 ? 12 : h % 12)" + (h < 12 ? "a" : "p")
     }
 
     /// (课程, 第几道, 一共几道)
