@@ -110,6 +110,21 @@ private extension Color {
 /// 橡皮筋：越拉越费劲（和网页的菜单栏、日历栏同一个公式）
 func rubber(_ x: CGFloat, _ d: CGFloat) -> CGFloat { (1 - 1 / (x * 0.55 / d + 1)) * d }
 
+/// 水滴透镜（GlassLens.metal）的参数跟着弹簧动画逐帧变化，和上面的玻璃气泡对齐
+@available(macOS 26.0, *)
+struct LensEffect: ViewModifier, Animatable {
+    var cx: CGFloat, w: CGFloat, h: CGFloat, k: CGFloat
+    let cy: CGFloat
+    var animatableData: AnimatablePair<AnimatablePair<CGFloat, CGFloat>, AnimatablePair<CGFloat, CGFloat>> {
+        get { AnimatablePair(AnimatablePair(cx, w), AnimatablePair(h, k)) }
+        set { cx = newValue.first.first; w = newValue.first.second; h = newValue.second.first; k = newValue.second.second }
+    }
+    func body(content: Content) -> some View {
+        content.layerEffect(ShaderLibrary.glassLens(.float2(cx, cy), .float2(w, h), .float(k)),
+                            maxSampleOffset: CGSize(width: 24, height: 24), isEnabled: k > 0.001)
+    }
+}
+
 /// 显示出来时，自己范围内的点击全部接住，不漏给后面的网页
 final class SolidHostingView<Content: View>: NSHostingView<Content> {
     override func hitTest(_ point: NSPoint) -> NSView? {
@@ -144,43 +159,45 @@ struct GlassTabBar: View {
             let speed = min(1, abs(vel) / 2400), sq = min(1, abs(wall) / 40)
             let sx = (1 + speed * 0.34) * (1 - sq * 0.17) * (lifted ? 1.07 : 1)
             let sy = (1 - speed * 0.2) * (1 + sq * 0.1) * (lifted ? 1.13 : 1)
-            // 底板和拖动的气泡都是系统真正的液态玻璃，放在同一个玻璃组里并列（融合、折射、边缘色散都由系统处理）；
-            // 图标画在整组玻璃的上面，不放在任何一块玻璃里，所以不会被糊住；气泡经过时把附近的图标放大，像透镜
+            // 底板和拖动的气泡都是系统的液态玻璃，在同一个玻璃组里并列（融合、高光由系统处理）；图标画在玻璃上面不会发糊，
+            // 气泡下面图标的「水滴」折射和色散由 GlassLens.metal 做（系统玻璃不能透过另一块玻璃折射内容）。
+            // 气泡一直在当前格子上，平时完全透明，按住时原地浮现（不会从窗口角落飞进来）
             let W = g.size.width, H = g.size.height
+            let lensW = w * sx, lensH = h * sy
+            let lensCX = wall < -0.5 ? cx - w / 2 + lensW / 2 : wall > 0.5 ? cx + w / 2 - lensW / 2 : cx
             GlassEffectContainer(spacing: 16) {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.clear).frame(width: W, height: H).glassEffect(.regular, in: .capsule)
-                    if lifted {
-                        Capsule().fill(Color.clear)
-                            .frame(width: w, height: h)
-                            .glassEffect(.clear.interactive(), in: .capsule)
-                            .scaleEffect(x: sx, y: sy, anchor: wall < -0.5 ? .leading : wall > 0.5 ? .trailing : .center)
-                            .offset(x: cx - w / 2)
-                            .transition(.scale(scale: 0.7).combined(with: .opacity))
-                    }
+                    Capsule().fill(Color.clear)
+                        .frame(width: w, height: h)
+                        .glassEffect(.clear.interactive(), in: .capsule)
+                        .scaleEffect(x: sx, y: sy, anchor: wall < -0.5 ? .leading : wall > 0.5 ? .trailing : .center)
+                        .offset(x: cx - w / 2)
+                        .opacity(lifted ? 1 : 0)
                 }
             }
             .overlay(alignment: .leading) {
-                if !lifted { Capsule().fill(Color.primary.opacity(0.09)).frame(width: w, height: h).offset(x: cx - w / 2).allowsHitTesting(false) }
+                Capsule().fill(Color.primary.opacity(0.09)).frame(width: w, height: h).offset(x: cx - w / 2)
+                    .opacity(lifted ? 0 : 1).allowsHitTesting(false)
             }
             .overlay {
                 HStack(spacing: 0) {
-                    ForEach(Array(tabs.enumerated()), id: \.element.id) { i, t in
+                    ForEach(tabs) { t in
                         let on = (lifted ? (hover ?? m.page) : m.page) == t.page
-                        let d = abs(pad + w * CGFloat(i) + w / 2 - cx) / max(w, 1)
                         VStack(spacing: 3) {
                             Image(systemName: NavModel.icon(t.page)).font(.system(size: 17, weight: on ? .semibold : .regular)).frame(height: 21)
                             Text(t.label).font(.system(size: 10.5, weight: on ? .semibold : .medium)).lineLimit(1)
                         }
                         .foregroundStyle(on ? accent : Color.primary.opacity(0.82))
                         .frame(width: w, height: h)
-                        .scaleEffect(lifted ? 1 + 0.14 * max(0, 1 - d) : 1)
                         .accessibilityElement(children: .combine)
                         .accessibilityAddTraits(m.page == t.page ? [.isButton, .isSelected] : .isButton)
                         .accessibilityAction { m.go(t.page) }
                     }
                 }
                 .padding(.horizontal, pad)
+                .frame(width: W, height: H)
+                .modifier(LensEffect(cx: lensCX, w: lensW, h: lensH, k: lifted ? 1 : 0, cy: H / 2))
                 .allowsHitTesting(false)
             }
             .frame(width: g.size.width, height: g.size.height)
