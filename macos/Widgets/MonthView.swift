@@ -1,5 +1,11 @@
 import AppIntents
+#if os(macOS)
 import AppKit
+typealias PlatformFont = NSFont
+#else
+import UIKit
+typealias PlatformFont = UIFont
+#endif
 import SwiftUI
 import WidgetKit
 
@@ -108,7 +114,7 @@ struct MonthView: View {
     /// 色条下面那一行时间：放得下完整时间段就写时间段，否则只写开始时间
     private func timeText(_ e: CEvent, width: CGFloat, h12: Bool) -> String {
         let full = e.endTime.isEmpty ? fmtTime(e.time, h12, false) : fmtRange(e.time, e.endTime, h12)
-        let w = (full as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: MonthView.timeFS, weight: .medium)]).width
+        let w = (full as NSString).size(withAttributes: [.font: PlatformFont.systemFont(ofSize: MonthView.timeFS, weight: .medium)]).width
         return w <= width ? full : fmtTime(e.time, h12, false)
     }
 

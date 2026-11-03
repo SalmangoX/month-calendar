@@ -55,3 +55,35 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: io.github.salmangox.cadence
             CFBundleURLSchemes: [cadence]
+        CadenceAppGroup: group.io.github.salmangox.cadence   # App 和小组件共用的数据（日历、设置）
+    entitlements:
+      path: App/Cadence.entitlements
+      properties:
+        com.apple.security.application-groups: [group.io.github.salmangox.cadence]
+    dependencies:
+      - target: CadenceWidgets
+        embed: true
+  # 桌面小组件：和 Mac 版共用同一份代码（macos/Widgets）：整月、今日、课表、纪念日
+  CadenceWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - ../macos/Widgets
+      - ../macos/Shared
+    settings:
+      base:
+        PRODUCT_NAME: CadenceWidgets
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.salmangox.cadence.widgets
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Cadence
+        CFBundleShortVersionString: $(MARKETING_VERSION)   # 小组件的版本号要和 App 一致
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CadenceAppGroup: group.io.github.salmangox.cadence
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widgets/CadenceWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.io.github.salmangox.cadence]
