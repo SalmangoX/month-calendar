@@ -300,7 +300,7 @@
     const root = $('#schedBody'), top = `${(nm / 60 - S.minH) * S.HOUR}px`;
     root.querySelectorAll('.sc-nowline, .sc-tri').forEach(el => (el.style.top = top));
     const lbl = root.querySelector('.sc-tri span');
-    if (lbl) lbl.textContent = MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`);
+    if (lbl) lbl.textContent = MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`, true);
     root.querySelectorAll('.sc-col.today .sc-blk').forEach(b => b.classList.toggle('live', nm >= +b.dataset.s && nm < +b.dataset.e));
   }, 15000);
   Sched.render = () => {
@@ -376,7 +376,7 @@
     body.innerHTML = `<div class="sc-grid${zoom > 1 ? '' : ' fit'}${h12 ? ' h12' : ''}${compact ? ' compact' : ''}" style="--tpl:${tpl};--fs:${fs.toFixed(3)};--hw:${HW}px"><div class="sc-inner">
       <div class="sc-head">${head}</div>
       <div class="sc-main" style="height:${(maxH - minH) * HOUR}px">
-        <div class="sc-hours">${hours}${showNow ? `<div class="sc-tri" style="top:${nowTop}px"><span>${MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`)}</span></div>` : ''}</div>
+        <div class="sc-hours">${hours}${showNow ? `<div class="sc-tri" style="top:${nowTop}px"><span>${MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`, true)}</span></div>` : ''}</div>
         <div class="sc-cols">${cols}
         ${Array.from({ length: maxH - minH }, (_, i) => `<div class="sc-line" style="top:${i * HOUR}px"></div>`).join('')}
         ${showNow ? `<div class="sc-nowline" style="top:${nowTop}px"></div>` : ''}</div>

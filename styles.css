@@ -24,16 +24,16 @@
 :root[data-theme="light"] {
   /* 配色取自图标、偏清爽：浅色底是带一丝凉意的近白（像清晨的空气），卡片纯白；主色是提亮的暮蓝 */
   color-scheme: light;
-  --bg: #F7FAFC;
-  --bg-grouped: #EEF3F7;
+  --bg: #F8F8FA; /* 中性的浅灰，不带蓝 */
+  --bg-grouped: #F1F1F4;
   --surface: #FFFFFF;
   --line: #E1E7EB;
   --text: #171B20;
   --text2: #6E757E;
   --text3: #C2C8CD;
   --sel: rgba(76, 110, 172, .05);
-  --field: rgba(110, 125, 145, .09);
-  --group-line: rgba(20, 40, 70, .075);
+  --field: rgba(118, 118, 128, .09);
+  --group-line: rgba(0, 0, 0, .07);
   --accent: #4C6EAC;
   --accent-base: #4C6EAC;
   --drawer-frost: rgba(247, 250, 252, .58);
@@ -43,7 +43,7 @@
   --accent-soft: rgba(76, 110, 172, .12);
   --sel-line: rgba(76, 110, 172, .5);
   --today-dim: rgba(76, 110, 172, .2);
-  --sel-bg: rgba(76, 110, 172, .09);
+  --sel-bg: rgba(76, 110, 172, .065);
   --sel-veil: rgba(76, 110, 172, .10);
   --sel-veil-top: rgba(255, 255, 255, .0);
   --sel-tint: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -237,8 +237,6 @@ svg.filled { fill: currentColor; stroke: none; }
 .cell.out .chips { opacity: .45; }
 .chips { display: flex; flex-direction: column; gap: 2px; padding: 0 3px; }
 /* 展开当天预览时行变矮：收紧上下间距，事件条仍留在选中框内 */
-.cal-body.previewing .cell { padding-top: 4px; }
-.cal-body.previewing .num { margin-bottom: 3px; }
 .chip {
   height: var(--chip-h); line-height: var(--chip-h);
   font-size: 9.5px; padding: 0 2px; border-radius: 4.5px; letter-spacing: -.025em;
@@ -329,6 +327,36 @@ svg.filled { fill: currentColor; stroke: none; }
 
 /* ---------- 今日 ---------- */
 .sec { margin: 4px 0 16px; }
+/* ---------- 今日：本周日期条 + 全天 + 时间线（参考苹果日历的「日」视图）---------- */
+.td-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin: 0 -4px 6px; }
+.td-day { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 5px; border-radius: 14px; color: var(--text); }
+.td-day small { font-size: 11px; color: var(--text2); font-weight: 500; }
+.td-day b { font-size: 17px; font-weight: 500; width: 32px; height: 32px; line-height: 32px; border-radius: 16px; font-variant-numeric: tabular-nums; }
+.td-day.today b { color: var(--accent-text); font-weight: 700; }
+.td-day.on b { background: var(--text); color: var(--bg); font-weight: 700; }
+.td-day.on.today b { background: var(--accent); color: #fff; }
+.td-day i { width: 4px; height: 4px; border-radius: 2px; background: var(--text3); }
+.td-day i[hidden] { display: block; visibility: hidden; }
+.td-empty { text-align: center; color: var(--text2); font-size: 14px; margin: 12px 0 4px; }
+.td-tl { position: relative; margin: 14px 0 8px 46px; }
+.td-hr { position: absolute; left: 0; right: 0; height: 0; border-top: .5px solid var(--group-line); }
+.td-hr span { position: absolute; right: calc(100% + 8px); top: -7px; font-size: 11px; line-height: 14px; color: var(--text3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.td-hr span small { font-size: 9px; margin-right: 1px; }
+.td-evs { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; }
+.td-ev { position: absolute; display: flex; border-radius: 8px; overflow: hidden; background: color-mix(in srgb, var(--c) 16%, var(--surface)); box-shadow: inset 3px 0 0 var(--c); }
+.td-ev.done { opacity: .55; }
+.td-ev.done b { text-decoration: line-through; }
+.td-ev-main { flex: 1; min-width: 0; text-align: left; padding: 4px 4px 4px 10px; display: flex; flex-direction: column; justify-content: flex-start; gap: 1px; }
+.td-ev-main b { font-size: 13.5px; font-weight: 600; color: color-mix(in srgb, var(--c) 55%, var(--text)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-ev-main small { font-size: 11.5px; color: color-mix(in srgb, var(--c) 35%, var(--text2)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.td-ev.tiny .td-ev-main { padding-top: 2px; justify-content: center; }
+.td-ev.tiny .td-ev-main b { font-size: 12.5px; }
+.td-ck { flex: none; width: 20px; height: 20px; margin: 5px 6px 0 0; border-radius: 10px; box-shadow: inset 0 0 0 1.5px var(--c); }
+.td-ev.done .td-ck { background: var(--c); }
+.td-ev.tiny .td-ck { margin-top: auto; margin-bottom: auto; width: 16px; height: 16px; }
+.td-now { position: absolute; left: -4px; right: 0; height: 0; border-top: 1.5px solid var(--p3); z-index: 3; pointer-events: none; }
+.td-now::before { content: ""; position: absolute; left: -1px; top: -4.5px; width: 8px; height: 8px; border-radius: 4px; background: var(--p3); }
+.td-now span { position: absolute; right: calc(100% + 6px); top: -8px; font-size: 10.5px; font-weight: 700; line-height: 15px; padding: 0 4px; border-radius: 5px; background: var(--p3); color: #fff; font-variant-numeric: tabular-nums; }
 .sec h3 { font-size: 13px; color: var(--text2); font-weight: 600; margin: 14px 6px 8px; display: flex; justify-content: space-between; }
 .sec h3.over { color: var(--p3); }
 .card { list-style: none; margin: 0; border-radius: var(--r-l); padding: 2px 8px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); }
@@ -446,6 +474,13 @@ body[data-page="set"] .fab { opacity: 0; transform: scale(.6); pointer-events: n
 .tabbar button.on { color: var(--accent-text); }
 .tabbar.dragging button.hover { color: var(--accent-text); }
 .tab-avatar { width: 24px; height: 24px; border-radius: 50%; background-size: cover; background-position: center; box-shadow: 0 0 0 1.5px currentColor; }
+.back-today {
+  position: absolute; right: 24px; bottom: calc(var(--fab-b) + 68px); z-index: 16;
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text2);
+  opacity: .72; transition: opacity .25s, transform .25s var(--ease);
+}
+.back-today[hidden] { display: grid; opacity: 0; transform: scale(.7); pointer-events: none; }
+body:not([data-page="cal"]) .back-today { display: none; }
 .fab {
   position: absolute; right: 18px; bottom: var(--fab-b); z-index: 16;
   width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
@@ -455,7 +490,8 @@ body[data-page="set"] .fab { opacity: 0; transform: scale(.6); pointer-events: n
 .backdrop { position: absolute; inset: 0; background: var(--backdrop); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 20; }
 .backdrop.show { opacity: 1; pointer-events: auto; }
 .sheet {
-  position: absolute; left: 0; right: 0; bottom: var(--kb); margin: 0 auto; max-width: 620px; max-height: calc(90% - var(--kb));
+  position: absolute; left: 0; right: 0; bottom: var(--lift, 0px); margin: 0 auto; max-width: 620px; max-height: 90%;
+  /* 键盘弹出时不整体顶起：只有正在输入的框会被键盘挡住时，才抬高刚好够的距离（--lift，由 ui.js 算） */
   background: var(--frost-strong);
   -webkit-backdrop-filter: var(--glass-fx-strong); backdrop-filter: var(--glass-fx-strong);
   box-shadow: inset 0 1px 0 var(--rim-hi), inset 0 .5px 0 var(--frost-edge), 0 -12px 40px rgba(0, 0, 0, .14);
@@ -470,12 +506,6 @@ body[data-page="set"] .fab { opacity: 0; transform: scale(.6); pointer-events: n
 .sheet.tall { height: 90%; bottom: 0; transition: transform .34s var(--ease), visibility 0s .34s; }
 .sheet.tall.show { transition: transform .34s var(--ease), visibility 0s; }
 .sheet.tall .batch-list { padding-bottom: 16px; }
-/* 键盘弹出时：高面板正好摆在键盘上方的可见区域内，不跟随动画，避免闪动 */
-html.kb-open .sheet.tall.show {
-  top: calc(var(--vvt, 0px) + 8px); bottom: auto;
-  height: calc(var(--vvh, 100%) - 8px); max-height: none;
-  border-radius: 20px 20px 0 0; padding-bottom: 6px;
-}
 #batchSheet { z-index: 32; }
 #datePicker { z-index: 40; }
 #formSheet { z-index: 42; }
@@ -551,22 +581,32 @@ html.kb-open .sheet.tall.show {
 #batchParse { flex: none; }
 #batchParse:disabled { opacity: .4; }
 .batch-list { flex: 1; overflow-y: auto; padding: 4px 14px; }
-.brow { border-radius: var(--r-l); padding: 10px 12px; margin-bottom: 10px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); }
-.brow.err { box-shadow: inset 0 0 0 1.5px var(--p3); }
+.brow { position: relative; margin-bottom: 10px; border-radius: var(--r-l); overflow: hidden; }
+/* 卡片：三行——名称 / 优先级 / 时间框 + 备注框；往左滑露出后面的「删除」 */
+.b-card { position: relative; z-index: 1; border-radius: var(--r-l); padding: 10px 12px 12px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); touch-action: pan-y; }
+.brow.err .b-card { box-shadow: inset 0 0 0 1.5px var(--p3); }
+.b-swdel { position: absolute; top: 0; right: 0; bottom: 0; width: 76px; border-radius: 0 var(--r-l) var(--r-l) 0; background: var(--p3); color: #fff; font-size: 15px; font-weight: 600; opacity: 0; transition: opacity .2s; }
+.brow.swiped .b-swdel, .brow:has(.b-card[style*="translateX"]) .b-swdel { opacity: 1; }
 .b-top { display: flex; align-items: center; gap: 8px; }
+.b-pri { display: flex; gap: 6px; margin: 6px 0 0 24px; flex-wrap: wrap; }
+.b-pri .qchip.sm { height: 28px; padding: 0 10px; font-size: 13px; }
 .b-idx { font-size: 12px; color: var(--text3); width: 16px; font-variant-numeric: tabular-nums; }
 .b-title { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 16px; font-weight: 600; padding: 6px 0; }
 .b-del { width: 28px; height: 28px; border-radius: 50%; color: var(--text3); font-size: 18px; line-height: 1; }
-.b-tools { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-left: 24px; }
-.b-tools .tool { height: 32px; font-size: 13px; padding: 0 10px; }
-.b-tools .icon-tool { width: 32px; padding: 0; }
-.b-note { flex: 1; min-width: 0; border: 0; border-radius: var(--r-s); background: var(--field); outline: none; font-size: 14px; padding: 7px 10px; }
+.b-tools { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-left: 24px; }
+.b-when { flex: none; max-width: 52%; height: 34px; padding: 0 12px; border-radius: 17px; background: var(--field); color: var(--accent-text); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-flex; align-items: center; gap: 4px; }
+.b-note { flex: 1; min-width: 0; height: 34px; border: 0; border-radius: 17px; background: var(--field); outline: none; font-size: 14px; padding: 0 12px; color: var(--text); }
 .batch-foot { padding: 6px 14px 4px; display: flex; justify-content: center; flex: none; }
 
 /* 日期选择 */
 .picker { max-height: calc(92% - var(--kb)); }
 .pk-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; flex: none; }
 .pk-body { overflow-y: auto; padding: 0 16px 6px; }
+/* 嵌在新建事件里的选择器：不单独滚动，跟着面板一起滚；左右不再留边（面板自己有边距） */
+.cmp-when-head { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 6px 0; }
+.cmp-when-head .cmp-label { margin-bottom: 0; }
+.pk-body.cmp-pk { overflow: visible; padding: 0; }
+.cmp-pk .pk-clear { margin-bottom: 4px; }
 .pk-cal-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 6px; }
 .pk-cal-head h4 { margin: 0; font-size: 16px; font-weight: 650; }
 .pk-cal-head .nav-btn { font-size: 22px; color: var(--text2); }
@@ -843,8 +883,8 @@ html.locked .lock { display: grid; }
 @media (prefers-reduced-motion: reduce) { .sc-nowline, .sc-tri { animation: none; transition: none; } .sc-blk.live { transform: none; } }
 /* 现在时间的标签：一个圆角小方块，贴着时间轴右边缘、和线同一高度居中，右边缘正好接上线；时间长（下午9:36）时向左延伸 */
 .sc-tri { position: absolute; right: 0; z-index: 5; transform: translateY(-50%); pointer-events: none; white-space: nowrap; }
-.sc-tri span { display: block; min-width: calc(var(--hw) - 6px); text-align: center; font-size: 9.5px; font-weight: 700; line-height: 15px; color: #fff;
-  background: var(--p3); padding: 0 3px; border-radius: 4.5px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.sc-tri span { display: block; min-width: calc(var(--hw) - 6px); max-width: calc(var(--hw) - 1px); text-align: center; font-size: 9.5px; font-weight: 700; line-height: 15px; color: #fff;
+  background: var(--p3); padding: 0 2px; border-radius: 4.5px; overflow: hidden; /* 只写时间（不写上午 / 下午），放在左边时间轴里不会被裁掉 */ font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .sc-hr small { font-size: 8px; font-weight: 500; margin-right: 1px; }
 #schedForm textarea { min-height: 130px; }
 #schedForm .steps li { font-size: 14px; padding-bottom: 12px; }
@@ -1022,7 +1062,6 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 
 /* ---------- 跨天的全天事件：连成一整条 ---------- */
 .wrow { position: relative; --ct: 39px; } /* --ct：格子里第一条事件的顶部（数字下方） */
-.cal-body.previewing .wrow { --ct: 34px; }
 .chip.gap { visibility: hidden; }
 .mbar, .wbar { position: absolute; z-index: 1; /* 在选中底色上面 */ pointer-events: none; --il: 3px; --ir: 3px; text-overflow: ellipsis; }
 .mbar.ol, .wbar.ol { --il: 0px; border-top-left-radius: 0; border-bottom-left-radius: 0; }

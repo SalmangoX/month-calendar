@@ -20,10 +20,14 @@
   Cal.view = () => view;
 
   // ---------- 尺寸 ----------
+  // 打开当天预览时，日历区域变矮：每一周还是原来的高度（不压扁），只是少显示几周，可以照常上下滚动
+  let fullH = 0;
   function measure() {
     W = vp.clientWidth; H = vp.clientHeight;
-    rowH = H / 6;
-    const head = body.classList.contains('previewing') ? 34 + 3 : 39 + 3; // 数字区 + 底部留白
+    const pv = body.classList.contains('previewing');
+    if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
+    rowH = (pv ? fullH : H) / 6;
+    const head = 39 + 3; // 数字区 + 底部留白
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
     withMore = Math.floor((rowH - head - 12 + 2) / 17);
     room = rowH - head; tw = (W - 4) / 7 - 8;
@@ -36,7 +40,23 @@
   };
   const rangeOf = e => MC.fmtRange(e.time, e.endTime);
   const oneLine = e => textW(rangeOf(e)) <= tw - 2;
-  function setT(x, y) { track.style.transform = `translate3d(${x}px,${y}px,0)`; }
+  function setT(x, y) { track.style.transform = `translate3d(${x}px,${y}px,0)`; try { updateBack(); } catch (e) {} }
+  // 今天不在屏幕上（滑到了别的周、月、年）：在加号上方显示「回到今天」
+  let backShown = false;
+  function updateBack() {
+    const n = new Date();
+    let away;
+    if (view === 'week') away = MC.ymd(weekAnchor) !== MC.ymd(MC.weekStartOf(n)) || Math.abs(pagePos) > W / 2;
+    else if (view === 'year') away = year !== n.getFullYear() || Math.abs(pagePos) > H / 2;
+    else {
+      const top = MC.addDays(anchor, 7 * Math.round(scrollY / (rowH || 1)));
+      const row = Math.floor((MC.weekStartOf(n) - top) / (7 * 864e5)), shown = Math.max(1, Math.floor(H / (rowH || 1)));
+      away = row < 0 || row >= shown;
+    }
+    if (away === backShown) return;
+    backShown = away; $('#calBack').hidden = !away;
+  }
+  $('#calBack').onclick = () => $('#btnToday').click();
 
   // ---------- 月视图 ----------
   let scrollY = 0; // 相对 anchor 的滚动量（像素，正数 = 往后的周）
@@ -277,6 +297,15 @@
     n = Math.max(-(BUF - 1), Math.min(BUF - 1, n));
     spring(scrollY, n * rowH, v, monthH, settle);
   }
+  // 预览打开后，选中的那一周要在看得见的地方：在下面被挡住就往上滚到刚好露出来
+  function revealSelected() {
+    if (view !== 'month' || !selected) return;
+    const top = MC.addDays(anchor, 7 * Math.round(scrollY / rowH));
+    const row = Math.floor((MC.weekStartOf(MC.parse(selected)) - top) / (7 * 864e5));
+    const shown = Math.max(1, Math.floor(H / rowH));
+    if (row >= shown) shiftRows(row - shown + 1);
+    else if (row < 0) shiftRows(row);
+  }
   function shiftRows(n) {
     recenter(1);
     const target = Math.max(-(BUF - 1), Math.min(BUF - 1, Math.round(scrollY / rowH) + n));
@@ -465,7 +494,7 @@
   function select(ds) {
     if (ds === selected && previewOpen) { previewOpen = false; render(); return; }
     selected = ds;
-    if (!previewOpen) { previewOpen = true; render(); popGlass(); return; }
+    if (!previewOpen) { previewOpen = true; render(); popGlass(); revealSelected(); return; }
     track.querySelectorAll('.sel').forEach(c => c.classList.remove('sel', 'pop'));
     track.querySelectorAll(`[data-date="${ds}"]`).forEach(c => c.classList.add('sel'));
     popGlass();

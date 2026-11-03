@@ -728,7 +728,7 @@
         const nb = MC.addBook(calId(), name, cat); done && done(nb);
       },
     });
-    setTimeout(() => { const i = $('#ff_bookName'); i && i.focus(); }, 360);
+    setTimeout(() => UI.desktopFocus($('#ff_bookName')), 360);
   }
   function bookMenu(anchor, b) {
     if (!b) return;
@@ -974,7 +974,7 @@
     renderEditor();
     UI.open('dayEditor');
     deBody.scrollTop = 0;
-    if (!x) setTimeout(() => { const i = $('#deTitle'); i && i.focus(); }, 360);
+    if (!x) setTimeout(() => UI.desktopFocus($('#deTitle')), 360);
   }
   Days.openEditor = openEditor;
   function edPreview() {

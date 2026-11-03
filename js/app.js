@@ -11,7 +11,7 @@
     const dark = t === 'dark' || (t === 'auto' && mq.matches);
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     // 和月账本一样：两个 theme-color 分别对应浅色 / 深色；手动指定外观时两者都用该颜色
-    const forced = t === 'auto' ? null : (dark ? '#141416' : '#F7FAFC');
+    const forced = t === 'auto' ? null : (dark ? '#141416' : '#F8F8FA');
     $('#themeLight').setAttribute('content', forced || '#FFFFFF');
     $('#themeDark').setAttribute('content', forced || '#141416');
   }
@@ -202,35 +202,82 @@
     paintTabAvatar();
   };
 
-  // ---------- 今日 ----------
+  // ---------- 今日（参考苹果日历的「日」视图）----------
+  // 上面一条本周的日期（点一下看那一天），下面先列没有具体时间的事件（全天、待办），再是一整天的时间线：
+  // 有时间段的事件按开始、结束时间画成色块，时间重叠的并排；今天有一条红色的「现在」线
+  let tdDay = '', tdScrolled = '';
+  const TL_H = 52; // 一小时的高度
   function renderToday() {
-    const d = new Date(), t = MC.todayStr();
-    $('#todayDate').textContent = `${d.getMonth() + 1}月${d.getDate()}日 周${MC.WD[d.getDay()]}`;
-    // 已逾期：最早的在最上面（含设为在主日历显示的记录日历）
-    const overdue = MC.data.events.filter(e => MC.inMainView(e) && !e.done && MC.endDate(e) < t)
-      .sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b));
-    const today = MC.mainViewOn(t);
-    const open = today.filter(e => !e.done), done = today.filter(e => e.done);
-    // 接下来 7 天还没完成的（和今日小组件一致）
-    const seen = new Set(today.map(e => e.id)), soon = [];
-    for (let i = 1; i <= 7; i++) for (const e of MC.mainViewOn(MC.ymd(MC.addDays(d, i)))) if (!e.done && !seen.has(e.id)) { seen.add(e.id); soon.push(e); }
-    let h = '';
+    const t = MC.todayStr();
+    if (!tdDay || (tdDay < MC.ymd(MC.weekStartOf(new Date())) || tdDay > MC.ymd(MC.addDays(MC.weekStartOf(new Date()), 6)))) tdDay = t;
+    const day = MC.parse(tdDay), isToday = tdDay === t;
+    $('#todayDate').textContent = `${day.getMonth() + 1}月${day.getDate()}日 周${MC.WD[day.getDay()]}`;
+    const off = Math.round((day - MC.parse(t)) / 864e5);
+    $('#page-today .ptitle h1').textContent = isToday ? '今天' : off === 1 ? '明天' : off === -1 ? '昨天' : `周${MC.WD[day.getDay()]}`;
+    // 本周的日期条
+    const ws = MC.weekStartOf(new Date());
+    let strip = '<div class="td-week">';
+    for (let k = 0; k < 7; k++) {
+      const d = MC.addDays(ws, k), ds = MC.ymd(d), has = MC.mainViewOn(ds).some(e => !e.done);
+      strip += `<button class="td-day${ds === tdDay ? ' on' : ''}${ds === t ? ' today' : ''}" data-day="${ds}"><small>${MC.WD[d.getDay()]}</small><b>${d.getDate()}</b><i${has ? '' : ' hidden'}></i></button>`;
+    }
+    strip += '</div>';
+    const list = MC.mainViewOn(tdDay);
+    const timed = list.filter(e => e.time), untimed = list.filter(e => !e.time);
+    let h = strip;
+    // 已逾期（只在看今天时）
+    const overdue = isToday ? MC.data.events.filter(e => MC.inMainView(e) && !e.done && MC.endDate(e) < t).sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b)) : [];
     if (overdue.length) h += `<section class="sec"><h3 class="over"><span>已逾期</span><span class="sec-r"><button class="sec-act" data-sec="overdue">全部移到今天</button><span>${overdue.length}</span></span></h3><ul class="card glass-panel">${overdue.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
-    if (open.length) h += `<section class="sec"><h3><span>待完成</span><span>${open.length}</span></h3><ul class="card glass-panel">${open.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
-    if (done.length) h += `<section class="sec"><h3><span>已完成</span><span>${done.length}</span></h3><ul class="card glass-panel">${done.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
-    const sun = '<span class="em-ico"><svg viewBox="0 0 24 24"><circle class="f" cx="12" cy="12" r="4.4"/><path class="s" d="M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.5 5.5l1.5 1.5M17 17l1.5 1.5M5.5 18.5L7 17M17 7l1.5-1.5"/></svg></span>';
-    const tick = '<span class="em-ico"><svg viewBox="0 0 24 24"><circle class="f" cx="12" cy="12" r="9"/><path class="k" d="M7.6 12.3l3 3 5.8-6.2"/></svg></span>';
-    if (!today.length && !overdue.length) h = `<div class="big-empty">${sun}今天没有安排<br><small style="color:var(--text3)">点右下角 ＋ 添加</small></div>`;
-    else if (!open.length && !overdue.length) h = `<div class="big-empty" style="padding:30px 20px 6px">${tick}今天的事都完成了</div>` + h;
-    if (soon.length) h += `<section class="sec"><h3><span>接下来 7 天</span><span>${soon.length}</span></h3><ul class="card glass-panel">${soon.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
+    // 没有具体时间的（全天、待办）：未完成在前
+    const allDay = [...untimed.filter(e => !e.done), ...untimed.filter(e => e.done)];
+    if (allDay.length) h += `<section class="sec"><h3><span>全天</span><span>${untimed.filter(e => !e.done).length || ''}</span></h3><ul class="card glass-panel">${allDay.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
+    // 时间线：显示 8 点到 21 点，事件或现在的时间超出这个范围就跟着放宽
+    const toMin = x => { const [a, b] = x.split(':').map(Number); return a * 60 + b; };
+    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+    const span = timed.map(e => { const a = toMin(e.time); let b = e.endTime ? toMin(e.endTime) : a + 30; if (b <= a) b = Math.min(1440, a + 30); return { e, a, b }; }).sort((x, y) => x.a - y.a || y.b - x.b);
+    let sH = Math.min(8, ...span.map(x => Math.floor(x.a / 60)), isToday ? Math.floor(nowMin / 60) : 24);
+    let eH = Math.max(21, ...span.map(x => Math.ceil(x.b / 60)), isToday ? Math.ceil((nowMin + 1) / 60) : 0);
+    sH = Math.max(0, sH); eH = Math.min(24, eH);
+    // 时间重叠的事件并排：按开始时间排好，一组互相重叠的事件平分宽度
+    const groups = []; let g = null, gEnd = -1;
+    for (const x of span) { if (!g || x.a >= gEnd) { g = []; groups.push(g); gEnd = -1; } g.push(x); gEnd = Math.max(gEnd, x.b); }
+    for (const grp of groups) { const ends = []; for (const x of grp) { let k = ends.findIndex(v => v <= x.a); if (k < 0) { k = ends.length; ends.push(0); } ends[k] = x.b; x.lane = k; } grp.forEach(x => (x.lanes = ends.length)); }
+    let tl = `<div class="td-tl" style="height:${(eH - sH) * TL_H}px">`;
+    for (let hr = sH; hr <= eH; hr++) tl += `<div class="td-hr" style="top:${(hr - sH) * TL_H}px"><span>${hr === 12 && !MC.use12() ? '12:00' : MC.use12() ? MC.hourLabel(hr % 24, true) : `${hr}:00`}</span></div>`;
+    tl += '<ul class="td-evs">';
+    for (const x of span) {
+      const top = (x.a / 60 - sH) * TL_H, ht = Math.max(22, (x.b - x.a) / 60 * TL_H - 2), w = 100 / x.lanes;
+      const e = x.e, tiny = ht < 38;
+      tl += `<li class="item td-ev${e.done ? ' done' : ''}${tiny ? ' tiny' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)};top:${top}px;height:${ht}px;left:calc(${x.lane * w}% + 1px);width:calc(${w}% - 3px)">
+        <button class="td-ev-main" data-act="open"><b>${esc(e.title)}</b>${tiny ? '' : `<small>${esc(MC.fmtRange(e.time, e.endTime))}${e.note ? ' · ' + esc(e.note) : ''}</small>`}</button>
+        <button class="td-ck" data-act="toggle" aria-label="${e.done ? '标为未完成' : '完成'}"></button></li>`;
+    }
+    tl += '</ul>';
+    if (isToday && nowMin >= sH * 60 && nowMin <= eH * 60) tl += `<div class="td-now" style="top:${(nowMin / 60 - sH) * TL_H}px"><span>${MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`, true)}</span></div>`;
+    tl += '</div>';
+    if (!list.length && !overdue.length) h += `<p class="td-empty">${isToday ? '今天没有安排，点右下角 ＋ 添加' : '这一天没有安排'}</p>`;
+    h += tl;
     $('#todayBody').innerHTML = h;
+    // 第一次打开今天：「现在」那条线在屏幕下面看不到时，才往下滚到它在屏幕中间偏下（上面的日期条、全天事件能看到就不动）
+    if (isToday && tdScrolled !== t) {
+      tdScrolled = t;
+      const tlEl = $('#todayBody .td-tl'), box = $('#todayBody');
+      requestAnimationFrame(() => {
+        const y = tlEl.offsetTop + (nowMin / 60 - sH) * TL_H, vh = box.clientHeight;
+        if (y > vh * 0.72) box.scrollTop = y - vh * 0.6;
+      });
+    }
   }
   $('#todayBody').addEventListener('click', e => {
+    const d = e.target.closest('[data-day]');
+    if (d) { tdDay = d.dataset.day; renderToday(); return; }
     if (!e.target.closest('[data-sec="overdue"]')) return;
     const t = MC.todayStr();
     const list = MC.data.events.filter(x => MC.inMainView(x) && !x.done && MC.endDate(x) < t);
     if (list.length) UI.moveEvents(list, t, `已把 ${list.length} 个事件移到今天`);
   });
+  // 时间线上的「现在」每分钟走一格
+  setInterval(() => { if (page === 'today' && tdDay === MC.todayStr() && !UI.anyOpen()) renderToday(); }, 60000);
   UI.bindList($('#todayBody'));
 
   // ---------- 四象限 ----------

@@ -5,7 +5,11 @@ import WebKit
 /// iPhone 版的界面就是 GitHub Pages 上的网页（和 Mac、安卓同一份）：通过 window.MCNative（与 Mac 同一套接口）提供原生能力，
 /// 网页里的 js/native.js 不用区分是哪一端。导航层（底部菜单栏、加号、弹出菜单、日历栏）用 Mac 版共用的原生液态玻璃。
 @MainActor
-final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
+final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate, UIScrollViewDelegate {
+    /// 键盘弹出时 iOS 会把网页的滚动视图往上推，让输入框露出来：网页自己会处理，这里一律推回原位
+    nonisolated func scrollViewDidScroll(_ sv: UIScrollView) {
+        MainActor.assumeIsolated { if sv.contentOffset != .zero { sv.contentOffset = .zero } }
+    }
     static let shared = WebController()
     static let bridgeVersion = 1
     static let features = ["data", "prefs", "token", "notify", "test", "sync", "feedback", "saveFile", "openUrl", "camera",
@@ -42,8 +46,10 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         web.scrollView.bounces = false
         web.allowsBackForwardNavigationGestures = false
         web.allowsLinkPreview = false
+        web.scrollView.isScrollEnabled = false // 网页自己处理滚动；键盘弹出时系统也不能把整个网页往上推
         web.isInspectable = true
         super.init()
+        web.scrollView.delegate = self
         web.navigationDelegate = self
         web.uiDelegate = self
         cfg.userContentController.add(WeakHandler(self), name: "mc")
@@ -56,7 +62,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
     /// 和网页一致的底色，网页加载前不会闪白
     static let appBg = UIColor { t in
         t.userInterfaceStyle == .dark ? UIColor(red: 20 / 255, green: 20 / 255, blue: 22 / 255, alpha: 1)
-                                      : UIColor(red: 247 / 255, green: 250 / 255, blue: 252 / 255, alpha: 1)
+                                      : UIColor(red: 248 / 255, green: 248 / 255, blue: 250 / 255, alpha: 1)
     }
 
     func open(hash: String) {

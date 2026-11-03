@@ -215,7 +215,7 @@
       color = b.dataset.c;
       $('#calSw').querySelectorAll('.dr-sw').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
     });
-    if (!c) setTimeout(() => { const i = $('#ff_calName'); i && i.focus(); }, 360);
+    if (!c) setTimeout(() => UI.desktopFocus($('#ff_calName')), 360);
   }
 
   // ---------- 手势 ----------

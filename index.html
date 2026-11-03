@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="节律">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#F7FAFC" media="(prefers-color-scheme: light)" id="themeLight">
+<meta name="theme-color" content="#F8F8FA" media="(prefers-color-scheme: light)" id="themeLight">
 <meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)" id="themeDark">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -182,6 +182,8 @@
 </div>
 
 <!-- 加号：固定在右下角菜单栏上方 -->
+<!-- 滑到别的周、月、年时出现：回到今天（在加号上方，淡淡的半透明） -->
+<button class="back-today glass" id="calBack" aria-label="回到今天" hidden><svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 14L4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
 <button class="fab glass accent" id="fab" aria-label="添加事件">
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
   </button>
@@ -231,7 +233,12 @@
     <div class="seg-strip" id="cmpSegStrip"></div>
     <div class="cmp-chips" id="cmpSegLv"></div>
   </div>
-  <div class="cmp-sec">
+  <!-- 日期、时间段、提醒、重复：直接展开，不用再点一下弹出来 -->
+  <div class="cmp-sec cmp-when">
+    <div class="cmp-when-head"><span class="cmp-label">时间</span><div class="seg small" id="cmpPkTabs"><button data-v="date" class="on">日期</button><button data-v="range">时间段</button></div></div>
+    <div class="pk-body cmp-pk" id="cmpPkBody"></div>
+  </div>
+  <div class="cmp-sec" hidden>
     <span class="cmp-label">日期</span>
     <div class="cmp-chips" id="cmpQuick"></div>
     <div class="cmp-other" id="cmpOther" hidden>
@@ -241,7 +248,7 @@
       <div id="cmpOtherBody"></div>
     </div>
   </div>
-  <div class="cmp-tools">
+  <div class="cmp-tools" hidden>
     <button class="tool date-tool glass" id="cmpDate">
       <svg viewBox="0 0 24 24" width="17" height="17"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
       <span id="cmpDateLabel"></span>

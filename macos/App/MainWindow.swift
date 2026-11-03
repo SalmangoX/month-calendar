@@ -255,7 +255,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
     /// 和网页一致的底色，窗口标题栏、网页加载前都不会闪白
     static let appBg = NSColor(name: nil) { ap in
         ap.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(srgbRed: 20 / 255, green: 20 / 255, blue: 22 / 255, alpha: 1)
-                                                         : NSColor(srgbRed: 247 / 255, green: 250 / 255, blue: 252 / 255, alpha: 1)
+                                                         : NSColor(srgbRed: 248 / 255, green: 248 / 255, blue: 250 / 255, alpha: 1)
     }
 
     func show(hash: String = "") {

@@ -161,8 +161,29 @@
       document.documentElement.style.setProperty('--vvt', vv.offsetTop + 'px');
       document.documentElement.classList.toggle('kb-open', on);
       $('#composer').classList.toggle('keyboard', on);
+      fitFocused();
     };
     vv.addEventListener('resize', onVV); vv.addEventListener('scroll', onVV);
+    // 正在输入的框会被键盘挡住时：面板只抬高刚好够的距离（框底在键盘上方 12px）；面板顶到屏幕上边了，剩下的让面板里面自己滚
+    const fitFocused = () => {
+      const el = document.activeElement, kbOn = document.documentElement.classList.contains('kb-open');
+      document.querySelectorAll('.sheet[style*="--lift"]').forEach(s => { if (!kbOn || !s.contains(el)) s.style.removeProperty('--lift'); });
+      if (!kbOn || !el || !el.matches('input, textarea, [contenteditable]')) return;
+      const sheet = el.closest('.sheet'); if (!sheet) return;
+      const cur = parseFloat(sheet.style.getPropertyValue('--lift')) || 0;
+      const r = el.getBoundingClientRect(), sr = sheet.getBoundingClientRect();
+      const visBottom = vv.offsetTop + vv.height - 12;
+      let need = Math.max(0, r.bottom + cur - visBottom);                 // 不抬的话框底在哪、要抬多少
+      const room = Math.max(0, sr.top + cur - (vv.offsetTop + 10));       // 最多抬到面板顶贴着屏幕上边
+      const lift = Math.min(need, room);
+      sheet.style.setProperty('--lift', lift + 'px');
+      if (need > lift) { // 还是挡住：滚动面板里装着这个框的列表
+        let sc = el.parentElement; while (sc && sc !== sheet && !(sc.scrollHeight > sc.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+        if (sc && sc !== sheet) sc.scrollTop += need - lift;
+      }
+    };
+    document.addEventListener('focusin', () => setTimeout(fitFocused, 60));
+    document.addEventListener('focusout', () => setTimeout(fitFocused, 60));
   }
 
   // ---------- 弹出菜单 ----------
@@ -311,6 +332,8 @@
   };
   // 长按：按住约半秒、手指没怎么动；之后的那次点击不再打开编辑
   // 别的手势接管了手指（比如往右拉侧栏，会拦下 touchmove）时，用 UI.cancelPresses() 取消还在计时的长按
+  // 新建时自动把光标放进输入框：只在电脑上（手机上会马上弹出键盘、挡住半个面板）
+  UI.desktopFocus = el => { if (el && matchMedia('(pointer: fine)').matches && !matchMedia('(pointer: coarse)').matches) el.focus({ preventScroll: true }); };
   const presses = new Set();
   UI.cancelPresses = () => presses.forEach(c => c());
   UI.longPress = (el, sel, fn) => {

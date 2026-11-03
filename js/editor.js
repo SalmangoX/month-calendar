@@ -119,8 +119,12 @@
     } else if (b.dataset.act === 'add') { if (MC.addPreset(c, $('#cmpTitle').value)) UI.toast('已存为常用事件'); }
     else if (b.dataset.act === 'last' && cur) Object.assign(draft, { time: cur.time, endTime: cur.endTime || '', days: 1 });
     else if (b.dataset.act === 'notime') Object.assign(draft, { time: '', endTime: '' });
-    else if (b.dataset.act === 'time') { $('#cmpDate').click(); return; }
+    else if (b.dataset.act === 'time') { // 下面的选择器切到「时间段」并展开时间滚轮
+      useCtx(inlineCtx); pk.tab = 'range'; if (!pk.time) { pk.time = nextHour(); pk.endTime = plusHour(pk.time); } pk.expanded = 'range'; paintTabs(); renderPicker();
+      $('#cmpPkBody').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return;
+    }
     paintComposer();
+    if (b.dataset.act === 'last' || b.dataset.act === 'notime') mountInline();
   });
   UI.longPress($('#cmpPresets'), '.preset', el => {
     const c = presetCal(), p = c && (c.presets || []).find(x => x.id === el.dataset.pid); if (!p) return;
@@ -218,10 +222,10 @@
     $('#cmpBatch').hidden = false;
     $('#cmpTitle').classList.remove('err');
     otherOpen = false; renderOther();
-    growTitle(); paintComposer();
+    growTitle(); paintComposer(); mountInline();
     UI.open('composer', onComposerClosed);
-    // 新建时直接把光标放进名称（同一次点击里调用，手机才会弹出键盘）
-    const ti = $('#cmpTitle'); ti.focus({ preventScroll: true }); try { ti.setSelectionRange(ti.value.length, ti.value.length); } catch (e) {}
+    // 新建时不自动聚焦名称：手机上会马上弹出键盘、挡住半个面板。电脑上（有实体键盘、没有屏幕键盘）照常把光标放进名称
+    if (matchMedia('(pointer: fine)').matches && !matchMedia('(pointer: coarse)').matches) { const ti = $('#cmpTitle'); ti.focus({ preventScroll: true }); try { ti.setSelectionRange(ti.value.length, ti.value.length); } catch (e) {} }
   };
   Editor.openEdit = e => {
     mode = 'edit'; editing = e;
@@ -235,7 +239,7 @@
     $('#cmpBatch').hidden = true;
     $('#cmpTitle').classList.remove('err');
     otherOpen = false; renderOther();
-    paintComposer();
+    paintComposer(); mountInline();
     UI.open('composer', onComposerClosed);
     requestAnimationFrame(growTitle);
   };
@@ -245,7 +249,7 @@
     resetDraft(d);
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';
     $('#cmpHeading').textContent = newHeading(); $('#cmpClear').hidden = true;
-    growTitle(); paintComposer();
+    growTitle(); paintComposer(); mountInline();
   };
 
   $('#cmpTitle').addEventListener('input', () => { growTitle(); $('#cmpTitle').classList.remove('err'); paintComposer(); });
@@ -319,16 +323,17 @@
     draft.repeat = 'none'; draft.until = '';
     localStorage.removeItem(DRAFT_KEY);
     $('#cmpHeading').textContent = newHeading(); $('#cmpClear').hidden = true;
-    growTitle(); paintComposer();
+    growTitle(); paintComposer(); mountInline();
     MC.onNotifyCheck && MC.onNotifyCheck();
   }
 
   // ======================= 日期 / 时间段选择 =======================
-  let pk = null, pkCb = null;
-  // opts: date, time, endTime, remind, repeat, until, allowRepeat, dateOnly
-  Editor.openPicker = (opts, cb) => {
-    const d = MC.parse(opts.date);
-    pk = {
+  // 同一套选择器有两处用：单独弹出的面板（批量添加用），和直接嵌在新建 / 编辑事件里（不用再点一下才弹出来）。
+  // 各用各的状态（ctx），点到哪一处就切到哪一处的状态，画到哪一处
+  let pk = null, pkCb = null, PB = null, PT = null, pkInline = false;
+  const sheetCtx = { pk: null, host: null, tabs: null, inline: false }, inlineCtx = { pk: null, host: null, tabs: null, inline: true };
+  const useCtx = c => { pk = c.pk; PB = c.host; PT = c.tabs; pkInline = c.inline; };
+  const newPk = opts => { const d = MC.parse(opts.date); return {
       date: opts.date, days: opts.days || 1, time: opts.time || '', endTime: opts.endTime || '',
       remind: opts.remind === undefined ? null : opts.remind,
       repeat: opts.repeat || 'none', until: opts.until || '',
@@ -336,23 +341,42 @@
       tab: opts.endTime ? 'range' : 'date',
       cal: { y: d.getFullYear(), m: d.getMonth() },
       wheelMode: false, expanded: null, chooser: null,
-    };
+    }; };
+  // opts: date, time, endTime, remind, repeat, until, allowRepeat, dateOnly
+  Editor.openPicker = (opts, cb) => {
+    sheetCtx.host = $('#pkBody'); sheetCtx.tabs = $('#pkTabs'); sheetCtx.pk = newPk(opts);
+    useCtx(sheetCtx);
     pkCb = cb;
-    $('#pkTabs').hidden = pk.dateOnly;
+    PT.hidden = pk.dateOnly;
     paintTabs();
     renderPicker();
     UI.open('datePicker');
   };
-  function paintTabs() { $('#pkTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === pk.tab)); }
-  $('#pkTabs').onclick = e => {
+  // 新建 / 编辑事件里直接展开的选择器：选了什么马上写回事件
+  function mountInline() {
+    inlineCtx.host = $('#cmpPkBody'); inlineCtx.tabs = $('#cmpPkTabs');
+    inlineCtx.pk = newPk({ ...draft, allowRepeat: mode === 'new' });
+    useCtx(inlineCtx); paintTabs(); renderPicker();
+  }
+  function commitInline() {
+    if (!pkInline) return;
+    const endTime = pk.tab === 'range' && pk.endTime && pk.endTime > pk.time ? pk.endTime : '';
+    Object.assign(draft, { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime, remind: pk.remind, repeat: pk.repeat, until: pk.until && pk.until >= pk.date ? pk.until : '' });
+    paintPresets(); paintSegs();
+  }
+  function paintTabs() { PT.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === pk.tab)); }
+  const onTabs = e => {
+    useCtx(e.currentTarget.id === 'cmpPkTabs' ? inlineCtx : sheetCtx);
     const b = e.target.closest('button'); if (!b || b.dataset.v === pk.tab) return;
     pk.tab = b.dataset.v; pk.expanded = null;
     if (pk.tab === 'range' && !pk.time) { pk.time = nextHour(); pk.endTime = plusHour(pk.time); }
     if (pk.tab === 'range' && pk.time && !pk.endTime) pk.endTime = plusHour(pk.time);
     paintTabs(); renderPicker();
   };
+  $('#pkTabs').onclick = onTabs; $('#cmpPkTabs').onclick = onTabs;
   $('#pkCancel').onclick = () => UI.close('datePicker');
   $('#pkOk').onclick = () => {
+    useCtx(sheetCtx);
     if (pk.until && pk.until < pk.date) pk.until = '';
     const out = { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime: pk.tab === 'range' ? pk.endTime : '', remind: pk.remind, repeat: pk.repeat, until: pk.until };
     if (out.endTime && out.endTime <= out.time) out.endTime = '';
@@ -477,8 +501,9 @@
       h += `<div class="group pk-rows">${extraRows()}</div>`;
     }
     if (!pk.dateOnly) h += '<button class="pk-clear" data-act="clear">清除时间、提醒与重复</button>';
-    $('#pkBody').innerHTML = h;
+    PB.innerHTML = h;
     mountWheels();
+    commitInline();
   }
   function durLabel(a, b) {
     const [ah, am] = a.split(':').map(Number), [bh, bm] = b.split(':').map(Number);
@@ -488,16 +513,17 @@
     return (hh ? `${hh} 小时` : '') + (mm ? ` ${mm} 分钟` : '');
   }
   function refreshLabels() {
-    const set = (k, v) => { const el = $('#pkBody').querySelector(`[data-bind="${k}"]`); if (el) el.textContent = v; };
+    const set = (k, v) => { const el = PB.querySelector(`[data-bind="${k}"]`); if (el) el.textContent = v; };
     set('time', pk.time ? MC.timeLabel(pk) : '无');
     set('remind', MC.remindLabel(pk.remind, !!pk.time));
     set('until', pk.until ? MC.dateLabel(pk.until) + ' ' + MC.parse(pk.until).getFullYear() : '不设，一直重复');
     set('cardDate', `${MC.dateLabel(pk.date)}，周${MC.WD[MC.parse(pk.date).getDay()]}`);
     set('cardRel', MC.relLabel(pk.date));
     if (pk.time) { set('cardTime', MC.fmtRange(pk.time, pk.endTime, ' - ')); const d = durLabel(pk.time, pk.endTime); set('cardDur', d ? '持续时间：' + d : '结束时间需晚于开始时间'); }
+    commitInline();
   }
   function mountWheels() {
-    const cw = $('#chooserWheel');
+    const cw = PB.querySelector('#chooserWheel');
     if (cw && pk.chooser) {
       const key = pk.chooser.key, val = key === 'until' ? (pk.until || pk.date) : key === 'end' ? endOf() : pk.date;
       UI.dateWheel(cw, val, ds => {
@@ -505,23 +531,25 @@
         chooserPick(key, ds); refreshLabels();
       }, 40);
     }
-    const wd = $('#pkWheelDate');
+    const wd = PB.querySelector('#pkWheelDate');
     if (wd) UI.dateWheel(wd, pk.date, ds => { pk.date = ds; const d = MC.parse(ds); pk.cal = { y: d.getFullYear(), m: d.getMonth() }; refreshLabels(); });
-    const wt = $('#pkWheelTime');
+    const wt = PB.querySelector('#pkWheelTime');
     if (wt) UI.timeWheel(wt, pk.time || nextHour(), pk.endTime || '', (s, e) => { pk.time = s; if (pk.endTime) pk.endTime = e; refreshLabels(); });
-    const wr = $('#pkWheelRange');
+    const wr = PB.querySelector('#pkWheelRange');
     if (wr) UI.timeWheel(wr, pk.time, pk.endTime || plusHour(pk.time), (s, e) => { pk.time = s; pk.endTime = e; refreshLabels(); });
-    const wu = $('#pkWheelUntil');
+    const wu = PB.querySelector('#pkWheelUntil');
     if (wu) UI.dateWheel(wu, pk.until, ds => { pk.until = ds; refreshLabels(); });
   }
-  $('#pkBody').addEventListener('change', e => {
+  const onBodyChange = e => {
+    useCtx(e.currentTarget.id === 'cmpPkBody' ? inlineCtx : sheetCtx);
     if (e.target.id === 'pkAllDay') {
       if (e.target.checked) { pk.time = ''; pk.endTime = ''; }
       else { pk.time = nextHour(); pk.endTime = plusHour(pk.time); pk.days = 1; }
       pk.expanded = null; pk.chooser = null; renderPicker();
     }
-  });
-  $('#pkBody').addEventListener('click', e => {
+  };
+  const onBodyClick = e => {
+    useCtx(e.currentTarget.id === 'cmpPkBody' ? inlineCtx : sheetCtx);
     const ch = e.target.closest('.chooser');
     if (ch && pk.chooser) {
       const key = ch.dataset.key;
@@ -569,19 +597,24 @@
       pk.chooser = null; pk.expanded = pk.expanded === 'range' ? null : 'range'; renderPicker();
     }
     else if (act === 'remind') {
+      const ctx = pkInline ? inlineCtx : sheetCtx;
       UI.menu(a, MC.remindOptions(!!pk.time).map(o => ({ label: o.label, value: o.v, on: o.v === pk.remind })), v => {
+        useCtx(ctx);
         pk.remind = v; refreshLabels();
         a.querySelector('.grow-val').classList.toggle('on', v !== null);
         if (v !== null && MC.Push && !MC.Push.enabled()) UI.toast('提醒需要在「设置 → 提醒通知」中开启');
       });
     }
     else if (act === 'repeat') {
+      const ctx = pkInline ? inlineCtx : sheetCtx;
       UI.menu(a, MC.REPEATS.map(r => ({ label: r.label, value: r.v, on: r.v === pk.repeat })), v => {
+        useCtx(ctx);
         pk.repeat = v; pk.until = ''; pk.expanded = null; pk.chooser = null; renderPicker();
       });
     }
     else if (act === 'clear') { pk.time = ''; pk.endTime = ''; pk.days = 1; pk.remind = null; pk.repeat = 'none'; pk.until = ''; pk.expanded = null; renderPicker(); }
-  });
+  };
+  for (const id of ['#pkBody', '#cmpPkBody']) { $(id).addEventListener('change', onBodyChange); $(id).addEventListener('click', onBodyClick); }
 
   // 按重复规则生成一个或一串事件（单个添加和批量添加共用）
   function buildEvents(fields, repeat, until) {
@@ -790,21 +823,30 @@
     UI.open('batchSheet');
   }
   Editor.openBatch = date => { resetDraft(date || MC.Cal.selected() || MC.todayStr()); $('#cmpTitle').value = ''; $('#cmpNote').value = ''; openBatch(); };
+  // 每个事件一张小卡片：第一行名称；第二行优先级（或等级）；第三行时间（圆角框，点开选日期、时间、提醒）+ 备注（圆角框）。
+  // 卡片往左滑露出「删除」，点了先确认再删
+  function priChips(r) {
+    const rc = MC.rateOn(newCal) && MC.cal(newCal);
+    const list = rc ? [{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n, color: `var(--lv${i + 1})` }))] : MC.PRI;
+    const cur = rc ? r.rate || 0 : r.priority;
+    return list.map(p => `<button class="qchip pri sm${p.v === cur ? ' on' : ''}" data-act="pri" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span><span data-uc>${esc(p.name)}</span></button>`).join('');
+  }
   function renderBatch() {
     $('#batchList').innerHTML = rows.map((r, i) => `
       <div class="brow" data-i="${i}">
-        <div class="b-top">
-          <span class="b-idx">${i + 1}</span>
-          <input class="b-title" value="${esc(r.title)}" placeholder="名称（必填）" enterkeyhint="next">
-          ${rows.length > 1 ? `<button class="b-del" data-act="del" aria-label="删除这一行">×</button>` : ''}
-        </div>
-        <div class="b-tools">
-          <button class="tool icon-tool glass" data-act="flag" aria-label="优先级"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M6 21V4h11l-2.2 4.2L17 12.5H6"/></svg></button>
-          <button class="tool date-tool glass" data-act="date" aria-label="日期、时间、提醒与重复">${whenHTML(r)}</button>
-          <input class="b-note" value="${esc(r.note)}" placeholder="备注（选填）">
+        <button class="b-swdel" data-act="del" tabindex="-1">删除</button>
+        <div class="b-card">
+          <div class="b-top">
+            <span class="b-idx">${i + 1}</span>
+            <input class="b-title" value="${esc(r.title)}" placeholder="名称（必填）" enterkeyhint="next">
+          </div>
+          <div class="b-pri">${priChips(r)}</div>
+          <div class="b-tools">
+            <button class="b-when" data-act="date" aria-label="日期、时间、提醒与重复">${whenHTML(r)}</button>
+            <input class="b-note" value="${esc(r.note)}" placeholder="备注（选填）">
+          </div>
         </div>
       </div>`).join('');
-    $('#batchList').querySelectorAll('.brow').forEach(el => paintFlag(el.querySelector('[data-act="flag"]'), (MC.rateOn(newCal) ? rows[Number(el.dataset.i)].rate : rows[Number(el.dataset.i)].priority)));
     updateBatchCount();
     saveBatchDraft();
     paintBatchPresets();
@@ -838,15 +880,7 @@
     saveBatchDraft();
   });
   $('#batchList').addEventListener('focusin', e => { const el = e.target.closest('.brow'); if (el) batchFocus = Number(el.dataset.i); });
-  $('#batchList').addEventListener('focusin', e => {
-    // 只滚动列表本身，不能用 scrollIntoView（它会连带滚动整个面板和页面，导致面板“缩没了”）
-    if (!e.target.matches('input')) return;
-    const list = $('#batchList'), el = e.target;
-    setTimeout(() => {
-      const r = el.getBoundingClientRect(), lr = list.getBoundingClientRect();
-      list.scrollTo({ top: Math.max(0, list.scrollTop + (r.top - lr.top) - 60), behavior: 'smooth' });
-    }, 320);
-  });
+  // 键盘挡住输入框时的处理统一在 ui.js（只在会被挡住时才挪，挪刚好够的距离）
   $('#batchList').addEventListener('keydown', e => {
     if (e.key !== 'Enter' || e.isComposing || !e.target.classList.contains('b-title')) return;
     e.preventDefault();
@@ -857,7 +891,20 @@
   $('#batchList').addEventListener('click', e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
     const el = a.closest('.brow'), i = Number(el.dataset.i), r = rows[i];
-    if (a.dataset.act === 'del') { rows.splice(i, 1); renderBatch(); }
+    if (a.dataset.act === 'del') {
+      UI.confirm(r.title.trim() ? `删除「${r.title.trim()}」这一项？` : '删除这一项？', { ok: '删除', danger: true }).then(ok => {
+        if (!ok) { closeSwipe(); return; }
+        rows.splice(i, 1);
+        if (!rows.length) rows.push(blankRow(draft.date));
+        renderBatch();
+      });
+    }
+    else if (a.dataset.act === 'pri') {
+      const v = Number(a.dataset.v);
+      if (MC.rateOn(newCal)) r.rate = v; else r.priority = v;
+      el.querySelectorAll('.b-pri .qchip').forEach(b => b.classList.toggle('on', b === a));
+      saveBatchDraft();
+    }
     else if (a.dataset.act === 'flag') UI.menu(a, MC.rateOn(newCal) ? UI.rateMenuItems(newCal, r.rate) : UI.priMenuItems(r.priority), v => { if (MC.rateOn(newCal)) r.rate = v; else r.priority = v; paintFlag(a, v); saveBatchDraft(); });
     else if (a.dataset.act === 'date') {
       document.activeElement && document.activeElement.blur();
@@ -865,6 +912,37 @@
       Editor.openPicker({ ...r, allowRepeat: true }, s => { Object.assign(r, s); a.innerHTML = whenHTML(r); saveBatchDraft(); });
     }
   });
+  // 左滑删除：只在明显横着拖时才拖动卡片（竖着拖照常滚动列表）；拖过一半就停在露出「删除」的位置
+  const DEL_W = 76;
+  let sw = null, openCard = null;
+  const setX = (card, x, anim) => { card.style.transition = anim ? 'transform .28s var(--ease)' : 'none'; card.style.transform = x ? `translateX(${x}px)` : ''; };
+  function closeSwipe() { if (openCard) { setX(openCard, 0, true); openCard.closest('.brow').classList.remove('swiped'); openCard = null; } }
+  $('#batchList').addEventListener('touchstart', e => {
+    const card = e.target.closest('.b-card'); if (!card || e.touches.length !== 1) return;
+    if (openCard && openCard !== card) closeSwipe();
+    const t = e.touches[0];
+    sw = { card, x0: t.clientX, y0: t.clientY, base: card === openCard ? -DEL_W : 0, mode: 0, x: 0 };
+  }, { passive: true });
+  $('#batchList').addEventListener('touchmove', e => {
+    if (!sw) return;
+    const t = e.touches[0], dx = t.clientX - sw.x0, dy = t.clientY - sw.y0;
+    if (!sw.mode) { if (Math.hypot(dx, dy) < 8) return; sw.mode = Math.abs(dx) > Math.abs(dy) * 1.3 ? 1 : -1; if (sw.mode === 1) document.activeElement && document.activeElement.blur(); }
+    if (sw.mode !== 1) return;
+    e.preventDefault();
+    sw.x = Math.min(0, Math.max(-DEL_W * 1.4, sw.base + dx));
+    setX(sw.card, sw.x, false);
+  }, { passive: false });
+  $('#batchList').addEventListener('touchend', () => {
+    if (!sw) return;
+    const s = sw; sw = null;
+    if (s.mode !== 1) return;
+    const open = s.x < -DEL_W / 2;
+    setX(s.card, open ? -DEL_W : 0, true);
+    s.card.closest('.brow').classList.toggle('swiped', open);
+    openCard = open ? s.card : null;
+  });
+  // 点卡片别的地方：收起已经滑开的删除
+  $('#batchList').addEventListener('click', e => { if (openCard && !e.target.closest('.b-swdel') && e.target.closest('.b-card') === openCard) { e.stopPropagation(); closeSwipe(); } }, true);
   function addRow() {
     const last = rows[rows.length - 1];
     rows.push(blankRow(last ? last.date : draft.date));

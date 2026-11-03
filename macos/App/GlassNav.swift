@@ -270,7 +270,7 @@ struct GlassTabBar: View {
             let lensCX = wall < -0.5 ? cx - w / 2 + lensW / 2 : wall > 0.5 ? cx + w / 2 - lensW / 2 : cx
             GlassEffectContainer(spacing: 16) {
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.clear).frame(width: W, height: H).glassEffect(.regular, in: .capsule)
+                    Capsule().fill(Color.clear).frame(width: W, height: H).glassEffect(TabGlass.base(scheme), in: .capsule)
                     Capsule().fill(Color.clear)
                         .frame(width: w, height: h)
                         .glassEffect(.clear.interactive(), in: .capsule)
@@ -356,6 +356,19 @@ extension View {
     }
 }
 
+/// 底板用哪种玻璃：iPhone 的 regular 本身就很通透；Mac 上同样的 regular 被画成一层磨砂，
+/// 所以 Mac 改用更透的 clear，再叠一点点白（深色模式叠一点黑），字和图标才看得清
+@available(macOS 26.0, iOS 26.0, *)
+private enum TabGlass {
+    static func base(_ scheme: ColorScheme) -> Glass {
+        #if os(macOS)
+        return .clear.tint(scheme == .dark ? Color.black.opacity(0.28) : Color.white.opacity(0.32))
+        #else
+        return .regular
+        #endif
+    }
+}
+
 /// 底部菜单栏的尺寸：Mac 窗口宽，矮一点；iPhone 上和系统的悬浮菜单栏差不多高（不然又宽又矮，看着被压扁），图标也大一号
 private enum TabSize {
     #if os(macOS)
@@ -400,7 +413,8 @@ struct GlassFab: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.tint(Pal(dark: scheme == .dark).accent).interactive(), in: .circle)
+        .background(Circle().fill(Pal(dark: scheme == .dark).accent)) // 实心的主色底：窗口不在最前面时系统会把玻璃的颜色去掉，这层不会
+        .glassEffect(.clear.interactive(), in: .circle)
         .macGlassFinish(Circle())
         .padding(10)
         #else

@@ -23,7 +23,7 @@ struct MonthView: View {
     #else
     // iPhone：和网页版的 Scriptable 小组件同一套尺寸（字小一号、细，色条矮），手机上看着清爽不挤
     private static let headH: CGFloat = 19, wdH: CGFloat = 12, topPad: CGFloat = 3, sp: CGFloat = 0.5
-    private static let slot: CGFloat = 12.5, chipH: CGFloat = 11.5, dateH: CGFloat = 14.5, cellTop: CGFloat = 1.5
+    private static let slot: CGFloat = 14, chipH: CGFloat = 13, dateH: CGFloat = 15, cellTop: CGFloat = 2.5 // 和 Scriptable 版一样：色条 13、日期行 15
     private static let dateFS: CGFloat = 11, chipFS: CGFloat = 9, wdFS: CGFloat = 8, chipR: CGFloat = 3
     #endif
 
@@ -215,7 +215,7 @@ struct MonthView: View {
                     switch occ[s] {
                     case .event(let e):
                         VStack(alignment: .leading, spacing: 0) {
-                            chip(e, soft: e.done || !inMonth, width: cw - 2, pal: pal, tm: !e.time.isEmpty && !(withTime && timedSlots.contains(s)))
+                            chip(e, soft: e.done || !inMonth, out: !inMonth, width: cw - 2, pal: pal, tm: !e.time.isEmpty && !(withTime && timedSlots.contains(s)))
                             if withTime && timedSlots.contains(s) {
                                 Text(timeText(e, width: cw - 5, h12: d.h12))
                                     .font(.system(size: MonthView.timeFS, weight: .medium))
@@ -262,8 +262,8 @@ struct MonthView: View {
     #endif
 
     /// tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致）
-    private func chip(_ e: CEvent, soft: Bool, width: CGFloat, pal: Pal, tm: Bool = false) -> some View {
-        let (fill, ink) = pal.chip(e, entry.data, soft: soft)
+    private func chip(_ e: CEvent, soft: Bool, out: Bool = false, width: CGFloat, pal: Pal, tm: Bool = false) -> some View {
+        let (fill, ink) = pal.chip(e, entry.data, soft: soft, out: out)
         return Text(e.displayTitle)
             .font(.system(size: MonthView.chipFS, weight: pal.dark ? .medium : MonthView.chipW))
             .strikethrough(e.done)
@@ -285,7 +285,7 @@ struct MonthView: View {
     /// 跨天横条：和格子里的色条同样的颜色、圆角、字号；延续到上一周 / 下一周的一端是平的
     private func bar(_ s: WeekLanes.Seg, wk: [YMD], ym: YMD, cw: CGFloat, pal: Pal) -> some View {
         let out = !(s.a...s.b).contains { wk[$0].m == ym.m }
-        let (fill, ink) = pal.chip(s.e, entry.data, soft: s.e.done || out)
+        let (fill, ink) = pal.chip(s.e, entry.data, soft: s.e.done || out, out: out)
         let x0 = CGFloat(s.a) * (cw + MonthView.sp) + (s.openL ? 0 : 1)
         let x1 = CGFloat(s.b) * (cw + MonthView.sp) + cw - (s.openR ? 0 : 1)
         let y = MonthView.cellTop + MonthView.dateH + 1 + CGFloat(s.slot) * MonthView.slot

@@ -189,9 +189,20 @@ struct Pal {
 
     /// 月历色条：(底色, 字色)。浅色实色 + 白字；深色深色调 + 柔白字；
     /// 已完成和网页 .chip.done 一样：同色淡底（浅色 18%、深色 28%）+ 同色偏灰的字
-    func chip(_ e: CEvent, _ d: CalData, soft: Bool) -> (Color, Color) {
+    func chip(_ e: CEvent, _ d: CalData, soft: Bool, out: Bool = false) -> (Color, Color) {
         let col = base(e, d)
         if glass { return soft ? (.white.opacity(0.08), .white.opacity(0.62)) : (.white.opacity(0.18), .white) }
+        #if os(iOS)
+        // iPhone：和以前的 Scriptable 小组件同一套规则——
+        // 已完成：同色很淡的底（浅色 16%、深色 26%）+ 同色的字（75%，不是别的月份再淡到 45%）；
+        // 别的月份但没完成：照常的实色块，只是整体半透明（浅色 50%、深色 45%），字还是白的 / 柔白的
+        if e.done { return (Color(argb: withAlpha(col, dark ? 0x42 : 0x29)), Color(argb: col).opacity(out ? 0.45 : 0.75)) }
+        if out {
+            if !dark { return (Color(argb: withAlpha(col, 0x80)), .white) }
+            let t: (UInt32, UInt32) = d.calColorOf(e).map { CourseColors.darkTone($0) } ?? (Pal.DARK_FILL[e.priority], Pal.DARK_INK[e.priority])
+            return (Color(argb: withAlpha(t.0, 0x73)), Color(argb: t.1).opacity(0.5))
+        }
+        #endif
         if soft { return (Color(argb: withAlpha(col, dark ? 0x4D : 0x40)), Color(argb: col)) } // 和安卓一样
         if !dark { return (Color(argb: col), .white) }
         if let cc = d.calColorOf(e) { let t = CourseColors.darkTone(cc); return (Color(argb: t.0), Color(argb: t.1)) }
