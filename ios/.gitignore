@@ -1,0 +1,4 @@
+# 由 build.sh 生成，不提交
+CadenceiOS.xcodeproj/
+build/
+Team.xcconfig

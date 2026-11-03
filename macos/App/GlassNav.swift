@@ -1,7 +1,12 @@
 import Combine
 import SwiftUI
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
-/// macOS 26 起，主窗口的导航层用真正的液态玻璃（Apple 的规范：玻璃只用在导航层，内容层保持不透明）：
+/// macOS 26 / iOS 26 起，主窗口的导航层用真正的液态玻璃（Apple 的规范：玻璃只用在导航层，内容层保持不透明），Mac 和 iPhone 共用这一份：
 /// 底部菜单栏、右下角的加号、左侧日历栏都由这里的原生 SwiftUI 画，浮在网页上面，透出下面滚动的日历。
 /// 网页自己的那一份在 Mac 上隐藏；点了什么、切到哪一页，都还是交给网页处理，两边状态保持一致。
 @MainActor
@@ -17,6 +22,8 @@ final class NavModel: ObservableObject {
     @Published var tabs: [Tab] = []
     @Published var page = "cal"
     @Published var fab = true
+    /// 网页有面板、确认框盖在上面（iPhone 的面板从底部弹出，玻璃菜单栏和加号先让开）
+    @Published var cover = false
     @Published var drawer: Drawer?
     @Published var drawerOpen = false
     /// 日历栏被左右拉动的距离：负 = 往回推（收起），正 = 往外拉（果冻一样变宽）
@@ -35,11 +42,12 @@ final class NavModel: ObservableObject {
 
     /// 网页每次切页、菜单栏有变化时发来：{tabs, page, fab, holes}
     func update(_ json: String) {
-        struct State: Decodable { let tabs: [Tab]; let page: String; let fab: Bool; let holes: [[Double]]? }
+        struct State: Decodable { let tabs: [Tab]; let page: String; let fab: Bool; let holes: [[Double]]?; let cover: Bool? }
         guard let d = json.data(using: .utf8), let s = try? JSONDecoder().decode(State.self, from: d) else { return }
         if s.tabs.map(\.id) != tabs.map(\.id) || s.tabs.map(\.label) != tabs.map(\.label) || s.tabs.map(\.hidden) != tabs.map(\.hidden) { tabs = s.tabs }
         if page != s.page { page = s.page }
         if fab != s.fab { fab = s.fab }
+        if cover != (s.cover ?? false) { withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { cover = s.cover ?? false } }
         if let h = s.holes { onDragHoles(h.compactMap { $0.count == 4 ? CGRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) : nil }) }
     }
 
@@ -63,6 +71,7 @@ final class NavModel: ObservableObject {
         drawerOpen = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in if self?.drawerOpen == false { self?.drawerPull = 0 } }
     }
+    #if os(macOS)
     /// 日历栏打开时，窗口里的触控板滚动事件先到这里：左右划就拉动日历栏（往左划收起、往右划果冻拉长），
     /// 上下划不管、照常滚动列表。返回 true = 这个事件用掉了
     func drawerScroll(_ e: NSEvent) -> Bool {
@@ -81,6 +90,7 @@ final class NavModel: ObservableObject {
         drawerPull += e.isDirectionInvertedFromDevice ? e.scrollingDeltaX : -e.scrollingDeltaX
         return true
     }
+    #endif
 
     /// 松手：往回推得够多（或甩得够快）就收起，否则带回弹落回原位
     func releaseDrawer(predicted: CGFloat) {
@@ -153,7 +163,7 @@ private extension Color {
 func rubber(_ x: CGFloat, _ d: CGFloat) -> CGFloat { (1 - 1 / (x * 0.55 / d + 1)) * d }
 
 /// 水滴透镜（GlassLens.metal）的参数跟着弹簧动画逐帧变化，和上面的玻璃气泡对齐
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 struct LensEffect: ViewModifier, Animatable {
     var cx: CGFloat, w: CGFloat, h: CGFloat, k: CGFloat
     let cy: CGFloat
@@ -167,6 +177,27 @@ struct LensEffect: ViewModifier, Animatable {
     }
 }
 
+/// 拖动气泡经过一格时轻轻震一下（Mac 是触控板，iPhone 是 Taptic Engine）
+@MainActor func navTick() {
+    #if os(macOS)
+    NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+    #else
+    UISelectionFeedbackGenerator().selectionChanged()
+    #endif
+}
+
+extension View {
+    /// Esc 关掉（只有 Mac 有键盘的「退出」命令）
+    @ViewBuilder func onEscape(_ f: @escaping () -> Void) -> some View {
+        #if os(macOS)
+        onExitCommand(perform: f)
+        #else
+        self
+        #endif
+    }
+}
+
+#if os(macOS)
 /// 显示出来时，自己范围内的点击全部接住，不漏给后面的网页
 class SolidHostingView<Content: View>: NSHostingView<Content> {
     override func hitTest(_ point: NSPoint) -> NSView? {
@@ -180,10 +211,11 @@ class SolidHostingView<Content: View>: NSHostingView<Content> {
 final class DrawerHostingView<Content: View>: SolidHostingView<Content> {
     weak var nav: NavModel?
 }
+#endif
 
 /// 底部菜单栏：一整条胶囊形的玻璃。点一下切页；按住左右拖，选中块浮起成一块玻璃透镜跟手走，
 /// 越快拉得越长越扁、顶到两端被压扁并把整条菜单轻轻拽过去，经过的图标被放大；松手带一点回弹落到格子里（和网页原来的手感一样）
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 struct GlassTabBar: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
@@ -260,7 +292,7 @@ struct GlassTabBar: View {
                         dragX = clamped; vel = v.velocity.width; wall = over == 0 ? 0 : (over < 0 ? -1 : 1) * rubber(abs(over), 40)
                     }
                     let ti = min(n - 1, max(0, Int((clamped - pad) / w)))
-                    if hover != tabs[ti].page { hover = tabs[ti].page; NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now) }
+                    if hover != tabs[ti].page { hover = tabs[ti].page; navTick() }
                 }
                 .onEnded { v in
                     down = nil
@@ -282,27 +314,38 @@ struct GlassTabBar: View {
     }
 }
 
+/// 加号的大小：iPhone 上系统的玻璃按钮本身就有内边距，图形小一号，整体约 56pt（和系统的浮动按钮一样大）
+private enum FabSize {
+    #if os(macOS)
+    static let icon: CGFloat = 22, side: CGFloat = 44
+    static let control = ControlSize.large
+    #else
+    static let icon: CGFloat = 20, side: CGFloat = 36
+    static let control = ControlSize.regular
+    #endif
+}
+
 /// 右下角的加号：带主色的圆形玻璃
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 struct GlassFab: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         Button { m.add() } label: {
-            Image(systemName: "plus").font(.system(size: 22, weight: .semibold))
-                .frame(width: 44, height: 44)
+            Image(systemName: "plus").font(.system(size: FabSize.icon, weight: .semibold))
+                .frame(width: FabSize.side, height: FabSize.side)
         }
         .buttonStyle(.glassProminent) // Apple 的主操作按钮样式：带主色的玻璃
         .buttonBorderShape(.circle)
         .tint(Pal(dark: scheme == .dark).accent)
-        .controlSize(.large)
+        .controlSize(FabSize.control)
         .padding(10)
     }
 }
 
 /// 弹出菜单：网页的「年 / 月 / 周视图」「四象限 / 课表」等菜单，用原生玻璃画，从按钮处像果冻一样弹出来
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 struct GlassMenu: View {
     @ObservedObject var m: NavModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -347,13 +390,13 @@ struct GlassMenu: View {
             .frame(width: g.size.width, height: g.size.height, alignment: .topLeading)
         }
         .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.62), value: m.menu?.id) // 果冻：带一点过冲
-        .onExitCommand { m.pickMenu(-1) }
+        .onEscape { m.pickMenu(-1) }
     }
 }
 
 /// 左侧日历栏：浮在日历上的一张玻璃卡片，和网页的日历栏同样的分组和操作。
 /// 弹出时带一点回弹；往右拉会像果冻一样被拉长，往左推可以收起（和网页原来的手感一样）
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 struct GlassDrawer: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
@@ -363,6 +406,9 @@ struct GlassDrawer: View {
         ZStack(alignment: .leading) {
             if m.drawerOpen, let d = m.drawer {
                 Color.black.opacity(scheme == .dark ? 0.32 : 0.14)
+                    #if os(iOS)
+                    .ignoresSafeArea() // iPhone：遮罩也盖住状态栏和 Home 条那一条
+                    #endif
                     .contentShape(Rectangle())
                     .onTapGesture { m.closeDrawer() }
                     .transition(.opacity)
@@ -380,7 +426,7 @@ struct GlassDrawer: View {
             .onChanged { m.drawerPull = $0.translation.width }
             .onEnded { m.releaseDrawer(predicted: $0.predictedEndTranslation.width) })
         .animation(reduceMotion ? nil : .spring(response: 0.46, dampingFraction: 0.72), value: m.drawerOpen) // 弹出带一点回弹
-        .onExitCommand { m.closeDrawer() }
+        .onEscape { m.closeDrawer() }
     }
 
     private func panel(_ d: NavModel.Drawer, width: CGFloat) -> some View {
@@ -420,7 +466,9 @@ struct GlassDrawer: View {
         .frame(maxHeight: .infinity)
         .glassEffect(.regular, in: .rect(cornerRadius: 26))
         .padding(10)
+        #if os(macOS)
         .padding(.top, 26) // 让开窗口左上角的红黄绿按钮
+        #endif
     }
 
     private func section(_ t: String) -> some View {
@@ -466,7 +514,9 @@ struct GlassDrawer: View {
                         }
                     }
                 } label: { Image(systemName: "ellipsis").frame(width: 24, height: 24) }
+                #if os(macOS)
                 .menuStyle(.button)
+                #endif
                 .menuIndicator(.hidden)
                 .buttonStyle(.borderless)
                 .fixedSize()

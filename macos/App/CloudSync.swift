@@ -1,7 +1,12 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+import UniformTypeIdentifiers
+#endif
 
 /// iCloud 云盘同步（免费，只要登录了 Apple ID，不需要 GitHub 或网盘账号）：
-/// 用户在 iCloud 云盘里选一个文件夹，几台 Mac 选同一个文件夹，就读写同一个 cadence-calendar.json。
+/// 用户在 iCloud 云盘里选一个文件夹，每台 Mac / iPhone 选同一个文件夹，就读写同一个 cadence-calendar.json。
 /// 合并由网页的同步逻辑负责（和 GitHub、WebDAV 一样）；这里只负责选文件夹、读、写这个文件。
 /// 读写都经过 NSFileCoordinator，和 iCloud 自己的同步互相让开；文件还没从 iCloud 下载下来时只报「稍后再试」，
 /// 绝不拿本机数据去覆盖（不然另一台 Mac 的数据会被冲掉）。
@@ -18,6 +23,27 @@ final class CloudSync {
 
     var enabled: Bool { folder != nil }
 
+    // 记住选的文件夹：Mac 在沙盒里要带安全范围的书签；iPhone 用普通书签（系统选择器给的地址自带访问权限）
+    #if os(macOS)
+    private static let bmCreate: URL.BookmarkCreationOptions = .withSecurityScope
+    private static let bmResolve: URL.BookmarkResolutionOptions = .withSecurityScope
+    #else
+    private static let bmCreate: URL.BookmarkCreationOptions = []
+    private static let bmResolve: URL.BookmarkResolutionOptions = []
+    #endif
+
+    private func use(_ u: URL) -> JObj {
+        do {
+            let bm = try u.bookmarkData(options: CloudSync.bmCreate, includingResourceValuesForKeys: nil, relativeTo: nil)
+            UserDefaults.standard.set(bm, forKey: key)
+            folder = u
+            return ["ok": true, "name": u.lastPathComponent]
+        } catch {
+            return ["ok": false, "error": error.localizedDescription]
+        }
+    }
+
+    #if os(macOS)
     /// 选文件夹（默认打开 iCloud 云盘）；返回 {ok, name}
     func choose() -> JObj {
         let p = NSOpenPanel()
@@ -33,15 +59,26 @@ final class CloudSync {
         }
         NSApp.activate(ignoringOtherApps: true)
         guard p.runModal() == .OK, let u = p.url else { return ["ok": false] }
-        do {
-            let bm = try u.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-            UserDefaults.standard.set(bm, forKey: key)
-            folder = u
-            return ["ok": true, "name": u.lastPathComponent]
-        } catch {
-            return ["ok": false, "error": error.localizedDescription]
-        }
+        return use(u)
     }
+    #else
+    /// iPhone：系统的「选择文件夹」（在「文件」里选 iCloud 云盘里的文件夹），选好后回调 {ok, name}
+    func choose(_ done: @escaping (JObj) -> Void) {
+        let p = UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
+        let d = PickerDelegate { [weak self] u in
+            guard let self, let u else { done(["ok": false]); return }
+            let ok = u.startAccessingSecurityScopedResource() // 第一次选好时拿到访问权，记成书签以后一直能用
+            defer { if ok { u.stopAccessingSecurityScopedResource() } }
+            done(self.use(u))
+        }
+        p.delegate = d
+        objc_setAssociatedObject(p, &PickerDelegate.key, d, .OBJC_ASSOCIATION_RETAIN) // 选择器关掉前一直留着
+        guard let top = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow }).first?.rootViewController else { done(["ok": false]); return }
+        var vc = top
+        while let n = vc.presentedViewController { vc = n }
+        vc.present(p, animated: true)
+    }
+    #endif
 
     func stop() {
         UserDefaults.standard.removeObject(forKey: key)
@@ -140,10 +177,21 @@ final class CloudSync {
     private func resolve() {
         guard let bm = UserDefaults.standard.data(forKey: key) else { return }
         var stale = false
-        guard let u = try? URL(resolvingBookmarkData: bm, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &stale) else { return }
+        guard let u = try? URL(resolvingBookmarkData: bm, options: CloudSync.bmResolve, relativeTo: nil, bookmarkDataIsStale: &stale) else { return }
         folder = u
-        if stale, let fresh = try? u.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
+        if stale, let fresh = try? u.bookmarkData(options: CloudSync.bmCreate, includingResourceValuesForKeys: nil, relativeTo: nil) {
             UserDefaults.standard.set(fresh, forKey: key)
         }
     }
 }
+
+#if os(iOS)
+/// 文件夹选择器的回调（UIKit 只弱引用 delegate，所以挂在选择器身上）
+private final class PickerDelegate: NSObject, UIDocumentPickerDelegate {
+    nonisolated(unsafe) static var key = 0
+    let done: (URL?) -> Void
+    init(_ done: @escaping (URL?) -> Void) { self.done = done }
+    func documentPicker(_ c: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) { done(urls.first) }
+    func documentPickerWasCancelled(_ c: UIDocumentPickerViewController) { done(nil) }
+}
+#endif

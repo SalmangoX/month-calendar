@@ -1,12 +1,16 @@
+#if os(macOS)
 import AppKit
+import ServiceManagement
+#else
+import UIKit
+#endif
 import Combine
 import Security
-import ServiceManagement
 import UserNotifications
 import WidgetKit
 
 /// 提醒与刷新的核心（对应安卓 Engine）：数据变化、同步、换日、唤醒时，
-/// 重新预约系统通知（App 退出后也照样准时弹出），并刷新桌面小组件。
+/// 重新预约系统通知（App 退出后也照样准时弹出），并刷新桌面小组件。Mac 版和 iPhone 版共用这一份。
 @MainActor
 final class Engine: ObservableObject {
     static let shared = Engine()
@@ -32,22 +36,37 @@ final class Engine: ObservableObject {
 
     func start() {
         applyTheme(prefs.string(forKey: "theme") ?? "auto")
+        #if os(macOS)
         Backup.shared.save(json)
+        #endif
         timer = Timer.scheduledTimer(withTimeInterval: 15 * 60, repeats: true) { _ in
             Task { @MainActor in await Engine.shared.pull() }
         }
-        let nc = NotificationCenter.default, ws = NSWorkspace.shared.notificationCenter
+        let nc = NotificationCenter.default
         observers.append(nc.addObserver(forName: .NSCalendarDayChanged, object: nil, queue: .main) { _ in
             Task { @MainActor in Engine.shared.dayChanged() }
         })
         observers.append(nc.addObserver(forName: .NSSystemTimeZoneDidChange, object: nil, queue: .main) { _ in
             Task { @MainActor in Engine.shared.dayChanged() }
         })
-        observers.append(ws.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
+        #if os(macOS)
+        observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
             Task { @MainActor in Engine.shared.dayChanged(); await Engine.shared.pull() }
         })
-        observers.append(nc.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
-            Task { @MainActor in await Engine.shared.refreshNotifStatus() }
+        let active = NSApplication.didBecomeActiveNotification
+        #else
+        let active = UIApplication.didBecomeActiveNotification // iPhone 回到前台：和 Mac 睡醒一样，换日、拉取一次
+        observers.append(nc.addObserver(forName: UIApplication.significantTimeChangeNotification, object: nil, queue: .main) { _ in
+            Task { @MainActor in Engine.shared.dayChanged() }
+        })
+        #endif
+        observers.append(nc.addObserver(forName: active, object: nil, queue: .main) { _ in
+            Task { @MainActor in
+                await Engine.shared.refreshNotifStatus()
+                #if os(iOS)
+                Engine.shared.dayChanged(); await Engine.shared.pull()
+                #endif
+            }
         })
         Task {
             await refreshNotifStatus()
@@ -71,7 +90,9 @@ final class Engine: ObservableObject {
         guard out != json else { return }
         json = out
         Shared.writeJSON(out)
+        #if os(macOS)
         Backup.shared.save(out)
+        #endif
         data = CalData.parse(out)
         Task { await refresh() }
     }
@@ -119,7 +140,12 @@ final class Engine: ObservableObject {
     }
 
     func applyTheme(_ t: String) {
+        #if os(macOS)
         NSApp.appearance = t == "light" ? NSAppearance(named: .aqua) : t == "dark" ? NSAppearance(named: .darkAqua) : nil
+        #else
+        let style: UIUserInterfaceStyle = t == "light" ? .light : t == "dark" ? .dark : .unspecified
+        for case let s as UIWindowScene in UIApplication.shared.connectedScenes { s.windows.forEach { $0.overrideUserInterfaceStyle = style } }
+        #endif
     }
 
     func refresh() async {
@@ -157,8 +183,12 @@ final class Engine: ObservableObject {
     }
 
     func openNotificationSettings() {
+        #if os(macOS)
         let id = Bundle.main.bundleIdentifier ?? ""
         if let u = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=" + id) { NSWorkspace.shared.open(u) }
+        #else
+        if let u = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(u) }
+        #endif
     }
 
     private func bodyFor(_ e: CEvent) -> String {
@@ -272,6 +302,7 @@ final class Engine: ObservableObject {
          "pullErr": prefs.string(forKey: "pullErr") ?? ""]
     }
 
+    #if os(macOS)
     // ---------- 开机启动 ----------
     var launchAtLogin: Bool {
         get { SMAppService.mainApp.status == .enabled }
@@ -280,6 +311,7 @@ final class Engine: ObservableObject {
             objectWillChange.send()
         }
     }
+    #endif
 }
 
 /// 只读地从 WebDAV（坚果云等）拉取数据（写入仍由网页负责），文件位置和网页一致：<地址>/Cadence/cadence-calendar.json

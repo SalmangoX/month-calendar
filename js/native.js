@@ -24,11 +24,12 @@
     info,
     platform,
     mac: platform === 'mac',
+    ios: platform === 'ios',
     has: f => feats.has(f),
     outdated: (info.bridge || 0) < NEED_BRIDGE,
     repo: info.repo || '',
   });
-  document.documentElement.classList.add(platform === 'mac' ? 'in-mac' : 'in-android');
+  document.documentElement.classList.add(platform === 'mac' ? 'in-mac' : platform === 'ios' ? 'in-ios' : 'in-android');
 
   const call = (name, ...args) => {
     try { return typeof N[name] === 'function' ? N[name](...args) : undefined; } catch (e) { return undefined; }

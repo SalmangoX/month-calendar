@@ -660,6 +660,7 @@
     const on = Push.enabled();
     if (Push.native) {
       if (!on) return MC.settings.notify && Push.permission() === 'denied' ? '通知权限被关闭了，点「提醒权限检查」重新打开。' : '设置了提醒的事件会到点通知你，App 关着、断网也会准时提醒。';
+      if (MC.Native.ios || MC.Native.mac) return '保存时就按提醒时间交给系统排好，App 关着、断网也会准时提醒。';
       return '由手机系统在本机准时提醒，App 关着、断网也会响。三星手机请在「提醒权限检查」里把各项都设成 ✓。';
     }
     if (!Push.supported()) return '这个浏览器不支持通知。';
@@ -675,21 +676,25 @@
   }
   // 「让提醒准时」（cron-job.org 每 5 分钟叫醒定时任务）也是按账号设置一次：最近 30 分钟里有被叫醒的运行，
   // 就说明已经在运行，不再显示设置步骤；哪天停了，这一行会自己回来。公开仓库不用令牌就能查，最多一小时查一次
-  let boostChecking = false;
-  async function checkBoost() {
+  let boostChecking = false, boostTok = ''; // boostTok：向导里验证过的叫醒令牌，只留在内存里，用来复制 Authorization
+  // since：向导里点「我设置好了」之后，只认那之后的叫醒（不受一小时只查一次的限制）
+  async function checkBoost(since) {
     const S = MC.settings, repo = (S.remoteSetup && S.remoteSetup.repo) || Push.guessRepo();
-    if (!repo || boostChecking || Date.now() - (S.boostCheckedAt || 0) < (S.boostOn ? 3600e3 : 600e3)) return;
+    if (!repo || (!since && (boostChecking || Date.now() - (S.boostCheckedAt || 0) < (S.boostOn ? 3600e3 : 600e3)))) return false;
     boostChecking = true;
     try {
       const r = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/reminders.yml/runs?event=workflow_dispatch&per_page=1`,
         { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
-      if (!r.ok) return;
+      if (!r.ok) return false;
       const run = ((await r.json()).workflow_runs || [])[0];
-      const on = !!run && Date.now() - Date.parse(run.created_at) < 30 * 60e3;
+      const t = run ? Date.parse(run.created_at) : 0;
+      const on = !!run && Date.now() - t < 30 * 60e3;
+      if (since && t < since) return false;
       const changed = on !== !!S.boostOn;
       S.boostOn = on; S.boostCheckedAt = Date.now(); MC.saveSettings();
       if (changed) renderSettings();
-    } catch (e) {} finally { boostChecking = false; }
+      return on;
+    } catch (e) { return false; } finally { boostChecking = false; }
   }
   function renderSettings() {
     const pf = MC.data.profile;
@@ -757,6 +762,10 @@
         srow({ act: 'macapp', icon: 'laptop', tone: 'sage', label: 'Mac App', sub: '点一下检查更新', val: I.app || '', chev: false }),
         ...(MC.Native.has('makeInstaller') ? [srow({ act: 'macpkg', icon: 'export', tone: 'apricot', label: '生成安装包', sub: '打包成 .dmg 放在桌面，可以直接发给别人', chev: false })] : []),
       ], '改网页不需要重新编译，打开就是最新的；只有原生部分（菜单栏、小组件、提醒）改了才需要在 Mac 上重新运行 macos/build.sh。');
+    } else if (MC.Native.ios) {
+      gWidgets += group('iPhone App', [
+        srow({ icon: 'phone', tone: 'sage', label: 'iPhone App', sub: '在 AltStore / SideStore 里更新', val: MC.Native.info.app || '', chev: false }),
+      ], '改网页不需要更新 App，打开就是最新的；只有原生部分（提醒、玻璃菜单栏）改了才需要装新的安装包。');
     } else if (MC.Native.on) {
       gWidgets += group('桌面小组件', [
         srow({ act: 'pin:month', icon: 'grid', tone: 'periwinkle', label: '整月小组件', sub: '点一下添加到桌面', help: 'nwidget', chev: false }),
@@ -1186,12 +1195,12 @@
         ? `<b style="color:var(--accent-text)">✓ ${yes}</b>`
         : `<b style="color:var(--p3)">${no}</b>　<button class="chip-btn glass" data-copy="nreq:${key}">去设置</button>`;
       const when = st.pullAt ? new Date(st.pullAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-      const mac = MC.Native.mac;
-      const sync = !st.token ? (mac ? '未连接 GitHub（只显示这台 Mac 上的数据）' : '未连接 GitHub（只显示这台手机上的数据）')
+      const mac = MC.Native.mac || MC.Native.ios; // 苹果设备：没有精确闹钟、电池限制这些设置
+      const sync = !st.token ? (MC.Native.mac ? '未连接 GitHub（只显示这台 Mac 上的数据）' : '未连接 GitHub（只显示这台手机上的数据）')
         : st.pullErr ? `<b style="color:var(--p3)">${esc(st.pullErr)}</b>` : `<b style="color:var(--accent-text)">✓ ${when ? '上次 ' + when : '已连接'}</b>`;
       return {
         title: '提醒权限检查',
-        html: `<p class="hint" style="margin:0 2px 14px">${mac ? '提醒由 macOS 按时弹出，退出节律后也会提醒；下面第一项要是 ✓。' : 'App 关着也要准时提醒，下面前三项都要是 ✓。'}</p>
+        html: `<p class="hint" style="margin:0 2px 14px">${mac ? (MC.Native.ios ? '提醒由 iPhone 系统按时弹出，App 关着也会提醒；下面第一项要是 ✓。' : '提醒由 macOS 按时弹出，退出节律后也会提醒；下面第一项要是 ✓。') : 'App 关着也要准时提醒，下面前三项都要是 ✓。'}</p>
         <ol class="steps">
           <li>通知：${ok(st.notif === 'granted', '已允许', '未允许', 'notif')}</li>
           ${mac ? '' : `<li>精确闹钟：${ok(st.exact, '已允许', '未允许', 'exact')}</li>
@@ -1320,26 +1329,40 @@
         : `<p class="hint">请先连接 GitHub 并同步成功一次。</p>`,
       };
     },
+    // 让提醒准时：三步向导。令牌粘贴后当场验证（触发一次提醒，204 就对了），cron-job.org 要填的都有复制按钮，
+    // 最后点「我设置好了」，自动等它第一次叫醒定时任务来确认
     boost: () => {
       const repo = (MC.settings.remoteSetup && MC.settings.remoteSetup.repo) || Push.guessRepo() || '用户名/仓库名';
+      const [owner, name] = repo.split('/');
       const url = `https://api.github.com/repos/${repo}/actions/workflows/reminders.yml/dispatches`;
+      const tokUrl = 'https://github.com/settings/personal-access-tokens/new?' + new URLSearchParams({
+        name: '节律提醒叫醒', description: '给 cron-job.org 用，只能触发节律的提醒程序', target_name: owner || '', expires_in: 'none', actions: 'write' });
+      const ok = !!boostTok;
       return {
         title: '让提醒准时',
-        html: `<p class="hint" style="margin:0 2px 14px">GitHub 自带的定时任务对不活跃的仓库会推迟几个小时。用免费的 cron-job.org 每 5 分钟叫醒一次提醒程序，就能准时（一般延迟 1～2 分钟）。只需设置一次。</p>
+        html: `<p class="hint" style="margin:0 2px 14px">GitHub 自带的定时会晚几个小时。用免费的 cron-job.org 每 5 分钟叫醒一次就准了。三步，只需设置一次。</p>
         <ol class="steps">
-          <li><b>生成一个只能触发提醒的令牌</b>：GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token。Expiration 可选 No expiration；Repository access 选 <b>Only select repositories</b> → 选 <code>${esc(repo.split('/')[1] || repo)}</code>；Permissions → Repository permissions → <b>Actions</b> 设为 <b>Read and write</b>，其他不动 → Generate token，复制。</li>
-          <li>打开 <a href="https://cron-job.org" target="_blank" rel="noopener">cron-job.org</a>，免费注册并登录 → <b>CREATE CRONJOB</b>。</li>
-          <li><b>URL</b> 填：<br><code>${esc(url)}</code></li>
-          <li><b>Execution schedule</b> 选 <b>Every 5 minutes</b>。</li>
-          <li>切到 <b>ADVANCED</b>：Request method 选 <b>POST</b>；Headers 添加两条：<br><code>Authorization</code> = <code>Bearer 你的令牌</code><br><code>Accept</code> = <code>application/vnd.github+json</code><br>Request body 填：<code>{"ref":"main"}</code></li>
-          <li>点 <b>CREATE</b>（可先点 TEST RUN，返回 204 就是成功）。</li>
+          <li><b>生成叫醒令牌</b><br><a class="chip-btn glass" href="${tokUrl}" target="_blank" rel="noopener">去 GitHub 生成</a><br>
+            <small>Repository access 选 Only select repositories →<b> ${esc(name || repo)} </b>，其他都已经填好，拉到底点 Generate token，复制回来：</small>
+            <label class="field" style="margin-top:8px"><input id="bstTok" type="password" placeholder="github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(boostTok)}"></label>
+            <div class="help-copy" style="margin:8px 0 0"><button class="chip-btn glass" data-copy="bstCheck">${ok ? '✓ 令牌可以用' : '检查令牌'}</button></div>
+            <p class="form-err" id="bstMsg" style="margin:6px 0 0"></p></li>
+          <li><b>在 cron-job.org 新建任务</b><br><a class="chip-btn glass" href="https://console.cron-job.org/jobs/create" target="_blank" rel="noopener">打开 cron-job.org</a><small>（第一次要免费注册）</small><br>
+            <small>按顺序复制粘贴：</small>
+            <div class="help-copy" style="margin:8px 0 6px">
+              <button class="chip-btn glass" data-copy="boostUrl">① 复制网址 → URL</button>
+            </div>
+            <small>Execution schedule 选 Every 5 minutes。切到 ADVANCED，Request method 选 POST，Headers 加两条：</small>
+            <div class="help-copy" style="margin:8px 0 6px">
+              <button class="chip-btn glass${ok ? '' : ' disabled'}" data-copy="bstAuth">② Authorization 的值</button>
+              <button class="chip-btn glass" data-copy="boostAccept">③ Accept 的值</button>
+            </div>
+            <small>最后 Request body：</small>
+            <div class="help-copy" style="margin:8px 0 0"><button class="chip-btn glass" data-copy="boostBody">④ 复制 Request body</button></div></li>
+          <li><b>点 CREATE，回到这里：</b><br><div class="help-copy" style="margin:8px 0 0"><button class="chip-btn glass" data-copy="bstDone">我设置好了</button></div>
+            <p class="form-err" id="bstDoneMsg" style="margin:6px 0 0"></p></li>
         </ol>
-        <div class="help-copy">
-          <button class="chip-btn glass" data-copy="boostUrl">复制 URL</button>
-          <button class="chip-btn glass" data-copy="boostAccept">复制 Accept 值</button>
-          <button class="chip-btn glass" data-copy="boostBody">复制 Request body</button>
-        </div>
-        <div class="help-tip">这个令牌只能触发这个仓库的提醒程序，碰不到其他内容，放在 cron-job.org 上也比较安全。设置好后，GitHub 仓库的 Actions 页面会看到每隔约 5 分钟就有一次「节律提醒」的运行记录。</div>`,
+        <div class="help-tip">这个令牌只能触发这个仓库的提醒程序，碰不到其他内容，放在 cron-job.org 上也比较安全。</div>`,
         _url: url,
       };
     },
@@ -1380,7 +1403,28 @@
     }
     else if (k === 'icsSub') { MC.settings.icsSubscribed = true; MC.saveSettings(); setTimeout(renderSettings, 500); return; }
     else if (k === 'icsCopy') copy(MC.icsURL(), '已复制订阅链接');
-    else if (k === 'boostUrl') copy(HELP.boost()._url, '已复制 URL');
+    else if (k === 'boostUrl') copy(HELP.boost()._url, '已复制网址');
+    else if (k === 'bstAuth') boostTok ? copy('Bearer ' + boostTok, '已复制，粘贴到 Authorization 的值') : UI.toast('先完成第 1 步：粘贴并检查令牌');
+    else if (k === 'bstCheck') {
+      const tok = ($('#bstTok').value || '').trim(), msg = $('#bstMsg');
+      if (!tok) { msg.textContent = '先粘贴令牌'; return; }
+      msg.style.color = 'var(--text2)'; msg.textContent = '正在检查…';
+      // 用这个令牌触发一次提醒程序：204 就说明令牌和权限都对（顺便跑一次提醒，没有副作用）
+      const r = await fetch(HELP.boost()._url, { method: 'POST', headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' }, body: JSON.stringify({ ref: 'main' }) }).catch(() => null);
+      if (r && r.status === 204) { boostTok = tok; openHelp('boost'); UI.toast('令牌可以用，接着做第 2 步'); return; }
+      msg.style.color = '';
+      msg.textContent = !r ? '连不上 GitHub，请检查网络' : r.status === 401 ? '令牌不对，请重新复制' : (r.status === 403 || r.status === 404) ? '权限不够：仓库要选对，Actions 要选 Read and write' : `GitHub 返回 ${r.status}`;
+    }
+    else if (k === 'bstDone') {
+      const msg = $('#bstDoneMsg');
+      msg.style.color = 'var(--text2)'; msg.textContent = '正在等 cron-job.org 第一次叫醒（最多 6 分钟，可以先关掉这里）…';
+      const since = Date.now();
+      for (let i = 0; i < 13; i++) {
+        if (await checkBoost(since)) { boostTok = ''; if (UI.isOpen('helpSheet')) UI.close('helpSheet'); UI.toast('设置好了，提醒以后会准时'); renderSettings(); return; }
+        await new Promise(res => setTimeout(res, 30000));
+      }
+      if (msg.isConnected) { msg.style.color = ''; msg.textContent = '6 分钟内没等到叫醒。请在 cron-job.org 点这个任务的 TEST RUN，看是不是返回 204。'; }
+    }
     else if (k === 'boostAccept') copy('application/vnd.github+json', '已复制');
     else if (k === 'boostBody') copy('{"ref":"main"}', '已复制');
     else if (k === 'vapid') copy(MC.settings.vapidPrivate, '已复制通知密钥');
@@ -1592,7 +1636,7 @@
   });
 
   // 安卓 App：提示更新（Mac App 在本机编译，不提示）
-  if (MC.Native.on && !MC.Native.mac) {
+  if (MC.Native.on && !MC.Native.mac && !MC.Native.ios) {
     if (MC.Native.outdated) setTimeout(() => UI.toast('这个版本的安卓 App 太旧了，请到 设置 → 安卓 App 更新'), 2500);
     setTimeout(() => MC.Native.checkUpdate(false).then(up => {
       if (!up || sessionStorage.getItem('mcal.apkTold') === String(up.latest)) return;
