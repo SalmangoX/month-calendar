@@ -1,0 +1,24 @@
+{
+  "name": "节律",
+  "identifier": "io.github.salmangox.cadence.source",
+  "subtitle": "日历、待办、课表、纪念日",
+  "iconURL": "https://cdn.jsdelivr.net/gh/SalmangoX/month-calendar@dist-ios/icon.png",
+  "apps": [{
+    "name": "节律",
+    "bundleIdentifier": "io.github.salmangox.cadence",
+    "developerName": "Salmango",
+    "subtitle": "日历、待办、课表、纪念日",
+    "localizedDescription": "节律 iPhone 版：提醒由 iPhone 系统按时弹出，App 关着、断网也准时；支持 iCloud 云盘、GitHub、WebDAV 同步；导航用液态玻璃。",
+    "iconURL": "https://cdn.jsdelivr.net/gh/SalmangoX/month-calendar@dist-ios/icon.png",
+    "tintColor": "4C6EAC",
+    "versions": [{
+      "version": "1.4.2",
+      "buildVersion": "1",
+      "date": "2026-11-03T14:23:10Z",
+      "downloadURL": "https://cdn.jsdelivr.net/gh/SalmangoX/month-calendar@dist-ios/Cadence.ipa",
+      "size": 1503600,
+      "minOSVersion": "26.0"
+    }]
+  }],
+  "news": []
+}
