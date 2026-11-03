@@ -81,6 +81,11 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         loadTimer = Timer.scheduledTimer(withTimeInterval: 8, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 guard let self, !self.committed, !self.triedMirror else { return }
+                // 只是慢（比如 GitHub 正在发布新版本）就接着等；真的连不上才换镜像
+                var probe = URLRequest(url: self.appURL.appendingPathComponent("version.json"), cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 4)
+                probe.httpMethod = "HEAD"
+                if let (_, r) = try? await URLSession.shared.data(for: probe), (r as? HTTPURLResponse)?.statusCode == 200 { return }
+                guard !self.committed else { return }
                 self.web.stopLoading()
                 self.failed(NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut))
             }
@@ -104,6 +109,11 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             if let (vd, _) = try? await URLSession.shared.data(from: URL(string: base + "version.json")!),
                let o = (try? JSONSerialization.jsonObject(with: vd)) as? [String: Any], let v = o["version"] as? String { ver = v }
             html = html.replacingOccurrences(of: "<head>", with: "<head><script>window.__mcMirrorVersion=\(jsQuote(ver));</script>", options: [], range: html.range(of: "<head>"))
+            // 脚本和样式每次都带上新的版本参数：不让网页视图用本机缓存里的旧脚本（新旧混在一起会白屏）
+            let stamp = "\(ver)-\(Int(Date().timeIntervalSince1970))"
+            if let vre = try? NSRegularExpression(pattern: "\\?v=[^\"']*") {
+                html = vre.stringByReplacingMatches(in: html, range: NSRange(html.startIndex..., in: html), withTemplate: "?v=\(stamp)")
+            }
             // 相对地址的 src / href（js、css、图标）改成镜像上的地址
             let re = try! NSRegularExpression(pattern: "(src|href)=\"(?!https?:|data:|#|mailto:|/)([^\"]+)\"")
             html = re.stringByReplacingMatches(in: html, range: NSRange(html.startIndex..., in: html), withTemplate: "$1=\"\(base)$2\"")
