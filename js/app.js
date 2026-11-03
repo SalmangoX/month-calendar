@@ -619,8 +619,9 @@
     heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   };
   const CHEV = '<span class="chev"><svg viewBox="0 0 8 13"><path d="M1.5 1.5l5 5-5 5"/></svg></span>';
-  // 设置图标：和 Apple「设置」一样，系统色的实色圆角方块 + 白色图形（[浅色, 深色]，取自 iOS / macOS 的系统颜色）
-  const SET_TONES = { rose: ['#FF2D55', '#FF375F'], coral: ['#FF3B30', '#FF453A'], apricot: ['#FF9500', '#FF9F0A'], sage: ['#34C759', '#30D158'], jade: ['#00C7BE', '#00C7BE'], teal: ['#30B0C7', '#40C8E0'], sky: ['#007AFF', '#0A84FF'], periwinkle: ['#5856D6', '#5E5CE6'], lavender: ['#AF52DE', '#BF5AF2'], orchid: ['#C94FC0', '#D35FCB'] };
+  // 设置图标的颜色（参考 Things 3、Linear 这类讲究质感的 App）：底块是中性的，图标本身上色；
+  // 各色明度相同、彩度很低，能靠颜色分辨又不抢眼。[浅色, 深色]
+  const SET_TONES = { rose: ['#B35A6B', '#E6A3AF'], coral: ['#B4614E', '#E8AA96'], apricot: ['#A8742F', '#E2BD8C'], sage: ['#4F8A5B', '#A6CFAC'], jade: ['#2E8C7E', '#92D0C4'], teal: ['#2F8796', '#8FCAD6'], sky: ['#3B7DB5', '#9EC4EA'], periwinkle: ['#5A6FC0', '#AAB7EF'], lavender: ['#7D66BD', '#C2B3EE'], orchid: ['#9A5FA6', '#D8AAE0'] };
   const DT = s => (MC.Days ? MC.Days.T(s) : s); // 纪念日历（js/days.js）的文字
   function srow(o) {
     const sub = o.sub ? `<small>${esc(o.sub)}</small>` : '';

@@ -376,12 +376,12 @@ svg.filled { fill: currentColor; stroke: none; }
 .srow + .srow::before { content: ""; position: absolute; top: 0; left: 55px; right: 0; height: .5px; background: var(--group-line); }
 button.srow:active, .srow.tap:active { background: var(--field); }
 .sicon {
-  /* 设置图标：和 Apple「设置」一样，系统色的实色圆角方块 + 白色图形，每一项一种颜色，颜色由 app.js 的 SET_TONES 给出 */
+  /* 设置图标：中性的底块 + 低彩度的彩色线条图标（颜色由 app.js 的 SET_TONES 给出），能分辨又不抢眼 */
   --ic: var(--icl, var(--accent));
-  flex: none; width: 29px; height: 29px; border-radius: 7px; display: grid; place-items: center;
-  color: #fff; background: var(--ic);
+  flex: none; width: 29px; height: 29px; border-radius: 8px; display: grid; place-items: center;
+  color: var(--ic); background: rgba(20, 24, 32, .05); box-shadow: inset 0 0 0 .5px rgba(20, 24, 32, .06);
 }
-:root[data-theme="dark"] .sicon { --ic: var(--icd, var(--accent)); }
+:root[data-theme="dark"] .sicon { --ic: var(--icd, var(--accent)); background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .06); }
 .sicon svg { width: 17px; height: 17px; stroke-width: 2.1; }
 .slabel { flex: 1; min-width: 0; }
 .slabel small { display: block; font-size: 12px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

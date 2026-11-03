@@ -144,44 +144,44 @@ struct GlassTabBar: View {
             let speed = min(1, abs(vel) / 2400), sq = min(1, abs(wall) / 40)
             let sx = (1 + speed * 0.34) * (1 - sq * 0.17) * (lifted ? 1.07 : 1)
             let sy = (1 - speed * 0.2) * (1 + sq * 0.1) * (lifted ? 1.13 : 1)
-            // Apple 标签栏的做法：图标是底板玻璃的内容（清楚地画在玻璃上面）；按住拖动时浮起一块 Clear 玻璃气泡，
-            // 和底板在同一组里（靠近时融在一起），气泡里是放大的图标，边缘是真正的液态玻璃折射
-            let tabView = { (t: NavModel.Tab, on: Bool) in
-                VStack(spacing: 3) {
-                    Image(systemName: NavModel.icon(t.page)).font(.system(size: 17, weight: on ? .semibold : .regular)).frame(height: 21)
-                    Text(t.label).font(.system(size: 10.5, weight: on ? .semibold : .medium)).lineLimit(1)
-                }
-                .foregroundStyle(on ? accent : Color.primary.opacity(0.82))
-            }
-            GlassEffectContainer(spacing: 18) {
+            // 底板和拖动的气泡都是系统真正的液态玻璃，放在同一个玻璃组里并列（融合、折射、边缘色散都由系统处理）；
+            // 图标画在整组玻璃的上面，不放在任何一块玻璃里，所以不会被糊住；气泡经过时把附近的图标放大，像透镜
+            let W = g.size.width, H = g.size.height
+            GlassEffectContainer(spacing: 16) {
                 ZStack(alignment: .leading) {
-                    HStack(spacing: 0) {
-                        ForEach(Array(tabs.enumerated()), id: \.element.id) { i, t in
-                            tabView(t, !lifted && m.page == t.page)
-                                .frame(width: w, height: h)
-                                .opacity(lifted && abs(pad + w * CGFloat(i) + w / 2 - cx) < w * 0.5 ? 0.25 : 1) // 被气泡盖住的那个淡一点
-                                .accessibilityElement(children: .combine)
-                                .accessibilityAddTraits(m.page == t.page ? [.isButton, .isSelected] : .isButton)
-                                .accessibilityAction { m.go(t.page) }
-                        }
-                    }
-                    .padding(.horizontal, pad)
-                    .frame(width: g.size.width, height: g.size.height)
-                    .background(alignment: .leading) {
-                        if !lifted { Capsule().fill(Color.primary.opacity(0.09)).frame(width: w, height: h).offset(x: cx - w / 2) }
-                    }
-                    .glassEffect(.regular, in: .capsule)
-                    if lifted, let t = tabs.first(where: { $0.page == hover }) ?? tabs.first(where: { $0.page == m.page }) {
-                        tabView(t, true)
-                            .scaleEffect(1.12)
+                    Capsule().fill(Color.clear).frame(width: W, height: H).glassEffect(.regular, in: .capsule)
+                    if lifted {
+                        Capsule().fill(Color.clear)
                             .frame(width: w, height: h)
                             .glassEffect(.clear.interactive(), in: .capsule)
                             .scaleEffect(x: sx, y: sy, anchor: wall < -0.5 ? .leading : wall > 0.5 ? .trailing : .center)
                             .offset(x: cx - w / 2)
-                            .allowsHitTesting(false)
-                            .transition(.scale(scale: 0.8).combined(with: .opacity))
+                            .transition(.scale(scale: 0.7).combined(with: .opacity))
                     }
                 }
+            }
+            .overlay(alignment: .leading) {
+                if !lifted { Capsule().fill(Color.primary.opacity(0.09)).frame(width: w, height: h).offset(x: cx - w / 2).allowsHitTesting(false) }
+            }
+            .overlay {
+                HStack(spacing: 0) {
+                    ForEach(Array(tabs.enumerated()), id: \.element.id) { i, t in
+                        let on = (lifted ? (hover ?? m.page) : m.page) == t.page
+                        let d = abs(pad + w * CGFloat(i) + w / 2 - cx) / max(w, 1)
+                        VStack(spacing: 3) {
+                            Image(systemName: NavModel.icon(t.page)).font(.system(size: 17, weight: on ? .semibold : .regular)).frame(height: 21)
+                            Text(t.label).font(.system(size: 10.5, weight: on ? .semibold : .medium)).lineLimit(1)
+                        }
+                        .foregroundStyle(on ? accent : Color.primary.opacity(0.82))
+                        .frame(width: w, height: h)
+                        .scaleEffect(lifted ? 1 + 0.14 * max(0, 1 - d) : 1)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(m.page == t.page ? [.isButton, .isSelected] : .isButton)
+                        .accessibilityAction { m.go(t.page) }
+                    }
+                }
+                .padding(.horizontal, pad)
+                .allowsHitTesting(false)
             }
             .frame(width: g.size.width, height: g.size.height)
             .contentShape(Capsule())
