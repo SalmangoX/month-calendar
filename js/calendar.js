@@ -313,6 +313,16 @@
     if (row >= shown) shiftRows(row - shown + 1);
     else if (row < 0) shiftRows(row);
   }
+  // 新建事件的面板只盖住下半屏：那一周会被挡住（或不在屏幕上）时，滚到最上面一行
+  Cal.revealWeek = (ds, limitY) => {
+    if (view !== 'month' || !rowH) return;
+    const top = MC.addDays(anchor, 7 * Math.round(scrollY / rowH));
+    const off = scrollY - Math.round(scrollY / rowH) * rowH;
+    const row = Math.round((MC.weekStartOf(MC.parse(ds)) - top) / (7 * 864e5));
+    const y = vp.getBoundingClientRect().top + row * rowH - off;
+    if (row >= 0 && y + rowH <= limitY) return;
+    shiftRows(row);
+  };
   function shiftRows(n) {
     recenter(1);
     const target = Math.max(-(BUF - 1), Math.min(BUF - 1, Math.round(scrollY / rowH) + n));

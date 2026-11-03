@@ -215,7 +215,7 @@
       if (pinDate && date) draft.date = date;
       $('#cmpTitle').value = saved.title || ''; $('#cmpNote').value = saved.note || '';
     } else { $('#cmpTitle').value = ''; $('#cmpNote').value = ''; }
-    $('#cmpHeading').textContent = saved ? '继续编辑草稿' : newHeading();
+    $('#cmpHeading').textContent = saved ? '草稿' : newHeading();
     $('#cmpClear').hidden = !saved;
     $('#cmpSave').textContent = '添加';
     $('#cmpEditBar').hidden = true;
@@ -224,6 +224,7 @@
     otherOpen = false; renderOther();
     growTitle(); paintComposer(); mountInline(); openMid();
     UI.open('composer', onComposerClosed);
+    revealAbove($('#composer'), draft.date);
     // 新建时不自动聚焦名称：手机上会马上弹出键盘、挡住半个面板。电脑上（有实体键盘、没有屏幕键盘）照常把光标放进名称
     if (matchMedia('(pointer: fine)').matches && !matchMedia('(pointer: coarse)').matches) { const ti = $('#cmpTitle'); ti.focus({ preventScroll: true }); try { ti.setSelectionRange(ti.value.length, ti.value.length); } catch (e) {} }
   };
@@ -356,7 +357,13 @@
   // 手机上新建 / 编辑事件先开到半屏，拉上面那一条才铺满；电脑上照旧
   function openMid() {
     const c = $('#composer'), touch = matchMedia('(pointer: coarse)').matches;
-    c.classList.remove('full'); c.classList.toggle('mid', touch); $('#composer .cmp-scroll').scrollTop = 0;
+    c.classList.toggle('mid', touch); UI.setDetent(c, null); $('#composer .cmp-scroll').scrollTop = 0;
+  }
+  // 手机上打开后：日历里这一周（新建的那天所在的周）如果会被面板挡住，就滚到面板上面看得见的地方
+  function revealAbove(sheet, ds) {
+    if (!sheet.classList.contains('mid') || document.body.dataset.page !== 'cal' || !MC.Cal.revealWeek) return;
+    const P = sheet.parentElement.getBoundingClientRect(), f = parseFloat(getComputedStyle(sheet).getPropertyValue('--sh-def')) || .56;
+    MC.Cal.revealWeek(ds || MC.todayStr(), P.bottom - P.height * f - 8);
   }
   function mountInline() {
     inlineCtx.host = $('#cmpPkBody'); inlineCtx.tabs = $('#cmpPkTabs');
@@ -828,11 +835,12 @@
     // 从单个切过来：在同一个位置原地换内容（同样的高度，淡入淡出），不是再盖一层面板上来
     const c = $('#composer'), b = $('#batchSheet');
     if (UI.isOpen('composer')) {
-      b.classList.remove('mid', 'full');
-      if (c.classList.contains('mid')) b.classList.add('mid'); else if (c.classList.contains('full')) b.classList.add('full');
+      // 同样的高度：自己拉过就保持那一档；没拉过就用批量自己的默认那档（比单个高一点）
+      b.classList.toggle('mid', c.classList.contains('mid')); UI.setDetent(b, null);
+      if (UI.getDetent(c)) b.style.setProperty('--sh', UI.getDetent(c));
       localStorage.removeItem(DRAFT_KEY); // 名称、备注已经带进第一张卡片
       swapSheets(() => { closeComposer(false); UI.open('batchSheet'); });
-    } else { b.classList.toggle('mid', matchMedia('(pointer: coarse)').matches); b.classList.remove('full'); UI.open('batchSheet'); }
+    } else { b.classList.toggle('mid', matchMedia('(pointer: coarse)').matches); UI.setDetent(b, null); UI.open('batchSheet'); revealAbove(b, draft.date); }
   }
   // 两个添加面板之间切换：先关掉动画，直接淡入淡出
   function swapSheets(fn) {
@@ -842,12 +850,12 @@
     setTimeout(() => both.forEach(x => x.classList.remove('swap')), 260);
   }
   $('#batchSingle').onclick = () => {
-    const b = $('#batchSheet'), size = b.classList.contains('full') ? 'full' : b.classList.contains('mid') ? 'mid' : '';
+    const b = $('#batchSheet'), size = UI.getDetent(b);
     saveBatchDraft();
     swapSheets(() => {
       UI.close('batchSheet', true);
       Editor.openNew(draft.date, newCal);
-      const c = $('#composer'); c.classList.remove('mid', 'full'); if (size) c.classList.add(size);
+      if (size) $('#composer').style.setProperty('--sh', size);
     });
   };
   Editor.openBatch = date => { resetDraft(date || MC.Cal.selected() || MC.todayStr()); $('#cmpTitle').value = ''; $('#cmpNote').value = ''; openBatch(); };

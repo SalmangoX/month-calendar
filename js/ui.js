@@ -106,10 +106,12 @@
   document.querySelectorAll('.sheet').forEach(sh => sh.addEventListener('scroll', () => { if (!sh.classList.contains('composer') && sh.scrollTop) sh.scrollTop = 0; }));
   document.querySelectorAll('.sheet').forEach(sh => {
     let x0 = 0, y0 = 0, last = 0, lastT = 0, v = 0, d = 0, state = 0, sc = null, swallow = false, grab = false; // state: 0 无 1 待定 2 拖动中
+    let h0 = 0, P = 0, H = [], sizing = false; // 有几档高度的面板（新建事件、批量添加）：拖动时直接改高度，跟着手指走
     sh.addEventListener('touchstart', e => {
       if (e.touches.length > 1 || e.target.closest(EDITABLE)) { state = 0; return; }
       // 有两档高度的面板（新建事件）：按住最上面那一条（把手和标题行，不含按钮）上下拉，切换半屏 / 全屏
-      grab = (sh.classList.contains('mid') || sh.classList.contains('full')) && !!e.target.closest('.handle, .cmp-head, .sheet-head') && !e.target.closest('button');
+      sizing = sh.classList.contains('mid');
+      grab = sizing && !!e.target.closest('.handle, .cmp-head, .sheet-head') && !e.target.closest('button');
       sc = grab ? null : e.target.closest(SCROLLERS);
       if (sc && !sh.contains(sc)) sc = null;
       state = 1; d = 0; v = 0;
@@ -122,12 +124,21 @@
       if (state === 1) {
         if (Math.abs(dy) < 6 || Math.abs(dy) < Math.abs(dx)) return;
         const atTop = !sc || sc.scrollTop <= 0;
-        if ((dy > 0 && atTop) || (dy < 0 && !sc)) { state = 2; y0 = y; sh.style.transition = 'none'; }
+        if ((dy > 0 && atTop) || (dy < 0 && !sc)) {
+          state = 2; y0 = y; sh.style.transition = 'none';
+          if (sizing) { P = sh.parentElement.clientHeight; h0 = sh.offsetHeight; H = UI.detents(sh).map(f => f * P); }
+        }
         else { state = 0; return; }   // 交给内容自己滚动
       }
       v = (y - last) / Math.max(1, now - lastT); last = y; lastT = now;
       d = y - y0;
-      sh.style.transform = `translateY(${d >= 0 ? d : -rubber(-d)}px)`;
+      if (sizing) {
+        // 在最低和最高两档之间：高度跟着手指；拉过最高档有阻尼；拉到最低档以下整块往下走（松手可能收起）
+        const want = h0 - d, lo = H[0], hi = H[H.length - 1];
+        const h = want > hi ? hi + rubber(want - hi, 90) : Math.max(lo, want);
+        sh.style.height = h + 'px';
+        sh.style.transform = want < lo ? `translateY(${lo - want}px)` : '';
+      } else sh.style.transform = `translateY(${d >= 0 ? d : -rubber(-d)}px)`;
       if (e.cancelable) e.preventDefault();
     }, { passive: false });
     const end = () => {
@@ -135,9 +146,25 @@
       state = 0;
       swallow = Math.abs(d) > 4;      // 拖动过就不再触发点击
       setTimeout(() => (swallow = false), 350);
-      // 两档高度：半屏往上拉 → 全屏；全屏往下拉 → 半屏；半屏再往下拉才收起
-      if (grab && sh.classList.contains('mid') && (d < -40 || v < -.45)) { sh.style.transition = ''; sh.style.transform = ''; sh.classList.replace('mid', 'full'); return; }
-      if (sh.classList.contains('full') && (d > 70 || (d > 20 && v > .5))) { sh.style.transition = ''; sh.style.transform = ''; sh.classList.replace('full', 'mid'); return; }
+      if (sizing) {
+        const want = h0 - d, lo = H[0];
+        // 在最低档往下甩、或拉下去很多：收起
+        if (want < lo - 110 || (want < lo - 16 && v > .55)) {
+          sh.style.transition = 'transform .26s cubic-bezier(.3,.7,.4,1)';
+          sh.style.transform = `translateY(${sh.offsetHeight + 40}px)`;
+          setTimeout(() => { sh.style.transition = ''; sh.style.transform = ''; sh.style.height = ''; UI.close(sh.id); }, 250);
+          return;
+        }
+        // 按松手时的速度往前多算一段，停到最近的一档；带一点回弹
+        const aim = Math.min(H[H.length - 1], Math.max(lo, want - v * 160));
+        let k = 0; H.forEach((h, i) => { if (Math.abs(h - aim) < Math.abs(H[k] - aim)) k = i; });
+        const speed = Math.min(1, Math.abs(v) / 1.5);
+        sh.style.transition = `height ${.62 - speed * .14}s cubic-bezier(.2,${1.18 + speed * .22},.32,1), transform .5s cubic-bezier(.25,1.3,.45,1)`;
+        UI.setDetent(sh, UI.detents(sh)[k]);
+        sh.style.height = ''; sh.style.transform = '';
+        setTimeout(() => { if (!state) sh.style.transition = ''; }, 650);
+        return;
+      }
       const close = d > 110 || (d > 24 && v > .55);
       if (close) {
         sh.style.transition = 'transform .26s cubic-bezier(.3,.7,.4,1)';
@@ -153,6 +180,14 @@
     sh.addEventListener('touchcancel', end);
     sh.addEventListener('click', e => { if (swallow) { swallow = false; e.stopPropagation(); e.preventDefault(); } }, true);
   });
+
+  // 面板的几档高度（占屏幕高度的比例）：默认那档由 CSS 的 --sh-def 给，另外加上更矮、更高和最高三档
+  UI.detents = sh => {
+    const def = parseFloat(getComputedStyle(sh).getPropertyValue('--sh-def')) || .56;
+    return [...new Set([.4, def, .74, .9].map(f => Math.round(f * 100) / 100))].sort((a, b) => a - b);
+  };
+  UI.setDetent = (sh, f) => { if (f == null) sh.style.removeProperty('--sh'); else sh.style.setProperty('--sh', f * 100 + '%'); };
+  UI.getDetent = sh => sh.style.getPropertyValue('--sh');
 
   // 键盘弹出时把面板顶起（iOS）
   if (window.visualViewport) {

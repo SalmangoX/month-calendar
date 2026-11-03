@@ -539,8 +539,10 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .composer .cmp-head { flex: none; padding-left: 20px; padding-right: 20px; }
 .cmp-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0 18px calc(var(--safe-b) + 14px); }
 /* 手机上：先开到一半高（中档），内容在里面滚；按住上面那一条往上拉才铺满（全屏档） */
-.composer.mid { height: 56%; transition: height .32s var(--ease), transform .34s var(--ease); }
-.composer.full { height: 90%; transition: height .32s var(--ease), transform .34s var(--ease); }
+/* 往上拉 / 往下拉可以停在几档高度（ui.js 的 UI.detents）：--sh 是现在停的那档，--sh-def 是打开时的默认那档 */
+.composer { --sh-def: .56; }
+#batchSheet { --sh-def: .56; } /* 和单个一样高：切换时大小不变 */
+.composer.mid, .sheet.tall.mid { height: var(--sh, calc(var(--sh-def) * 100%)); max-height: none; }
 /* 新建事件里的日历紧凑一点 */
 .cmp-pk .pk-grid { grid-template-rows: repeat(6, 32px); }
 .cmp-pk .pk-d { font-size: 14px; }
@@ -557,13 +559,12 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .sheet.swap { transition: opacity .2s ease, visibility 0s linear .2s !important; transform: none !important; }
 .sheet.swap.show { opacity: 1; transition: opacity .2s ease !important; }
 .sheet.swap:not(.show) { opacity: 0; }
-.sheet.tall.mid { height: 56%; }
-.sheet.tall.full { height: 90%; }
 .cmp-batch { height: 34px; padding: 0 14px; border-radius: 17px; background: var(--field); font-size: 14px; font-weight: 600; color: var(--text); }
 .cmp-save { height: 34px; padding: 0 18px; border-radius: 17px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 650; transition: opacity .2s, transform .2s var(--ease); }
 .cmp-save:active { transform: scale(.95); }
 .cmp-save.disabled { opacity: .38; }
-.cmp-head h2 { margin: 0; font-size: 17px; font-weight: 650; }
+.cmp-head h2 { margin: 0; font-size: 17px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.cmp-head button, .cmp-head .seg { flex: none; white-space: nowrap; } /* 标题栏一行放不下时只省略标题，按钮不折行 */
 .cmp-edit { display: flex; align-items: center; gap: 16px; }
 .cmp-check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text2); padding: 4px 0; }
 .cmp-check i { width: 20px; height: 20px; border-radius: 6px; border: 1.8px solid var(--text3); display: grid; place-items: center; }
