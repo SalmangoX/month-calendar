@@ -63,9 +63,29 @@ final class NavModel: ObservableObject {
         drawerOpen = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in if self?.drawerOpen == false { self?.drawerPull = 0 } }
     }
+    /// 日历栏打开时，窗口里的触控板滚动事件先到这里：左右划就拉动日历栏（往左划收起、往右划果冻拉长），
+    /// 上下划不管、照常滚动列表。返回 true = 这个事件用掉了
+    func drawerScroll(_ e: NSEvent) -> Bool {
+        guard drawerOpen else { return false }
+        if e.momentumPhase != [] { return wheeling || abs(e.scrollingDeltaX) > abs(e.scrollingDeltaY) } // 松手后的惯性：吃掉，不漏给后面
+        if e.phase == .ended || e.phase == .cancelled {
+            guard wheeling else { return false }
+            wheeling = false
+            releaseDrawer(predicted: drawerPull)
+            return true
+        }
+        if !wheeling {
+            guard abs(e.scrollingDeltaX) > 0.5, abs(e.scrollingDeltaX) > abs(e.scrollingDeltaY) * 1.2 else { return false }
+            wheeling = true
+        }
+        drawerPull += e.isDirectionInvertedFromDevice ? e.scrollingDeltaX : -e.scrollingDeltaX
+        return true
+    }
+
     /// 松手：往回推得够多（或甩得够快）就收起，否则带回弹落回原位
     func releaseDrawer(predicted: CGFloat) {
-        if drawerPull < -90 || predicted < -220 { closeDrawer(); return }
+        wheeling = false
+        if drawerPull < -70 || predicted < -200 { closeDrawer(); return }
         withAnimation(.spring(response: 0.46, dampingFraction: 0.48)) { drawerPull = 0 }
     }
     private func refresh(_ done: (() -> Void)? = nil) {
@@ -156,18 +176,9 @@ class SolidHostingView<Content: View>: NSHostingView<Content> {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
-/// 日历栏那一层：打开时整个窗口只和日历栏互动；触控板双指左右划直接拉动日历栏（上下划照常滚动列表）
+/// 日历栏那一层：打开时整个窗口只和日历栏互动（触控板的左右划在 NavModel.drawerScroll 里处理）
 final class DrawerHostingView<Content: View>: SolidHostingView<Content> {
     weak var nav: NavModel?
-    override func scrollWheel(with e: NSEvent) {
-        guard let nav, nav.drawerOpen else { super.scrollWheel(with: e); return }
-        if e.momentumPhase != [] { return } // 惯性滚动不算
-        if e.phase == .began { nav.wheeling = abs(e.scrollingDeltaX) > abs(e.scrollingDeltaY) }
-        guard nav.wheeling else { super.scrollWheel(with: e); return }
-        if e.phase == .ended || e.phase == .cancelled { nav.wheeling = false; nav.releaseDrawer(predicted: nav.drawerPull); return }
-        let dx = e.isDirectionInvertedFromDevice ? e.scrollingDeltaX : -e.scrollingDeltaX
-        nav.drawerPull += dx
-    }
 }
 
 /// 底部菜单栏：一整条胶囊形的玻璃。点一下切页；按住左右拖，选中块浮起成一块玻璃透镜跟手走，

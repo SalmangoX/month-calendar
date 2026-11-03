@@ -25,6 +25,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
     /// 原生的液态玻璃导航层（macOS 26 起）
     private let nav = NavModel()
     private var navSubs: [AnyCancellable] = []
+    private var scrollMonitor: Any?
 
     override init() {
         let s = Bundle.main.object(forInfoDictionaryKey: "CadenceAppURL") as? String ?? "https://salmangox.github.io/month-calendar/"
@@ -160,6 +161,11 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         let fab = SolidHostingView(rootView: GlassFab(m: nav))
         let drawer = DrawerHostingView(rootView: GlassDrawer(m: nav))
         drawer.nav = nav
+        // 日历栏打开时，窗口里所有的触控板左右划都交给日历栏（不管指针在列表上、遮罩上还是哪里）
+        scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] e in
+            guard let self, e.window === self.window else { return e }
+            return self.nav.drawerScroll(e) ? nil : e
+        }
         let menu = SolidHostingView(rootView: GlassMenu(m: nav))
         for v in [bar, fab, drawer, menu] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
         drawer.isHidden = true
