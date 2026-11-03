@@ -12,6 +12,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         var f = ["data", "prefs", "token", "notify", "test", "widgets", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget"]
         if #available(macOS 26.0, *) { f.append("glassDrawer") } // 日历栏由原生的液态玻璃侧边栏显示
         f.append("makeInstaller") // 设置里「生成安装包」
+        f.append("http")          // WebDAV（坚果云等）的请求由原生端发，没有网页跨域限制
         return f
     }
 
@@ -310,7 +311,8 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             syncNow: function () { post('syncNow'); },
             checkUpdate: function () { post('checkUpdate'); },
             openDrawer: function () { post('drawer'); },
-            makeInstaller: function () { post('makeInstaller'); }
+            makeInstaller: function () { post('makeInstaller'); },
+            http: function (j, cb) { post('http', [String(j), String(cb)]); }
           };
         })();
         """
@@ -355,6 +357,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         case "nav": nav.update(s(0))
         case "menu": nav.showMenu(id: s(0), json: s(1), anchor: CGRect(x: d(2), y: d(3), width: d(4), height: d(5)))
         case "makeInstaller": Updater.shared.makeInstaller()
+        case "http": let cb = s(1), req = s(0); Task { callback(cb, await NativeHTTP.run(req)) }
         case "drawer": nav.openDrawer()
         default: break
         }

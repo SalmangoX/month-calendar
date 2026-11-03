@@ -692,15 +692,20 @@
     if (!MC.vault.connected()) {
       gSync = group('同步', [
         srow({ act: 'connect', icon: 'link', tone: 'sky', label: '连接 GitHub', sub: '用自己的令牌在多台设备间同步', help: 'sync' }),
-      ], '每个人用自己的 GitHub 令牌，令牌只保存在这台设备上。');
+        srow({ act: 'dav', icon: 'cloud', tone: 'teal', label: '连接 WebDAV', sub: '坚果云、Nextcloud、群晖等，国内也能用' }),
+      ], '二选一：数据存在你自己的 GitHub 或网盘里，账号和密码只保存在这台设备上。');
     } else {
+      const dav = MC.isDav();
+      let host = '';
+      try { host = dav ? new URL(MC.settings.dav.url).host : ''; } catch (e) {}
       const rows = [
-        srow({ act: 'account', icon: 'link', tone: 'sky', label: 'GitHub 账号', val: MC.settings.account ? '@' + MC.settings.account : '已连接', chev: false }),
+        dav ? srow({ act: 'account', icon: 'cloud', tone: 'teal', label: 'WebDAV', sub: host, val: MC.settings.dav.user || '', chev: false })
+          : srow({ act: 'account', icon: 'link', tone: 'sky', label: 'GitHub 账号', val: MC.settings.account ? '@' + MC.settings.account : '已连接', chev: false }),
         srow({ act: 'sync', icon: 'refresh', tone: 'jade', label: '立即同步', sub: syncText()[0], help: 'sync', chev: false }),
       ];
-      rows.push(srow({ act: 'retoken', icon: 'key', tone: 'apricot', label: '更换令牌' }));
+      rows.push(dav ? srow({ act: 'redav', icon: 'key', tone: 'apricot', label: '更换账号或密码' }) : srow({ act: 'retoken', icon: 'key', tone: 'apricot', label: '更换令牌' }));
       rows.push(srow({ act: 'disconnect', icon: 'unlink', tone: 'danger', label: '断开连接', danger: true, chev: false }));
-      gSync = group('同步', rows, '令牌只保存在这台设备上。');
+      gSync = group('同步', rows, dav ? '账号和密码只保存在这台设备上。' : '令牌只保存在这台设备上。');
     }
     const nrows = [srow({ icon: 'bell', tone: 'coral', label: '提醒通知', sw: 'nSwitch', swOn: Push.enabled(), help: 'notify' })];
     if (Push.enabled()) nrows.push(srow({ act: 'ntest', icon: 'send', tone: 'teal', label: '发送测试通知', chev: false }));
@@ -813,6 +818,7 @@
       { label: '不显示', value: 'off', on: MC.settings.tab3 === 'off' },
     ], v => { MC.settings.tab3 = v; MC.settings.tab3Picked = true; MC.saveSettings(); applyTab3(); renderSettings(); });
     else if (act === 'connect' || act === 'retoken') connectForm(act === 'retoken');
+    else if (act === 'dav' || act === 'redav') davForm(act === 'redav');
     else if (act === 'sync') { const ok = await MC.sync(); UI.toast(ok ? '已同步' : (MC.syncState.error || '同步失败')); renderSettings(); }
     else if (act === 'disconnect') {
       UI.menu(row.querySelector('.slabel'), [
@@ -964,6 +970,41 @@
         UI.toast(ok ? (id ? '已连接，并同步了云端数据' : '已连接，云端数据已创建') : (MC.syncState.error || '已连接'));
       },
     });
+  }
+  // 连接 WebDAV（坚果云等）：先检查账号密码，再和 GitHub 一样问一次「合并 / 只用云端数据」
+  function davForm(isRe) {
+    const cur = MC.settings.dav || {};
+    openForm({
+      title: isRe ? '更换账号或密码' : '连接 WebDAV',
+      submit: '连接',
+      fields: [
+        { id: 'davUrl', label: '服务器地址', ph: 'https://dav.jianguoyun.com/dav/' },
+        { id: 'davUser', label: '账号', ph: '坚果云填注册邮箱' },
+        { id: 'davPass', label: '密码', type: 'password', ph: '坚果云填「第三方应用密码」' },
+      ],
+      note: `<b>坚果云</b>：服务器地址就用上面这个；密码要用「第三方应用密码」：网页版坚果云 → 右上角账户信息 → 安全选项 → 第三方应用管理 → 添加应用，生成后复制回来。<br><b>Nextcloud / 群晖</b>：填它们给的 WebDAV 地址和账号密码。<br>数据会放在网盘里的「Cadence」文件夹；账号和密码只保存在这台设备上。`,
+      onSubmit: async v => {
+        const dav = { url: v.davUrl.trim() || 'https://dav.jianguoyun.com/dav/', user: v.davUser.trim() };
+        const pass = v.davPass;
+        if (!/^https?:\/\//i.test(dav.url)) throw new Error('服务器地址要以 https:// 开头');
+        if (!dav.user || !pass) throw new Error('请填写账号和密码');
+        const hasRemote = await MC.davCheck(dav, pass); // 同时校验账号密码
+        const localCount = MC.data.events.length;
+        if (localCount && hasRemote && !isRe) {
+          const keep = await UI.confirm(`这台设备上已有 ${localCount} 个事件。合并到网盘里的数据，还是只用网盘里的数据（本机这些事件会被清除）？`, { ok: '合并', cancel: '只用网盘数据', dismiss: true });
+          if (!keep) { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); }
+        }
+        MC.settings.dav = dav; MC.settings.gistId = ''; MC.settings.account = '';
+        MC.davReset();
+        await MC.vault.save(pass, '');
+        const ok = await MC.sync();
+        renderSettings();
+        UI.toast(ok ? (hasRemote ? '已连接，并同步了网盘里的数据' : '已连接，数据已存到网盘') : (MC.syncState.error || '已连接'));
+      },
+    });
+    if (cur.url) $('#ff_davUrl').value = cur.url;
+    else $('#ff_davUrl').value = 'https://dav.jianguoyun.com/dav/';
+    if (cur.user) $('#ff_davUser').value = cur.user;
   }
   function dailyTimeForm() {
     let val = MC.data.daily.time;

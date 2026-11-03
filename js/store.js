@@ -534,7 +534,7 @@
     },
     lock() { if (MC.settings.vault) MC.session.token = ''; },
     disconnect() {
-      MC.settings.vault = null; MC.settings.tokenPlain = ''; MC.settings.gistId = ''; MC.settings.lastSync = 0;
+      MC.settings.vault = null; MC.settings.tokenPlain = ''; MC.settings.gistId = ''; MC.settings.lastSync = 0; MC.settings.dav = null;
       MC.session.token = ''; MC.saveSettings();
     },
   };
@@ -590,6 +590,61 @@
       MC.settings.gistId = g.id; MC.saveSettings();
     }
   }
+
+  // ---------- WebDAV：坚果云、Nextcloud、群晖等（国内也能用），和 Gist 二选一 ----------
+  // 设置里存 { url, user }，密码和 GitHub 令牌存在同一个地方（MC.session.token，可加开屏密码）；
+  // 数据放在 <服务器地址>/Cadence/cadence-calendar.json，合并规则和 Gist 完全一样
+  const DAV_DIR = 'Cadence', DAV_FILE = 'cadence-calendar.json';
+  MC.isDav = () => !!(MC.settings.dav && MC.settings.dav.url);
+  const davBase = (dav = MC.settings.dav) => String(dav.url).trim().replace(/\/+$/, '') + '/' + DAV_DIR + '/';
+  const davErr = s => s === 401 ? '账号或密码不对（坚果云要用「第三方应用密码」，不是登录密码）'
+    : s === 403 ? '没有权限访问这个地址' : s === 404 ? '找不到这个地址，请检查服务器地址'
+    : s === 507 ? '网盘空间不够了' : `WebDAV 服务器返回 ${s}`;
+  // 请求：安卓 / Mac App 里交给原生端发（没有网页跨域限制，坚果云这类服务器也能连）；
+  // iPhone 网页版只能直接请求，服务器要允许网页跨域（比如自己搭的 Nextcloud）
+  MC.davReq = async (method, url, { body = null, headers = {}, dav = MC.settings.dav, pass = MC.session.token } = {}) => {
+    const h = { Authorization: 'Basic ' + btoa(unescape(encodeURIComponent(`${dav.user}:${pass}`))), ...headers };
+    if (MC.Native && MC.Native.has && MC.Native.has('http')) {
+      const r = await MC.Native.ask('http', JSON.stringify({ method, url, headers: h, body }));
+      if (!r) throw new Error('网络错误');
+      if (r.error) throw new Error(r.error);
+      return r;
+    }
+    let r;
+    try { r = await fetch(url, { method, headers: h, body, cache: 'no-store' }); }
+    catch (e) { throw new Error('连不上这个 WebDAV 服务器。iPhone 网页版只能连接允许网页直连的服务器（比如自己搭的 Nextcloud）；坚果云请在安卓或 Mac 的节律 App 里连接'); }
+    return { status: r.status, etag: r.headers.get('ETag') || '', body: await r.text() };
+  };
+  let davTag = '', davLast = null;
+  async function davRead() {
+    const headers = davTag && davLast ? { 'If-None-Match': davTag } : {};
+    const r = await MC.davReq('GET', davBase() + DAV_FILE, { headers });
+    if (r.status === 304 && davLast) return { remote: davLast, unchanged: true };
+    if (r.status === 404) return { remote: null, unchanged: false }; // 第一次：云端还没有数据
+    if (r.status < 200 || r.status >= 300) throw new Error(davErr(r.status));
+    davTag = r.etag || '';
+    davLast = MC.normalize(JSON.parse(r.body));
+    return { remote: davLast, unchanged: false };
+  }
+  async function davWrite(d) {
+    const opts = { body: JSON.stringify(d), headers: { 'Content-Type': 'application/json' } };
+    let r = await MC.davReq('PUT', davBase() + DAV_FILE, opts);
+    if (r.status === 404 || r.status === 409) { // 文件夹还没建：建好再写一次
+      const m = await MC.davReq('MKCOL', davBase());
+      if (m.status >= 400 && m.status !== 405) throw new Error(davErr(m.status));
+      r = await MC.davReq('PUT', davBase() + DAV_FILE, opts);
+    }
+    if (r.status < 200 || r.status >= 300) throw new Error(davErr(r.status));
+    davLast = MC.normalize(d); davTag = ''; // 下次重新取一次新的 ETag
+  }
+  // 连接前检查：账号密码对不对、云端是不是已经有节律的数据（返回 true = 已有数据）
+  MC.davCheck = async (dav, pass) => {
+    const root = await MC.davReq('PROPFIND', String(dav.url).trim().replace(/\/+$/, '') + '/', { headers: { Depth: '0' }, dav, pass });
+    if (root.status >= 400) throw new Error(davErr(root.status));
+    const f = await MC.davReq('GET', davBase(dav) + DAV_FILE, { dav, pass });
+    return f.status >= 200 && f.status < 300;
+  };
+  MC.davReset = () => { davTag = ''; davLast = null; };
 
   // ---------- iPhone 日历订阅（ICS） ----------
   const ICS_FILE = 'mcal-calendar.ics';
@@ -663,10 +718,11 @@
     MC.syncState.busy = true; MC.onSyncStatus();
     let ok = false;
     try {
-      if (!MC.settings.gistId) { MC.settings.gistId = await MC.findGist(); MC.saveSettings(); }
+      const dav = MC.isDav();
+      if (!dav && !MC.settings.gistId) { MC.settings.gistId = await MC.findGist(); MC.saveSettings(); }
       let remote = null;
-      if (MC.settings.gistId) {
-        const res = await readGist(MC.settings.gistId);
+      if (dav || MC.settings.gistId) {
+        const res = dav ? await davRead() : await readGist(MC.settings.gistId);
         remote = res.remote;
         if (res.unchanged && !MC.dirty) { // 两边都没变化，直接结束
           await ensureICS(MC.data);
@@ -682,8 +738,8 @@
         MC.fixPri = false;
         const out = { ...merged, updatedAt: Date.now() };
         MC.dirty = false;
-        await writeGist(out);
-        lastRemote = MC.normalize(out); etag = ''; // 下次重新取一次新的 ETag
+        if (dav) await davWrite(out);
+        else { await writeGist(out); lastRemote = MC.normalize(out); etag = ''; } // 下次重新取一次新的 ETag
       } else MC.dirty = false;
       await ensureICS(merged);
       MC.settings.lastSync = Date.now(); MC.saveSettings();

@@ -89,6 +89,12 @@ final class Engine: ObservableObject {
         let theme = o.str("theme", "auto")
         prefs.set(theme, forKey: "theme")
         prefs.set(o.bool("notify"), forKey: "notify")
+        // WebDAV（坚果云等）：记下地址和账号，后台从网盘拉取；密码和 GitHub 令牌存在同一个钥匙串条目里
+        let dav = o.obj("dav")
+        let davURL = dav?.str("url") ?? "", davUser = dav?.str("user") ?? ""
+        if davURL != prefs.string(forKey: "davURL") || davUser != prefs.string(forKey: "davUser") {
+            prefs.set(davURL, forKey: "davURL"); prefs.set(davUser, forKey: "davUser"); prefs.removeObject(forKey: "davEtag")
+        }
         let gist = o.str("gistId")
         if !gist.isEmpty && gist != prefs.string(forKey: "gistId") { prefs.set(gist, forKey: "gistId"); prefs.removeObject(forKey: "etag") }
         applyTheme(theme)
@@ -105,7 +111,7 @@ final class Engine: ObservableObject {
 
     func clearAccount(wipe: Bool) {
         Keychain.token = ""
-        for k in ["gistId", "etag", "pullAt", "pullErr"] { prefs.removeObject(forKey: k) }
+        for k in ["gistId", "etag", "pullAt", "pullErr", "davURL", "davUser", "davEtag"] { prefs.removeObject(forKey: k) }
         updateSyncText()
         if wipe { clearData() } else { Task { await refresh() } }
     }
@@ -217,7 +223,9 @@ final class Engine: ObservableObject {
         guard !token.isEmpty, !syncing else { return }
         syncing = true
         updateSyncText()
-        let content = await Gist.pull(token: token, prefs: prefs, hasData: !json.isEmpty)
+        let davURL = prefs.string(forKey: "davURL") ?? ""
+        let content = davURL.isEmpty ? await Gist.pull(token: token, prefs: prefs, hasData: !json.isEmpty)
+            : await Dav.pull(url: davURL, user: prefs.string(forKey: "davUser") ?? "", pass: token, prefs: prefs, hasData: !json.isEmpty)
         if let c = content { put(c, replace: false) }
         syncing = false
         updateSyncText()
@@ -226,7 +234,7 @@ final class Engine: ObservableObject {
 
     private func updateSyncText() {
         if syncing { syncText = I18n.t("同步中…"); return }
-        if Keychain.token.isEmpty { syncText = I18n.t("未连接 GitHub"); return }
+        if Keychain.token.isEmpty { syncText = I18n.t("未连接同步"); return }
         if let e = prefs.string(forKey: "pullErr"), !e.isEmpty { syncText = e; return }
         let at = prefs.double(forKey: "pullAt")
         if at <= 0 { syncText = ""; return }
@@ -249,6 +257,55 @@ final class Engine: ObservableObject {
         set {
             if newValue { try? SMAppService.mainApp.register() } else { try? SMAppService.mainApp.unregister() }
             objectWillChange.send()
+        }
+    }
+}
+
+/// 只读地从 WebDAV（坚果云等）拉取数据（写入仍由网页负责），文件位置和网页一致：<地址>/Cadence/cadence-calendar.json
+enum Dav {
+    static func pull(url: String, user: String, pass: String, prefs: UserDefaults, hasData: Bool) async -> String? {
+        let now = Date().timeIntervalSince1970 * 1000
+        let base = url.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "/+$", with: "", options: .regularExpression)
+        guard let u = URL(string: base + "/Cadence/cadence-calendar.json") else { return nil }
+        var req = URLRequest(url: u, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        req.setValue("Basic " + Data("\(user):\(pass)".utf8).base64EncodedString(), forHTTPHeaderField: "Authorization")
+        let etag = prefs.string(forKey: "davEtag") ?? ""
+        if !etag.isEmpty && hasData { req.setValue(etag, forHTTPHeaderField: "If-None-Match") }
+        do {
+            let (body, resp) = try await URLSession.shared.data(for: req)
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            if code == 304 || code == 404 { prefs.set(now, forKey: "pullAt"); prefs.removeObject(forKey: "pullErr"); return nil } // 404：网盘里还没有数据
+            guard (200..<300).contains(code) else {
+                prefs.set(code == 401 ? I18n.t("WebDAV 账号或密码不对") : I18n.t("WebDAV 服务器返回 {0}", code), forKey: "pullErr")
+                return nil
+            }
+            prefs.set((resp as? HTTPURLResponse)?.value(forHTTPHeaderField: "ETag") ?? "", forKey: "davEtag")
+            prefs.set(now, forKey: "pullAt"); prefs.removeObject(forKey: "pullErr")
+            return String(data: body, encoding: .utf8)
+        } catch {
+            prefs.set(I18n.t("网络错误"), forKey: "pullErr")
+            return nil
+        }
+    }
+}
+
+/// 网页的 WebDAV 请求由这里代发（网页直接请求坚果云这类服务器会被浏览器的跨域限制挡住）。
+/// 输入 {method, url, headers, body}，返回 {status, etag, body}，出错返回 {error}
+enum NativeHTTP {
+    static func run(_ json: String) async -> JObj {
+        guard let o = jparse(json), let u = URL(string: o.str("url")), ["http", "https"].contains(u.scheme?.lowercased() ?? "") else {
+            return ["error": I18n.t("地址不对")]
+        }
+        var req = URLRequest(url: u, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 25)
+        req.httpMethod = o.str("method", "GET").uppercased()
+        for (k, v) in o.obj("headers") ?? [:] { if let s = v as? String { req.setValue(s, forHTTPHeaderField: k) } }
+        if let b = o["body"] as? String { req.httpBody = Data(b.utf8) }
+        do {
+            let (body, resp) = try await URLSession.shared.data(for: req)
+            let h = resp as? HTTPURLResponse
+            return ["status": h?.statusCode ?? 0, "etag": h?.value(forHTTPHeaderField: "ETag") ?? "", "body": String(data: body, encoding: .utf8) ?? ""]
+        } catch {
+            return ["error": I18n.t("网络错误")]
         }
     }
 }
