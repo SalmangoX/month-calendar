@@ -5,8 +5,8 @@
   MC.VERSION = '0.22.0';
   // Mac App 打不开 GitHub、改从国内镜像加载时，镜像上是未盖版本号的源文件，真正的版本号由 App 告诉网页
   if (window.__mcMirrorVersion) MC.VERSION = window.__mcMirrorVersion;
-  // 显示用：「1.4.0-b80」→「1.4.0（网页 80）」；版本号三端共用，括号里是这一端自己的构建号
-  MC.versionText = (v = MC.VERSION, what = '网页') => { const m = String(v).match(/^(.*?)-b(\d+)$/); return m ? `${m[1]}（${what} ${m[2]}）` : String(v); };
+  // 显示用：只显示版本号，「1.4.0-b80」→「1.4.0」（后面的构建号只用来刷新缓存，不显示）
+  MC.versionText = (v = MC.VERSION) => String(v).replace(/-b\d+$/, '');
 
   const DATA_KEY = 'mcal.data.v1';
   const SET_KEY = 'mcal.settings.v1';

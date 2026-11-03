@@ -26,6 +26,22 @@ final class Http {
 
     private Http() { }
 
+    /** 简单 GET（加载国内镜像用）：成功返回内容，失败或不是 200 返回 null */
+    static String get(String url, int timeoutSec) {
+        OkHttpClient c = CLIENT.newBuilder().callTimeout(timeoutSec, TimeUnit.SECONDS).build();
+        try (Response r = c.newCall(new Request.Builder().url(url).header("Cache-Control", "no-cache").build()).execute()) {
+            return r.code() == 200 && r.body() != null ? r.body().string() : null;
+        } catch (Exception e) { return null; }
+    }
+
+    /** 能不能连上这个地址（HEAD 请求返回 200） */
+    static boolean reachable(String url, int timeoutSec) {
+        OkHttpClient c = CLIENT.newBuilder().callTimeout(timeoutSec, TimeUnit.SECONDS).build();
+        try (Response r = c.newCall(new Request.Builder().url(url).head().header("Cache-Control", "no-cache").build()).execute()) {
+            return r.code() == 200;
+        } catch (Exception e) { return false; }
+    }
+
     static JSONObject run(String json) {
         JSONObject out = new JSONObject();
         try {

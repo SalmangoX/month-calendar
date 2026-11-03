@@ -65,7 +65,7 @@ final class Updater: ObservableObject {
             notifyOnce()
             if manual { install() }
         } else if manual {
-            alert(I18n.t("已经是最新版本"), I18n.t("Mac 版 {0}（{1}）", currentVersion, "Mac \(currentBuild)"))
+            alert(I18n.t("已经是最新版本"), I18n.t("Mac 版 {0}", currentVersion))
         }
     }
 

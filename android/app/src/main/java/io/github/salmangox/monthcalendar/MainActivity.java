@@ -13,6 +13,8 @@ import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.View;
@@ -37,6 +39,8 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * App 的界面就是你 GitHub Pages 上的网页：每次打开都加载最新版本，改网页不用重新打包 APK。
@@ -52,6 +56,9 @@ public class MainActivity extends Activity {
     private Uri appUri;
     private ValueCallback<Uri[]> fileCb;
     private String saveContent, saveCb, pendingCb;
+    /** 国内经常打不开 github.io：网页开始显示前一直是 false；镜像只试一次 */
+    private boolean committed, triedMirror;
+    private final Handler ui = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle state) {
@@ -75,7 +82,7 @@ public class MainActivity extends Activity {
         });
         applyTheme(Store.prefs(this).getString("theme", "auto"));
         setupWeb();
-        web.loadUrl(BuildConfig.APP_URL + hash(getIntent()));
+        loadApp(hash(getIntent()));
 
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::goBack);
@@ -108,8 +115,12 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onPageCommitVisible(WebView v, String url) { committed = true; }
+
+            @Override
             public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
-                if (r.isForMainFrame()) showOffline();
+                if (!r.isForMainFrame()) return;
+                if (!triedMirror) loadFromMirror(); else showOffline(); // GitHub Pages 打不开：先试国内镜像
             }
 
             @Override
@@ -186,6 +197,43 @@ public class MainActivity extends Activity {
         } catch (ActivityNotFoundException e) {
             Toast.makeText(this, I18n.t("没有可以打开这个链接的应用"), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    // ---------- 加载网页：GitHub Pages → 国内镜像（jsDelivr）→ 提示页（和 Mac 版一样） ----------
+    private void loadApp(String hash) {
+        committed = false;
+        web.loadUrl(BuildConfig.APP_URL + hash);
+        // 8 秒还没开始显示：只是慢（比如 GitHub 正在发布新版本）就接着等，真的连不上才换镜像
+        ui.postDelayed(() -> {
+            if (committed || triedMirror) return;
+            Http.NET.execute(() -> {
+                boolean ok = Http.reachable(BuildConfig.APP_URL + "version.json", 4);
+                ui.post(() -> { if (!ok && !committed && !triedMirror) { web.stopLoading(); loadFromMirror(); } });
+            });
+        }, 8000);
+    }
+
+    /**
+     * 国内镜像（jsDelivr，自动同步 GitHub 上的文件）：网页本身从镜像下载，脚本和样式也改成从镜像加载；
+     * 地址仍然算作 GitHub Pages 那个，所以本机保存的数据、设置都在（网页的数据是按地址分开存的）
+     */
+    private void loadFromMirror() {
+        triedMirror = true;
+        String base = "https://cdn.jsdelivr.net/gh/" + BuildConfig.REPO + "@main/";
+        Http.NET.execute(() -> {
+            String html = Http.get(base + "index.html", 15);
+            if (html == null) { ui.post(this::showOffline); return; }
+            // 告诉网页真正的版本号（镜像上的源文件没盖版本号），放在最前面
+            String ver = "1", vj = Http.get(base + "version.json", 8);
+            if (vj != null) try { ver = new JSONObject(vj).optString("version", "1"); } catch (Exception ignored) { }
+            html = html.replaceFirst("<head>", Matcher.quoteReplacement("<head><script>window.__mcMirrorVersion=" + JSONObject.quote(ver) + ";</script>"));
+            // 脚本和样式每次都带上新的版本参数：不让网页视图用本机缓存里的旧脚本（新旧混在一起会白屏）
+            html = html.replaceAll("\\?v=[^\"']*", Matcher.quoteReplacement("?v=" + ver + "-" + System.currentTimeMillis() / 1000));
+            // 相对地址的 src / href（js、css、图标）改成镜像上的地址
+            html = Pattern.compile("(src|href)=\"(?!https?:|data:|#|mailto:|/)([^\"]+)\"").matcher(html).replaceAll("$1=\"" + Matcher.quoteReplacement(base) + "$2\"");
+            String page = html;
+            ui.post(() -> { committed = false; web.loadDataWithBaseURL(BuildConfig.APP_URL, page, "text/html", "utf-8", null); });
+        });
     }
 
     private void showOffline() {

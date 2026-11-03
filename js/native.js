@@ -156,9 +156,13 @@
     }, true);
   }
 
-  // ---------- App 更新：APK 发布在仓库的 Releases，版本号就是 Actions 的运行序号（Mac App 在本机编译，不检查） ----------
+  // ---------- App 更新：APK 发布在仓库的 Releases，同时放一份在 dist-android 分支给国内镜像（jsDelivr）用；
+  // 内部按 Actions 的运行序号判断新旧，显示只用版本号（Mac App 在本机编译，不检查） ----------
   const UKEY = 'mcal.apkCheck';
-  Native.apkUrl = () => `https://github.com/${Native.repo}/releases/latest/download/month-calendar.apk`;
+  const mirror = () => `https://cdn.jsdelivr.net/gh/${Native.repo}@dist-android/`;
+  // 上次检查时 GitHub 连不上（国内）：下载也走镜像
+  Native.apkUrl = () => (Native.lastCheck().src === 'mirror' ? mirror() + 'month-calendar.apk'
+    : `https://github.com/${Native.repo}/releases/latest/download/month-calendar.apk`);
   Native.releasesUrl = () => `https://github.com/${Native.repo}/releases`;
   Native.lastCheck = () => { try { return JSON.parse(localStorage.getItem(UKEY) || '{}'); } catch (e) { return {}; } };
   Native.updateAvailable = () => { const s = Native.lastCheck(); return s.latest > (info.code || 0) ? s : null; };
@@ -168,15 +172,22 @@
     if (!Native.repo) return null;
     const headers = { Accept: 'application/vnd.github+json' };
     if (MC.session.token) headers.Authorization = 'Bearer ' + MC.session.token;
-    const r = await fetch(`https://api.github.com/repos/${Native.repo}/releases/latest`, { headers, cache: 'no-store' });
-    if (r.status === 404) { localStorage.setItem(UKEY, JSON.stringify({ at: Date.now(), latest: 0 })); return null; }
-    if (!r.ok) throw new Error(`GitHub 返回 ${r.status}`);
-    const j = await r.json();
-    // 标签形如 android-0.9.3-5；版本号缺失时（android--5）也要能认出第几版
-    const m = /^android-(.*?)-?(\d+)$/.exec(j.tag_name || '');
-    const name = (m && m[1]) || ((j.name || '').match(/App\s+([\d.]+)/) || [])[1] || '';
-    localStorage.setItem(UKEY, JSON.stringify({ at: Date.now(), latest: m ? Number(m[2]) : 0, name: name || `第 ${m ? m[2] : '?'} 版` }));
-    return Native.updateAvailable();
+    const save = o => { localStorage.setItem(UKEY, JSON.stringify({ at: Date.now(), ...o })); return Native.updateAvailable(); };
+    let r = null;
+    try { r = await fetch(`https://api.github.com/repos/${Native.repo}/releases/latest`, { headers, cache: 'no-store', signal: AbortSignal.timeout(6000) }); } catch (e) {}
+    if (r && r.status === 404) return save({ latest: 0 });
+    if (r && r.ok) {
+      const j = await r.json();
+      // 标签形如 android-0.9.3-5；版本号缺失时（android--5）也要能认出第几版
+      const m = /^android-(.*?)-?(\d+)$/.exec(j.tag_name || '');
+      const name = (m && m[1]) || ((j.name || '').match(/App\s+([\d.]+)/) || [])[1] || '';
+      return save({ latest: m ? Number(m[2]) : 0, name, src: 'github' });
+    }
+    // GitHub 连不上（国内常见）：问国内镜像上的 apk.json（{ code, name }，Actions 发布时一起更新）
+    const mr = await fetch(mirror() + 'apk.json?_=' + Date.now(), { cache: 'no-store' }).catch(() => null);
+    if (!mr || !mr.ok) throw new Error(r ? `GitHub 返回 ${r.status}` : '连不上 GitHub，国内镜像也没有响应');
+    const j = await mr.json();
+    return save({ latest: Number(j.code) || 0, name: j.name || '', src: 'mirror' });
   };
   Native.update = () => Native.openUrl(Native.apkUrl());
 })();

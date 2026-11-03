@@ -56,13 +56,33 @@ jobs:
 
       - name: 读取版本号
         id: v
-        run: echo "name=$(sed -n 's/^versionName=//p' android/version.properties | tr -d '\r ')" >> "$GITHUB_OUTPUT"
+        run: echo "name=$(sed -nE 's/.*"version"[^"]*"([^"]+)".*/\1/p' version.json | sed -E 's/-b[0-9]+$//')" >> "$GITHUB_OUTPUT"
 
       - name: 发布到 Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-${{ steps.v.outputs.name }}-${{ github.run_number }}
-          name: 月历安卓 App ${{ steps.v.outputs.name }}（第 ${{ github.run_number }} 版）
+          name: 节律安卓 App ${{ steps.v.outputs.name }}
           body: 在手机上打开这个页面，下载 month-calendar.apk 并安装，会直接覆盖旧版，数据和设置都保留。
           files: ${{ runner.temp }}/month-calendar.apk
           make_latest: true
+
+      # 国内打不开 GitHub Releases：同一个安装包再放一份到 dist-android 分支（只保留最新一个），
+      # App 检查更新时 GitHub 连不上就改问 jsDelivr 镜像上的 apk.json，并从镜像下载
+      - name: 发布到国内镜像（dist-android 分支）
+        env:
+          NAME: ${{ steps.v.outputs.name }}
+          CODE: ${{ github.run_number }}
+        run: |
+          D="$RUNNER_TEMP/dist-android"
+          mkdir -p "$D" && cd "$D"
+          cp "$RUNNER_TEMP/month-calendar.apk" .
+          printf '{ "code": %s, "name": "%s" }\n' "$CODE" "$NAME" > apk.json
+          git init -q -b dist-android
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add . && git commit -q -m "安卓安装包 $NAME（$CODE）"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" dist-android
+          for f in apk.json month-calendar.apk; do
+            curl -fsS "https://purge.jsdelivr.net/gh/${{ github.repository }}@dist-android/$f" > /dev/null || echo "刷新镜像缓存失败：$f（稍后会自动更新）"
+          done
