@@ -245,6 +245,8 @@ final class Engine: ObservableObject {
                 put(body, replace: false)
                 prefs.set(r.str("etag"), forKey: "cloudEtag")
             }
+            // iPhone 存成的副本：先合并进本机（菜单栏、小组件马上看到），主窗口同步时会写回主文件并删掉副本
+            for c in (r["copies"] as? [String]) ?? [] { put(c, replace: false) }
             if r.int("status") != 202 { prefs.set(now, forKey: "pullAt"); prefs.removeObject(forKey: "pullErr") }
         }
         updateSyncText()

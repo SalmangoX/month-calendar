@@ -485,6 +485,7 @@
     return { version: 3, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0), events: kept, deleted, profile, daily,
       courses: (newerCourses.courses || []).map(c => ({ ...c })), coursesAt: newerCourses.coursesAt || 0, cals, days, books, album };
   };
+  MC.sameData = (a, b) => signature(a) === signature(b);
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
       .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, JSON.stringify(e.segs || {}), e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
@@ -655,10 +656,12 @@
     if (!r || r.error) throw new Error((r && r.error) || '读取 iCloud 云盘失败');
     if (r.status === 202) return { skip: true };              // iCloud 还在下载：这次不写，免得冲掉另一台 Mac 的数据
     if (r.status === 304 && icLast) return { remote: icLast, unchanged: true };
-    if (r.status === 404) return { remote: null, unchanged: false };
-    icTag = r.etag || '';
-    icLast = MC.normalize(JSON.parse(r.body));
-    return { remote: icLast, unchanged: false };
+    let remote = null;
+    if (r.status !== 404) { icTag = r.etag || ''; icLast = remote = MC.normalize(JSON.parse(r.body)); }
+    // iPhone 手动存回时，iOS 可能没替换、而是存成「cadence-calendar 2.json」：一起合并，写回主文件后 Mac 会删掉这些副本
+    const copies = (r.copies || []).map(t => { try { return MC.normalize(JSON.parse(t)); } catch (e) { return null; } }).filter(Boolean);
+    for (const c of copies) remote = remote ? MC.merge(remote, c) : c;
+    return { remote, unchanged: false, force: copies.length > 0 };
   }
   async function icWrite(d) {
     const r = await MC.Native.ask('icloudWrite', JSON.stringify(d));
@@ -757,7 +760,7 @@
       if (signature(merged) !== signature(MC.data)) {
         MC.data = merged; MC.saveData(); MC.reindex(); MC.onChange();
       }
-      if (!remote || MC.fixPri || signature(merged) !== signature(remote)) {
+      if (!remote || MC.fixPri || res.force || signature(merged) !== signature(remote)) {
         MC.fixPri = false;
         const out = { ...merged, updatedAt: Date.now() };
         MC.dirty = false;

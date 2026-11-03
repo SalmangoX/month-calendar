@@ -11,6 +11,8 @@ final class CloudSync {
     static let file = "cadence-calendar.json"
     private let key = "cloudSyncBookmark"
     private(set) var folder: URL?
+    /// 上次读到的副本（文件名 → 修改时间）：写回主文件后只删这些，读完之后才出现的副本留到下次合并
+    private var seenCopies: [String: Date] = [:]
 
     private init() { resolve() }
 
@@ -46,18 +48,57 @@ final class CloudSync {
         folder = nil
     }
 
+    /// iPhone 网页版手动存回时，iOS 有时不替换、而是存成「cadence-calendar 2.json」这类副本：读出来一起合并，写回主文件后删掉
+    private func readCopies(in dir: URL) -> [String] {
+        let fm = FileManager.default
+        guard let names = try? fm.contentsOfDirectory(atPath: dir.path) else { return [] }
+        let stem = (CloudSync.file as NSString).deletingPathExtension
+        var bodies: [String] = []
+        seenCopies = [:]
+        for n in names where n != CloudSync.file {
+            if n.hasPrefix("." + stem) && n.hasSuffix(".json.icloud") { // 副本还没下载：先下载，下次再读
+                let real = String(n.dropFirst().dropLast(".icloud".count))
+                try? fm.startDownloadingUbiquitousItem(at: dir.appendingPathComponent(real))
+                continue
+            }
+            guard n.hasPrefix(stem), n.hasSuffix(".json") else { continue }
+            let u = dir.appendingPathComponent(n)
+            var err: NSError?
+            NSFileCoordinator().coordinate(readingItemAt: u, options: [], error: &err) { url in
+                if let d = try? Data(contentsOf: url), let s = String(data: d, encoding: .utf8) {
+                    bodies.append(s)
+                    seenCopies[n] = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+                }
+            }
+        }
+        return bodies
+    }
+
+    private func dropCopies(in dir: URL) {
+        for (n, t) in seenCopies {
+            let u = dir.appendingPathComponent(n)
+            let now = (try? u.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+            guard now == t else { continue } // 读完之后又变过：留到下次合并
+            var err: NSError?
+            NSFileCoordinator().coordinate(writingItemAt: u, options: .forDeleting, error: &err) { url in try? FileManager.default.removeItem(at: url) }
+        }
+        seenCopies = [:]
+    }
+
     /// 读：{status: 200, body, etag} / 304（和 tag 一样，没变化）/ 404（还没有数据）/ 202（iCloud 还在下载，稍后再试）/ {error}
+    /// 有副本时附带 copies（副本内容），并且不会返回 304，让网页合并后写回主文件
     func read(ifNot tag: String) -> JObj {
         guard let dir = folder else { return ["error": I18n.t("还没有选择 iCloud 云盘文件夹")] }
         let ok = dir.startAccessingSecurityScopedResource()
         defer { if ok { dir.stopAccessingSecurityScopedResource() } }
         let u = dir.appendingPathComponent(CloudSync.file)
         let fm = FileManager.default
+        let copies = readCopies(in: dir)
         if !fm.fileExists(atPath: u.path) {
             // 「优化 Mac 存储空间」时，没下载的文件只有一个 .xxx.icloud 占位文件
             let placeholder = dir.appendingPathComponent("." + CloudSync.file + ".icloud")
             if fm.fileExists(atPath: placeholder.path) { try? fm.startDownloadingUbiquitousItem(at: u); return ["status": 202] }
-            return ["status": 404]
+            return copies.isEmpty ? ["status": 404] : ["status": 404, "copies": copies]
         }
         let v = try? u.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey, .contentModificationDateKey, .fileSizeKey])
         if let s = v?.ubiquitousItemDownloadingStatus, s != .current {
@@ -65,12 +106,13 @@ final class CloudSync {
             if s == .notDownloaded { return ["status": 202] }
         }
         let etag = "\(v?.contentModificationDate?.timeIntervalSince1970 ?? 0)-\(v?.fileSize ?? 0)"
-        if !tag.isEmpty && tag == etag { return ["status": 304, "etag": etag] }
+        if !tag.isEmpty && tag == etag && copies.isEmpty { return ["status": 304, "etag": etag] }
         var out: JObj = ["error": I18n.t("读取 iCloud 云盘失败")]
         var err: NSError?
         NSFileCoordinator().coordinate(readingItemAt: u, options: [], error: &err) { url in
             if let d = try? Data(contentsOf: url), let s = String(data: d, encoding: .utf8) { out = ["status": 200, "body": s, "etag": etag] }
         }
+        if !copies.isEmpty && out["error"] == nil { out["copies"] = copies }
         return out
     }
 
@@ -81,14 +123,17 @@ final class CloudSync {
         defer { if ok { dir.stopAccessingSecurityScopedResource() } }
         let u = dir.appendingPathComponent(CloudSync.file)
         var out: JObj = ["error": I18n.t("写入 iCloud 云盘失败")]
+        var written = false
         var err: NSError?
         NSFileCoordinator().coordinate(writingItemAt: u, options: .forReplacing, error: &err) { url in
             do {
                 try Data(body.utf8).write(to: url, options: .atomic)
                 let v = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
                 out = ["status": 201, "etag": "\(v?.contentModificationDate?.timeIntervalSince1970 ?? 0)-\(v?.fileSize ?? 0)"]
+                written = true
             } catch { out = ["error": I18n.t("写入 iCloud 云盘失败") + "：" + error.localizedDescription] }
         }
+        if written { dropCopies(in: dir) } // 副本已经合并进主文件了
         return out
     }
 

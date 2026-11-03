@@ -762,7 +762,12 @@
       srow({ act: 'update', icon: 'refresh', tone: 'lavender', label: '检查更新', sub: `当前版本 ${MC.versionText()}`, chev: false }),
     ]);
     // 按重要程度排：最常来设置的是提醒，其次是显示，同步、小组件和数据放后面
-    const h = gRemind + gDisplay + gSync + gWidgets + gData;
+    // iPhone 网页版 / 浏览器：Safari 不能自己读写 iCloud 云盘，只能每次手动选文件、存回去，和 Mac 的 iCloud 云盘同步接上
+    const gIcFile = MC.Native.on ? '' : group('iCloud 云盘', [
+      srow({ act: 'icfile', icon: 'cloud', tone: 'sky', label: '与 iCloud 云盘同步', chev: false,
+        sub: S.icFileDirty ? '手机上有改动还没存回去' : S.icFileAt ? '上次 · ' + new Date(S.icFileAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '读取 Mac 的数据，合并后存回去' }),
+    ], '给 Mac 的 iCloud 云盘同步用：浏览器不能自己读写 iCloud 云盘，只能你来点。用过一次后，打开节律或手机上有改动时会自动提醒你同步。');
+    const h = gRemind + gDisplay + gSync + gIcFile + gWidgets + gData;
     $('#setGroups').innerHTML = h;
     const total = MC.data.events.length, done = MC.data.events.filter(e => e.done).length;
     $('#statLine').innerHTML = `版本 ${MC.versionText()} · 共 ${total} 个事件，已完成 ${done} 个<small class="dbg"${showDbg ? '' : ' hidden'}>${esc(MC.screenInfo || '')}</small>`;
@@ -872,6 +877,7 @@
     else if (act === 'iosSched') copySched();
     else if (act === 'iosDays') copyDays();
     else if (act === 'androidSched') { if (!MC.settings.gistId) { UI.toast('请先连接 GitHub 并完成一次同步'); return; } copy(androidLink() + '&mode=sched', '已复制课表小组件链接'); }
+    else if (act === 'icfile') icloudFileSync();
     else if (act === 'export') exportData();
     else if (act === 'import') $('#importFile').click();
     else if (act === 'update') {
@@ -1347,6 +1353,66 @@
       try { await Push.regenerate(); openHelp('notify'); UI.toast('已生成新的通知密钥'); } catch (err) { UI.toast(err.message); }
     }
   });
+
+  // ---------- 手动与 iCloud 云盘同步（iPhone 网页版）----------
+  // 第 1 步选 Mac 同步用的 cadence-calendar.json 合并进来；第 2 步把合并结果用分享面板「存储到“文件”」存回同一个文件夹。
+  // iOS 没替换、存成了「cadence-calendar 2.json」也没关系：Mac 会把这类副本合并进来再删掉
+  // 用过一次之后：打开节律、回到节律、手机上改了东西时，自动弹出带「同步」按钮的提示，点一下直接选文件
+  function icloudFileSync() {
+    if (MC.settings.icFileAt) { $('#icFile').click(); return; } // 点击里直接打开（选文件必须由点击触发）
+    UI.confirm('第 1 步：在「文件」里打开 iCloud 云盘 → Mac 同步用的文件夹，选 cadence-calendar.json。', { ok: '选择文件' })
+      .then(ok => ok && $('#icFile').click());
+  }
+  let icMerging = false, icPromptAt = 0, icEditTimer = null;
+  const icManual = () => !MC.Native.on && !!MC.settings.icFileAt;
+  function icPrompt(force) {
+    if (!icManual() || document.visibilityState !== 'visible' || UI.anyOpen()) return;
+    const dirty = !!MC.settings.icFileDirty, stale = Date.now() - MC.settings.icFileAt > 30 * 60e3;
+    if (!dirty && !stale) return;
+    if (!force && Date.now() - icPromptAt < 10 * 60e3) return; // 十分钟内不重复打扰
+    icPromptAt = Date.now();
+    UI.toast(dirty ? '手机上的改动还没存到 iCloud 云盘' : '读取 Mac 在 iCloud 云盘里的最新数据', { action: '同步', onAction: icloudFileSync, ms: 8000 });
+  }
+  const commitIc = MC.commit;
+  MC.commit = () => {
+    commitIc();
+    if (!icManual() || icMerging) return;
+    if (!MC.settings.icFileDirty) { MC.settings.icFileDirty = true; MC.saveSettings(); }
+    clearTimeout(icEditTimer); icEditTimer = setTimeout(() => icPrompt(true), 20e3); // 改完停 20 秒再提醒，不打断连续编辑
+  };
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(() => icPrompt(false), 800); });
+  setTimeout(() => icPrompt(true), 1500);
+  $('#icFile').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    let remote;
+    try { const j = JSON.parse(await f.text()); if (!j || !Array.isArray(j.events)) throw 0; remote = MC.normalize(j); }
+    catch (err) { UI.toast('这不是节律的同步文件'); return; }
+    icMerging = true; MC.data = MC.merge(MC.data, remote); MC.commit(); icMerging = false;
+    const done = () => { MC.settings.icFileAt = Date.now(); MC.settings.icFileDirty = false; MC.saveSettings(); renderSettings(); };
+    if (MC.sameData(MC.data, remote)) { // 手机上没有 Mac 没有的改动：不用存回去
+      done();
+      UI.toast('已读取 Mac 的数据，手机上没有新改动，不用存回去'); return;
+    }
+    if (!(await UI.confirm('已合并 Mac 的数据。第 2 步：点「存回去」→「存储到“文件”」→ 选同一个文件夹 → 存储；问到时选「替换」。', { ok: '存回去', cancel: '以后再说' }))) {
+      MC.settings.icFileAt = MC.settings.icFileAt || Date.now(); MC.settings.icFileDirty = true; MC.saveSettings(); renderSettings(); return;
+    }
+    const json = JSON.stringify({ ...MC.data, updatedAt: Date.now() });
+    const file = new File([json], 'cadence-calendar.json', { type: 'application/json' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file] });
+      else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }
+    } catch (err) {
+      MC.settings.icFileAt = MC.settings.icFileAt || Date.now(); MC.settings.icFileDirty = true; MC.saveSettings(); renderSettings();
+      UI.toast(err && err.name === 'AbortError' ? '还没存回去，之后会再提醒你' : (err.message || '存回去失败')); return;
+    }
+    done();
+    UI.toast('已存回 iCloud 云盘，Mac 一般几秒到一两分钟后合并');
+  };
 
   // ---------- 备份 ----------
   async function exportData() {
