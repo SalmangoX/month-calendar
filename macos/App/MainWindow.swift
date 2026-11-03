@@ -155,7 +155,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         + '.ptitle{padding:2px 20px 8px!important}.ptitle h1{font-size:24px!important}.ptitle p{margin-top:2px!important}'
         + '.topbar{padding:0 14px 2px!important}'
         // 课表页：「‹ 11月2日 – 8日 ›」那一行挪进标题行的正中间（窗口够宽），省掉一整行
-        + '#page-sched{position:relative}#page-sched .sc-nav{position:absolute!important;top:var(--safe-t);left:50%;transform:translateX(-50%);width:min(440px,48%);height:42px;padding:0!important;z-index:3}'
+        + '#page-sched .sc-nav{position:absolute!important;top:var(--safe-t);left:50%;transform:translateX(-50%);width:min(440px,48%);height:42px;padding:0!important;z-index:3}'
         + '#page-sched .sc-week{padding:0!important}';
       document.head.appendChild(st);
       var last = '';
