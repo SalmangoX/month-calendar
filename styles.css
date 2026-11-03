@@ -63,21 +63,21 @@
   --done-mix: 18%;
 }
 :root[data-theme="dark"] {
-  /* 深色是「夜」——几乎是黑，只带一丝暮色；主色是柔和的蓝紫 */
+  /* 深色：底色用系统的中性灰（和 macOS / iOS 的深色界面一致，有层次、不是一片死黑）；主色还是柔和的蓝紫 */
   color-scheme: dark;
-  --bg: #050608;
-  --bg-grouped: #050608;
-  --surface: #131318;
-  --line: #1C1D21;
+  --bg: #1C1C1E;
+  --bg-grouped: #1C1C1E;
+  --surface: #2C2C2E;
+  --line: #38383A;
   --text: #EEEEF1;
   --text2: #8F929B;
-  --text3: #45474F;
+  --text3: #58585D;
   --sel: rgba(139, 168, 222, .055);
-  --field: rgba(236, 238, 250, .075);
-  --group-line: rgba(236, 238, 250, .065);
+  --field: rgba(255, 255, 255, .08);
+  --group-line: rgba(255, 255, 255, .07);
   --accent: #8BA8DE;
   --accent-base: #8BA8DE;
-  --drawer-frost: rgba(24, 24, 30, .56);
+  --drawer-frost: rgba(44, 44, 46, .6);
   --accent-deep: #5A77AD;
   --accent-text: #ADC5EF;
   --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .10), 0 8px 22px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .35);
@@ -89,9 +89,9 @@
   --sel-veil-top: rgba(139, 168, 222, .04);
   --sel-tint: color-mix(in srgb, var(--accent) 20%, transparent);
   --sel-tint-pct: 20%;
-  --frost: rgba(30, 30, 37, .46);
-  --frost-strong: rgba(20, 20, 26, .82);
-  --cpop-bg: rgba(24, 24, 30, .5);
+  --frost: rgba(50, 50, 54, .46);
+  --frost-strong: rgba(36, 36, 38, .84);
+  --cpop-bg: rgba(44, 44, 46, .55);
   --glass-fx: blur(22px) saturate(170%) brightness(.94);
   --glass-fx-strong: blur(32px) saturate(160%) brightness(.92);
   --rim-hi: rgba(255, 255, 255, .22);
@@ -101,7 +101,7 @@
   --frost-edge: rgba(255, 255, 255, .07);
   --frost-hi: rgba(255, 255, 255, .06);
   --frost-shadow: 0 12px 36px rgba(0, 0, 0, .55);
-  --bar-frost: rgba(33, 33, 40, .38);
+  --bar-frost: rgba(58, 58, 60, .4);
   --backdrop: rgba(3, 3, 6, .54);
   --done-mix: 28%;
 }

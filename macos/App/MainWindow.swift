@@ -203,7 +203,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
 
     /// 和网页一致的底色，窗口标题栏、网页加载前都不会闪白
     static let appBg = NSColor(name: nil) { ap in
-        ap.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(srgbRed: 5 / 255, green: 6 / 255, blue: 8 / 255, alpha: 1)
+        ap.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(srgbRed: 28 / 255, green: 28 / 255, blue: 30 / 255, alpha: 1)
                                                          : NSColor(srgbRed: 247 / 255, green: 250 / 255, blue: 252 / 255, alpha: 1)
     }
 
@@ -375,7 +375,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         <!doctype html><meta charset="utf-8"><meta name="color-scheme" content="light dark">
         <style>
           body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;font:15px -apple-system,system-ui;
-               background:\(dark ? "#050608" : "#F7FAFC");color:\(dark ? "#EEEEF1" : "#171B20")}
+               background:\(dark ? "#1C1C1E" : "#F7FAFC");color:\(dark ? "#EEEEF1" : "#171B20")}
           .c{text-align:center;max-width:320px;padding:28px 30px;border-radius:24px;
              background:\(dark ? "rgba(255,255,255,.06)" : "rgba(255,255,255,.7)");backdrop-filter:blur(30px) saturate(1.6);
              box-shadow:0 1px 0 rgba(255,255,255,\(dark ? ".08" : ".9")) inset,0 10px 40px rgba(0,0,0,\(dark ? ".5" : ".08"))}
