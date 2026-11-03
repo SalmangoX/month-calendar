@@ -15,18 +15,34 @@ if (!TOKEN || !VAPID_PRIVATE) {
   process.exit(0);
 }
 
+// GitHub 偶尔会短暂出错（网络抖动、5xx、限流）：等一会儿重试，最多 3 次
 async function gh(path, opts = {}) {
-  const r = await fetch('https://api.github.com' + path, {
-    ...opts,
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${TOKEN}`,
-      'User-Agent': 'mcal-reminders',
-      ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
-    },
-  });
-  if (!r.ok) throw new Error(`GitHub ${r.status} ${path}`);
-  return r.json();
+  for (let i = 0; ; i++) {
+    let r = null, err = null;
+    try {
+      r = await fetch('https://api.github.com' + path, {
+        ...opts,
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${TOKEN}`,
+          'User-Agent': 'mcal-reminders',
+          ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+        },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (r.ok) return await r.json();
+    } catch (e) { err = e; }
+    const what = `GitHub ${r ? r.status : (err && err.message) || '网络错误'} ${path}`;
+    const transient = !r || r.status >= 500 || r.status === 429 || (r.status === 403 && r.headers.get('x-ratelimit-remaining') === '0');
+    if (!transient) throw new Error(what);
+    if (i >= 2) {
+      // 重试后还是不行：这次先跳过，不算失败（不会每 5 分钟发一封失败邮件）；
+      // 下一次运行会补发最近 6 小时内到点的提醒，已发过的有记录，不会重复
+      console.log(`GitHub 暂时连不上，这次跳过，下次运行补发：${what}`);
+      process.exit(0);
+    }
+    await new Promise(res => setTimeout(res, 3000 * (i + 1)));
+  }
 }
 async function findGist() {
   if (GIST_ID) return GIST_ID;
