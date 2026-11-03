@@ -422,10 +422,14 @@ struct GlassDrawer: View {
         return HStack(spacing: 6) {
             Button { m.pick(r.id) } label: {
                 HStack(spacing: 11) {
-                    // 和网页同一套：中性的灰底块 + 实心、饱和的彩色图形
-                    Image(systemName: icon).font(.system(size: 16, weight: .bold)).symbolRenderingMode(.monochrome).foregroundStyle(color)
-                        .frame(width: 34, height: 34)
-                        .background(Color.primary.opacity(scheme == .dark ? 0.1 : 0.06), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    // 和网页同一套：中性的灰底块 + 实心、饱和的彩色图形（系统的 calendar 只有空心的，主日历自己画一个实心日历）
+                    let tile = Color(argb: scheme == .dark ? 0xFF2A_2A2E : 0xFFEF_F1F4)
+                    Group {
+                        if r.kind == "main" { SolidCalendarGlyph(color: color, tile: tile).frame(width: 18, height: 18) }
+                        else { Image(systemName: icon).font(.system(size: 16, weight: .bold)).symbolRenderingMode(.monochrome).foregroundStyle(color) }
+                    }
+                    .frame(width: 34, height: 34)
+                    .background(tile, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(r.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
                         HStack(spacing: 5) {
@@ -462,5 +466,26 @@ struct GlassDrawer: View {
             if r.on { RoundedRectangle(cornerRadius: 15, style: .continuous).fill(color.opacity(scheme == .dark ? 0.2 : 0.13)) }
         }
         .id(r.key)
+    }
+}
+
+/// 实心日历图形：彩色的日历本体，顶上的横线和三个小点用底块颜色挖空（和网页的实心日历图标一样）
+struct SolidCalendarGlyph: View {
+    let color: Color, tile: Color
+    var body: some View {
+        GeometryReader { g in
+            let w = g.size.width, h = g.size.height
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: w * 0.17, style: .continuous).fill(color)
+                    .frame(width: w * 0.92, height: h * 0.8).offset(x: w * 0.04, y: h * 0.17)
+                Rectangle().fill(tile).frame(width: w * 0.92, height: max(1.2, h * 0.08)).offset(x: w * 0.04, y: h * 0.38)
+                ForEach(0..<3, id: \.self) { i in
+                    Circle().fill(tile).frame(width: w * 0.12, height: w * 0.12).offset(x: w * (0.27 + 0.2 * CGFloat(i)), y: h * 0.6)
+                }
+                ForEach(0..<2, id: \.self) { i in
+                    Capsule().fill(color).frame(width: max(1.6, w * 0.1), height: h * 0.2).offset(x: w * (0.3 + 0.35 * CGFloat(i)), y: h * 0.05)
+                }
+            }
+        }
     }
 }
