@@ -310,9 +310,13 @@
     });
   };
   // 长按：按住约半秒、手指没怎么动；之后的那次点击不再打开编辑
+  // 别的手势接管了手指（比如往右拉侧栏，会拦下 touchmove）时，用 UI.cancelPresses() 取消还在计时的长按
+  const presses = new Set();
+  UI.cancelPresses = () => presses.forEach(c => c());
   UI.longPress = (el, sel, fn) => {
     let lp = null, lastTouch = 0, swallowClick = false;
     const cancel = () => { if (lp) { clearTimeout(lp.t); lp = null; } };
+    presses.add(cancel);
     el.addEventListener('touchstart', ev => {
       lastTouch = Date.now(); cancel();
       if (ev.touches.length !== 1) return;

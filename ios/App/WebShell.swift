@@ -152,6 +152,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
             saveFile: function (n, m, c, cb) { post('saveFile', [String(n), String(m), String(c), String(cb)]); },
             syncNow: function () { post('syncNow'); },
             openDrawer: function () { post('drawer'); },
+            drawerPull: function (p, dx, v) { post('drawerPull', [String(p), Number(dx) || 0, Number(v) || 0]); },
             http: function (j, cb) { post('http', [String(j), String(cb)]); },
             icloudChoose: function (cb) { post('icloudChoose', [String(cb)]); },
             icloudRead: function (tag, cb) { post('icloudRead', [String(tag || ''), String(cb)]); },
@@ -160,6 +161,9 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         })();
         """
         ucc.addUserScript(WKUserScript(source: js, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        // 网页自己的菜单栏、加号、侧栏一开始就藏起来：等网页加载完再藏，会先闪一下，和原生的玻璃菜单栏叠在一起
+        ucc.addUserScript(WKUserScript(source: "(function(){var s=document.createElement('style');s.textContent='#dock,#fab,#drawerScrim,#calDrawer{display:none!important}';(document.head||document.documentElement).appendChild(s);})();",
+                                       injectionTime: .atDocumentStart, forMainFrameOnly: true))
         ucc.addUserScript(WKUserScript(source: WebController.navJS, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
     }
 
@@ -241,6 +245,8 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         case "icloudRead": callback(s(1), CloudSync.shared.read(ifNot: s(0)))
         case "icloudWrite": callback(s(1), CloudSync.shared.write(s(0)))
         case "drawer": nav.openDrawer()
+        case "drawerPull": // 手指从网页里拉侧栏：开始 / 拉到哪 / 松手时的速度
+            switch s(0) { case "begin": nav.pullBegin(); case "move": nav.pullMove(d(1)); default: nav.pullEnd(d(2)) }
         default: break
         }
     }

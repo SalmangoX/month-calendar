@@ -35,6 +35,8 @@
 	<string>group.io.github.salmangox.cadence</string>
 	<key>CadenceAppURL</key>
 	<string>https://salmangox.github.io/month-calendar/</string>
+	<key>CadenceChannel</key>
+	<string>$(CADENCE_CHANNEL)</string>
 	<key>CadenceRepo</key>
 	<string>SalmangoX/month-calendar</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

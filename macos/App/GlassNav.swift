@@ -47,7 +47,8 @@ final class NavModel: ObservableObject {
         if s.tabs.map(\.id) != tabs.map(\.id) || s.tabs.map(\.label) != tabs.map(\.label) || s.tabs.map(\.hidden) != tabs.map(\.hidden) { tabs = s.tabs }
         if page != s.page { page = s.page }
         if fab != s.fab { fab = s.fab }
-        if cover != (s.cover ?? false) { withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { cover = s.cover ?? false } }
+        // 面板弹出时菜单栏马上让开（0.12 秒淡出，不会和从底部升起的面板叠在一起）；面板收起后再弹回来
+        if cover != (s.cover ?? false) { withAnimation(s.cover == true ? .easeOut(duration: 0.12) : .spring(response: 0.32, dampingFraction: 0.86)) { cover = s.cover ?? false } }
         if let h = s.holes { onDragHoles(h.compactMap { $0.count == 4 ? CGRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) : nil }) }
     }
 
@@ -67,6 +68,29 @@ final class NavModel: ObservableObject {
             }
         }
     }
+    // ---------- iPhone：手指从网页里往右拉，侧栏跟着手指出来 ----------
+    /// 侧栏整块的宽度（300 + 两边的边距）：拉动距离 = 手指移动的距离 - 这个宽度（0 = 完全拉出来）
+    static let panelW: CGFloat = 320
+    func pullBegin() {
+        var t = Transaction(); t.disablesAnimations = true
+        withTransaction(t) { drawerPull = -NavModel.panelW; drawerOpen = true }
+        refresh()
+    }
+    func pullMove(_ dx: CGFloat) { drawerPull = dx - NavModel.panelW } // 拉过头（正数）时视图里按橡皮筋拉长
+    /// 松手：拉出一半以上、或者往右甩，就弹开（带一点果冻回弹）；否则收回去
+    func pullEnd(_ v: CGFloat) {
+        if drawerPull > -NavModel.panelW * 0.5 || v > 450 {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.62)) { drawerPull = 0 }
+        } else {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.95)) { drawerPull = -NavModel.panelW }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { [weak self] in
+                guard let self, self.drawerPull <= -NavModel.panelW + 1 else { return }
+                var t = Transaction(); t.disablesAnimations = true
+                withTransaction(t) { self.drawerOpen = false; self.drawerPull = 0 }
+            }
+        }
+    }
+
     func closeDrawer() {
         drawerOpen = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in if self?.drawerOpen == false { self?.drawerPull = 0 } }
@@ -308,9 +332,27 @@ struct GlassTabBar: View {
         }
         .frame(height: h + pad * 2)
         .frame(maxWidth: 520)
+        .macGlassFinish(Capsule())
         .offset(x: wall == 0 ? 0 : (wall < 0 ? -1 : 1) * rubber(abs(wall), 9)) // 顶到两端：整条菜单被轻轻拽过去
         .padding(10) // 给玻璃的阴影留位置
         .opacity(m.tabs.isEmpty ? 0 : 1)
+    }
+}
+
+extension View {
+    /// Mac 的系统玻璃比 iPhone 淡：边缘几乎没有高光、没有投影，窗口不在最前面时还会整个变灰（加号的蓝色也没了）。
+    /// 这里在 Mac 上补一圈细细的高光边、一层柔和的投影，并且一直按「窗口在最前面」的样子画（iPhone 上什么都不加）
+    @ViewBuilder func macGlassFinish<S: InsettableShape>(_ shape: S) -> some View {
+        #if os(macOS)
+        self
+            .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.55), .white.opacity(0.08), .white.opacity(0.22)],
+                                                       startPoint: .top, endPoint: .bottom), lineWidth: 0.8).allowsHitTesting(false))
+            .shadow(color: .black.opacity(0.12), radius: 14, y: 5)
+            .shadow(color: .black.opacity(0.06), radius: 2, y: 1)
+            .environment(\.appearsActive, true)
+        #else
+        self
+        #endif
     }
 }
 
@@ -350,6 +392,18 @@ struct GlassFab: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
+        #if os(macOS)
+        // Mac：系统的主操作按钮在窗口不在最前面时会变成灰色，所以自己画一块带主色的玻璃（一直是蓝的）
+        Button { m.add() } label: {
+            Image(systemName: "plus").font(.system(size: FabSize.icon, weight: .semibold)).foregroundStyle(.white)
+                .frame(width: FabSize.side + 12, height: FabSize.side + 12)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.tint(Pal(dark: scheme == .dark).accent).interactive(), in: .circle)
+        .macGlassFinish(Circle())
+        .padding(10)
+        #else
         Button { m.add() } label: {
             Image(systemName: "plus").font(.system(size: FabSize.icon, weight: .semibold))
                 .frame(width: FabSize.side, height: FabSize.side)
@@ -359,6 +413,7 @@ struct GlassFab: View {
         .tint(Pal(dark: scheme == .dark).accent)
         .controlSize(FabSize.control)
         .padding(10)
+        #endif
     }
 }
 
@@ -421,11 +476,14 @@ struct GlassDrawer: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hLock: Bool? // 这次拖动是横着的（拉侧栏）还是竖着的（滚列表）
 
     var body: some View {
         ZStack(alignment: .leading) {
             if m.drawerOpen, let d = m.drawer {
-                Color.black.opacity(scheme == .dark ? 0.32 : 0.14)
+                // 遮罩跟着侧栏拉出来的程度变深
+                let shown = max(0, min(1, 1 + min(0, m.drawerPull) / NavModel.panelW))
+                Color.black.opacity((scheme == .dark ? 0.32 : 0.14) * shown)
                     #if os(iOS)
                     .ignoresSafeArea() // iPhone：遮罩也盖住状态栏和 Home 条那一条
                     #endif
@@ -441,10 +499,17 @@ struct GlassDrawer: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        // 打开时，在窗口任何地方左右拖都是拉动日历栏
-        .gesture(DragGesture(minimumDistance: 6)
-            .onChanged { m.drawerPull = $0.translation.width }
-            .onEnded { m.releaseDrawer(predicted: $0.predictedEndTranslation.width) })
+        // 打开时，在窗口任何地方（包括侧栏里面）左右拖都是拉动日历栏；和列表的上下滚动同时识别，
+        // 开头先看是横着拖还是竖着拖：竖着拖只滚列表，横着拖才拉动侧栏
+        .simultaneousGesture(DragGesture(minimumDistance: 10)
+            .onChanged { v in
+                if hLock == nil { hLock = abs(v.translation.width) > abs(v.translation.height) }
+                if hLock == true { m.drawerPull = v.translation.width }
+            }
+            .onEnded { v in
+                defer { hLock = nil }
+                if hLock == true { m.releaseDrawer(predicted: v.predictedEndTranslation.width) }
+            })
         .animation(reduceMotion ? nil : .spring(response: 0.46, dampingFraction: 0.72), value: m.drawerOpen) // 弹出带一点回弹
         .onEscape { m.closeDrawer() }
     }

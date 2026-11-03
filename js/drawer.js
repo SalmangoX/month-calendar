@@ -234,8 +234,10 @@
 
   // 拉出：月 / 年视图里任何地方往右滑都可以（这两个视图是上下滚动的）；
   // 周视图左右滑是翻周，只在屏幕最左边一条或顶栏上往右滑才拉出。
-  let g = null;
+  let g = null, pageSwallow = 0;
   const pullFrom = pg => {
+  // 原生侧栏不盖住网页：拉完松手时系统还会补发一个点击，落在日历的某一天上就会打开新建事件，这里先吃掉
+  pg.addEventListener('click', e => { if (Date.now() - pageSwallow < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
   pg.addEventListener('touchstart', e => {
     g = null;
     if (isOpen || e.touches.length !== 1 || UI.anyOpen()) return;
@@ -250,31 +252,42 @@
     if (!g || g.mode < 0 || e.touches.length !== 1) return;
     const t = e.touches[0], dx = t.clientX - g.x0, dy = t.clientY - g.y0;
     if (g.mode === 0) {
-      if (Math.hypot(dx, dy) < 10) return;
-      if (dx > 0 && dx > Math.abs(dy) * 1.25) {
-        // iPhone App：网页的侧栏隐藏了，换成原生液态玻璃侧栏，往右一滑就弹出来
-        if (nativeDrawer()) { g = null; if (e.cancelable) e.preventDefault(); D.open(); return; }
+      if (Math.hypot(dx, dy) < 12) return;
+      // 要明显是往右划（横向至少是竖向的 2 倍）：上下滑月历时斜一点不会误拉出侧栏
+      if (dx > 0 && dx > Math.abs(dy) * 2) {
+        UI.cancelPresses(); // 下面会拦下 touchmove，长按自己看不到手指在动：先取消，免得松手前打开新建事件
+        // iPhone App：网页的侧栏隐藏了，换成原生液态玻璃侧栏；手指的位置一路交给原生，侧栏跟着手指出来
+        if (nativeDrawer()) {
+          if (!window.MCNative.drawerPull) { g = null; if (e.cancelable) e.preventDefault(); D.open(); return; } // 旧版 App：直接弹出
+          g.mode = 2; window.MCNative.drawerPull('begin', 0, 0);
+        } else {
         g.mode = 1;
         if (anim) anim.stop();
         render(); measure();
         el.setAttribute('aria-hidden', 'false');
+        }
       } else { g.mode = -1; return; }
     }
     if (e.cancelable) e.preventDefault();
-    e.stopPropagation();                                              // 日历不再跟着滚动
+    e.stopPropagation();                                              // 日历不再跟着滚动（手指没抬起来之前一直这样）
     g.s.push([performance.now(), t.clientX]); if (g.s.length > 10) g.s.shift();
-    apply(Math.max(0, dx), vel(g.s));
+    if (g.mode === 2) window.MCNative.drawerPull('move', Math.max(0, dx), 0);
+    else apply(Math.max(0, dx), vel(g.s));
   }, { capture: true, passive: false });
   const pageEnd = () => {
     if (!g) return;
     const was = g.mode === 1, s = g.s;
+    if (g.mode === 2) { g = null; pageSwallow = Date.now(); window.MCNative.drawerPull('end', 0, vel(s)); return; }
     g = null;
     if (!was) return;
     swallow = true; setTimeout(() => (swallow = false), 300);
     release(vel(s), pos);
   };
   pg.addEventListener('touchend', pageEnd, true);
-  pg.addEventListener('touchcancel', () => { if (g && g.mode === 1) { g = null; animateTo(0); } else g = null; }, true);
+  pg.addEventListener('touchcancel', () => {
+    if (g && g.mode === 2) window.MCNative.drawerPull('end', 0, -1000); // 被系统打断：收回去
+    if (g && g.mode === 1) { g = null; animateTo(0); } else g = null;
+  }, true);
   };
   pullFrom(calPage);
   if (daysPage) pullFrom(daysPage);
