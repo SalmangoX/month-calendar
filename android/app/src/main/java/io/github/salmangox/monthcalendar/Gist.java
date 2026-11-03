@@ -21,6 +21,7 @@ final class Gist {
 
     /** 成功（包括没有变化、没连接 GitHub）返回 true；网络或 GitHub 出错返回 false */
     static boolean pull(Context c) {
+        if (!Store.prefs(c).getString("davURL", "").isEmpty()) return Dav.pull(c); // 用 WebDAV 同步时从网盘拉
         String token = Store.token(c);
         if (token.isEmpty()) return true;
         SharedPreferences p = Store.prefs(c);

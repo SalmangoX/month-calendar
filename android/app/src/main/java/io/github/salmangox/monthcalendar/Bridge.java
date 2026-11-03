@@ -18,7 +18,7 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http"
     };
 
     private final MainActivity a;
@@ -68,6 +68,12 @@ final class Bridge {
         e.putInt("weekStart", o.optInt("weekStart", 0));
         e.putString("theme", theme);
         e.putBoolean("notify", o.optBoolean("notify", false));
+        // WebDAV（坚果云等）：记下地址和账号，后台从网盘拉取；密码和 GitHub 令牌存在同一个地方
+        JSONObject dav = o.optJSONObject("dav");
+        String davUrl = dav == null ? "" : dav.optString("url", ""), davUser = dav == null ? "" : dav.optString("user", "");
+        if (!davUrl.equals(p.getString("davURL", "")) || !davUser.equals(p.getString("davUser", ""))) {
+            e.putString("davURL", davUrl).putString("davUser", davUser).remove("davEtag");
+        }
         String gist = o.optString("gistId", "");
         if (!gist.isEmpty() && !gist.equals(p.getString("gistId", ""))) e.putString("gistId", gist).remove("etag");
         e.apply();
@@ -93,7 +99,8 @@ final class Bridge {
     @JavascriptInterface
     public void clearAccount(boolean wipe) {
         Store.setToken(c, "");
-        Store.prefs(c).edit().remove("gistId").remove("etag").remove("pullAt").remove("pullErr").apply();
+        Store.prefs(c).edit().remove("gistId").remove("etag").remove("pullAt").remove("pullErr")
+                .remove("davURL").remove("davUser").remove("davEtag").apply();
         if (wipe) Store.clearData(c);
         Engine.refreshAsync(c);
     }
@@ -147,6 +154,12 @@ final class Bridge {
     @JavascriptInterface
     public void saveFile(String name, String mime, String content, String cb) {
         a.runOnUiThread(() -> a.saveFile(name, mime, content, cb));
+    }
+
+    /** WebDAV（坚果云等）的请求由 App 代发：网页直接请求这类服务器会被浏览器的跨域限制挡住 */
+    @JavascriptInterface
+    public void http(String json, String cb) {
+        Http.NET.execute(() -> a.callback(cb, Http.run(json)));
     }
 
     @JavascriptInterface

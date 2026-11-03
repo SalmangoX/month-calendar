@@ -59,3 +59,8 @@ android {
         checkReleaseBuilds = false
     }
 }
+
+dependencies {
+    // WebDAV（坚果云等）的 PROPFIND、MKCOL 请求：系统自带的 HttpURLConnection 不支持这两个方法
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+}
