@@ -534,7 +534,7 @@
     },
     lock() { if (MC.settings.vault) MC.session.token = ''; },
     disconnect() {
-      MC.settings.vault = null; MC.settings.tokenPlain = ''; MC.settings.gistId = ''; MC.settings.lastSync = 0; MC.settings.dav = null;
+      MC.settings.vault = null; MC.settings.tokenPlain = ''; MC.settings.gistId = ''; MC.settings.lastSync = 0; MC.settings.dav = null; MC.settings.icloud = null;
       MC.session.token = ''; MC.saveSettings();
     },
   };
@@ -644,7 +644,29 @@
     const f = await MC.davReq('GET', davBase(dav) + DAV_FILE, { dav, pass });
     return f.status >= 200 && f.status < 300;
   };
-  MC.davReset = () => { davTag = ''; davLast = null; };
+  MC.davReset = () => { davTag = ''; davLast = null; icTag = ''; icLast = null; };
+
+  // ---------- iCloud 云盘（只有 Mac App 有）：读写 iCloud 云盘文件夹里的同一个文件，由原生端负责 ----------
+  // 没有密码：连接后在令牌的位置放一个占位的「icloud」，这样「已连接」「自动同步」这些判断照常工作
+  MC.isICloud = () => !!MC.settings.icloud;
+  let icTag = '', icLast = null;
+  async function icRead() {
+    const r = await MC.Native.ask('icloudRead', icLast ? icTag : '');
+    if (!r || r.error) throw new Error((r && r.error) || '读取 iCloud 云盘失败');
+    if (r.status === 202) return { skip: true };              // iCloud 还在下载：这次不写，免得冲掉另一台 Mac 的数据
+    if (r.status === 304 && icLast) return { remote: icLast, unchanged: true };
+    if (r.status === 404) return { remote: null, unchanged: false };
+    icTag = r.etag || '';
+    icLast = MC.normalize(JSON.parse(r.body));
+    return { remote: icLast, unchanged: false };
+  }
+  async function icWrite(d) {
+    const r = await MC.Native.ask('icloudWrite', JSON.stringify(d));
+    if (!r || r.error) throw new Error((r && r.error) || '写入 iCloud 云盘失败');
+    icLast = MC.normalize(d); icTag = r.etag || '';
+  }
+  // 连接时看一眼：选的文件夹里是不是已经有节律的数据（202 也当作有，宁可先合并）
+  MC.icloudHasData = async () => { const r = await MC.Native.ask('icloudRead', ''); return !!r && (r.status === 200 || r.status === 202); };
 
   // ---------- iPhone 日历订阅（ICS） ----------
   const ICS_FILE = 'mcal-calendar.ics';
@@ -718,11 +740,12 @@
     MC.syncState.busy = true; MC.onSyncStatus();
     let ok = false;
     try {
-      const dav = MC.isDav();
-      if (!dav && !MC.settings.gistId) { MC.settings.gistId = await MC.findGist(); MC.saveSettings(); }
+      const ic = MC.isICloud(), dav = !ic && MC.isDav();
+      if (!ic && !dav && !MC.settings.gistId) { MC.settings.gistId = await MC.findGist(); MC.saveSettings(); }
       let remote = null;
-      if (dav || MC.settings.gistId) {
-        const res = dav ? await davRead() : await readGist(MC.settings.gistId);
+      if (ic || dav || MC.settings.gistId) {
+        const res = ic ? await icRead() : dav ? await davRead() : await readGist(MC.settings.gistId);
+        if (res.skip) { MC.syncState.error = '正在从 iCloud 下载数据，稍后自动同步'; return false; }
         remote = res.remote;
         if (res.unchanged && !MC.dirty) { // 两边都没变化，直接结束
           await ensureICS(MC.data);
@@ -738,7 +761,8 @@
         MC.fixPri = false;
         const out = { ...merged, updatedAt: Date.now() };
         MC.dirty = false;
-        if (dav) await davWrite(out);
+        if (ic) await icWrite(out);
+        else if (dav) await davWrite(out);
         else { await writeGist(out); lastRemote = MC.normalize(out); etag = ''; } // 下次重新取一次新的 ETag
       } else MC.dirty = false;
       await ensureICS(merged);

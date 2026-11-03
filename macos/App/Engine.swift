@@ -95,6 +95,7 @@ final class Engine: ObservableObject {
         if davURL != prefs.string(forKey: "davURL") || davUser != prefs.string(forKey: "davUser") {
             prefs.set(davURL, forKey: "davURL"); prefs.set(davUser, forKey: "davUser"); prefs.removeObject(forKey: "davEtag")
         }
+        prefs.set(o.bool("icloud"), forKey: "icloud") // 用 iCloud 云盘同步：后台直接读那个文件
         let gist = o.str("gistId")
         if !gist.isEmpty && gist != prefs.string(forKey: "gistId") { prefs.set(gist, forKey: "gistId"); prefs.removeObject(forKey: "etag") }
         applyTheme(theme)
@@ -111,7 +112,8 @@ final class Engine: ObservableObject {
 
     func clearAccount(wipe: Bool) {
         Keychain.token = ""
-        for k in ["gistId", "etag", "pullAt", "pullErr", "davURL", "davUser", "davEtag"] { prefs.removeObject(forKey: k) }
+        for k in ["gistId", "etag", "pullAt", "pullErr", "davURL", "davUser", "davEtag", "icloud", "cloudEtag"] { prefs.removeObject(forKey: k) }
+        CloudSync.shared.stop()
         updateSyncText()
         if wipe { clearData() } else { Task { await refresh() } }
     }
@@ -219,6 +221,7 @@ final class Engine: ObservableObject {
 
     // ---------- 同步 ----------
     func pull() async {
+        if prefs.bool(forKey: "icloud") { pullCloud(); return }
         let token = Keychain.token
         guard !token.isEmpty, !syncing else { return }
         syncing = true
@@ -232,9 +235,25 @@ final class Engine: ObservableObject {
         onStatus?()
     }
 
+    /// iCloud 云盘：直接读那个文件，有变化就合并进来（菜单栏、小组件、提醒跟着更新）
+    private func pullCloud() {
+        let r = CloudSync.shared.read(ifNot: json.isEmpty ? "" : prefs.string(forKey: "cloudEtag") ?? "")
+        let now = Date().timeIntervalSince1970 * 1000
+        if let e = r["error"] as? String { prefs.set(e, forKey: "pullErr") }
+        else {
+            if r.int("status") == 200, let body = r["body"] as? String {
+                put(body, replace: false)
+                prefs.set(r.str("etag"), forKey: "cloudEtag")
+            }
+            if r.int("status") != 202 { prefs.set(now, forKey: "pullAt"); prefs.removeObject(forKey: "pullErr") }
+        }
+        updateSyncText()
+        onStatus?()
+    }
+
     private func updateSyncText() {
         if syncing { syncText = I18n.t("同步中…"); return }
-        if Keychain.token.isEmpty { syncText = I18n.t("未连接同步"); return }
+        if Keychain.token.isEmpty && !prefs.bool(forKey: "icloud") { syncText = I18n.t("未连接同步"); return }
         if let e = prefs.string(forKey: "pullErr"), !e.isEmpty { syncText = e; return }
         let at = prefs.double(forKey: "pullAt")
         if at <= 0 { syncText = ""; return }

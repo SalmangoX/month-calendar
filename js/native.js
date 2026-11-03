@@ -74,7 +74,8 @@
   const pushPrefs = () => {
     const S = MC.settings;
     const p = JSON.stringify({ weekStart: S.weekStart, theme: S.theme, notify: !!S.notify, gistId: S.gistId || '', account: S.account || '',
-      dav: S.dav && S.dav.url ? { url: S.dav.url, user: S.dav.user || '' } : null }); // 用 WebDAV 同步时，原生端在后台也从网盘拉取
+      dav: S.dav && S.dav.url ? { url: S.dav.url, user: S.dav.user || '' } : null, // 用 WebDAV 同步时，原生端在后台也从网盘拉取
+      icloud: !!S.icloud });
     if (p === lastPrefs) return;
     lastPrefs = p;
     call('setPrefs', p);

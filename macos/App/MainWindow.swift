@@ -13,6 +13,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         if #available(macOS 26.0, *) { f.append("glassDrawer") } // 日历栏由原生的液态玻璃侧边栏显示
         f.append("makeInstaller") // 设置里「生成安装包」
         f.append("http")          // WebDAV（坚果云等）的请求由原生端发，没有网页跨域限制
+        f.append("icloud")        // iCloud 云盘同步
         return f
     }
 
@@ -312,7 +313,10 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             checkUpdate: function () { post('checkUpdate'); },
             openDrawer: function () { post('drawer'); },
             makeInstaller: function () { post('makeInstaller'); },
-            http: function (j, cb) { post('http', [String(j), String(cb)]); }
+            http: function (j, cb) { post('http', [String(j), String(cb)]); },
+            icloudChoose: function (cb) { post('icloudChoose', [String(cb)]); },
+            icloudRead: function (tag, cb) { post('icloudRead', [String(tag || ''), String(cb)]); },
+            icloudWrite: function (body, cb) { post('icloudWrite', [String(body), String(cb)]); }
           };
         })();
         """
@@ -358,6 +362,9 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         case "menu": nav.showMenu(id: s(0), json: s(1), anchor: CGRect(x: d(2), y: d(3), width: d(4), height: d(5)))
         case "makeInstaller": Updater.shared.makeInstaller()
         case "http": let cb = s(1), req = s(0); Task { callback(cb, await NativeHTTP.run(req)) }
+        case "icloudChoose": let cb = s(0); DispatchQueue.main.async { self.callback(cb, CloudSync.shared.choose()) }
+        case "icloudRead": callback(s(1), CloudSync.shared.read(ifNot: s(0)))
+        case "icloudWrite": callback(s(1), CloudSync.shared.write(s(0)))
         case "drawer": nav.openDrawer()
         default: break
         }
