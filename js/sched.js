@@ -45,8 +45,9 @@
     return '#808080';
   }
   // 一门课的一整套颜色：浅色（淡底、深字、色条 / 小色块）、深色（深底、浅字、亮色条、深色小色块）
-  const courseTone = h => ({ base: oklchHex(.64, .095, h), fillL: oklchHex(.955, .03, h), inkL: oklchHex(.42, .085, h), fillD: oklchHex(.30, .045, h),
-    inkD: oklchHex(.86, .065, h), chipD: oklchHex(.42, .075, h), chipInkD: oklchHex(.935, .03, h), barD: oklchHex(.70, .095, h) });
+  // 底色要一眼看出是哪门课：浅色底 L .89 / C .065（以前 .955 / .03 太淡），色条和文字也加深、加饱和
+  const courseTone = h => ({ base: oklchHex(.60, .13, h), fillL: oklchHex(.89, .065, h), inkL: oklchHex(.36, .115, h), fillD: oklchHex(.34, .075, h),
+    inkD: oklchHex(.91, .07, h), chipD: oklchHex(.45, .09, h), chipInkD: oklchHex(.94, .03, h), barD: oklchHex(.74, .13, h) });
   let hueKey = '', hues = new Map();
   const toneCache = new Map();
   const toneByHue = h => { if (!toneCache.has(h)) toneCache.set(h, courseTone(h)); return toneCache.get(h); };

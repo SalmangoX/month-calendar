@@ -795,16 +795,18 @@ html.locked .lock { display: grid; }
   position: absolute; z-index: 1; border-radius: 10px; padding: 5px 5px 5px 8px; text-align: left; overflow: hidden;
   display: flex; flex-direction: column; gap: 1px; line-height: 1.22; color: var(--text);
   /* 课程块：淡底 + 左侧色条 + 同色深字（深色模式：深底 + 亮色条 + 同色浅字），颜色由 sched.js 的「晨昏八色」给出 */
-  background: var(--cfl, color-mix(in srgb, var(--c) 17%, var(--surface))); box-shadow: inset 3px 0 0 var(--c);
+  background: var(--cfl, color-mix(in srgb, var(--c) 17%, var(--surface))); box-shadow: inset 4px 0 0 var(--c), inset 0 0 0 .5px color-mix(in srgb, var(--c) 35%, transparent);
+  --csub: color-mix(in srgb, var(--cil, var(--c)) 86%, var(--cfl, var(--surface))); /* 时间、类型、教室：同色系的深一点，不用灰字 */
   transition: transform .15s;
 }
 .sc-blk:active { transform: scale(.97); }
-.sc-blk .t { font-size: calc(10.5px * var(--fs, 1)); color: var(--text2); font-variant-numeric: tabular-nums; }
+.sc-blk .t { font-size: calc(10.5px * var(--fs, 1)); font-weight: 600; color: var(--csub); font-variant-numeric: tabular-nums; }
 .sc-blk b { font-size: calc(13px * var(--fs, 1)); font-weight: 700; color: var(--cil, var(--c)); letter-spacing: -.02em; overflow-wrap: break-word; line-height: 1.15; }
-:root[data-theme="dark"] .sc-blk { background: var(--cfd); box-shadow: inset 3px 0 0 var(--cbd); }
+:root[data-theme="dark"] .sc-blk { background: var(--cfd); box-shadow: inset 4px 0 0 var(--cbd), inset 0 0 0 .5px color-mix(in srgb, var(--cbd) 30%, transparent);
+  --csub: color-mix(in srgb, var(--cid) 74%, var(--cfd)); }
 :root[data-theme="dark"] .sc-blk b { color: var(--cid); }
-.sc-blk .k { font-size: calc(11px * var(--fs, 1)); color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sc-blk .r { font-size: calc(11px * var(--fs, 1)); color: var(--text2); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; }
+.sc-blk .k { font-size: calc(11px * var(--fs, 1)); color: var(--csub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-blk .r { font-size: calc(11px * var(--fs, 1)); color: var(--csub); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; }
 .sc-blk.narrow { padding: 3px 1px 3px 4px; }
 .sc-blk.narrow b { font-size: calc(11px * var(--fs, 1)); letter-spacing: -.03em; word-break: keep-all; overflow-wrap: normal; }
 .sc-blk.narrow .k { display: none; }
