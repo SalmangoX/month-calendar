@@ -277,7 +277,8 @@ struct GlassTabBar: View {
                     Capsule().fill(Color.clear).frame(width: W, height: H).glassEffect(TabGlass.base(scheme), in: .capsule)
                     Capsule().fill(Color.clear)
                         .frame(width: w, height: h)
-                        .glassEffect(.clear.interactive(), in: .capsule)
+                        // 深色模式下：不拖的时候这块玻璃即使透明，系统也会画出一块灰色带亮边的「塑料片」，所以不拖时干脆不画玻璃
+                        .glassEffect(lifted || scheme != .dark ? Glass.clear.interactive() : Glass.identity, in: .capsule)
                         .macBubbleFinish(scheme)
                         .scaleEffect(x: sx, y: sy, anchor: wall < -0.5 ? .leading : wall > 0.5 ? .trailing : .center)
                         .offset(x: cx - w / 2)
@@ -360,10 +361,10 @@ struct TabDrop: View {
     let scheme: ColorScheme
     var body: some View {
         let dark = scheme == .dark
-        Capsule().fill(Color.white.opacity(dark ? 0.16 : 0.5))
-            .background(Capsule().fill(.ultraThinMaterial))
-            .overlay(Capsule().fill(LinearGradient(colors: [.white.opacity(dark ? 0.22 : 0.7), .clear], startPoint: .top, endPoint: .center)).padding(2))
-            .overlay(Capsule().strokeBorder(LinearGradient(colors: [.white, .white.opacity(0.35), .black.opacity(dark ? 0.35 : 0.12)], startPoint: .top, endPoint: .bottom), lineWidth: 1.5))
+        Capsule().fill(Color.white.opacity(dark ? 0.08 : 0.5))
+            .background(Capsule().fill(dark ? AnyShapeStyle(Color.black.opacity(0.25)) : AnyShapeStyle(.ultraThinMaterial)))
+            .overlay(Capsule().fill(LinearGradient(colors: [.white.opacity(dark ? 0.12 : 0.7), .clear], startPoint: .top, endPoint: .center)).padding(2))
+            .overlay(Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(dark ? 0.55 : 1), .white.opacity(dark ? 0.08 : 0.35), .white.opacity(dark ? 0.22 : 0), .black.opacity(dark ? 0 : 0.12)], startPoint: .top, endPoint: .bottom), lineWidth: 1.2))
             .shadow(color: .black.opacity(dark ? 0.45 : 0.2), radius: 10, y: 5)
     }
 }
@@ -374,12 +375,12 @@ struct TabRest: View {
     let scheme: ColorScheme
     var body: some View {
         #if os(macOS)
-        Capsule().fill(scheme == .dark ? Color.white.opacity(0.13) : Color.white.opacity(0.62))
-            .overlay(Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.35 : 0.95), .black.opacity(scheme == .dark ? 0.25 : 0.07)],
+        Capsule().fill(scheme == .dark ? Color.white.opacity(0.09) : Color.white.opacity(0.62))
+            .overlay(Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.2 : 0.95), .white.opacity(scheme == .dark ? 0.02 : 0), .black.opacity(scheme == .dark ? 0 : 0.07)],
                                                            startPoint: .top, endPoint: .bottom), lineWidth: 0.8))
             .shadow(color: .black.opacity(scheme == .dark ? 0.3 : 0.1), radius: 3, y: 1.5)
         #else
-        Capsule().fill(Color.primary.opacity(0.09))
+        Capsule().fill(Color.white.opacity(scheme == .dark ? 0.06 : 0)).background(Capsule().fill(Color.black.opacity(scheme == .dark ? 0 : 0.09)))
         #endif
     }
 }
@@ -389,8 +390,8 @@ extension View {
     @ViewBuilder func macBubbleFinish(_ scheme: ColorScheme) -> some View {
         #if os(macOS)
         self
-            .overlay(Capsule().fill(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.14 : 0.35), .clear], startPoint: .top, endPoint: .center)).allowsHitTesting(false))
-            .overlay(Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(0.95), .white.opacity(0.25), .white.opacity(0.6)], startPoint: .top, endPoint: .bottom), lineWidth: 1.2).allowsHitTesting(false))
+            .overlay(Capsule().fill(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.08 : 0.35), .clear], startPoint: .top, endPoint: .center)).allowsHitTesting(false))
+            .overlay(Capsule().strokeBorder(LinearGradient(colors: scheme == .dark ? [.white.opacity(0.5), .white.opacity(0.06), .white.opacity(0.2)] : [.white.opacity(0.95), .white.opacity(0.25), .white.opacity(0.6)], startPoint: .top, endPoint: .bottom), lineWidth: 1.2).allowsHitTesting(false))
             .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
         #else
         self
@@ -401,18 +402,30 @@ extension View {
     /// 这里在 Mac 上补一圈细细的高光边、一层柔和的投影，并且一直按「窗口在最前面」的样子画（iPhone 上什么都不加）
     @ViewBuilder func macGlassFinish<S: InsettableShape>(_ shape: S) -> some View {
         #if os(macOS)
-        self
-            .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.9), .white.opacity(0.2), .black.opacity(0.08)],
-                                                       startPoint: .top, endPoint: .bottom), lineWidth: 1).allowsHitTesting(false))
-            .overlay(shape.inset(by: 1).strokeBorder(Color.black.opacity(0.05), lineWidth: 0.5).allowsHitTesting(false))
-            .shadow(color: .black.opacity(0.16), radius: 16, y: 6)
-            .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
-            .environment(\.appearsActive, true)
+        modifier(MacGlassFinish(shape: shape))
         #else
         self
         #endif
     }
 }
+
+#if os(macOS)
+/// 深色模式下亮边要很淡（不然一圈白边像塑料壳），只在上沿留一道细高光；投影更深一点，让玻璃浮在深色背景上
+struct MacGlassFinish<S: InsettableShape>: ViewModifier {
+    let shape: S
+    @Environment(\.colorScheme) private var scheme
+    func body(content: Content) -> some View {
+        let dark = scheme == .dark
+        content
+            .overlay(shape.strokeBorder(LinearGradient(colors: dark ? [.white.opacity(0.32), .white.opacity(0.04), .white.opacity(0.1)] : [.white.opacity(0.9), .white.opacity(0.2), .black.opacity(0.08)],
+                                                       startPoint: .top, endPoint: .bottom), lineWidth: dark ? 0.8 : 1).allowsHitTesting(false))
+            .overlay(shape.inset(by: 1).strokeBorder(Color.black.opacity(dark ? 0 : 0.05), lineWidth: 0.5).allowsHitTesting(false))
+            .shadow(color: .black.opacity(dark ? 0.5 : 0.16), radius: 16, y: 6)
+            .shadow(color: .black.opacity(dark ? 0.3 : 0.08), radius: 2, y: 1)
+            .environment(\.appearsActive, true)
+    }
+}
+#endif
 
 /// 底板用哪种玻璃：iPhone 的 regular 本身就很通透；Mac 上同样的 regular 被画成一层磨砂，
 /// 所以 Mac 改用更透的 clear，再叠一点点白（深色模式叠一点黑），字和图标才看得清
@@ -420,11 +433,28 @@ extension View {
 private enum TabGlass {
     static func base(_ scheme: ColorScheme) -> Glass {
         #if os(macOS)
-        return .clear.tint(scheme == .dark ? Color.black.opacity(0.34) : Color.white.opacity(0.46))
+        return .clear.tint(scheme == .dark ? Color.black.opacity(0.46) : Color.white.opacity(0.46))
         #else
-        return .regular
+        return NavGlass.chrome(scheme)
         #endif
     }
+}
+
+/// 深色模式下系统的 regular 玻璃压在近黑的底上会变成一块灰雾（像塑料）：叠一点黑，让它通透、深一些，只留边缘的高光
+@available(macOS 26.0, iOS 26.0, *)
+enum NavGlass {
+    static func chrome(_ scheme: ColorScheme, interactive: Bool = false) -> Glass {
+        let g: Glass = scheme == .dark ? .regular.tint(Color.black.opacity(0.38)) : .regular
+        return interactive ? g.interactive() : g
+    }
+}
+
+@available(macOS 26.0, iOS 26.0, *)
+struct ChromeGlass<S: Shape>: ViewModifier {
+    let shape: S
+    var interactive = false
+    @Environment(\.colorScheme) private var scheme
+    func body(content: Content) -> some View { content.glassEffect(NavGlass.chrome(scheme, interactive: interactive), in: shape) }
 }
 
 /// 底部菜单栏的尺寸：Mac 窗口宽，矮一点；iPhone 上和系统的悬浮菜单栏差不多高（不然又宽又矮，看着被压扁），图标也大一号
@@ -472,7 +502,7 @@ struct GlassFab: View {
                         .frame(width: FabSize.back, height: FabSize.back).contentShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .circle)
+                .modifier(ChromeGlass(shape: Circle(), interactive: true))
                 .macGlassFinish(Circle())
                 .transition(.scale(scale: 0.6).combined(with: .opacity))
                 .accessibilityLabel(Text(I18n.t("回到今天")))
@@ -490,7 +520,7 @@ struct GlassFab: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .background(Circle().fill(Pal(dark: scheme == .dark).accent)) // 实心的主色底：窗口不在最前面时系统会把玻璃的颜色去掉，这层不会
+        .background(Circle().fill(Pal(dark: scheme == .dark).fab)) // 实心的主色底：窗口不在最前面时系统会把玻璃的颜色去掉，这层不会
         .glassEffect(.clear.interactive(), in: .circle)
         .macGlassFinish(Circle())
         .padding(10)
@@ -501,7 +531,7 @@ struct GlassFab: View {
         }
         .buttonStyle(.glassProminent) // Apple 的主操作按钮样式：带主色的玻璃
         .buttonBorderShape(.circle)
-        .tint(Pal(dark: scheme == .dark).accent)
+        .tint(Pal(dark: scheme == .dark).fab)
         .controlSize(FabSize.control)
         .padding(10)
         #endif
@@ -546,7 +576,7 @@ struct GlassMenu: View {
                     }
                     .padding(6)
                     .frame(width: w)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 18))
+                    .modifier(ChromeGlass(shape: RoundedRectangle(cornerRadius: 18, style: .continuous)))
                     .offset(x: x, y: y)
                     .transition(.asymmetric(insertion: .scale(scale: 0.86, anchor: below ? .top : .bottom).combined(with: .opacity),
                                             removal: .scale(scale: 0.94, anchor: below ? .top : .bottom).combined(with: .opacity)))
@@ -640,7 +670,7 @@ struct GlassDrawer: View {
         }
         .frame(width: width)
         .frame(maxHeight: .infinity)
-        .glassEffect(.regular, in: .rect(cornerRadius: 26))
+        .modifier(ChromeGlass(shape: RoundedRectangle(cornerRadius: 26, style: .continuous)))
         .padding(10)
         #if os(macOS)
         .padding(.top, 26) // 让开窗口左上角的红黄绿按钮
