@@ -121,7 +121,8 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         return ["platform": "ios", "app": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "",
                 "code": Int(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "") ?? 0,
                 "bridge": WebController.bridgeVersion, "repo": "", "os": "\(v.majorVersion).\(v.minorVersion)",
-                "model": "iPhone", "dataVersion": CalData.knownVersion, "features": WebController.features]
+                "model": "iPhone", "dataVersion": CalData.knownVersion, "features": WebController.features,
+                "channel": Bundle.main.object(forInfoDictionaryKey: "CadenceChannel") as? String ?? "sideload"] // mac = 用 Mac 直接装的
     }
 
     /// 页面一开始就注入；info / status 是同步调用，所以由原生端预先放好、有变化时推过去

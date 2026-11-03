@@ -18,6 +18,7 @@ settings:
     CODE_SIGN_STYLE: Automatic
     TARGETED_DEVICE_FAMILY: "1"     # 只做 iPhone
     DEAD_CODE_STRIPPING: YES
+    CADENCE_CHANNEL: sideload        # 安装方式：打给 AltStore / SideStore 的安装包；用 Mac 直接装时 install-iphone.sh 会改成 mac
 targets:
   Cadence:
     type: application
@@ -46,6 +47,7 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIApplicationSupportsIndirectInputEvents: true
         ITSAppUsesNonExemptEncryption: false
+        CadenceChannel: $(CADENCE_CHANNEL)   # 网页据此显示怎么更新
         CadenceAppURL: https://salmangox.github.io/month-calendar/
         CadenceRepo: SalmangoX/month-calendar
         NSCameraUsageDescription: 纪念日历的透明相机用相机拍摄带倒数的照片。

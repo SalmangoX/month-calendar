@@ -764,7 +764,7 @@
       ], '改网页不需要重新编译，打开就是最新的；只有原生部分（菜单栏、小组件、提醒）改了才需要在 Mac 上重新运行 macos/build.sh。');
     } else if (MC.Native.ios) {
       gWidgets += group('iPhone App', [
-        srow({ icon: 'phone', tone: 'sage', label: 'iPhone App', sub: '在 AltStore / SideStore 里更新', val: MC.Native.info.app || '', chev: false }),
+        srow({ icon: 'phone', tone: 'sage', label: 'iPhone App', sub: MC.Native.info.channel === 'mac' ? 'Mac 续签时自动更新到最新版' : '在 AltStore / SideStore 里更新', val: MC.Native.info.app || '', chev: false }),
       ], '改网页不需要更新 App，打开就是最新的；只有原生部分（提醒、玻璃菜单栏）改了才需要装新的安装包。');
     } else if (MC.Native.on) {
       gWidgets += group('桌面小组件', [
