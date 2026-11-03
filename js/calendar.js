@@ -42,7 +42,11 @@
   const oneLine = e => textW(rangeOf(e)) <= tw - 2;
   function setT(x, y) { track.style.transform = `translate3d(${x}px,${y}px,0)`; try { updateBack(); } catch (e) {} }
   // 今天不在屏幕上（滑到了别的周、月、年）：在加号上方显示「回到今天」
-  let backShown = false;
+  let backShown = false, barPx = null;
+  function barSpace() { // 底部导航栏挡住的高度（--bar-space 换算成像素）
+    if (barPx == null) { const d = document.createElement('div'); d.style.cssText = 'position:absolute;visibility:hidden;height:var(--bar-space)'; document.body.appendChild(d); barPx = d.offsetHeight; d.remove(); }
+    return barPx;
+  }
   function updateBack() {
     const n = new Date();
     let away;
@@ -50,8 +54,10 @@
     else if (view === 'year') away = year !== n.getFullYear() || Math.abs(pagePos) > H / 2;
     else {
       const top = MC.addDays(anchor, 7 * Math.round(scrollY / (rowH || 1)));
-      const row = Math.floor((MC.weekStartOf(n) - top) / (7 * 864e5)), shown = Math.max(1, Math.floor(H / (rowH || 1)));
-      away = row < 0 || row >= shown || focus.y !== n.getFullYear() || focus.m !== n.getMonth(); // 看的是别的月份也算
+      // 本周那一行要整行露在导航栏上面才算看得到：压在导航栏下面、只露一截也给返回
+      const off = scrollY - Math.round(scrollY / (rowH || 1)) * rowH;
+      const row = Math.round((MC.weekStartOf(n) - top) / (7 * 864e5)), rowTop = row * rowH - off;
+      away = rowTop < -2 || rowTop + rowH > H - (body.classList.contains('previewing') ? 0 : barSpace()) + 2 || focus.y !== n.getFullYear() || focus.m !== n.getMonth(); // 看的是别的月份也算
     }
     if (away === backShown) return;
     backShown = away; $('#calBack').hidden = !away;
