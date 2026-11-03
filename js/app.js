@@ -1340,6 +1340,7 @@
 
   // 后台检查新版本：发现新版本就自动刷新一次
   async function checkVersion() {
+    if (window.__mcMirrorVersion) return; // 从国内镜像加载的：镜像本身就是最新的，不用检查
     try {
       const r = await fetch('version.json?_=' + Date.now(), { cache: 'no-store' });
       if (!r.ok) return;

@@ -19,6 +19,10 @@ final class Updater: ObservableObject {
     var currentVersion: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "" }
     var currentBuild: Int { Int(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "") ?? 0 }
     var available: Bool { (latest?.build ?? 0) > currentBuild }
+    /// 装了 Xcode：在本机下载源码编译更新（和以前一样）；没装（比如朋友的 Mac）：直接下载做好的安装包
+    var canBuild: Bool { NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.dt.Xcode") != nil }
+    /// 国内也能访问的镜像（jsDelivr，自动同步 GitHub 上的文件）；安装包放在 dist 分支（只保留最新一个）
+    private var mirror: String { "https://cdn.jsdelivr.net/gh/\(repo)" }
     /// 在终端里粘贴运行的更新命令
     var command: String { "curl -fsSL https://raw.githubusercontent.com/\(repo)/main/macos/update.sh | bash" }
 
@@ -42,8 +46,11 @@ final class Updater: ObservableObject {
                   let o = (try? JSONSerialization.jsonObject(with: res.0)) as? JObj, !needBuild || o.int("build") > 0 else { return nil }
             return o
         }
-        var found = await fetch("https://api.github.com/repos/\(repo)/contents/macos/version.json?ref=main", "application/vnd.github.raw")
-        if found == nil { found = await fetch("https://raw.githubusercontent.com/\(repo)/main/macos/version.json", nil) }
+        // 先问 GitHub，连不上（比如在国内）再问镜像；没装 Xcode 的看做好的安装包是哪个版本
+        let path = canBuild ? "macos/version.json" : "mac.json", branch = canBuild ? "main" : "dist"
+        var found = await fetch("https://api.github.com/repos/\(repo)/contents/\(path)?ref=\(branch)", "application/vnd.github.raw")
+        if found == nil { found = await fetch("https://raw.githubusercontent.com/\(repo)/\(branch)/\(path)", nil) }
+        if found == nil { found = await fetch("\(mirror)@\(branch)/\(path)", nil) }
         guard let o = found else {
             if manual { alert(I18n.t("检查更新失败"), I18n.t("连不上 GitHub，稍后再试。")) }
             return
@@ -51,6 +58,8 @@ final class Updater: ObservableObject {
         // 版本号三端共用仓库根目录的 version.json；macos/version.json 只放 Mac 的构建号
         var ver = await fetch("https://api.github.com/repos/\(repo)/contents/version.json?ref=main", "application/vnd.github.raw", needBuild: false)
         if ver == nil { ver = await fetch("https://raw.githubusercontent.com/\(repo)/main/version.json", nil, needBuild: false) }
+        if ver == nil { ver = await fetch("\(mirror)@main/version.json", nil, needBuild: false) }
+        if !canBuild, let v = found?.str("version"), !v.isEmpty { ver = ["version": v] }
         latest = Latest(version: ver?.str("version") ?? currentVersion, build: o.int("build"))
         if available {
             notifyOnce()
@@ -71,8 +80,9 @@ final class Updater: ObservableObject {
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "update-\(l.build)", content: c, trigger: nil))
     }
 
-    /// 复制更新命令并打开终端（App 在沙盒里，不能自己运行编译）
+    /// 复制更新命令并打开终端（App 在沙盒里，不能自己运行编译）；没装 Xcode 的直接下载安装包
     func install() {
+        guard canBuild else { Task { await downloadInstaller() }; return }
         runInTerminal(command, I18n.t("更新命令已复制"), I18n.t("在打开的终端窗口里按 ⌘V 粘贴，再按回车。编译大约一两分钟，完成后节律会自动重新打开。"))
     }
 
@@ -80,6 +90,24 @@ final class Updater: ObservableObject {
     func makeInstaller() {
         runInTerminal("curl -fsSL https://raw.githubusercontent.com/\(repo)/main/macos/make-dmg.sh | bash",
                       I18n.t("打包命令已复制"), I18n.t("在打开的终端窗口里按 ⌘V 粘贴，再按回车。大约半分钟后，桌面上会出现可以直接发给别人的安装包（.dmg），并自动在访达里选中。"))
+    }
+
+    /// 下载做好的安装包（经国内镜像）并打开，把节律拖进「应用程序」替换旧版就行
+    private var downloading = false
+    func downloadInstaller() async {
+        guard !downloading else { return }
+        downloading = true
+        defer { downloading = false }
+        var req = URLRequest(url: URL(string: "\(mirror)@dist/Cadence.dmg")!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 120)
+        req.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        guard let (tmp, r) = try? await URLSession.shared.download(for: req), (r as? HTTPURLResponse)?.statusCode == 200 else {
+            alert(I18n.t("下载安装包失败"), I18n.t("连不上网络，稍后再试。")); return
+        }
+        let dest = FileManager.default.temporaryDirectory.appendingPathComponent("节律-Cadence-\(latest?.version ?? "").dmg")
+        try? FileManager.default.removeItem(at: dest)
+        do { try FileManager.default.moveItem(at: tmp, to: dest) } catch { alert(I18n.t("下载安装包失败"), error.localizedDescription); return }
+        NSWorkspace.shared.open(dest)
+        alert(I18n.t("安装包已打开"), I18n.t("在打开的窗口里把节律拖到「应用程序」，选择替换，然后重新打开节律。"))
     }
 
     private func runInTerminal(_ cmd: String, _ title: String, _ text: String) {

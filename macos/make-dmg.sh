@@ -51,4 +51,4 @@ echo "→ 制作安装盘…"
 hdiutil create -volname "节律" -srcfolder "$STAGE" -ov -format UDZO "$OUT" >/dev/null || { rm -rf "$WORK"; exit 1; }
 rm -rf "$WORK"
 echo "✅ 安装盘在桌面：$(basename "$OUT")"
-open -R "$OUT"
+[ -n "${NO_REVEAL:-}" ] || open -R "$OUT"

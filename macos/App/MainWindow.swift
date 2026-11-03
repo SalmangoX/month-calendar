@@ -21,6 +21,9 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
     private var loaded = false
     private var pendingHash = ""
     private var triedCache = false
+    private var triedMirror = false
+    private var committed = false
+    private var loadTimer: Timer?
     private let engine = Engine.shared
     /// 原生的液态玻璃导航层（macOS 26 起）
     private let nav = NavModel()
@@ -66,7 +69,47 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         installShim()
         engine.onStatus = { [weak self] in self?.pushStatus() }
         installPinch()
+        loadApp()
+    }
+
+    // ---------- 加载网页：GitHub Pages → 国内镜像 → 上次的缓存 → 提示页 ----------
+    /// 国内经常打不开 github.io：8 秒还没开始显示就换镜像
+    private func loadApp() {
+        committed = false
         web.load(URLRequest(url: appURL))
+        loadTimer?.invalidate()
+        loadTimer = Timer.scheduledTimer(withTimeInterval: 8, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, !self.committed, !self.triedMirror else { return }
+                self.web.stopLoading()
+                self.failed(NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut))
+            }
+        }
+    }
+
+    /// 国内镜像（jsDelivr，自动同步 GitHub 上的文件）：网页本身由这里下载，脚本和样式改成从镜像加载；
+    /// 地址仍然算作 GitHub Pages 那个，所以本机保存的数据、设置都在（网页的数据是按地址分开存的）
+    private func loadFromMirror() {
+        let repo = Bundle.main.object(forInfoDictionaryKey: "CadenceRepo") as? String ?? "SalmangoX/month-calendar"
+        let base = "https://cdn.jsdelivr.net/gh/\(repo)@main/"
+        var req = URLRequest(url: URL(string: base + "index.html")!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+        req.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        Task { @MainActor in
+            guard let (d, r) = try? await URLSession.shared.data(for: req), (r as? HTTPURLResponse)?.statusCode == 200,
+                  var html = String(data: d, encoding: .utf8) else {
+                self.failed(NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotConnectToHost)); return
+            }
+            // 告诉网页真正的版本号（镜像上的源文件没盖版本号），放在最前面
+            var ver = "1"
+            if let (vd, _) = try? await URLSession.shared.data(from: URL(string: base + "version.json")!),
+               let o = (try? JSONSerialization.jsonObject(with: vd)) as? [String: Any], let v = o["version"] as? String { ver = v }
+            html = html.replacingOccurrences(of: "<head>", with: "<head><script>window.__mcMirrorVersion=\(jsQuote(ver));</script>", options: [], range: html.range(of: "<head>"))
+            // 相对地址的 src / href（js、css、图标）改成镜像上的地址
+            let re = try! NSRegularExpression(pattern: "(src|href)=\"(?!https?:|data:|#|mailto:|/)([^\"]+)\"")
+            html = re.stringByReplacingMatches(in: html, range: NSRange(html.startIndex..., in: html), withTemplate: "$1=\"\(base)$2\"")
+            self.committed = false
+            self.web.loadHTMLString(html, baseURL: self.appURL)
+        }
     }
 
     /// 触控板双指捏合：用应用级的事件监听接住（不管鼠标下面是网页的哪一层都能收到），
@@ -110,7 +153,10 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         // 红黄绿按钮单独占顶上一条（不压到页面内容）；页面标题收紧；下面给玻璃菜单栏留的位置收窄，内容铺到它下面
         + ':root{--safe-t:28px!important;--bar-space:44px!important}'
         + '.ptitle{padding:2px 20px 8px!important}.ptitle h1{font-size:24px!important}.ptitle p{margin-top:2px!important}'
-        + '.topbar{padding:0 14px 2px!important}';
+        + '.topbar{padding:0 14px 2px!important}'
+        // 课表页：「‹ 11月2日 – 8日 ›」那一行挪进标题行的正中间（窗口够宽），省掉一整行
+        + '#page-sched{position:relative}#page-sched .sc-nav{position:absolute!important;top:var(--safe-t);left:50%;transform:translateX(-50%);width:min(440px,48%);height:42px;padding:0!important;z-index:3}'
+        + '#page-sched .sc-week{padding:0!important}';
       document.head.appendChild(st);
       var last = '';
       function send(){
@@ -209,7 +255,8 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
 
     func reload() {
         triedCache = false
-        if web.url == nil || web.url?.host != appURL.host { web.load(URLRequest(url: appURL)) } else { web.reload() }
+        triedMirror = false
+        if web.url == nil || web.url?.host != appURL.host { loadApp() } else { web.reload() }
     }
 
     private func openHash(_ h: String) {
@@ -343,6 +390,11 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         return .cancel
     }
 
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        committed = true
+        loadTimer?.invalidate()
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard webView.url?.host == appURL.host else { return }
         loaded = true
@@ -354,12 +406,19 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { failed(error) }
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { failed(error) }
 
-    /// 断网：先用上次缓存的网页，没有缓存再显示提示页
+    /// 打不开：先换国内镜像，再用上次缓存的网页，都不行再显示提示页
     private func failed(_ error: Error) {
         let e = error as NSError
+        if e.domain == NSURLErrorDomain && e.code == NSURLErrorCancelled && !committed && triedMirror == false && loadTimer?.isValid == true { return }
         if e.domain == NSURLErrorDomain && e.code == NSURLErrorCancelled { return }
         if e.domain == "WebKitErrorDomain" && e.code == 102 { return } // 交给浏览器打开的链接
         loaded = false
+        loadTimer?.invalidate()
+        if !triedMirror {
+            triedMirror = true
+            loadFromMirror()
+            return
+        }
         if !triedCache {
             triedCache = true
             web.load(URLRequest(url: appURL, cachePolicy: .returnCacheDataDontLoad))
