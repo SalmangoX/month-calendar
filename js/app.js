@@ -724,7 +724,7 @@
     // 始终显示，点进去会自动补齐前置条件（连接 GitHub、通知权限）；安卓 App 由系统提醒，不需要
     if (!Push.native) {
       nrows.splice(1, 0, S.remoteSetup
-        ? srow({ act: 'nsetup', icon: 'cloud', tone: 'sky', label: 'App 关闭时也提醒', val: '已设置' })
+        ? srow({ act: 'nsetup', icon: 'cloud', tone: 'sky', label: 'App 关闭时也提醒', sub: S.remoteSetup.repo ? `由 ${S.remoteSetup.repo} 推送` : '', val: '已设置' })
         : srow({ act: 'nsetup', icon: 'cloud', tone: 'sky', label: 'App 关闭时也提醒', sub: '点这里一键设置', val: '未设置' }));
       if (S.remoteSetup) nrows.splice(2, 0, srow({ act: 'boost', icon: 'clock', tone: 'lavender', label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
     }
@@ -862,6 +862,8 @@
         try { await Push.enable(); renderSettings(); }
         catch (err) { UI.toast(err.message); return; }
       }
+      // 已经设置过：重新设置会换通知密钥，其他设备要重新打开开关，所以先问一下
+      if (MC.settings.remoteSetup && !(await UI.confirm('后台推送已经设置好了，每台设备打开「提醒通知」就能收到，不用再设置。只有换了仓库或推送一直收不到时才需要重新设置。要重新设置吗？', { ok: '重新设置' }))) return;
       setupForm();
     }
     else if (act === 'dtime') dailyTimeForm();
@@ -916,7 +918,7 @@
     try {
       if (sw.checked) {
         const remote = await Push.enable();
-        UI.toast(remote ? '提醒已开启' : '提醒已开启（App 打开时）');
+        UI.toast(remote && MC.settings.remoteSetup ? '提醒已开启，App 关着也会推送' : remote ? '提醒已开启' : '提醒已开启（App 打开时）');
         if (Push.native) {
           const st = MC.Native.status();
           if (!st.exact || !st.battery) setTimeout(() => openHelp('nperm'), 400);
@@ -1469,7 +1471,8 @@
   syncRecTabs();
   requestAnimationFrame(() => placeInd(false));
   MC.extendSeries();
-  if (MC.session.token) MC.sync().then(() => MC.extendSeries());
+  // 通知已开、但这台设备还不知道后台推送已经设置过（比如新的 iPhone）：读一次同步数据认出来，不用再设置
+  if (MC.session.token) MC.sync().then(() => { MC.extendSeries(); if (Push.enabled() && !MC.settings.remoteSetup) Push.resubscribe().then(() => renderSettings()); });
   window.addEventListener('online', () => MC.session.token && MC.sync());
   // App 开着时每 15 秒检查一次云端（没变化时只是一个很小的 304 请求）
   setInterval(() => { if (document.visibilityState === 'visible' && MC.session.token && !UI.anyOpen()) MC.sync(); }, 15000);

@@ -7,6 +7,7 @@
   const MC = window.MC;
   const Push = (MC.Push = {});
   const SUBS_FILE = 'mcal-push-subs.json';
+  const SENT_FILE = 'mcal-push-sent.json'; // 仓库里的定时任务发过提醒才会有：有它就说明后台推送已经在运行
 
   const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const unb64url = s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return Uint8Array.from(atob(s), c => c.charCodeAt(0)); };
@@ -30,12 +31,21 @@
     Push.remoteReady = () => Push.enabled();
   }
 
+  let serverRan = false;
   async function readSubs() {
     const g = await MC.gh('/gists/' + MC.settings.gistId);
+    serverRan = !!(g.files && g.files[SENT_FILE]);
     const f = g.files && g.files[SUBS_FILE];
     if (!f) return { publicKey: '', subject: '', subs: [] };
     const text = f.truncated ? await (await fetch(f.raw_url, { cache: 'no-store' })).text() : f.content;
     try { return JSON.parse(text); } catch (e) { return { publicKey: '', subject: '', subs: [] }; }
+  }
+  // 后台推送是按 GitHub 账号设置一次的（仓库里的定时任务 + 密钥），不是按设备：
+  // 设置结果记在同步数据里（info.remote），以前设置过的从定时任务留下的记录认出来；新设备打开通知开关就能用，不用再生成令牌
+  function noteRemote(info) {
+    if (MC.settings.remoteSetup || !(info.remote || serverRan)) return;
+    MC.settings.remoteSetup = info.remote || { repo: Push.guessRepo(), at: 0 };
+    MC.saveSettings();
   }
   async function writeSubs(info) {
     await MC.gh('/gists/' + MC.settings.gistId, { method: 'PATCH', body: JSON.stringify({ files: { [SUBS_FILE]: { content: JSON.stringify(info, null, 1) } } }) });
@@ -53,6 +63,7 @@
     if (!MC.settings.gistId) { await MC.sync(); if (!MC.settings.gistId) return false; }
     const reg = await navigator.serviceWorker.ready;
     const info = await readSubs();
+    noteRemote(info);
     if (!info.publicKey || regenerate) {
       const k = await genVapid();
       info.publicKey = k.pub;
@@ -204,6 +215,7 @@
       if (!ok) await new Promise(res => setTimeout(res, 3000));
     }
     MC.settings.remoteSetup = { repo, at: Date.now() }; MC.saveSettings();
+    const subs = await readSubs(); subs.remote = { repo, at: Date.now() }; await writeSubs(subs); // 其他设备也知道已经设置好了
     return ok;
   };
 
