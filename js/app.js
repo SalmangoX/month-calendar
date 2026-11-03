@@ -673,6 +673,24 @@
     const bad = [st.notif !== 'granted' && '通知', !st.exact && '精确闹钟', !st.battery && '电池'].filter(Boolean);
     return bad.length ? `需要处理：${bad.join('、')}` : '各项都已就绪';
   }
+  // 「让提醒准时」（cron-job.org 每 5 分钟叫醒定时任务）也是按账号设置一次：最近 30 分钟里有被叫醒的运行，
+  // 就说明已经在运行，不再显示设置步骤；哪天停了，这一行会自己回来。公开仓库不用令牌就能查，最多一小时查一次
+  let boostChecking = false;
+  async function checkBoost() {
+    const S = MC.settings, repo = (S.remoteSetup && S.remoteSetup.repo) || Push.guessRepo();
+    if (!repo || boostChecking || Date.now() - (S.boostCheckedAt || 0) < (S.boostOn ? 3600e3 : 600e3)) return;
+    boostChecking = true;
+    try {
+      const r = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/reminders.yml/runs?event=workflow_dispatch&per_page=1`,
+        { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+      if (!r.ok) return;
+      const run = ((await r.json()).workflow_runs || [])[0];
+      const on = !!run && Date.now() - Date.parse(run.created_at) < 30 * 60e3;
+      const changed = on !== !!S.boostOn;
+      S.boostOn = on; S.boostCheckedAt = Date.now(); MC.saveSettings();
+      if (changed) renderSettings();
+    } catch (e) {} finally { boostChecking = false; }
+  }
   function renderSettings() {
     const pf = MC.data.profile;
     $('#avatarImg').hidden = !pf.avatar;
@@ -726,7 +744,8 @@
       nrows.splice(1, 0, S.remoteSetup
         ? srow({ act: 'nsetup', icon: 'cloud', tone: 'sky', label: 'App 关闭时也提醒', sub: S.remoteSetup.repo ? `由 ${S.remoteSetup.repo} 推送` : '', val: '已设置' })
         : srow({ act: 'nsetup', icon: 'cloud', tone: 'sky', label: 'App 关闭时也提醒', sub: '点这里一键设置', val: '未设置' }));
-      if (S.remoteSetup) nrows.splice(2, 0, srow({ act: 'boost', icon: 'clock', tone: 'lavender', label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
+      if (S.remoteSetup) checkBoost();
+      if (S.remoteSetup && !S.boostOn) nrows.splice(2, 0, srow({ act: 'boost', icon: 'clock', tone: 'lavender', label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
     }
     const gRemind = group('提醒', nrows, notifyHint());
     if (MC.Native.mac) {
