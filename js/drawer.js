@@ -58,7 +58,13 @@
   }
   D.isOpen = () => isOpen;
   const daysPage = $('#page-days'), sumPage = $('#page-dsum');
-  D.open = () => { if (![calPage, daysPage, sumPage].some(p => p && p.classList.contains('active'))) return; render(); measure(); animateTo(W); };
+  // Mac App（macOS 26 起）用原生的液态玻璃侧边栏，数据和操作还是这里的（见下面的 D.model / D.pick / D.act / D.add）
+  const nativeDrawer = () => MC.Native.has('glassDrawer') && window.MCNative && window.MCNative.openDrawer;
+  D.open = () => {
+    if (![calPage, daysPage, sumPage].some(p => p && p.classList.contains('active'))) return;
+    if (nativeDrawer()) { window.MCNative.openDrawer(); return; }
+    render(); measure(); animateTo(W);
+  };
   D.close = () => { measure(); animateTo(0); };
 
   // ---------- 当前日历的外观 ----------
@@ -112,44 +118,50 @@
   list.addEventListener('click', e => {
     const b = e.target.closest('[data-act]'); if (!b || swallow) return;
     const id = b.closest('.dr-row').dataset.id;
-    if (b.dataset.act === 'pick') {
-      if (id !== MC.activeCal()) {
-        MC.setActiveCal(id); D.paint(); render(); MC.Cal.render();
-        try { navigator.vibrate && navigator.vibrate(6); } catch (err) {}
-      }
-      setTimeout(D.close, 140);
-      return;
-    }
-    const c = MC.cal(id); if (!c) return;
-    if (c.kind === 'days') {
-      UI.menu(b, [{ label: T('名称和颜色'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }], async v => {
-        if (v === 'edit') calForm(c);
-        else {
-          const n = MC.countIn(c.id);
-          if (!(await UI.confirm(T('删除「{0}」？').replace('{0}', c.name) + (n ? T('里面的 {0} 个日子、小纸条和相册会一起删除，').replace('{0}', n) : '') + T('其他设备同步后也会删除。'), { ok: T('删除'), danger: true }))) return;
-          MC.deleteCal(c.id); D.paint(); render(); MC.Cal.render();
-          UI.toast(T('已删除「{0}」').replace('{0}', c.name));
-        }
-      });
-      return;
-    }
-    UI.menu(b, [
-      { label: '在主日历显示', value: 'main', on: c.showInMain },
-      { label: '通知', value: 'notify', on: c.notify },
-      { label: '名称、颜色和等级', value: 'edit' },
-      { label: '删除这个日历', value: 'del', danger: true },
-    ], async v => {
-      if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? `「${c.name}」的事件会显示在主日历` : `「${c.name}」不再显示在主日历`); }
-      else if (v === 'notify') { MC.updateCal(c, { notify: !c.notify }); render(); UI.toast(c.notify ? `已打开「${c.name}」的通知` : `已关闭「${c.name}」的通知`); }
-      else if (v === 'edit') calForm(c);
-      else {
-        const n = MC.countIn(c.id);
-        if (!(await UI.confirm(`删除「${c.name}」？${n ? `里面的 ${n} 条记录会一起删除，` : ''}其他设备同步后也会删除。`, { ok: '删除', danger: true }))) return;
-        MC.deleteCal(c.id); D.paint(); render(); MC.Cal.render();
-        UI.toast(`已删除「${c.name}」`);
-      }
-    });
+    if (b.dataset.act === 'pick') { D.pick(id); setTimeout(D.close, 140); return; }
+    const c = MC.cal(id); if (c) UI.menu(b, menuOf(c), v => D.act(id, v));
   });
+  D.pick = id => {
+    if (id === MC.activeCal()) return;
+    MC.setActiveCal(id); D.paint(); render(); MC.Cal.render();
+    try { navigator.vibrate && navigator.vibrate(6); } catch (err) {}
+  };
+  // 「更多」菜单：记录日历和纪念日历的选项不同
+  const menuOf = c => (c.kind === 'days'
+    ? [{ label: T('名称和颜色'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }]
+    : [{ label: '在主日历显示', value: 'main', on: c.showInMain }, { label: '通知', value: 'notify', on: c.notify },
+      { label: '名称、颜色和等级', value: 'edit' }, { label: '删除这个日历', value: 'del', danger: true }]);
+  D.act = async (id, v) => {
+    const c = MC.cal(id); if (!c) return;
+    if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? `「${c.name}」的事件会显示在主日历` : `「${c.name}」不再显示在主日历`); }
+    else if (v === 'notify') { MC.updateCal(c, { notify: !c.notify }); render(); UI.toast(c.notify ? `已打开「${c.name}」的通知` : `已关闭「${c.name}」的通知`); }
+    else if (v === 'edit') calForm(c);
+    else if (v === 'del') {
+      const n = MC.countIn(c.id), days = c.kind === 'days';
+      const msg = days ? T('删除「{0}」？').replace('{0}', c.name) + (n ? T('里面的 {0} 个日子、小纸条和相册会一起删除，').replace('{0}', n) : '') + T('其他设备同步后也会删除。')
+        : `删除「${c.name}」？${n ? `里面的 ${n} 条记录会一起删除，` : ''}其他设备同步后也会删除。`;
+      if (!(await UI.confirm(msg, { ok: days ? T('删除') : '删除', danger: true }))) return;
+      MC.deleteCal(c.id); D.paint(); render(); MC.Cal.render();
+      UI.toast(days ? T('已删除「{0}」').replace('{0}', c.name) : `已删除「${c.name}」`);
+    }
+  };
+  // 给原生侧边栏的数据：和网页侧边栏同样的分组、文字（已翻译成当前语言）和菜单
+  D.model = () => {
+    const tr = x => (MC.t ? MC.t(x) : x);
+    const item = c => {
+      const n = MC.countIn(c.id), days = c.kind === 'days';
+      return { id: c.id, name: c.name, color: c.id ? c.color : '', kind: days ? 'days' : c.id ? 'rec' : 'main', on: c.id === MC.activeCal(),
+        sub: tr(days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日和四象限'),
+        inMain: !!c.showInMain && !days, notify: !!c.notify && !days,
+        menu: c.id ? menuOf(c).map(m => ({ ...m, label: tr(m.label) })) : [] };
+    };
+    const cals = MC.data.cals;
+    return { title: tr('日历'), sub: tr('每个日历的内容分开显示'), main: item(MC.MAIN_CAL),
+      recTitle: tr('记录日历'), recs: cals.filter(c => c.kind !== 'days').map(item), recEmpty: tr('记录日历和待办分开显示，可以分别设置是否显示在主日历、是否通知。'),
+      daysTitle: tr(T('纪念日历')), days: cals.filter(c => c.kind === 'days').map(item),
+      add: [{ label: tr(T('新建记录日历')), value: 'rec' }, { label: tr(T('新建纪念日历')), value: 'days' }], addLabel: tr('新建记录日历') };
+  };
+  D.add = kind => calForm(null, kind === 'days' ? 'days' : '');
   // 新建：记录日历（和待办一样的事件）或纪念日历（倒数日 / 纪念日）
   $('#drawerAdd').onclick = e => UI.menu(e.currentTarget, [
     { label: T('新建记录日历'), value: 'rec', icon: ICON_REC.replace('<svg ', '<svg class="mi" ') },

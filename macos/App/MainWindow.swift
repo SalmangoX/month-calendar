@@ -1,4 +1,6 @@
 import AppKit
+import Combine
+import SwiftUI
 import WebKit
 
 /// 主窗口：装的是 GitHub Pages 上的网页。通过 window.MCNative（与安卓同一套接口）提供原生能力，
@@ -6,7 +8,11 @@ import WebKit
 @MainActor
 final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
     static let bridgeVersion = 1
-    static let features = ["data", "prefs", "token", "notify", "test", "widgets", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget"]
+    static var features: [String] {
+        var f = ["data", "prefs", "token", "notify", "test", "widgets", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget"]
+        if #available(macOS 26.0, *) { f.append("glassDrawer") } // 日历栏由原生的液态玻璃侧边栏显示
+        return f
+    }
 
     private let window: NSWindow
     private let web: WKWebView
@@ -15,6 +21,9 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
     private var pendingHash = ""
     private var triedCache = false
     private let engine = Engine.shared
+    /// 原生的液态玻璃导航层（macOS 26 起）
+    private let nav = NavModel()
+    private var navSubs: [AnyCancellable] = []
 
     override init() {
         let s = Bundle.main.object(forInfoDictionaryKey: "CadenceAppURL") as? String ?? "https://salmangox.github.io/month-calendar/"
@@ -37,6 +46,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         window.backgroundColor = MainWindowController.appBg
         window.minSize = NSSize(width: 380, height: 560)
         window.isReleasedWhenClosed = false
+        if #available(macOS 26.0, *) { window.styleMask.insert(.fullSizeContentView) } // 网页铺到标题栏下面，标题和红黄绿按钮同一行
         let root = NSView()
         web.frame = root.bounds
         web.autoresizingMask = [.width, .height]
@@ -45,6 +55,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         window.center()
         _ = window.setFrameAutosaveName("CadenceMain")
         super.init()
+        if #available(macOS 26.0, *) { installGlassNav(in: root) }
 
         window.delegate = self
         web.navigationDelegate = self
@@ -82,6 +93,112 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
     @objc func newEvent() {
         show()
         web.evaluateJavaScript("(function(){var f=document.getElementById('fab');if(f)f.click();})()")
+    }
+
+    // ---------- 液态玻璃导航层（macOS 26 起）----------
+    /// 网页里：隐藏网页自己的菜单栏和加号；切页、菜单栏有变化时把状态发给原生
+    static let navJS = """
+    (function(){
+      var H = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.mc;
+      var tb = document.getElementById('tabbar'); if (!H || !tb || window.__mcNav) return; window.__mcNav = 1;
+      // 网页的日历栏只有在网页支持原生日历栏时才隐藏（新版网页才有 MC.Drawer.model）
+      var native = window.MC && MC.Drawer && MC.Drawer.model;
+      var st = document.createElement('style'); st.textContent = '#dock,#fab' + (native ? ',#drawerScrim,#calDrawer' : '') + '{display:none!important}'
+        // 标题和红黄绿按钮同一行；下面给玻璃菜单栏留的位置收窄，内容铺到它下面
+        + ':root{--safe-t:0px!important;--bar-space:44px!important}'
+        + '.ptitle{padding:5px 20px 8px 86px!important;align-items:center!important;min-height:42px}.ptitle h1{font-size:24px!important}.ptitle p{margin-top:0!important}'
+        + '.topbar{padding:4px 14px 2px 86px!important;min-height:42px}';
+      document.head.appendChild(st);
+      var last = '';
+      function send(){
+        var tabs = [].map.call(tb.querySelectorAll('button[data-page]'), function(b){
+          var l = b.querySelector('span:not(.tab-avatar)'); return { page: b.dataset.page, label: l ? l.textContent.trim() : '', hidden: !!b.hidden };
+        });
+        var page = document.body.dataset.page || 'cal', fab = document.getElementById('fab');
+        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, holes: holes ? holes() : [] });
+        if (j !== last) { last = j; try { H.postMessage({ name: 'nav', args: [j] }); } catch (e) {} }
+      }
+      // 标题栏一行：可点的按钮位置（其余地方拖动窗口）
+      function holes(){
+        var out = [];
+        document.querySelectorAll('.page.active button, .page.active a, .page.active input, .page.active [role=button]').forEach(function(e){
+          var r = e.getBoundingClientRect(); if (r.width && r.top < 46 && r.bottom > 0) out.push([r.left - 2, r.top - 2, r.width + 4, r.height + 4]);
+        });
+        return out;
+      }
+      var lastH = '';
+      function sendHoles(){ var h = JSON.stringify(holes()); if (h !== lastH) { lastH = h; last = ''; send(); } }
+      new MutationObserver(function(){ send(); setTimeout(sendHoles, 60); }).observe(document.body, { attributes: true, attributeFilter: ['data-page'] });
+      window.addEventListener('resize', function(){ setTimeout(sendHoles, 60); });
+      setInterval(sendHoles, 1500);
+      // 弹出菜单：换成系统原生菜单（macOS 26 的菜单本身就是液态玻璃），选了什么再交回网页
+      if (window.MC && MC.UI && MC.UI.menu) {
+        var cbs = {}, seq = 0;
+        MC.UI.menu = function(anchor, items, cb){
+          var r = anchor.getBoundingClientRect(), id = String(++seq);
+          cbs[id] = { items: items, cb: cb };
+          H.postMessage({ name: 'menu', args: [id, JSON.stringify(items.map(function(it){ return { label: String(it.label), on: !!it.on, danger: !!it.danger }; })), r.left, r.top, r.width, r.height] });
+        };
+        MC.UI.closeMenu = function(){};
+        window.__mcMenuPick = function(id, i){ var m = cbs[id]; delete cbs[id]; if (m && i >= 0 && m.cb) m.cb(m.items[i].value, m.items[i]); };
+      }
+      new MutationObserver(send).observe(tb, { attributes: true, subtree: true, childList: true, characterData: true });
+      send(); setTimeout(send, 600);
+    })();
+    """
+
+    /// 网页的弹出菜单用系统菜单显示；选了第几项交回网页（-1 = 没选）
+    private var menuPicked = -1
+    private func showMenu(id: String, json: String, rect: CGRect) {
+        struct Item: Decodable { let label: String; let on: Bool; let danger: Bool }
+        guard let d = json.data(using: .utf8), let items = try? JSONDecoder().decode([Item].self, from: d) else { return }
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        for (i, it) in items.enumerated() {
+            let mi = NSMenuItem(title: it.label, action: #selector(menuChose(_:)), keyEquivalent: "")
+            mi.target = self; mi.tag = i; mi.state = it.on ? .on : .off
+            if it.danger { mi.attributedTitle = NSAttributedString(string: it.label, attributes: [.foregroundColor: NSColor.systemRed]) }
+            menu.addItem(mi)
+        }
+        menuPicked = -1
+        // 网页坐标（左上角原点）→ 网页视图坐标；菜单出现在按钮下面
+        let y = web.isFlipped ? rect.maxY + 4 : web.bounds.height - rect.maxY - 4
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            menu.popUp(positioning: nil, at: NSPoint(x: rect.minX, y: y), in: self.web)
+            self.web.evaluateJavaScript("window.__mcMenuPick&&__mcMenuPick(\(jsQuote(id)),\(self.menuPicked))")
+        }
+    }
+    @objc private func menuChose(_ sender: NSMenuItem) { menuPicked = sender.tag }
+
+    @available(macOS 26.0, *)
+    private func installGlassNav(in root: NSView) {
+        nav.eval = { [weak self] js, cb in self?.web.evaluateJavaScript(js) { r, _ in cb?(r) } }
+        if let w = web as? CadenceWebView {
+            w.dragBand = 46
+            nav.onDragHoles = { [weak w] holes in w?.dragHoles = holes }
+        }
+        let bar = NSHostingView(rootView: GlassTabBar(m: nav))
+        let fab = NSHostingView(rootView: GlassFab(m: nav))
+        let drawer = NSHostingView(rootView: GlassDrawer(m: nav))
+        for v in [bar, fab, drawer] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
+        drawer.isHidden = true
+        NSLayoutConstraint.activate([
+            bar.centerXAnchor.constraint(equalTo: root.centerXAnchor), bar.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -4),
+            bar.widthAnchor.constraint(lessThanOrEqualTo: root.widthAnchor, constant: -24),
+            { let c = bar.widthAnchor.constraint(equalToConstant: 540); c.priority = .defaultHigh; return c }(),
+            fab.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -10), fab.bottomAnchor.constraint(equalTo: bar.topAnchor, constant: 2),
+            drawer.leadingAnchor.constraint(equalTo: root.leadingAnchor), drawer.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            drawer.topAnchor.constraint(equalTo: root.topAnchor), drawer.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+        ])
+        // 隐藏时让出点击：加号在设置页不显示；日历栏收起的动画放完再隐藏
+        navSubs = [
+            nav.$fab.sink { fab.isHidden = !$0 },
+            nav.$drawerOpen.sink { [weak self] open in
+                if open { drawer.isHidden = false; return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { if self?.nav.drawerOpen == false { drawer.isHidden = true } }
+            },
+        ]
     }
 
     /// 和网页一致的底色，窗口标题栏、网页加载前都不会闪白
@@ -141,11 +258,15 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             pinWidget: function () { return false; },
             saveFile: function (n, m, c, cb) { post('saveFile', [String(n), String(m), String(c), String(cb)]); },
             syncNow: function () { post('syncNow'); },
-            checkUpdate: function () { post('checkUpdate'); }
+            checkUpdate: function () { post('checkUpdate'); },
+            openDrawer: function () { post('drawer'); }
           };
         })();
         """
         ucc.addUserScript(WKUserScript(source: js, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        if #available(macOS 26.0, *) {
+            ucc.addUserScript(WKUserScript(source: MainWindowController.navJS, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        }
     }
 
     private func pushStatus() {
@@ -163,6 +284,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         let a = body["args"] as? [Any] ?? []
         func s(_ i: Int) -> String { i < a.count ? (a[i] as? String ?? "") : "" }
         func b(_ i: Int) -> Bool { i < a.count ? ((a[i] as? NSNumber)?.boolValue ?? false) : false }
+        func d(_ i: Int) -> Double { i < a.count ? ((a[i] as? NSNumber)?.doubleValue ?? 0) : 0 }
         switch name {
         case "setData": engine.put(s(0), replace: b(1))
         case "setPrefs": engine.setPrefs(s(0))
@@ -179,6 +301,9 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         case "syncNow": Task { await engine.pull() }
         case "checkUpdate": Task { await Updater.shared.check(manual: true) }
         case "retry": reload()
+        case "nav": nav.update(s(0))
+        case "menu": showMenu(id: s(0), json: s(1), rect: CGRect(x: d(2), y: d(3), width: d(4), height: d(5)))
+        case "drawer": nav.openDrawer()
         default: break
         }
     }
@@ -328,4 +453,18 @@ func jsQuote(_ s: String) -> String {
 /// 网页视图：触控板捏合不让网页内核自己处理（下面的 MainWindowController 用应用级事件监听统一接住）
 final class CadenceWebView: WKWebView {
     override func magnify(with event: NSEvent) {}
+
+    /// 网页铺到标题栏下面以后：顶上 dragBand 这么高的一条里，不是按钮的地方按住拖动窗口、双击缩放（和普通标题栏一样）
+    var dragBand: CGFloat = 0
+    var dragHoles: [CGRect] = [] // 网页坐标（左上角原点）
+    override func mouseDown(with e: NSEvent) {
+        if dragBand > 0 {
+            let p = convert(e.locationInWindow, from: nil), y = isFlipped ? p.y : bounds.height - p.y
+            if y < dragBand, !dragHoles.contains(where: { $0.contains(CGPoint(x: p.x, y: y)) }) {
+                if e.clickCount == 2 { window?.performZoom(nil) } else { window?.performDrag(with: e) }
+                return
+            }
+        }
+        super.mouseDown(with: e)
+    }
 }
