@@ -603,6 +603,7 @@
     link: '<svg viewBox="0 0 24 24"><path class="s" d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path class="s" d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>',
     cloud: '<svg viewBox="0 0 24 24"><path class="f" d="M7.5 19a4.75 4.75 0 0 1-.6-9.46 5.8 5.8 0 0 1 11.2 1.55A3.95 3.95 0 0 1 17.6 19z"/></svg>',
     refresh: '<svg viewBox="0 0 24 24"><path class="s" d="M19 12a7 7 0 1 1-2.05-4.95"/><path class="f" d="M20 3.5v6.2h-6.2z"/></svg>',
+    swap: '<svg viewBox="0 0 24 24"><path class="s" d="M4 8.5h11M20 15.5H9"/><path class="f" d="M14 4.5l6 4-6 4zM10 11.5l-6 4 6 4z"/></svg>',
     lock: '<svg viewBox="0 0 24 24"><rect class="f" x="5" y="10" width="14" height="10.5" rx="2.8"/><path class="s" d="M8.3 10V8a3.7 3.7 0 0 1 7.4 0v2"/></svg>',
     lockNow: '<svg viewBox="0 0 24 24"><rect class="f" x="5" y="10" width="14" height="10.5" rx="2.8"/><path class="s" d="M8.3 10V8a3.7 3.7 0 0 1 7.4 0v2"/><path class="k" d="M12 13.7v3"/></svg>',
     key: '<svg viewBox="0 0 24 24"><circle class="f" cx="8.2" cy="12" r="4.4"/><circle class="k2" cx="7.4" cy="12" r="1.4"/><path class="s" d="M12 12h8.5M17.4 12v3.2M20.5 12v2.4"/></svg>',
@@ -694,7 +695,8 @@
         srow({ act: 'connect', icon: 'link', tone: 'sky', label: '连接 GitHub', sub: '用自己的令牌在多台设备间同步', help: 'sync' }),
         srow({ act: 'dav', icon: 'cloud', tone: 'teal', label: '连接 WebDAV', sub: '坚果云、Nextcloud、群晖等，国内也能用' }),
         ...(MC.Native.has('icloud') ? [srow({ act: 'icloud', icon: 'cloud', tone: 'sky', label: '使用 iCloud 云盘', sub: '苹果设备之间同步，免费，不用另外注册账号' })] : []),
-      ], '二选一：数据存在你自己的 GitHub 或网盘里，账号和密码只保存在这台设备上。');
+      ], MC.Native.has('icloud') ? '选一种：数据存在你自己的 GitHub、网盘或 iCloud 云盘里，账号和密码只保存在这台设备上。'
+        : '二选一：数据存在你自己的 GitHub 或网盘里，账号和密码只保存在这台设备上。');
     } else {
       const ic = MC.isICloud(), dav = !ic && MC.isDav();
       let host = '';
@@ -707,6 +709,7 @@
       ];
       rows.push(ic ? srow({ act: 'icloud', icon: 'export', tone: 'apricot', label: '更换文件夹' })
         : dav ? srow({ act: 'redav', icon: 'key', tone: 'apricot', label: '更换账号或密码' }) : srow({ act: 'retoken', icon: 'key', tone: 'apricot', label: '更换令牌' }));
+      rows.push(srow({ act: 'switch', icon: 'swap', tone: 'periwinkle', label: '更换同步方式' })); // 已连接时也能直接换到另一种，不用先断开
       rows.push(srow({ act: 'disconnect', icon: 'unlink', tone: 'danger', label: '断开连接', danger: true, chev: false }));
       gSync = group('同步', rows, ic ? '每台 Mac 选同一个 iCloud 云盘文件夹，数据就会互相同步；同步快慢由 iCloud 决定，一般几秒到一两分钟。'
         : dav ? '账号和密码只保存在这台设备上。' : '令牌只保存在这台设备上。');
@@ -824,6 +827,14 @@
     else if (act === 'connect' || act === 'retoken') connectForm(act === 'retoken');
     else if (act === 'dav' || act === 'redav') davForm(act === 'redav');
     else if (act === 'icloud') useICloud();
+    else if (act === 'switch') {
+      const ic = MC.isICloud(), dav = !ic && MC.isDav();
+      UI.menu(row.querySelector('.slabel'), [
+        ...(ic || dav ? [{ label: '连接 GitHub', value: 'connect' }] : []),
+        ...(dav ? [] : [{ label: '连接 WebDAV', value: 'dav' }]),
+        ...(!ic && MC.Native.has('icloud') ? [{ label: '使用 iCloud 云盘', value: 'icloud' }] : []),
+      ], v => (v === 'connect' ? connectForm(false) : v === 'dav' ? davForm(false) : useICloud()));
+    }
     else if (act === 'sync') { const ok = await MC.sync(); UI.toast(ok ? '已同步' : (MC.syncState.error || '同步失败')); renderSettings(); }
     else if (act === 'disconnect') {
       UI.menu(row.querySelector('.slabel'), [
@@ -968,6 +979,7 @@
         if (switching && !id) { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); }
         MC.settings.gistId = id;
         MC.settings.account = login;
+        MC.settings.dav = null; MC.settings.icloud = null; MC.davReset(); // 从 WebDAV / iCloud 换过来
         await MC.vault.save(token, '');
         const ok = await MC.sync();
         if (Push.enabled()) await Push.resubscribe();
@@ -1016,7 +1028,7 @@
           const keep = await UI.confirm(`这台设备上已有 ${localCount} 个事件。合并到网盘里的数据，还是只用网盘里的数据（本机这些事件会被清除）？`, { ok: '合并', cancel: '只用网盘数据', dismiss: true });
           if (!keep) { MC.data = MC.normalize({ events: [] }); MC.saveData(); MC.reindex(); }
         }
-        MC.settings.dav = dav; MC.settings.gistId = ''; MC.settings.account = '';
+        MC.settings.dav = dav; MC.settings.icloud = null; MC.settings.gistId = ''; MC.settings.account = '';
         MC.davReset();
         await MC.vault.save(pass, '');
         const ok = await MC.sync();
