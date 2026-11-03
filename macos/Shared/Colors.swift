@@ -113,8 +113,8 @@ enum CourseColors {
     }
 
     static func tone(_ h: Double) -> [UInt32] {
-        [oklch(0.60, 0.13, h), oklch(0.89, 0.065, h), oklch(0.36, 0.115, h), oklch(0.34, 0.075, h),
-         oklch(0.91, 0.07, h), oklch(0.45, 0.09, h), oklch(0.94, 0.03, h), oklch(0.74, 0.13, h)]
+        [oklch(0.60, 0.13, h), oklch(0.89, 0.065, h), oklch(0.28, 0.075, h), oklch(0.34, 0.075, h),
+         oklch(0.97, 0.02, h), oklch(0.45, 0.09, h), oklch(0.94, 0.03, h), oklch(0.74, 0.13, h)]
     }
 }
 

@@ -45,9 +45,11 @@
     return '#808080';
   }
   // 一门课的一整套颜色：浅色（淡底、深字、色条 / 小色块）、深色（深底、浅字、亮色条、深色小色块）
-  // 底色要一眼看出是哪门课：浅色底 L .89 / C .065（以前 .955 / .03 太淡），色条和文字也加深、加饱和
-  const courseTone = h => ({ base: oklchHex(.60, .13, h), fillL: oklchHex(.89, .065, h), inkL: oklchHex(.36, .115, h), fillD: oklchHex(.34, .075, h),
-    inkD: oklchHex(.91, .07, h), chipD: oklchHex(.45, .09, h), chipInkD: oklchHex(.94, .03, h), barD: oklchHex(.74, .13, h) });
+  // 底色要一眼看出是哪门课：浅色底 L .89 / C .065，色条加深、加饱和。
+  // 文字按「容器上的文字」处理（Material 的 on-container、苹果日历的做法）：同色系但极深（深色模式极浅），低彩度，
+  // 和底色拉开明度差，不再是和底色混在一起的中间色；时间、教室用稍浅一档（subL / subD）
+  const courseTone = h => ({ base: oklchHex(.60, .13, h), fillL: oklchHex(.89, .065, h), inkL: oklchHex(.28, .075, h), subL: oklchHex(.36, .045, h),
+    fillD: oklchHex(.34, .075, h), inkD: oklchHex(.97, .02, h), subD: oklchHex(.88, .03, h), chipD: oklchHex(.45, .09, h), chipInkD: oklchHex(.94, .03, h), barD: oklchHex(.74, .13, h) });
   let hueKey = '', hues = new Map();
   const toneCache = new Map();
   const toneByHue = h => { if (!toneCache.has(h)) toneCache.set(h, courseTone(h)); return toneCache.get(h); };
@@ -59,7 +61,7 @@
   MC.courseTone = toneOf;
   const colorOf = code => toneOf(code).base;
   // 课程块用的颜色变量：浅色 / 深色各一套，由 styles.css 按当前外观挑
-  const varsOf = t => `--c:${t.base};--cfl:${t.fillL};--cil:${t.inkL};--cfd:${t.fillD};--cid:${t.inkD};--cbd:${t.barD}`;
+  const varsOf = t => `--c:${t.base};--cfl:${t.fillL};--cil:${t.inkL};--csl:${t.subL};--cfd:${t.fillD};--cid:${t.inkD};--csd:${t.subD};--cbd:${t.barD}`;
   const toneVars = code => varsOf(toneOf(code));
   const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   const pad = MC.pad;
