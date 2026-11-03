@@ -101,14 +101,16 @@
   // 可滚动的内容在最顶部时下拉 = 收起，否则正常滚动。向上拉有阻尼的橡皮筋效果，松手回弹。
   const rubber = (x, dim = 140, c = .55) => (1 - 1 / (x * c / dim + 1)) * dim;
   const EDITABLE = 'input:not([type=checkbox]), textarea, select, [contenteditable], .wheel';
-  const SCROLLERS = '.batch-list, .pk-body, .help-body, .form, .list, .pv-list, .composer';
+  const SCROLLERS = '.batch-list, .pk-body:not(.cmp-pk), .help-body, .form, .list, .pv-list, .cmp-scroll';
   // 面板本身永远不滚动（防止浏览器为了显示输入框把整个面板顶走）
   document.querySelectorAll('.sheet').forEach(sh => sh.addEventListener('scroll', () => { if (!sh.classList.contains('composer') && sh.scrollTop) sh.scrollTop = 0; }));
   document.querySelectorAll('.sheet').forEach(sh => {
-    let x0 = 0, y0 = 0, last = 0, lastT = 0, v = 0, d = 0, state = 0, sc = null, swallow = false; // state: 0 无 1 待定 2 拖动中
+    let x0 = 0, y0 = 0, last = 0, lastT = 0, v = 0, d = 0, state = 0, sc = null, swallow = false, grab = false; // state: 0 无 1 待定 2 拖动中
     sh.addEventListener('touchstart', e => {
       if (e.touches.length > 1 || e.target.closest(EDITABLE)) { state = 0; return; }
-      sc = e.target.closest(SCROLLERS);
+      // 有两档高度的面板（新建事件）：按住最上面那一条（把手和标题行，不含按钮）上下拉，切换半屏 / 全屏
+      grab = (sh.classList.contains('mid') || sh.classList.contains('full')) && !!e.target.closest('.handle, .cmp-head, .sheet-head') && !e.target.closest('button');
+      sc = grab ? null : e.target.closest(SCROLLERS);
       if (sc && !sh.contains(sc)) sc = null;
       state = 1; d = 0; v = 0;
       x0 = e.touches[0].clientX; y0 = last = e.touches[0].clientY; lastT = performance.now();
@@ -133,6 +135,9 @@
       state = 0;
       swallow = Math.abs(d) > 4;      // 拖动过就不再触发点击
       setTimeout(() => (swallow = false), 350);
+      // 两档高度：半屏往上拉 → 全屏；全屏往下拉 → 半屏；半屏再往下拉才收起
+      if (grab && sh.classList.contains('mid') && (d < -40 || v < -.45)) { sh.style.transition = ''; sh.style.transform = ''; sh.classList.replace('mid', 'full'); return; }
+      if (sh.classList.contains('full') && (d > 70 || (d > 20 && v > .5))) { sh.style.transition = ''; sh.style.transform = ''; sh.classList.replace('full', 'mid'); return; }
       const close = d > 110 || (d > 24 && v > .55);
       if (close) {
         sh.style.transition = 'transform .26s cubic-bezier(.3,.7,.4,1)';
@@ -253,6 +258,7 @@
         ${bits.length ? `<div class="item-sub">${bits.join(' · ')}</div>` : ''}
       </div>
       ${MC.rateOn(e.cal) ? (e.rate && !opts.noFlag ? UI.rateTag(e) : '') : (e.priority && !opts.noFlag ? UI.flagSVG(e.priority) : '')}
+      <div class="swipe-acts" aria-hidden="true"><button data-act="edit" tabindex="-1">编辑</button><button data-act="del" class="del" tabindex="-1">删除</button></div>
     </li>`;
   };
   // ---------- 完成反馈：清脆的一声 + 一点点触感 ----------
@@ -365,10 +371,51 @@
       const e = MC.data.events.find(x => x.id === li.dataset.id);
       if (e) UI.itemMenu(li.querySelector('.item-main') || li, e);
     });
+    // 往左滑：露出「编辑」「删除」（删除要确认）；点别处或往右滑收回。直接点照旧
+    const ACT_W = 148;
+    let sw = null, openLi = null;
+    const setX = (li, x, anim) => { li.style.setProperty('--sx', x + 'px'); li.classList.toggle('sw-anim', !!anim); li.classList.toggle('swiping', x !== 0); };
+    const closeOpen = () => { if (openLi) { setX(openLi, 0, true); openLi = null; } };
+    el.addEventListener('touchstart', ev => {
+      const li = ev.target.closest('.item'); if (!li || !li.querySelector('.swipe-acts') || ev.touches.length !== 1) { sw = null; return; }
+      if (openLi && openLi !== li) closeOpen();
+      const t = ev.touches[0];
+      sw = { li, x0: t.clientX, y0: t.clientY, base: li === openLi ? -ACT_W : 0, mode: 0, x: 0 };
+    }, { passive: true });
+    el.addEventListener('touchmove', ev => {
+      if (!sw) return;
+      const t = ev.touches[0], dx = t.clientX - sw.x0, dy = t.clientY - sw.y0;
+      if (!sw.mode) {
+        if (Math.hypot(dx, dy) < 8) return;
+        sw.mode = Math.abs(dx) > Math.abs(dy) * 1.4 && (dx < 0 || sw.base) ? 1 : -1; // 只认往左滑（已经滑开的才认往右滑）
+        if (sw.mode === 1) UI.cancelPresses();
+      }
+      if (sw.mode !== 1) return;
+      if (ev.cancelable) ev.preventDefault();
+      ev.stopPropagation();
+      sw.x = Math.min(0, Math.max(-ACT_W * 1.3, sw.base + dx));
+      setX(sw.li, sw.x, false);
+    }, { passive: false, capture: true });
+    el.addEventListener('touchend', () => {
+      if (!sw) return;
+      const s = sw; sw = null;
+      if (s.mode !== 1) return;
+      const open = s.x < -ACT_W / 2;
+      setX(s.li, open ? -ACT_W : 0, true);
+      openLi = open ? s.li : null;
+      el._swUntil = Date.now() + 350; // 松手时补发的点击不算
+    });
     el.addEventListener('click', ev => {
+      if (el._swUntil && Date.now() < el._swUntil) { ev.stopPropagation(); ev.preventDefault(); return; }
       const li = ev.target.closest('.item'); if (!li) return;
       const e = MC.data.events.find(x => x.id === li.dataset.id); if (!e) return;
       const act = ev.target.closest('[data-act]')?.dataset.act;
+      if (openLi === li && act !== 'edit' && act !== 'del') { closeOpen(); return; } // 滑开了：点一下先收回
+      if (act === 'edit') { closeOpen(); MC.Editor.openEdit(e); return; }
+      if (act === 'del') {
+        UI.confirm(`删除「${e.title}」？`, { ok: '删除', danger: true }).then(ok => { closeOpen(); if (ok) UI.removeEvents([e], `已删除「${e.title}」`); });
+        return;
+      }
       if (act === 'toggle') {
         UI.justDone = e.done ? null : e.id;  // 刚勾选完成的那一条播放划线动画
         if (!e.done) UI.doneFeedback();      // 只在勾上完成时：一声 + 一点点触感

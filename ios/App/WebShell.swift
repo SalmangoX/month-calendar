@@ -168,7 +168,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         """
         ucc.addUserScript(WKUserScript(source: js, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         // 网页自己的菜单栏、加号、侧栏一开始就藏起来：等网页加载完再藏，会先闪一下，和原生的玻璃菜单栏叠在一起
-        ucc.addUserScript(WKUserScript(source: "(function(){var s=document.createElement('style');s.textContent='#dock,#fab,#drawerScrim,#calDrawer{display:none!important}';(document.head||document.documentElement).appendChild(s);})();",
+        ucc.addUserScript(WKUserScript(source: "(function(){var s=document.createElement('style');s.textContent='#dock,#fab,#calBack,#drawerScrim,#calDrawer{display:none!important}';(document.head||document.documentElement).appendChild(s);})();",
                                        injectionTime: .atDocumentStart, forMainFrameOnly: true))
         ucc.addUserScript(WKUserScript(source: WebController.navJS, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
     }
@@ -179,7 +179,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
       var H = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.mc;
       var tb = document.getElementById('tabbar'); if (!H || !tb || window.__mcNav) return; window.__mcNav = 1;
       var native = window.MC && MC.Drawer && MC.Drawer.model;
-      var st = document.createElement('style'); st.textContent = '#dock,#fab' + (native ? ',#drawerScrim,#calDrawer' : '') + '{display:none!important}';
+      var st = document.createElement('style'); st.textContent = '#dock,#fab,#calBack' + (native ? ',#drawerScrim,#calDrawer' : '') + '{display:none!important}';
       document.head.appendChild(st);
       var last = '';
       function covered(){
@@ -192,11 +192,12 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
           var l = b.querySelector('span:not(.tab-avatar)'); return { page: b.dataset.page, label: l ? l.textContent.trim() : '', hidden: !!b.hidden };
         });
         var page = document.body.dataset.page || 'cal', fab = document.getElementById('fab');
-        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, cover: covered() });
+        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, cover: covered(), back: page === 'cal' && !!document.getElementById('calBack') && !document.getElementById('calBack').hidden });
         if (j !== last) { last = j; try { H.postMessage({ name: 'nav', args: [j] }); } catch (e) {} }
       }
       new MutationObserver(send).observe(document.body, { attributes: true, attributeFilter: ['data-page'] });
       new MutationObserver(send).observe(tb, { attributes: true, subtree: true, childList: true, characterData: true });
+      var cb = document.getElementById('calBack'); if (cb) new MutationObserver(send).observe(cb, { attributes: true, attributeFilter: ['hidden'] }); // 「回到今天」出现 / 消失
       // 面板、确认框开关：类名变化时发一次（iPhone 的面板从底部弹出，玻璃菜单栏先让开）
       new MutationObserver(send).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['class'] });
       if (window.MC && MC.UI && MC.UI.menu) {

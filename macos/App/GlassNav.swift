@@ -24,6 +24,8 @@ final class NavModel: ObservableObject {
     @Published var fab = true
     /// 网页有面板、确认框盖在上面（iPhone 的面板从底部弹出，玻璃菜单栏和加号先让开）
     @Published var cover = false
+    /// 日历滑到了别的周、月：加号上方显示「回到今天」
+    @Published var back = false
     @Published var drawer: Drawer?
     @Published var drawerOpen = false
     /// 日历栏被左右拉动的距离：负 = 往回推（收起），正 = 往外拉（果冻一样变宽）
@@ -42,11 +44,12 @@ final class NavModel: ObservableObject {
 
     /// 网页每次切页、菜单栏有变化时发来：{tabs, page, fab, holes}
     func update(_ json: String) {
-        struct State: Decodable { let tabs: [Tab]; let page: String; let fab: Bool; let holes: [[Double]]?; let cover: Bool? }
+        struct State: Decodable { let tabs: [Tab]; let page: String; let fab: Bool; let holes: [[Double]]?; let cover: Bool?; let back: Bool? }
         guard let d = json.data(using: .utf8), let s = try? JSONDecoder().decode(State.self, from: d) else { return }
         if s.tabs.map(\.id) != tabs.map(\.id) || s.tabs.map(\.label) != tabs.map(\.label) || s.tabs.map(\.hidden) != tabs.map(\.hidden) { tabs = s.tabs }
         if page != s.page { page = s.page }
         if fab != s.fab { fab = s.fab }
+        if back != (s.back ?? false) { withAnimation(.spring(response: 0.36, dampingFraction: 0.7)) { back = s.back ?? false } }
         // 面板弹出时菜单栏马上让开（0.12 秒淡出，不会和从底部升起的面板叠在一起）；面板收起后再弹回来
         if cover != (s.cover ?? false) { withAnimation(s.cover == true ? .easeOut(duration: 0.12) : .spring(response: 0.32, dampingFraction: 0.86)) { cover = s.cover ?? false } }
         if let h = s.holes { onDragHoles(h.compactMap { $0.count == 4 ? CGRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) : nil }) }
@@ -54,6 +57,7 @@ final class NavModel: ObservableObject {
 
     func go(_ p: String) { eval("document.querySelector('#tabbar [data-page=\"\(p)\"]').click()", nil) }
     func add() { eval("document.getElementById('fab').click()", nil) }
+    func goToday() { eval("document.getElementById('btnToday').click()", nil) }
 
     // ---------- 日历栏 ----------
     func openDrawer() {
@@ -274,14 +278,25 @@ struct GlassTabBar: View {
                     Capsule().fill(Color.clear)
                         .frame(width: w, height: h)
                         .glassEffect(.clear.interactive(), in: .capsule)
+                        .macBubbleFinish(scheme)
                         .scaleEffect(x: sx, y: sy, anchor: wall < -0.5 ? .leading : wall > 0.5 ? .trailing : .center)
                         .offset(x: cx - w / 2)
                         .opacity(lifted ? 1 : 0)
                 }
             }
             .overlay(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.09)).frame(width: w, height: h).offset(x: cx - w / 2)
-                    .opacity(lifted ? 0 : 1).allowsHitTesting(false)
+                ZStack(alignment: .leading) {
+                    TabRest(scheme: scheme).frame(width: w, height: h).offset(x: cx - w / 2)
+                        .opacity(lifted ? 0 : 1)
+                    #if os(macOS)
+                    // Mac：系统会把拖动的玻璃气泡和底板融成一片，看不出拖到了哪；这里单独画一滴醒目的玻璃水滴跟着手
+                    TabDrop(scheme: scheme).frame(width: w, height: h)
+                        .scaleEffect(x: sx, y: sy, anchor: wall < -0.5 ? .leading : wall > 0.5 ? .trailing : .center)
+                        .offset(x: cx - w / 2)
+                        .opacity(lifted ? 1 : 0)
+                    #endif
+                }
+                .allowsHitTesting(false)
             }
             .overlay {
                 HStack(spacing: 0) {
@@ -339,16 +354,59 @@ struct GlassTabBar: View {
     }
 }
 
+#if os(macOS)
+/// Mac 拖动时跟手的水滴：亮一点的玻璃底 + 上亮下暗的厚边 + 上半部的高光 + 投影
+struct TabDrop: View {
+    let scheme: ColorScheme
+    var body: some View {
+        let dark = scheme == .dark
+        Capsule().fill(Color.white.opacity(dark ? 0.16 : 0.5))
+            .background(Capsule().fill(.ultraThinMaterial))
+            .overlay(Capsule().fill(LinearGradient(colors: [.white.opacity(dark ? 0.22 : 0.7), .clear], startPoint: .top, endPoint: .center)).padding(2))
+            .overlay(Capsule().strokeBorder(LinearGradient(colors: [.white, .white.opacity(0.35), .black.opacity(dark ? 0.35 : 0.12)], startPoint: .top, endPoint: .bottom), lineWidth: 1.5))
+            .shadow(color: .black.opacity(dark ? 0.45 : 0.2), radius: 10, y: 5)
+    }
+}
+#endif
+
+/// 当前这一格（没在拖动时）：iPhone 是一块淡灰；Mac 的底板更透，淡灰看不出来，改成一块带高光边的浅色玻璃
+struct TabRest: View {
+    let scheme: ColorScheme
+    var body: some View {
+        #if os(macOS)
+        Capsule().fill(scheme == .dark ? Color.white.opacity(0.13) : Color.white.opacity(0.62))
+            .overlay(Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.35 : 0.95), .black.opacity(scheme == .dark ? 0.25 : 0.07)],
+                                                           startPoint: .top, endPoint: .bottom), lineWidth: 0.8))
+            .shadow(color: .black.opacity(scheme == .dark ? 0.3 : 0.1), radius: 3, y: 1.5)
+        #else
+        Capsule().fill(Color.primary.opacity(0.09))
+        #endif
+    }
+}
+
 extension View {
+    /// Mac 上拖动的气泡：系统的 clear 玻璃在 Mac 上几乎看不见，补一圈亮边、一点高光和投影，看起来像一滴水
+    @ViewBuilder func macBubbleFinish(_ scheme: ColorScheme) -> some View {
+        #if os(macOS)
+        self
+            .overlay(Capsule().fill(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.14 : 0.35), .clear], startPoint: .top, endPoint: .center)).allowsHitTesting(false))
+            .overlay(Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(0.95), .white.opacity(0.25), .white.opacity(0.6)], startPoint: .top, endPoint: .bottom), lineWidth: 1.2).allowsHitTesting(false))
+            .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
+        #else
+        self
+        #endif
+    }
+
     /// Mac 的系统玻璃比 iPhone 淡：边缘几乎没有高光、没有投影，窗口不在最前面时还会整个变灰（加号的蓝色也没了）。
     /// 这里在 Mac 上补一圈细细的高光边、一层柔和的投影，并且一直按「窗口在最前面」的样子画（iPhone 上什么都不加）
     @ViewBuilder func macGlassFinish<S: InsettableShape>(_ shape: S) -> some View {
         #if os(macOS)
         self
-            .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.55), .white.opacity(0.08), .white.opacity(0.22)],
-                                                       startPoint: .top, endPoint: .bottom), lineWidth: 0.8).allowsHitTesting(false))
-            .shadow(color: .black.opacity(0.12), radius: 14, y: 5)
-            .shadow(color: .black.opacity(0.06), radius: 2, y: 1)
+            .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.9), .white.opacity(0.2), .black.opacity(0.08)],
+                                                       startPoint: .top, endPoint: .bottom), lineWidth: 1).allowsHitTesting(false))
+            .overlay(shape.inset(by: 1).strokeBorder(Color.black.opacity(0.05), lineWidth: 0.5).allowsHitTesting(false))
+            .shadow(color: .black.opacity(0.16), radius: 16, y: 6)
+            .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
             .environment(\.appearsActive, true)
         #else
         self
@@ -362,7 +420,7 @@ extension View {
 private enum TabGlass {
     static func base(_ scheme: ColorScheme) -> Glass {
         #if os(macOS)
-        return .clear.tint(scheme == .dark ? Color.black.opacity(0.28) : Color.white.opacity(0.32))
+        return .clear.tint(scheme == .dark ? Color.black.opacity(0.34) : Color.white.opacity(0.46))
         #else
         return .regular
         #endif
@@ -390,10 +448,10 @@ private enum MenuSize {
 /// 加号的大小：iPhone 上系统的玻璃按钮本身就有内边距，图形小一号，整体约 56pt（和系统的浮动按钮一样大）
 private enum FabSize {
     #if os(macOS)
-    static let icon: CGFloat = 22, side: CGFloat = 44
+    static let icon: CGFloat = 22, side: CGFloat = 44, back: CGFloat = 46
     static let control = ControlSize.large
     #else
-    static let icon: CGFloat = 20, side: CGFloat = 36
+    static let icon: CGFloat = 20, side: CGFloat = 36, back: CGFloat = 46
     static let control = ControlSize.regular
     #endif
 }
@@ -405,6 +463,25 @@ struct GlassFab: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
+        // 「回到今天」在加号正上方、和加号中线对齐：小一号的半透明液态玻璃，滑到别的周 / 月时才出现
+        VStack(spacing: 12) {
+            if m.back {
+                Button { m.goToday() } label: {
+                    Image(systemName: "arrow.uturn.backward").font(.system(size: FabSize.icon * 0.8, weight: .semibold))
+                        .foregroundStyle(Color.primary.opacity(0.7))
+                        .frame(width: FabSize.back, height: FabSize.back).contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .macGlassFinish(Circle())
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
+                .accessibilityLabel(Text(I18n.t("回到今天")))
+            }
+            fabButton
+        }
+    }
+
+    @ViewBuilder private var fabButton: some View {
         #if os(macOS)
         // Mac：系统的主操作按钮在窗口不在最前面时会变成灰色，所以自己画一块带主色的玻璃（一直是蓝的）
         Button { m.add() } label: {

@@ -212,9 +212,10 @@
       <button class="text-btn danger" id="cmpDelete">删除</button>
     </div>
     <button class="text-btn muted" id="cmpClear" hidden>清空</button>
-    <button class="cmp-batch" id="cmpBatch">批量</button>
+    <div class="seg small mode-seg" id="cmpModeSeg"><button class="on" aria-pressed="true">单个</button><button id="cmpBatch">批量</button></div>
     <button class="cmp-save" id="cmpSave">添加</button>
   </div>
+  <div class="cmp-scroll">
   <div class="cmp-sec cmp-presets" id="cmpPresetSec" hidden>
     <span class="cmp-label">常用事件<small>长按可删除</small></span>
     <div class="cmp-chips" id="cmpPresets"></div>
@@ -254,6 +255,7 @@
       <span id="cmpDateLabel"></span>
     </button>
     <span class="spacer"></span>
+  </div>
   </div>
 </section>
 
@@ -331,10 +333,11 @@
 <!-- 批量添加 -->
 <section class="sheet tall" id="batchSheet" aria-label="批量添加">
   <div class="handle"></div>
-  <div class="sheet-head">
-    <button class="text-btn muted" data-close>取消</button>
-    <h2>批量添加</h2>
-    <button class="text-btn strong" id="batchSave">添加</button>
+  <div class="cmp-head batch-head">
+    <h2>新建事件</h2>
+    <span class="spacer"></span>
+    <div class="seg small mode-seg"><button id="batchSingle">单个</button><button class="on" aria-pressed="true">批量</button></div>
+    <button class="cmp-save" id="batchSave">添加</button>
   </div>
   <div class="bpaste">
     <textarea id="batchPaste" rows="2" placeholder="粘贴文字自动识别，一行一个事件&#10;例：10/27 15:00-17:00 组会 高 提醒"></textarea>

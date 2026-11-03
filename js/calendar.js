@@ -51,7 +51,7 @@
     else {
       const top = MC.addDays(anchor, 7 * Math.round(scrollY / (rowH || 1)));
       const row = Math.floor((MC.weekStartOf(n) - top) / (7 * 864e5)), shown = Math.max(1, Math.floor(H / (rowH || 1)));
-      away = row < 0 || row >= shown;
+      away = row < 0 || row >= shown || focus.y !== n.getFullYear() || focus.m !== n.getMonth(); // 看的是别的月份也算
     }
     if (away === backShown) return;
     backShown = away; $('#calBack').hidden = !away;
@@ -259,6 +259,7 @@
   function refreshFocus() {
     const before = focus.y * 12 + focus.m;
     computeFocus();
+    try { updateBack(); } catch (e) {} // setT 时 focus 还是旧的月份：算完再看一次
     if (focus.y * 12 + focus.m !== before || lastFocusKey === '') { lastFocusKey = 'x'; monthTitle(); drawFrame(); }
   }
   // 滚得太远时把 anchor 往前/后挪，画面不动，保证两侧始终有足够的预渲染行

@@ -224,6 +224,7 @@
     strip += '</div>';
     const list = MC.mainViewOn(tdDay);
     const timed = list.filter(e => e.time), untimed = list.filter(e => !e.time);
+    // 上面的本周日期条、逾期、全天固定不动，只有下面的时间线滚动（滚的时候不会盖到上面）
     let h = strip;
     // 已逾期（只在看今天时）
     const overdue = isToday ? MC.data.events.filter(e => MC.inMainView(e) && !e.done && MC.endDate(e) < t).sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b)) : [];
@@ -256,14 +257,15 @@
     if (isToday && nowMin >= sH * 60 && nowMin <= eH * 60) tl += `<div class="td-now" style="top:${(nowMin / 60 - sH) * TL_H}px"><span>${MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`, true)}</span></div>`;
     tl += '</div>';
     if (!list.length && !overdue.length) h += `<p class="td-empty">${isToday ? '今天没有安排，点右下角 ＋ 添加' : '这一天没有安排'}</p>`;
-    h += tl;
-    $('#todayBody').innerHTML = h;
+    const old = $('#todayBody .td-scroll'), keep = old ? old.scrollTop : 0;
+    $('#todayBody').innerHTML = `<div class="td-top">${h}</div><div class="td-scroll">${tl}</div>`;
+    $('#todayBody .td-scroll').scrollTop = keep;
     // 第一次打开今天：「现在」那条线在屏幕下面看不到时，才往下滚到它在屏幕中间偏下（上面的日期条、全天事件能看到就不动）
     if (isToday && tdScrolled !== t) {
       tdScrolled = t;
-      const tlEl = $('#todayBody .td-tl'), box = $('#todayBody');
+      const tlEl = $('#todayBody .td-tl'), box = $('#todayBody .td-scroll');
       requestAnimationFrame(() => {
-        const y = tlEl.offsetTop + (nowMin / 60 - sH) * TL_H, vh = box.clientHeight;
+        const y = tlEl.offsetTop - box.offsetTop + (nowMin / 60 - sH) * TL_H, vh = box.clientHeight;
         if (y > vh * 0.72) box.scrollTop = y - vh * 0.6;
       });
     }
