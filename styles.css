@@ -800,6 +800,12 @@ html.locked .lock { display: grid; }
   transition: transform .15s;
 }
 .sc-blk:active { transform: scale(.97); }
+.sc-blk > * { flex-shrink: 0; } /* 放不下的行直接被裁掉，不要互相挤压重叠 */
+.compact .sc-blk b + .t { margin-top: 1px; font-size: calc(10px * var(--fs, 1)); letter-spacing: -.03em; white-space: nowrap; }
+.sc-grid.compact .sc-blk { padding: calc(4px * var(--fs, 1) + 2px) 3px calc(4px * var(--fs, 1)) 6px; border-radius: 8px; } /* 上边多留 2px，和左边留白接近，课程名不顶着圆角 */
+.compact .sc-blk b { font-size: calc(12.5px * var(--fs, 1)); letter-spacing: -.03em; line-height: 1.12; }
+.compact .sc-blk .t { font-size: calc(10.5px * var(--fs, 1)); }
+.compact .sc-blk .r { font-size: calc(10.5px * var(--fs, 1)); line-height: 1.15; }
 .sc-blk .t { font-size: calc(11px * var(--fs, 1)); font-weight: 600; color: var(--csub); font-variant-numeric: tabular-nums; }
 .sc-blk b { font-size: calc(14px * var(--fs, 1)); font-weight: 700; color: var(--cil, var(--c)); letter-spacing: -.02em; overflow-wrap: break-word; line-height: 1.15; }
 :root[data-theme="dark"] .sc-blk { background: var(--cfd); box-shadow: inset 4px 0 0 var(--cbd), inset 0 0 0 .5px color-mix(in srgb, var(--cbd) 30%, transparent);

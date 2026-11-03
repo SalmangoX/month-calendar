@@ -63,6 +63,8 @@
   // 课程块用的颜色变量：浅色 / 深色各一套，由 styles.css 按当前外观挑
   const varsOf = t => `--c:${t.base};--cfl:${t.fillL};--cil:${t.inkL};--csl:${t.subL};--cfd:${t.fillD};--cid:${t.inkD};--csd:${t.subD};--cbd:${t.barD}`;
   const toneVars = code => varsOf(toneOf(code));
+  // 紧凑写法的教室：「591 Cumberland (SCR) 002」→「SCR 002」；认不出楼号就原样显示
+  const shortRoom = r => { const m = /\(([A-Za-z]{2,5})\)\s*([\w-]+)/.exec(r || ''); return m ? `${m[1]} ${m[2]}` : (r || ''); };
   const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   const pad = MC.pad;
 
@@ -348,6 +350,7 @@
     const showNow = nowMin >= minH * 60 && nowMin <= maxH * 60; // 换到别的周也显示「现在几点」
     const nowTop = (nowMin / 60 - minH) * HOUR;
     nowState = { minH, maxH, HOUR, day: todayStr, show: showNow };
+    const compact = unit * zoom < 84; // 一天一列不到 84px（手机竖屏）：课程块用紧凑写法
     let cols = '';
     days.forEach((d, idx) => {
       const isToday = idx === todayIdx;
@@ -356,13 +359,21 @@
         const w = 100 / c._lanes, left = c._lane * w;
         const lines = Math.max(1, Math.floor((hgt - 48 * fs) / (13.5 * fs)));
         const live = isToday && nowMin >= toMin(c.start) && nowMin < toMin(c.end);
+        // 电脑上和以前一样（时间、课程名、类型、教室）；手机上列窄（compact）：课程名放第一行，下面是去掉前导 0 的起止时间，教室缩成「楼号 + 房间」，不写课程类型
+        const short = t => (h12 ? MC.fmtTime(t, true) : t.replace(/^0/, ''));
+        const time = compact ? `${short(c.start)}–${short(c.end)}`
+          : h12 ? `${MC.fmtTime(c.start, true)}–${MC.fmtTime(c.end, true)}` : `${c.start}–${c.end}`;
+        const kind = c.type && !compact ? `${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}` : (c.every === 2 ? '隔周' : '');
+        const room = compact ? shortRoom(c.room) : c.room;
+        const tEl = c._lanes > 1 || hgt < (compact ? 34 : 40) * fs ? '' : `<small class="t">${time}</small>`;
+        const name = `<b>${c._lanes > 1 || (compact && c.code.length > 8) ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>`;
         return `<button class="sc-blk${c._lanes > 1 ? ' narrow' : ''}${live ? ' live' : ''}" data-id="${c.id}" data-s="${toMin(c.start)}" data-e="${toMin(c.end)}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px);${toneVars(c.code)}">
-          ${c._lanes > 1 || hgt < 40 * fs ? '' : `<small class="t">${h12 ? `${MC.fmtTime(c.start, true)}–${MC.fmtTime(c.end, true)}` : `${c.start}–${c.end}`}</small>`}<b>${c._lanes > 1 ? esc(c.code).split(' ').join('<br>') : esc(c.code)}</b>${c.type ? `<span class="k">${esc(c.type)}${c.every === 2 ? ' · 隔周' : ''}</span>` : (c.every === 2 ? '<span class="k">隔周</span>' : '')}${c.room && hgt > 60 * fs && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(c.room)}</span>` : ''}</button>`;
+          ${compact ? '' : tEl}${name}${compact ? tEl : ''}${kind ? `<span class="k">${kind}</span>` : ''}${room && hgt > (compact ? 50 : 60) * fs && c._lanes === 1 ? `<span class="r" style="-webkit-line-clamp:${lines}">${esc(room)}</span>` : ''}</button>`;
       }).join('');
       cols += `<div class="sc-col${isToday ? ' today' : ''}${wts[idx] < 1 ? ' thin' : ''}">${blocks}</div>`;
     });
     const grid0 = body.querySelector('.sc-grid'), keepX = grid0 ? grid0.scrollLeft : 0, keepY = grid0 ? grid0.scrollTop : null;
-    body.innerHTML = `<div class="sc-grid${zoom > 1 ? '' : ' fit'}${h12 ? ' h12' : ''}" style="--tpl:${tpl};--fs:${fs.toFixed(3)};--hw:${HW}px"><div class="sc-inner">
+    body.innerHTML = `<div class="sc-grid${zoom > 1 ? '' : ' fit'}${h12 ? ' h12' : ''}${compact ? ' compact' : ''}" style="--tpl:${tpl};--fs:${fs.toFixed(3)};--hw:${HW}px"><div class="sc-inner">
       <div class="sc-head">${head}</div>
       <div class="sc-main" style="height:${(maxH - minH) * HOUR}px">
         <div class="sc-hours">${hours}${showNow ? `<div class="sc-tri" style="top:${nowTop}px"><span>${MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`)}</span></div>` : ''}</div>
