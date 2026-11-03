@@ -11,6 +11,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
     static var features: [String] {
         var f = ["data", "prefs", "token", "notify", "test", "widgets", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget"]
         if #available(macOS 26.0, *) { f.append("glassDrawer") } // 日历栏由原生的液态玻璃侧边栏显示
+        f.append("makeInstaller") // 设置里「生成安装包」
         return f
     }
 
@@ -105,9 +106,10 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
       var native = window.MC && MC.Drawer && MC.Drawer.model;
       var st = document.createElement('style'); st.textContent = '#dock,#fab' + (native ? ',#drawerScrim,#calDrawer' : '') + '{display:none!important}'
         // 标题和红黄绿按钮同一行；下面给玻璃菜单栏留的位置收窄，内容铺到它下面
-        + ':root{--safe-t:0px!important;--bar-space:44px!important}'
-        + '.ptitle{padding:5px 20px 8px 86px!important;align-items:center!important;min-height:42px}.ptitle h1{font-size:24px!important}.ptitle p{margin-top:0!important}'
-        + '.topbar{padding:4px 14px 2px 86px!important;min-height:42px}';
+        // 红黄绿按钮单独占顶上一条（不压到页面内容）；页面标题收紧；下面给玻璃菜单栏留的位置收窄，内容铺到它下面
+        + ':root{--safe-t:28px!important;--bar-space:44px!important}'
+        + '.ptitle{padding:2px 20px 8px!important}.ptitle h1{font-size:24px!important}.ptitle p{margin-top:2px!important}'
+        + '.topbar{padding:0 14px 2px!important}';
       document.head.appendChild(st);
       var last = '';
       function send(){
@@ -147,42 +149,20 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
     })();
     """
 
-    /// 网页的弹出菜单用系统菜单显示；选了第几项交回网页（-1 = 没选）
-    private var menuPicked = -1
-    private func showMenu(id: String, json: String, rect: CGRect) {
-        struct Item: Decodable { let label: String; let on: Bool; let danger: Bool }
-        guard let d = json.data(using: .utf8), let items = try? JSONDecoder().decode([Item].self, from: d) else { return }
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        for (i, it) in items.enumerated() {
-            let mi = NSMenuItem(title: it.label, action: #selector(menuChose(_:)), keyEquivalent: "")
-            mi.target = self; mi.tag = i; mi.state = it.on ? .on : .off
-            if it.danger { mi.attributedTitle = NSAttributedString(string: it.label, attributes: [.foregroundColor: NSColor.systemRed]) }
-            menu.addItem(mi)
-        }
-        menuPicked = -1
-        // 网页坐标（左上角原点）→ 网页视图坐标；菜单出现在按钮下面
-        let y = web.isFlipped ? rect.maxY + 4 : web.bounds.height - rect.maxY - 4
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            menu.popUp(positioning: nil, at: NSPoint(x: rect.minX, y: y), in: self.web)
-            self.web.evaluateJavaScript("window.__mcMenuPick&&__mcMenuPick(\(jsQuote(id)),\(self.menuPicked))")
-        }
-    }
-    @objc private func menuChose(_ sender: NSMenuItem) { menuPicked = sender.tag }
-
     @available(macOS 26.0, *)
     private func installGlassNav(in root: NSView) {
         nav.eval = { [weak self] js, cb in self?.web.evaluateJavaScript(js) { r, _ in cb?(r) } }
         if let w = web as? CadenceWebView {
-            w.dragBand = 46
+            w.dragBand = 28
             nav.onDragHoles = { [weak w] holes in w?.dragHoles = holes }
         }
-        let bar = NSHostingView(rootView: GlassTabBar(m: nav))
-        let fab = NSHostingView(rootView: GlassFab(m: nav))
-        let drawer = NSHostingView(rootView: GlassDrawer(m: nav))
-        for v in [bar, fab, drawer] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
+        let bar = SolidHostingView(rootView: GlassTabBar(m: nav))
+        let fab = SolidHostingView(rootView: GlassFab(m: nav))
+        let drawer = SolidHostingView(rootView: GlassDrawer(m: nav))
+        let menu = SolidHostingView(rootView: GlassMenu(m: nav))
+        for v in [bar, fab, drawer, menu] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
         drawer.isHidden = true
+        menu.isHidden = true
         NSLayoutConstraint.activate([
             bar.centerXAnchor.constraint(equalTo: root.centerXAnchor), bar.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -4),
             bar.widthAnchor.constraint(lessThanOrEqualTo: root.widthAnchor, constant: -24),
@@ -190,10 +170,16 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             fab.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -10), fab.bottomAnchor.constraint(equalTo: bar.topAnchor, constant: 2),
             drawer.leadingAnchor.constraint(equalTo: root.leadingAnchor), drawer.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             drawer.topAnchor.constraint(equalTo: root.topAnchor), drawer.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+            menu.leadingAnchor.constraint(equalTo: root.leadingAnchor), menu.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            menu.topAnchor.constraint(equalTo: root.topAnchor), menu.bottomAnchor.constraint(equalTo: root.bottomAnchor),
         ])
         // 隐藏时让出点击：加号在设置页不显示；日历栏收起的动画放完再隐藏
         navSubs = [
             nav.$fab.sink { fab.isHidden = !$0 },
+            nav.$menu.sink { [weak self] m in
+                if m != nil { menu.isHidden = false; return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { if self?.nav.menu == nil { menu.isHidden = true } }
+            },
             nav.$drawerOpen.sink { [weak self] open in
                 if open { drawer.isHidden = false; return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { if self?.nav.drawerOpen == false { drawer.isHidden = true } }
@@ -203,7 +189,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
 
     /// 和网页一致的底色，窗口标题栏、网页加载前都不会闪白
     static let appBg = NSColor(name: nil) { ap in
-        ap.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(srgbRed: 28 / 255, green: 28 / 255, blue: 30 / 255, alpha: 1)
+        ap.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(srgbRed: 20 / 255, green: 20 / 255, blue: 22 / 255, alpha: 1)
                                                          : NSColor(srgbRed: 247 / 255, green: 250 / 255, blue: 252 / 255, alpha: 1)
     }
 
@@ -259,7 +245,8 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             saveFile: function (n, m, c, cb) { post('saveFile', [String(n), String(m), String(c), String(cb)]); },
             syncNow: function () { post('syncNow'); },
             checkUpdate: function () { post('checkUpdate'); },
-            openDrawer: function () { post('drawer'); }
+            openDrawer: function () { post('drawer'); },
+            makeInstaller: function () { post('makeInstaller'); }
           };
         })();
         """
@@ -302,7 +289,8 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         case "checkUpdate": Task { await Updater.shared.check(manual: true) }
         case "retry": reload()
         case "nav": nav.update(s(0))
-        case "menu": showMenu(id: s(0), json: s(1), rect: CGRect(x: d(2), y: d(3), width: d(4), height: d(5)))
+        case "menu": nav.showMenu(id: s(0), json: s(1), anchor: CGRect(x: d(2), y: d(3), width: d(4), height: d(5)))
+        case "makeInstaller": Updater.shared.makeInstaller()
         case "drawer": nav.openDrawer()
         default: break
         }
@@ -375,7 +363,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         <!doctype html><meta charset="utf-8"><meta name="color-scheme" content="light dark">
         <style>
           body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;font:15px -apple-system,system-ui;
-               background:\(dark ? "#1C1C1E" : "#F7FAFC");color:\(dark ? "#EEEEF1" : "#171B20")}
+               background:\(dark ? "#141416" : "#F7FAFC");color:\(dark ? "#EEEEF1" : "#171B20")}
           .c{text-align:center;max-width:320px;padding:28px 30px;border-radius:24px;
              background:\(dark ? "rgba(255,255,255,.06)" : "rgba(255,255,255,.7)");backdrop-filter:blur(30px) saturate(1.6);
              box-shadow:0 1px 0 rgba(255,255,255,\(dark ? ".08" : ".9")) inset,0 10px 40px rgba(0,0,0,\(dark ? ".5" : ".08"))}

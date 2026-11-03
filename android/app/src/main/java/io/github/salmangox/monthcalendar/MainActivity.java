@@ -190,7 +190,7 @@ public class MainActivity extends Activity {
 
     private void showOffline() {
         boolean dark = isDark(Store.prefs(this).getString("theme", "auto"));
-        String bg = dark ? "#1C1C1E" : "#F7FAFC", fg = dark ? "#EEEEF1" : "#171B20", sub = dark ? "#8F929B" : "#6E757E", acc = dark ? "#5A77AD" : "#4C6EAC";
+        String bg = dark ? "#141416" : "#F7FAFC", fg = dark ? "#EEEEF1" : "#171B20", sub = dark ? "#8F929B" : "#6E757E", acc = dark ? "#5A77AD" : "#4C6EAC";
         String html = "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
                 + "<body style='margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:" + bg
                 + ";color:" + fg + ";font-family:sans-serif;text-align:center'><div><div style='font-size:19px;font-weight:600'>" + I18n.t("连不上网络") + "</div>"
@@ -208,7 +208,7 @@ public class MainActivity extends Activity {
 
     void applyTheme(String pref) {
         boolean dark = isDark(pref);
-        int bg = dark ? 0xFF1C1C1E : 0xFFF7FAFC;
+        int bg = dark ? 0xFF141416 : 0xFFF7FAFC;
         root.setBackgroundColor(bg);
         if (web != null) web.setBackgroundColor(bg);
         WindowInsetsController ic = getWindow().getInsetsController();

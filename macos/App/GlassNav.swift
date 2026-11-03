@@ -19,6 +19,10 @@ final class NavModel: ObservableObject {
     @Published var fab = true
     @Published var drawer: Drawer?
     @Published var drawerOpen = false
+    /// 网页的弹出菜单（用原生玻璃画）：在哪个按钮下面、有哪些项
+    struct Menu: Identifiable { let id: String; let items: [MenuItem]; let anchor: CGRect }
+    struct MenuItem: Decodable { let label: String; let on: Bool; let danger: Bool }
+    @Published var menu: Menu?
 
     /// 在网页里执行一段 JS（有结果时回调）
     var eval: (String, ((Any?) -> Void)?) -> Void = { _, _ in }
@@ -62,6 +66,18 @@ final class NavModel: ObservableObject {
     }
     func addCal(_ kind: String) { closeDrawer(); eval("MC.Drawer.add(\(Self.q(kind)))", nil) }
 
+    // ---------- 弹出菜单 ----------
+    func showMenu(id: String, json: String, anchor: CGRect) {
+        guard let d = json.data(using: .utf8), let items = try? JSONDecoder().decode([MenuItem].self, from: d) else { return }
+        menu = Menu(id: id, items: items, anchor: anchor)
+    }
+    /// 选了第几项（-1 = 点外面关掉）交回网页
+    func pickMenu(_ i: Int) {
+        guard let m = menu else { return }
+        menu = nil
+        eval("window.__mcMenuPick&&__mcMenuPick(\(Self.q(m.id)),\(i))", nil)
+    }
+
     private static func q(_ s: String) -> String {
         let d = (try? JSONSerialization.data(withJSONObject: [s])) ?? Data("[\"\"]".utf8)
         return String(String(data: d, encoding: .utf8)!.dropFirst().dropLast())
@@ -91,35 +107,112 @@ private extension Color {
     }
 }
 
-/// 底部菜单栏：一整条胶囊形的玻璃，当前页用主色，下面垫一块很淡的底
+/// 橡皮筋：越拉越费劲（和网页的菜单栏、日历栏同一个公式）
+func rubber(_ x: CGFloat, _ d: CGFloat) -> CGFloat { (1 - 1 / (x * 0.55 / d + 1)) * d }
+
+/// 显示出来时，自己范围内的点击全部接住，不漏给后面的网页
+final class SolidHostingView<Content: View>: NSHostingView<Content> {
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard !isHidden, let p = superview.map({ convert(point, from: $0) }), bounds.contains(p) else { return nil }
+        return super.hitTest(point) ?? self
+    }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
+/// 底部菜单栏：一整条胶囊形的玻璃。点一下切页；按住左右拖，选中块浮起成一块玻璃透镜跟手走，
+/// 越快拉得越长越扁、顶到两端被压扁并把整条菜单轻轻拽过去，经过的图标被放大；松手带一点回弹落到格子里（和网页原来的手感一样）
 @available(macOS 26.0, *)
 struct GlassTabBar: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var dragX: CGFloat?   // 拖动中：选中块的中心
+    @State private var vel: CGFloat = 0
+    @State private var wall: CGFloat = 0  // 顶墙的距离（带正负）
+    @State private var hover: String?
+    @State private var down: CGPoint?
+    private let pad: CGFloat = 4, h: CGFloat = 52
 
     var body: some View {
+        let tabs = m.tabs.filter { !$0.hidden }
         let accent = Pal(dark: scheme == .dark).accent
-        HStack(spacing: 2) {
-            ForEach(m.tabs.filter { !$0.hidden }) { t in
-                let on = t.page == m.page
-                Button { m.go(t.page) } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: NavModel.icon(t.page)).font(.system(size: 17, weight: on ? .semibold : .regular)).frame(height: 21)
-                        Text(t.label).font(.system(size: 10.5, weight: on ? .semibold : .medium)).lineLimit(1)
-                    }
-                    .foregroundStyle(on ? accent : Color.primary.opacity(0.82))
-                    .frame(maxWidth: .infinity, minHeight: 52, maxHeight: 52)
-                    .background { if on { Capsule().fill(Color.primary.opacity(0.09)) } }
-                    .contentShape(Capsule())
+        GeometryReader { g in
+            let n = max(1, tabs.count), w = (g.size.width - pad * 2) / CGFloat(n)
+            let idx = tabs.firstIndex { $0.page == m.page } ?? 0
+            let cx = dragX ?? (pad + w * CGFloat(idx) + w / 2)
+            let lifted = dragX != nil
+            let speed = min(1, abs(vel) / 2400), sq = min(1, abs(wall) / 40)
+            let sx = (1 + speed * 0.34) * (1 - sq * 0.17) * (lifted ? 1.07 : 1)
+            let sy = (1 - speed * 0.2) * (1 + sq * 0.1) * (lifted ? 1.13 : 1)
+            // Apple 标签栏的做法：图标是底板玻璃的内容（清楚地画在玻璃上面）；按住拖动时浮起一块 Clear 玻璃气泡，
+            // 和底板在同一组里（靠近时融在一起），气泡里是放大的图标，边缘是真正的液态玻璃折射
+            let tabView = { (t: NavModel.Tab, on: Bool) in
+                VStack(spacing: 3) {
+                    Image(systemName: NavModel.icon(t.page)).font(.system(size: 17, weight: on ? .semibold : .regular)).frame(height: 21)
+                    Text(t.label).font(.system(size: 10.5, weight: on ? .semibold : .medium)).lineLimit(1)
                 }
-                .buttonStyle(.plain)
-                .help(t.label)
+                .foregroundStyle(on ? accent : Color.primary.opacity(0.82))
             }
+            GlassEffectContainer(spacing: 18) {
+                ZStack(alignment: .leading) {
+                    HStack(spacing: 0) {
+                        ForEach(Array(tabs.enumerated()), id: \.element.id) { i, t in
+                            tabView(t, !lifted && m.page == t.page)
+                                .frame(width: w, height: h)
+                                .opacity(lifted && abs(pad + w * CGFloat(i) + w / 2 - cx) < w * 0.5 ? 0.25 : 1) // 被气泡盖住的那个淡一点
+                                .accessibilityElement(children: .combine)
+                                .accessibilityAddTraits(m.page == t.page ? [.isButton, .isSelected] : .isButton)
+                                .accessibilityAction { m.go(t.page) }
+                        }
+                    }
+                    .padding(.horizontal, pad)
+                    .frame(width: g.size.width, height: g.size.height)
+                    .background(alignment: .leading) {
+                        if !lifted { Capsule().fill(Color.primary.opacity(0.09)).frame(width: w, height: h).offset(x: cx - w / 2) }
+                    }
+                    .glassEffect(.regular, in: .capsule)
+                    if lifted, let t = tabs.first(where: { $0.page == hover }) ?? tabs.first(where: { $0.page == m.page }) {
+                        tabView(t, true)
+                            .scaleEffect(1.12)
+                            .frame(width: w, height: h)
+                            .glassEffect(.clear.interactive(), in: .capsule)
+                            .scaleEffect(x: sx, y: sy, anchor: wall < -0.5 ? .leading : wall > 0.5 ? .trailing : .center)
+                            .offset(x: cx - w / 2)
+                            .allowsHitTesting(false)
+                            .transition(.scale(scale: 0.8).combined(with: .opacity))
+                    }
+                }
+            }
+            .frame(width: g.size.width, height: g.size.height)
+            .contentShape(Capsule())
+            .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                .onChanged { v in
+                    if down == nil { down = v.startLocation }
+                    guard dragX != nil || abs(v.translation.width) > 6 else { return }
+                    let lo = pad + w / 2, hi = g.size.width - pad - w / 2
+                    let clamped = min(hi, max(lo, v.location.x)), over = v.location.x - clamped
+                    let first = dragX == nil
+                    withAnimation(reduceMotion ? nil : first ? .spring(response: 0.28, dampingFraction: 0.5) : .interactiveSpring(response: 0.14, dampingFraction: 0.8)) {
+                        dragX = clamped; vel = v.velocity.width; wall = over == 0 ? 0 : (over < 0 ? -1 : 1) * rubber(abs(over), 40)
+                    }
+                    let ti = min(n - 1, max(0, Int((clamped - pad) / w)))
+                    if hover != tabs[ti].page { hover = tabs[ti].page; NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now) }
+                }
+                .onEnded { v in
+                    down = nil
+                    guard !tabs.isEmpty else { return }
+                    let x = dragX ?? v.location.x
+                    let target = tabs[min(n - 1, max(0, Int((x - pad) / w)))].page
+                    withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.58)) { // 松手：带一点回弹
+                        if target != m.page { m.page = target }
+                        dragX = nil; vel = 0; wall = 0; hover = nil
+                    }
+                    m.go(target)
+                })
         }
-        .animation(.smooth(duration: 0.25), value: m.page)
-        .padding(4)
+        .frame(height: h + pad * 2)
         .frame(maxWidth: 520)
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .offset(x: wall == 0 ? 0 : (wall < 0 ? -1 : 1) * rubber(abs(wall), 9)) // 顶到两端：整条菜单被轻轻拽过去
         .padding(10) // 给玻璃的阴影留位置
         .opacity(m.tabs.isEmpty ? 0 : 1)
     }
@@ -144,11 +237,64 @@ struct GlassFab: View {
     }
 }
 
-/// 左侧日历栏：浮在日历上的一张玻璃卡片，和网页的日历栏同样的分组和操作
+/// 弹出菜单：网页的「年 / 月 / 周视图」「四象限 / 课表」等菜单，用原生玻璃画，从按钮处像果冻一样弹出来
+@available(macOS 26.0, *)
+struct GlassMenu: View {
+    @ObservedObject var m: NavModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hoverRow: Int?
+
+    var body: some View {
+        GeometryReader { g in
+            ZStack(alignment: .topLeading) {
+                if let mm = m.menu {
+                    Color.clear.contentShape(Rectangle()).onTapGesture { m.pickMenu(-1) }
+                    let w: CGFloat = max(180, min(280, CGFloat(mm.items.map { $0.label.count }.max() ?? 6) * 14 + 70))
+                    let hgt = CGFloat(mm.items.count) * 36 + 12
+                    let below = mm.anchor.maxY + 8 + hgt < g.size.height - 8
+                    let x = min(max(8, mm.anchor.minX < 80 ? mm.anchor.minX : mm.anchor.midX - w / 2), g.size.width - w - 8)
+                    let y = below ? mm.anchor.maxY + 8 : mm.anchor.minY - 8 - hgt
+                    VStack(spacing: 0) {
+                        ForEach(Array(mm.items.enumerated()), id: \.offset) { i, it in
+                            Button { m.pickMenu(i) } label: {
+                                HStack(spacing: 10) {
+                                    Text(it.label).font(.system(size: 14, weight: it.on ? .semibold : .regular)).lineLimit(1)
+                                    Spacer(minLength: 8)
+                                    if it.on { Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)) }
+                                }
+                                .foregroundStyle(it.danger ? Color.red : Color.primary)
+                                .padding(.horizontal, 14).frame(height: 36)
+                                .background { if hoverRow == i { RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.1)) } }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .onHover { hoverRow = $0 ? i : (hoverRow == i ? nil : hoverRow) }
+                        }
+                    }
+                    .padding(6)
+                    .frame(width: w)
+                    .glassEffect(.regular, in: .rect(cornerRadius: 18))
+                    .offset(x: x, y: y)
+                    .transition(.asymmetric(insertion: .scale(scale: 0.86, anchor: below ? .top : .bottom).combined(with: .opacity),
+                                            removal: .scale(scale: 0.94, anchor: below ? .top : .bottom).combined(with: .opacity)))
+                    .id(mm.id)
+                }
+            }
+            .frame(width: g.size.width, height: g.size.height, alignment: .topLeading)
+        }
+        .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.62), value: m.menu?.id) // 果冻：带一点过冲
+        .onExitCommand { m.pickMenu(-1) }
+    }
+}
+
+/// 左侧日历栏：浮在日历上的一张玻璃卡片，和网页的日历栏同样的分组和操作。
+/// 弹出时带一点回弹；往右拉会像果冻一样被拉长，往左推可以收起（和网页原来的手感一样）
 @available(macOS 26.0, *)
 struct GlassDrawer: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pull: CGFloat = 0
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -157,11 +303,20 @@ struct GlassDrawer: View {
                     .contentShape(Rectangle())
                     .onTapGesture { m.closeDrawer() }
                     .transition(.opacity)
-                panel(d).transition(.move(edge: .leading).combined(with: .opacity))
+                panel(d)
+                    .scaleEffect(x: 1 + rubber(max(0, pull), 70) / 300, y: 1, anchor: .leading) // 往外拉：被拉长
+                    .offset(x: min(0, pull))                                                    // 往回推：跟着收
+                    .gesture(DragGesture(minimumDistance: 10)
+                        .onChanged { pull = $0.translation.width }
+                        .onEnded { v in
+                            if v.translation.width < -90 || v.predictedEndTranslation.width < -200 { m.closeDrawer() }
+                            withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.55)) { pull = 0 }
+                        })
+                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .animation(.spring(response: 0.38, dampingFraction: 0.86), value: m.drawerOpen)
+        .animation(reduceMotion ? nil : .spring(response: 0.46, dampingFraction: 0.72), value: m.drawerOpen) // 弹出带一点回弹
         .onExitCommand { m.closeDrawer() }
     }
 

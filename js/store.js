@@ -311,7 +311,7 @@
   };
 
   MC.settings = Object.assign(
-    { theme: 'auto', weekStart: 0, view: 'month', tab3: 'quad', activeCal: '', clock: 'auto', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '', account: '' },
+    { theme: 'auto', weekStart: 0, view: 'month', tab3: 'sched', activeCal: '', clock: 'auto', gistId: '', lastSync: 0, vault: null, tokenPlain: '', quadShowDone: false, notify: false, vapidPrivate: '', deviceId: '', account: '' },
     JSON.parse(localStorage.getItem(SET_KEY) || '{}')
   );
   // 从 0.1 版迁移：旧版本明文保存在 token 字段

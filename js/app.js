@@ -11,9 +11,9 @@
     const dark = t === 'dark' || (t === 'auto' && mq.matches);
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     // 和月账本一样：两个 theme-color 分别对应浅色 / 深色；手动指定外观时两者都用该颜色
-    const forced = t === 'auto' ? null : (dark ? '#1C1C1E' : '#F7FAFC');
+    const forced = t === 'auto' ? null : (dark ? '#141416' : '#F7FAFC');
     $('#themeLight').setAttribute('content', forced || '#FFFFFF');
-    $('#themeDark').setAttribute('content', forced || '#1C1C1E');
+    $('#themeDark').setAttribute('content', forced || '#141416');
   }
   mq.addEventListener ? mq.addEventListener('change', applyTheme) : mq.addListener(applyTheme);
 
@@ -94,7 +94,9 @@
   };
   function applyTab3() {
     const btn = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
-    if (MC.settings.tab3 !== 'sched') MC.settings.tab3 = 'quad'; // 不再提供「不显示」，在页面左上角切换四象限 / 课表
+    // 底部第三格默认是课表；以前默认存成了四象限、自己没选过的，换成课表（自己选过四象限的保留）
+    if (MC.settings.tab3 === 'quad' && !MC.settings.tab3Picked) { MC.settings.tab3 = 'sched'; MC.saveSettings(); }
+    if (MC.settings.tab3 !== 'quad') MC.settings.tab3 = 'sched'; // 不再提供「不显示」，在页面左上角切换四象限 / 课表
     const v = MC.settings.tab3;
     btn.hidden = document.body.dataset.kind === 'days' || !!recCal(); // 纪念日历的菜单里没有这一项；开了等级评分的记录日历换成「统计」
     if (v !== 'off') { btn.dataset.page = v; btn.setAttribute('aria-label', TAB3[v].label); btn.innerHTML = TAB3[v].svg + `<span>${TAB3[v].label}</span>`; }
@@ -105,7 +107,7 @@
     UI.menu(btn, [
       { label: '四象限', value: 'quad', on: page === 'quad' },
       { label: '课表', value: 'sched', on: page === 'sched' },
-    ], v => { if (v === page) return; MC.settings.tab3 = v; MC.saveSettings(); applyTab3(); showPage(v); });
+    ], v => { if (v === page) return; MC.settings.tab3 = v; MC.settings.tab3Picked = true; MC.saveSettings(); applyTab3(); showPage(v); });
   }));
   function renderPage() {
     if (page === 'sched') { MC.Sched.render(); return; }
@@ -617,7 +619,8 @@
     heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   };
   const CHEV = '<span class="chev"><svg viewBox="0 0 8 13"><path d="M1.5 1.5l5 5-5 5"/></svg></span>';
-  const SET_TONES = { rose: ['#B15D69', '#ED9EA7'], coral: ['#B16148', '#EDA28B'], apricot: ['#A76B2A', '#E2AB76'], sage: ['#4D8B50', '#91C892'], jade: ['#0D8F73', '#73CBB0'], teal: ['#008C8F', '#64CACD'], sky: ['#1D85B0', '#75C2EA'], periwinkle: ['#5679BB', '#96B8F5'], lavender: ['#7C6DB6', '#B8ADF0'], orchid: ['#9C629D', '#D7A2D8'] }; // [浅色, 深色]
+  // 设置图标：和 Apple「设置」一样，系统色的实色圆角方块 + 白色图形（[浅色, 深色]，取自 iOS / macOS 的系统颜色）
+  const SET_TONES = { rose: ['#FF2D55', '#FF375F'], coral: ['#FF3B30', '#FF453A'], apricot: ['#FF9500', '#FF9F0A'], sage: ['#34C759', '#30D158'], jade: ['#00C7BE', '#00C7BE'], teal: ['#30B0C7', '#40C8E0'], sky: ['#007AFF', '#0A84FF'], periwinkle: ['#5856D6', '#5E5CE6'], lavender: ['#AF52DE', '#BF5AF2'], orchid: ['#C94FC0', '#D35FCB'] };
   const DT = s => (MC.Days ? MC.Days.T(s) : s); // 纪念日历（js/days.js）的文字
   function srow(o) {
     const sub = o.sub ? `<small>${esc(o.sub)}</small>` : '';
@@ -720,6 +723,7 @@
       ], '菜单栏右上角的日历图标也能随时查看本月和当天的事件。');
       gWidgets += group('Mac App', [
         srow({ act: 'macapp', icon: 'laptop', tone: 'sage', label: 'Mac App', sub: '点一下检查更新', val: `${I.app || ''}（${I.code || 0}）`, chev: false }),
+        ...(MC.Native.has('makeInstaller') ? [srow({ act: 'macpkg', icon: 'export', tone: 'apricot', label: '生成安装包', sub: '打包成 .dmg 放在桌面，可以直接发给别人', chev: false })] : []),
       ], '改网页不需要重新编译，打开就是最新的；只有原生部分（菜单栏、小组件、提醒）改了才需要在 Mac 上重新运行 macos/build.sh。');
     } else if (MC.Native.on) {
       gWidgets += group('桌面小组件', [
@@ -767,6 +771,7 @@
     }
     if (act === 'nperm') { openHelp('nperm'); return; }
     if (act === 'mwidget') { openHelp('mwidget'); return; }
+    if (act === 'macpkg') { window.MCNative.makeInstaller(); return; }
     if (act === 'macapp') {
       if (window.MCNative && window.MCNative.checkUpdate) { UI.toast('正在检查 Mac 版更新…'); window.MCNative.checkUpdate(); }
       return;
@@ -802,10 +807,10 @@
       if (Push.enabled() && MC.settings.pushReady && MC.session.token && MC.settings.subH12 !== MC.use12()) Push.resubscribe().catch(() => {});
     });
     else if (act === 'tab3') UI.menu(row.querySelector('.sval'), [
-      { label: '四象限', value: 'quad', on: (MC.settings.tab3 || 'quad') === 'quad' },
-      { label: '课表', value: 'sched', on: MC.settings.tab3 === 'sched' },
+      { label: '四象限', value: 'quad', on: MC.settings.tab3 === 'quad' },
+      { label: '课表', value: 'sched', on: (MC.settings.tab3 || 'sched') === 'sched' },
       { label: '不显示', value: 'off', on: MC.settings.tab3 === 'off' },
-    ], v => { MC.settings.tab3 = v; MC.saveSettings(); applyTab3(); renderSettings(); });
+    ], v => { MC.settings.tab3 = v; MC.settings.tab3Picked = true; MC.saveSettings(); applyTab3(); renderSettings(); });
     else if (act === 'connect' || act === 'retoken') connectForm(act === 'retoken');
     else if (act === 'sync') { const ok = await MC.sync(); UI.toast(ok ? '已同步' : (MC.syncState.error || '同步失败')); renderSettings(); }
     else if (act === 'disconnect') {
