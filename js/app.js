@@ -694,7 +694,7 @@
       gSync = group('同步', [
         srow({ act: 'connect', icon: 'link', tone: 'sky', label: '连接 GitHub', sub: '用自己的令牌在多台设备间同步', help: 'sync' }),
         srow({ act: 'dav', icon: 'cloud', tone: 'teal', label: '连接 WebDAV', sub: '坚果云、Nextcloud、群晖等，国内也能用' }),
-        ...(MC.Native.has('icloud') ? [srow({ act: 'icloud', icon: 'cloud', tone: 'sky', label: '使用 iCloud 云盘', sub: '苹果设备之间同步，免费，不用另外注册账号' })] : []),
+        ...(MC.Native.has('icloud') ? [srow({ act: 'icloud', icon: 'cloud', tone: 'sky', label: '使用 iCloud 云盘', sub: '苹果设备之间同步，免费，不用另外注册账号', help: 'icloud' })] : []),
       ], MC.Native.has('icloud') ? '选一种：数据存在你自己的 GitHub、网盘或 iCloud 云盘里，账号和密码只保存在这台设备上。'
         : '二选一：数据存在你自己的 GitHub 或网盘里，账号和密码只保存在这台设备上。');
     } else {
@@ -702,7 +702,7 @@
       let host = '';
       try { host = dav ? new URL(MC.settings.dav.url).host : ''; } catch (e) {}
       const rows = [
-        ic ? srow({ act: 'account', icon: 'cloud', tone: 'sky', label: 'iCloud 云盘', sub: `文件夹「${MC.settings.icloud.name || ''}」`, chev: false })
+        ic ? srow({ act: 'account', icon: 'cloud', tone: 'sky', label: 'iCloud 云盘', sub: `文件夹「${MC.settings.icloud.name || ''}」`, help: 'icloud', chev: false })
         : dav ? srow({ act: 'account', icon: 'cloud', tone: 'teal', label: 'WebDAV', sub: host, val: MC.settings.dav.user || '', chev: false })
           : srow({ act: 'account', icon: 'link', tone: 'sky', label: 'GitHub 账号', val: MC.settings.account ? '@' + MC.settings.account : '已连接', chev: false }),
         srow({ act: 'sync', icon: 'refresh', tone: 'jade', label: '立即同步', sub: syncText()[0], help: 'sync', chev: false }),
@@ -764,7 +764,7 @@
     // 按重要程度排：最常来设置的是提醒，其次是显示，同步、小组件和数据放后面
     // iPhone 网页版 / 浏览器：Safari 不能自己读写 iCloud 云盘，只能每次手动选文件、存回去，和 Mac 的 iCloud 云盘同步接上
     const gIcFile = MC.Native.on ? '' : group('iCloud 云盘', [
-      srow({ act: 'icfile', icon: 'cloud', tone: 'sky', label: '与 iCloud 云盘同步', chev: false,
+      srow({ act: 'icfile', icon: 'cloud', tone: 'sky', label: '与 iCloud 云盘同步', help: 'icloud', chev: false,
         sub: S.icFileDirty ? '手机上有改动还没存回去' : S.icFileAt ? '上次 · ' + new Date(S.icFileAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '读取 Mac 的数据，合并后存回去' }),
     ], '给 Mac 的 iCloud 云盘同步用：浏览器不能自己读写 iCloud 云盘，只能你来点。用过一次后，打开节律或手机上有改动时会自动提醒你同步。');
     const h = gRemind + gDisplay + gSync + gIcFile + gWidgets + gData;
@@ -1182,6 +1182,23 @@
         : `<div class="help-tip">点「10 秒后测试」后马上回到桌面并锁屏，10 秒左右收到「后台提醒测试」，就说明 App 关着也能准时提醒。<br>想让提醒在锁屏显示、响铃或弹出横幅，点「通知样式」分别设置「事件提醒」和「每日未完成提醒」。</div>`}`,
       };
     },
+    icloud: () => ({
+      title: 'iCloud 云盘同步',
+      html: `<div class="sgroup-title">Mac：全自动</div>
+      <ol class="steps">
+        <li>设置 → 同步 → 使用 iCloud 云盘。已经连着 GitHub 的话，点「更换同步方式」→「使用 iCloud 云盘」。</li>
+        <li>在 iCloud 云盘里新建一个文件夹（比如「节律」）并选中它。这台 Mac 上已有事件时，选「合并」。</li>
+        <li>另一台 Mac 做同样的事，选同一个文件夹。之后两台 Mac 自动互相同步，不用再管。</li>
+      </ol>
+      <div class="sgroup-title">iPhone 网页版：手动，会提醒你</div>
+      <ol class="steps">
+        <li>先在 Mac 上按上面设好，确认那个文件夹里已经有 cadence-calendar.json。</li>
+        <li>iPhone 上打开节律 → 设置 → 与 iCloud 云盘同步 → 在「文件」里打开 iCloud 云盘 → 那个文件夹 → 选 cadence-calendar.json。</li>
+        <li>手机上有新改动时会让你存回去：点「存回去」→「存储到“文件”」→ 选同一个文件夹 → 存储；问到时选「替换」。</li>
+        <li>之后打开节律、或在手机上改完东西，会自动弹出带「同步」按钮的提示，点一下就从选文件开始。</li>
+      </ol>
+      <div class="help-tip">iPhone 为什么要手动：Safari 不能自己读写 iCloud 云盘，每次只能由你选文件、存文件。想让 iPhone 也全自动，所有设备都改用 GitHub 同步。<br>存回去时如果没有「替换」、存成了「cadence-calendar 2.json」也没关系，Mac 会把它合并进来再删掉。<br>同步快慢由 iCloud 决定，一般几秒到一两分钟。</div>`,
+    }),
     mwidget: () => ({
       title: 'Mac 桌面小组件',
       html: `<ol class="steps">
