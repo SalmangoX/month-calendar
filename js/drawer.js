@@ -252,6 +252,8 @@
     if (g.mode === 0) {
       if (Math.hypot(dx, dy) < 10) return;
       if (dx > 0 && dx > Math.abs(dy) * 1.25) {
+        // iPhone App：网页的侧栏隐藏了，换成原生液态玻璃侧栏，往右一滑就弹出来
+        if (nativeDrawer()) { g = null; if (e.cancelable) e.preventDefault(); D.open(); return; }
         g.mode = 1;
         if (anim) anim.stop();
         render(); measure();

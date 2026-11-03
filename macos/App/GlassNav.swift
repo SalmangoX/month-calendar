@@ -225,7 +225,7 @@ struct GlassTabBar: View {
     @State private var wall: CGFloat = 0  // 顶墙的距离（带正负）
     @State private var hover: String?
     @State private var down: CGPoint?
-    private let pad: CGFloat = 4, h: CGFloat = 52
+    private let pad: CGFloat = 4, h: CGFloat = TabSize.h
 
     var body: some View {
         let tabs = m.tabs.filter { !$0.hidden }
@@ -263,9 +263,9 @@ struct GlassTabBar: View {
                 HStack(spacing: 0) {
                     ForEach(tabs) { t in
                         let on = (lifted ? (hover ?? m.page) : m.page) == t.page
-                        VStack(spacing: 3) {
-                            Image(systemName: NavModel.icon(t.page)).font(.system(size: 17, weight: on ? .semibold : .regular)).frame(height: 21)
-                            Text(t.label).font(.system(size: 10.5, weight: on ? .semibold : .medium)).lineLimit(1)
+                        VStack(spacing: TabSize.gap) {
+                            Image(systemName: NavModel.icon(t.page)).font(.system(size: TabSize.icon, weight: on ? .semibold : .regular)).frame(height: TabSize.iconH)
+                            Text(t.label).font(.system(size: TabSize.label, weight: on ? .semibold : .medium)).lineLimit(1)
                         }
                         .foregroundStyle(on ? accent : Color.primary.opacity(0.82))
                         .frame(width: w, height: h)
@@ -312,6 +312,15 @@ struct GlassTabBar: View {
         .padding(10) // 给玻璃的阴影留位置
         .opacity(m.tabs.isEmpty ? 0 : 1)
     }
+}
+
+/// 底部菜单栏的尺寸：Mac 窗口宽，矮一点；iPhone 上和系统的悬浮菜单栏差不多高（不然又宽又矮，看着被压扁），图标也大一号
+private enum TabSize {
+    #if os(macOS)
+    static let h: CGFloat = 52, icon: CGFloat = 17, iconH: CGFloat = 21, label: CGFloat = 10.5, gap: CGFloat = 3
+    #else
+    static let h: CGFloat = 60, icon: CGFloat = 20, iconH: CGFloat = 24, label: CGFloat = 10.5, gap: CGFloat = 4
+    #endif
 }
 
 /// 加号的大小：iPhone 上系统的玻璃按钮本身就有内边距，图形小一号，整体约 56pt（和系统的浮动按钮一样大）

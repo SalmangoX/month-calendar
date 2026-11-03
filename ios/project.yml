@@ -37,8 +37,8 @@ targets:
     info:
       path: App/Info.plist
       properties:
-        CFBundleDisplayName: 节律
-        CFBundleName: 节律
+        CFBundleDisplayName: Cadence   # 桌面上显示的名字
+        CFBundleName: Cadence
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen:
