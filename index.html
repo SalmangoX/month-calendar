@@ -604,34 +604,35 @@
   }
   tickClock();
   setInterval(tickClock, 1000);
-  // 今日页从气泡位置像水波一样圆形展开，再点一次原路收回
+  // 今日页从气泡位置放大展开，再点一次原路缩回
   const todayPage = document.getElementById('page-today');
+  let todayBusy = false;
+
   document.getElementById('bubbleToday').addEventListener('click', e => {
+    if (todayBusy || !todayPage) { return; }
     const pg = body.dataset.page || 'cal';
     const r = e.currentTarget.getBoundingClientRect();
-    if (todayPage) {
-      todayPage.style.setProperty('--cx', (r.left + r.width / 2) + 'px');
-      todayPage.style.setProperty('--cy', (r.top + r.height / 2) + 'px');
-      todayPage.classList.remove('circle-out', 'circle-in');
-    }
+    todayPage.style.transformOrigin = `${r.left + r.width / 2}px ${r.top + r.height / 2}px`;
+    todayPage.classList.remove('pv-in', 'pv-out');
+
     if (pg === 'today') {
-      if (!todayPage) { goPage('cal'); return; }
-      todayPage.classList.add('circle-out');
-      const back = () => { todayPage.classList.remove('circle-out'); goPage('cal'); };
-      todayPage.addEventListener('animationend', back, { once: true });
-      setTimeout(() => { if (body.dataset.page === 'today') back(); }, 420);
+      todayBusy = true;
+      todayPage.classList.add('pv-out');
+      const done = () => {
+        todayPage.classList.remove('pv-out');
+        todayBusy = false;
+        MC.App.showPage('cal');
+      };
+      todayPage.addEventListener('animationend', done, { once: true });
+      setTimeout(() => { if (todayBusy) done(); }, 360);
     } else {
-      if (todayPage) todayPage.classList.add('circle-in');
-      goPage('today');
+      void todayPage.offsetWidth;          // 先把起始状态落地，动画才看得见
+      todayPage.classList.add('pv-in');
+      MC.App.showPage('today');
+      todayPage.addEventListener('animationend', () => todayPage.classList.remove('pv-in'), { once: true });
     }
   });
 
-  let lastDragEnd = 0;
-  document.getElementById('bubbleLogo').addEventListener('click', e => {
-    e.stopPropagation();
-    if (Date.now() - lastDragEnd < 320) return;   // 拖拽刚结束，别顺手把菜单点开
-    open ? closeMenu() : openMenu();
-  });
   document.getElementById('fanSet').addEventListener('click', () => {
     closeMenu();
     const b = document.querySelector('.tabbar button[data-page="set"]');

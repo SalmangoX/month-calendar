@@ -1538,6 +1538,29 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 .pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
 .pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
 
+#page-today.active { animation: none; }   /* 关掉默认淡入，改用下面的缩放展开 */
+#page-today.pv-in {
+  animation: pvIn .46s cubic-bezier(.12,.86,.2,1.02);
+  will-change: transform, opacity;
+}
+#page-today.pv-out {
+  animation: pvOut .3s cubic-bezier(.5,0,.75,.2) forwards;
+  will-change: transform, opacity;
+}
+@keyframes pvIn {
+  from { opacity: 0; transform: scale(.42); }
+  55%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes pvOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(.42); }
+}
+/* 没有返回键时，扇形铺开、按钮略大；设置始终在水平位置 */
+.pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
+.pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
+
 #page-today { --cx: 50vw; --cy: 100vh; }
 #page-today.circle-in { animation: pvCircleIn .42s cubic-bezier(.2,.85,.25,1); }
 #page-today.circle-out { animation: pvCircleOut .34s cubic-bezier(.4,0,.7,.2) forwards; }
