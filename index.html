@@ -567,15 +567,11 @@
   new MutationObserver(syncChrome).observe(body, { attributes: true, attributeFilter: ['data-page'] });
   setTimeout(syncChrome, 300);
 
-  // 预渲染日程页：空闲时先画一次，第一次滑过去就不会卡在重绘上
-  let preloaded = false;
-  const preload = () => {
-    if (preloaded) return;
-    preloaded = true;
-    try { if (MC.Sched && MC.Sched.render) MC.Sched.render(); } catch (e) {}
-  };
-  if ('requestIdleCallback' in window) requestIdleCallback(preload, { timeout: 2500 });
-  else setTimeout(preload, 1200);
+  // 分页点：静止一会儿就淡下去，一碰就回来
+  let idleTimer = 0;
+  const wake = () => { pager.classList.remove('idle'); clearTimeout(idleTimer); idleTimer = setTimeout(() => pager.classList.add('idle'), 1400); };
+  ['touchstart', 'touchmove', 'pointerdown'].forEach(ev => document.addEventListener(ev, wake, { passive: true }));
+  wake();
 
   function goPage(p) { MC.App.showPage(p); }
   document.getElementById('bubbleToday').addEventListener('click', () => {
@@ -583,8 +579,10 @@
     goPage(pg === 'today' ? 'cal' : 'today');
   });
 
+  let lastDragEnd = 0;
   document.getElementById('bubbleLogo').addEventListener('click', e => {
     e.stopPropagation();
+    if (Date.now() - lastDragEnd < 320) return;   // 拖拽刚结束，别顺手把菜单点开
     open ? closeMenu() : openMenu();
   });
   document.getElementById('fanSet').addEventListener('click', () => {
@@ -625,12 +623,18 @@
     if (!dg.active) {
       if (Math.abs(dx) < 12) return;
       if (Math.abs(dx) < Math.abs(dy) * 1.25) { dg = null; return; }
+      // 只有「日历往左」「日程往右」才切，反方向不做任何事
+      if (dg.pg === 'cal' && dx > 0) { dg = null; return; }
+      if (dg.pg === 'sched' && dx < 0) { dg = null; return; }
       const to = dg.pg === 'cal' ? 'sched' : 'cal';
       if (!pages[to]) { dg = null; return; }
       dg.active = true; dg.to = to; dg.W = pages[dg.pg].clientWidth || 1;
+      pager.classList.add('idle');
       pages[dg.pg].classList.add('drag');
       pages[to].classList.add('drag');
       pages[to].style.transform = `translate3d(${to === 'sched' ? dg.W : -dg.W}px,0,0)`;
+      // 页面此刻已经有真实宽高了，这时候画日程才不会挤成一团
+      if (to === 'sched') { try { MC.Sched.render(); } catch (e) {} }
     }
     e.preventDefault();
     const sign = dg.to === 'sched' ? 1 : -1;
@@ -639,15 +643,16 @@
   }, { capture: true, passive: false });
 
   const endDrag = e => {
+    lastDragEnd = Date.now();
     if (!dg) return;
     const d = dg; dg = null;
     if (!d.active) return;
     const t = e.changedTouches && e.changedTouches[0];
     const dx = t ? t.clientX - d.x0 : 0;
-    const go = Math.abs(dx) > d.W * 0.26;
+    const go = Math.abs(dx) > d.W * 0.33;
     const sign = d.to === 'sched' ? 1 : -1;
     const cur = pages[d.pg], nxt = pages[d.to];
-    const ease = 'transform .32s cubic-bezier(.22,.9,.28,1)';
+    const ease = 'transform .42s cubic-bezier(.16,.85,.25,1)';
     cur.style.transition = ease; nxt.style.transition = ease;
     cur.style.transform = `translate3d(${go ? -sign * d.W : 0}px,0,0)`;
     nxt.style.transform = `translate3d(${go ? 0 : sign * d.W}px,0,0)`;
@@ -675,7 +680,8 @@
     };
     const onEnd = e => { if (e.target === nxt && e.propertyName === 'transform') finish(); };
     nxt.addEventListener('transitionend', onEnd);
-    setTimeout(finish, 400);
+    setTimeout(finish, 520);
+    pager.classList.remove('idle');
   };
   document.addEventListener('touchend', endDrag, { capture: true, passive: true });
   document.addEventListener('touchcancel', endDrag, { capture: true, passive: true });
