@@ -894,7 +894,7 @@ html.locked .lock { display: grid; }
 .sc-hr { z-index: 1; }
 .sc-grid.fit .sc-blk { padding: calc(4px * var(--fs)) 3px calc(4px * var(--fs)) 6px; border-radius: 8px; }
 .sc-nav { position: relative; }
-#schedBody.sc-scroll { padding: 0 6px calc(var(--dock-b) + 56px); overflow: hidden; display: flex; flex-direction: column; }
+#schedBody.sc-scroll { padding: 0 6px calc(var(--safe-b) + 6px); overflow: hidden; display: flex; flex-direction: column; }
 .sc-scroll.slide-l .sc-grid { animation: scl .28s var(--ease); }
 .sc-scroll.slide-r .sc-grid { animation: scr .28s var(--ease); }
 @keyframes scl { from { transform: translateX(28px); opacity: .3; } to { transform: none; opacity: 1; } }
