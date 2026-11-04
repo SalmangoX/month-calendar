@@ -1707,7 +1707,9 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 }
 #page-cal .topbar .title-wrap { pointer-events: none; }
 #page-cal .topbar .title {
-  pointer-events: auto; padding: var(--pill-py, 5px) var(--pill-px, 29px) calc(var(--pill-py, 5px) + 1px); border-radius: 18px; min-width: 92px;
+  pointer-events: auto;
+  display: inline-flex; align-items: baseline; gap: 7px;
+  padding: 9px 26px; border-radius: 999px; min-width: 0;
   background: rgba(255, 255, 255, .015);
   -webkit-backdrop-filter: blur(1.5px) saturate(210%) brightness(1.04);
   backdrop-filter: blur(1.5px) saturate(210%) brightness(1.04);
@@ -1726,8 +1728,8 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
   -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask-composite: exclude;
 }
-#page-cal .topbar .title h1 { font-size: var(--pill-fs, 23px); letter-spacing: -.01em; }
-#page-cal .topbar .title p { font-size: 10px; margin-top: 0; opacity: .7; }
+#page-cal .topbar .title h1 { font-size: 22px; letter-spacing: -.01em; line-height: 1; }
+#page-cal .topbar .title p { font-size: 12px; margin: 0; opacity: .72; font-variant-numeric: tabular-nums; line-height: 1; }
 
 /* 每个月第一天那一行上方的星期条，跟着内容一起滚 */
 .mwd {

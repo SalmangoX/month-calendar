@@ -236,7 +236,7 @@
     if (!t1) return;                      // 顶部抬头已移除
     t1.textContent = `${focus.m + 1}月`;
     const { total, done } = tally(`${focus.y}-${MC.pad(focus.m + 1)}-`);
-    if (t2) t2.textContent = total ? `${focus.y} · 完成 ${done}/${total}` : String(focus.y);
+    if (t2) t2.textContent = String(focus.y);
   }
   // ---------- 物理滚动：弹簧动画，接住手指松开时的速度 ----------
   // 松手后的弹簧轨迹预先算好，交给系统合成器播放（可跑满 120Hz，不受脚本限帧影响）
