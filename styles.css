@@ -1770,3 +1770,10 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 :root[data-theme="dark"] #page-cal .topbar .title::after { opacity: .22; }
 
 /* deploy retry 1793830753 */
+
+/* 扇形距离与返回键位置（?tune=1 可调） */
+:root { --fan-x: 100px; --fan-d: 70px; --back-off: 152px; }
+.pod-menu.wide .fan-set { transform: translate(calc(-1 * var(--fan-x)), 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(calc(-1 * var(--fan-d)), calc(-1 * var(--fan-d))) scale(1); }
+.back-today { bottom: calc(var(--dock-b) + var(--back-off)); }
+body.tune-show-back .back-today { display: grid !important; opacity: 1 !important; transform: none !important; }

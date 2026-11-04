@@ -796,6 +796,9 @@
     { k: '--pill-px', label: '月份左右内边距 (px)', min: 6, max: 40, step: 1, val: 29, unit: 'px' },
     { k: '--mwd-fs', label: '星期行字号 (px)', min: 8, max: 16, step: 0.5, val: 11, unit: 'px' },
     { k: '--mwd-op', label: '星期行不透明度', min: 0.2, max: 1, step: 0.05, val: 1 },
+    { k: '--fan-x', label: '扇形「设置」水平距离 (px)', min: 40, max: 170, step: 2, val: 100, unit: 'px' },
+    { k: '--fan-d', label: '扇形「添加」斜向距离 (px)', min: 30, max: 110, step: 2, val: 70, unit: 'px' },
+    { k: '--back-off', label: '返回键底部偏移 (px)', min: 90, max: 240, step: 2, val: 152, unit: 'px' },
   ];
   const root = document.documentElement;
   const panel = document.createElement('div');
@@ -808,6 +811,7 @@
   html += '<button id="tuneCopy" style="margin-top:14px;width:100%;border:0;border-radius:12px;padding:12px;background:#1b1a20;color:#fff;font-size:14px;font-weight:600">复制配置</button>';
   panel.innerHTML = html;
   document.body.appendChild(panel);
+  document.body.classList.add('tune-show-back');   // 把返回键亮出来，方便看着调位置
   const vals = V.map(v => v.val);
   const apply = () => {
     V.forEach((v, i) => {
