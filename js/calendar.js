@@ -27,7 +27,7 @@
     W = vp.clientWidth; H = vp.clientHeight;
     const pv = body.classList.contains('previewing');
     if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
-    rowH = (pv ? fullH : H) / (window.__rowsPerScreen || 6.5);
+    rowH = (pv ? fullH : H) / 6;
     const head = 39 + 3; // 数字区 + 底部留白
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
     withMore = Math.floor((rowH - head - 12 + 2) / 17);
