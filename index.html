@@ -493,6 +493,12 @@
 </script>
 
 <!-- 新底栏：左「今日/日历」气泡 · 中分页点 · 右「logo」扇形菜单 -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lg-refract" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+  <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="1" seed="9" result="n"/>
+  <feGaussianBlur in="n" stdDeviation="1.4" result="nb"/>
+  <feDisplacementMap in="SourceGraphic" in2="nb" scale="16" xChannelSelector="R" yChannelSelector="G"/>
+</filter></svg>
 <div class="dock2" id="dock2">
   <button class="pod pod-today" id="bubbleToday" aria-label="切换今日 / 日历"><span id="bubbleTodayLabel">今日</span></button>
   <div class="pager" id="pager" aria-hidden="true"><i class="on"></i><i></i></div>
@@ -512,6 +518,19 @@
   const menu = document.getElementById('podMenu');
   const body = document.body;
   let open = false;
+
+  // 真折射需要 backdrop-filter 支持 SVG 滤镜（Chromium 支持，Safari 不支持）
+  try {
+    if (window.CSS && CSS.supports && CSS.supports('backdrop-filter', 'url(#lg-refract)')) {
+      document.documentElement.classList.add('lg-refract');
+    }
+  } catch (e) {}
+  // 原生壳：iOS / Mac 上换成更接近 Apple 液态玻璃的配比
+  try {
+    const N = window.MC && MC.Native;
+    if (N && N.ios) body.classList.add('native-ios');
+    if (N && N.mac) body.classList.add('native-mac');
+  } catch (e) {}
 
   const closeMenu = () => { open = false; menu.classList.remove('open'); };
   const openMenu = () => { open = true; menu.classList.add('open'); };

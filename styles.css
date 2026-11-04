@@ -1465,3 +1465,29 @@ body[data-kind="days"] .dock2 { display: none; }
   transition: transform .16s var(--ease-spring, ease), color .18s;
 }
 .back-to-cal:active { transform: scale(.95); color: var(--text); }
+
+/* 真折射：把背景按噪声位移，边缘会有液体似的扭曲（Chromium） */
+.lg-refract .pod, .lg-refract .fan {
+  -webkit-backdrop-filter: blur(6px) saturate(185%) url(#lg-refract);
+  backdrop-filter: blur(6px) saturate(185%) url(#lg-refract);
+}
+.lg-refract .pod::before, .lg-refract .fan::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(150deg, transparent 42%, color-mix(in srgb, #fff 55%, transparent) 50%, transparent 58%);
+  mix-blend-mode: screen; opacity: .45;
+}
+/* WebKit（iOS / Mac 壳）：做不了位移折射，改用更重的模糊 + 更亮的镜面 */
+.native-ios .pod, .native-ios .fan,
+.native-mac .pod, .native-mac .fan {
+  background: linear-gradient(158deg,
+    color-mix(in srgb, #fff 78%, transparent) 0%,
+    var(--frost) 34%,
+    color-mix(in srgb, var(--accent) 16%, var(--frost)) 100%);
+  -webkit-backdrop-filter: blur(34px) saturate(210%) brightness(1.06);
+  backdrop-filter: blur(34px) saturate(210%) brightness(1.06);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, .95),
+    inset 0 -1.5px 0 color-mix(in srgb, var(--accent) 24%, transparent),
+    inset 0 0 0 .5px var(--frost-edge),
+    0 12px 30px rgba(30, 45, 70, .16);
+}
