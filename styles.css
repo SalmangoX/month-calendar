@@ -1519,3 +1519,5 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 /* 切页时两页底色一致，任何一帧的缝隙都不会露出白底 */
 #page-cal, #page-sched { background: var(--bg); }
 .page.drag { background: var(--bg); will-change: transform; backface-visibility: hidden; }
+
+/* deploy 1533 */
