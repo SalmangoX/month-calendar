@@ -1450,8 +1450,8 @@ body[data-kind="days"] .dock2 { display: none; }
   transition: transform .34s cubic-bezier(.2, .9, .22, 1.18), opacity .2s ease;
 }
 .pod-menu.open .fan { opacity: 1; pointer-events: auto; }
-.pod-menu.open .fan-set { transform: translate(-62px, -62px) scale(1); transition-delay: .05s; }
-.pod-menu.open .fan-add { transform: translate(-88px, 0) scale(1); transition-delay: .01s; }
+.pod-menu.open .fan-set { transform: translate(-88px, 0) scale(1); transition-delay: .01s; }
+.pod-menu.open .fan-add { transform: translate(-62px, -62px) scale(1); transition-delay: .05s; }
 .fan svg { position: relative; z-index: 1; }
 
 .pager {
