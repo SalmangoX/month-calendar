@@ -692,7 +692,7 @@
           // 里面的浅色底块（比如相机分段里选中的那段）。原生照着位置一模一样画在玻璃上面，网页这边只把字和这些图标藏起来
           const runs = [], icons = [], pads = [];
           if (!thumb) {
-            if (el.id === 'btnToday') icons.push([n(r.left), n(r.top), n(r.width), n(r.height), `${($('#todayNum') || {}).textContent || ''}.square`, cs.color, 20]);
+            if (el.id === 'btnToday') { const q = ($('#todayNum') || el).getBoundingClientRect(); icons.push([n(q.left), n(q.top), n(q.width), n(q.height), `${($('#todayNum') || {}).textContent || ''}.square`, el.lgInk || cs.color, 2.2]); } // 只按里面那个小日期框的大小画
             else {
               const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), rg = document.createRange();
               for (let tn = tw.nextNode(); tn; tn = tw.nextNode()) {
