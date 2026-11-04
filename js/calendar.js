@@ -211,9 +211,11 @@
     return { total, done };
   }
   function monthTitle() {
-    $('#calTitle').textContent = `${focus.m + 1}月`;
+    const t1 = $('#calTitle'), t2 = $('#calSub');
+    if (!t1) return;                      // 顶部抬头已移除
+    t1.textContent = `${focus.m + 1}月`;
     const { total, done } = tally(`${focus.y}-${MC.pad(focus.m + 1)}-`);
-    $('#calSub').textContent = total ? `${focus.y} · 完成 ${done}/${total}` : String(focus.y);
+    if (t2) t2.textContent = total ? `${focus.y} · 完成 ${done}/${total}` : String(focus.y);
   }
   // ---------- 物理滚动：弹簧动画，接住手指松开时的速度 ----------
   // 松手后的弹簧轨迹预先算好，交给系统合成器播放（可跑满 120Hz，不受脚本限帧影响）
@@ -363,8 +365,9 @@
     track.innerHTML = weekPanelHTML(MC.addDays(weekAnchor, -7), 0) + weekPanelHTML(weekAnchor, W) + weekPanelHTML(MC.addDays(weekAnchor, 7), 2 * W);
     setT(-W, 0);
     const mid = MC.addDays(weekAnchor, 3), end = MC.addDays(weekAnchor, 6);
-    $('#calTitle').textContent = `${mid.getMonth() + 1}月`;
-    $('#calSub').textContent = `${weekAnchor.getMonth() + 1}月${weekAnchor.getDate()}日 – ${end.getMonth() + 1}月${end.getDate()}日`;
+    const w1 = $('#calTitle'), w2 = $('#calSub');
+    if (w1) w1.textContent = `${mid.getMonth() + 1}月`;
+    if (w2) w2.textContent = `${weekAnchor.getMonth() + 1}月${weekAnchor.getDate()}日 – ${end.getMonth() + 1}月${end.getDate()}日`;
   }
 
   // ---------- 年视图 ----------
@@ -396,7 +399,7 @@
     track.style.cssText = `position:relative;height:100%`;
     track.innerHTML = yearPanelHTML(year - 1, 0) + yearPanelHTML(year, H) + yearPanelHTML(year + 1, 2 * H);
     setT(0, -H);
-    $('#calTitle').textContent = `${year}年`;
+    { const y1 = $('#calTitle'); if (y1) y1.textContent = `${year}年`; }
     const { total, done } = tally(`${year}-`);
     $('#calSub').textContent = total ? `完成 ${done}/${total}` : '全年';
   }

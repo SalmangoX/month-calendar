@@ -41,11 +41,6 @@
 
   <!-- 日历 -->
   <section class="page active" id="page-cal">
-    <header class="topbar">
-      <div class="title-wrap">
-        <div class="title"><h1 id="calTitle"></h1><p id="calSub"></p></div>
-      </div>
-    </header>
     <div class="weekdays" id="weekdays"></div>
     <div class="cal-body" id="calBody">
       <div id="calViewport"><div id="calZoom"><div id="calTrack"></div></div></div>
@@ -604,41 +599,47 @@
   }
   tickClock();
   setInterval(tickClock, 1000);
-  // 今日页从气泡位置放大，日历在后面退后变暗；收回时反过来
+  // 今日页从时钟气泡位置放大，日历在后面退后；动画随时可以被打断并从当前状态反向
   const todayPage = document.getElementById('page-today');
   const calPageEl = document.getElementById('page-cal');
-  let todayBusy = false;
+  let pvAnims = [];
 
-  const clearPv = () => {
-    todayPage.classList.remove('pv-in', 'pv-out', 'pv-hold');
-    if (calPageEl) calPageEl.classList.remove('pv-behind', 'pv-front', 'pv-hold');
-    todayBusy = false;
-  };
+  const stopPv = () => { pvAnims.forEach(a => { try { a.cancel(); } catch (e) {} }); pvAnims = []; };
 
   document.getElementById('bubbleToday').addEventListener('click', e => {
-    if (todayBusy || !todayPage) return;
+    if (!todayPage || !calPageEl) return;
     const pg = body.dataset.page || 'cal';
+    const to = pg === 'today' ? 'cal' : 'today';
     const r = e.currentTarget.getBoundingClientRect();
     todayPage.style.transformOrigin = `${r.left + r.width / 2}px ${r.top + r.height / 2}px`;
 
-    if (pg === 'today') {
-      // 收回：今日缩小，日历从后面顶上来
-      todayBusy = true;
-      todayPage.classList.remove('pv-in');
-      todayPage.classList.add('pv-hold', 'pv-out');
-      if (calPageEl) calPageEl.classList.add('pv-hold', 'pv-front');
-      setTimeout(() => {
-        MC.App.showPage('cal');
-        if (calPageEl) calPageEl.classList.remove('pv-front', 'pv-hold');
-        setTimeout(clearPv, 320);
-      }, 280);
-    } else {
-      todayBusy = true;
-      todayPage.classList.add('pv-in');
-      if (calPageEl) calPageEl.classList.add('pv-behind');
-      MC.App.showPage('today');
-      setTimeout(clearPv, 520);
-    }
+    // 先读当前视觉状态，动画才能从中断处接着走，而不是跳回起点
+    const tS = getComputedStyle(todayPage), cS = getComputedStyle(calPageEl);
+    const tFrom = { transform: tS.transform === 'none' ? 'scale(1)' : tS.transform, opacity: +tS.opacity };
+    const cFrom = { transform: cS.transform === 'none' ? 'scale(1)' : cS.transform, opacity: +cS.opacity };
+
+    stopPv();
+    todayPage.classList.add('pv-hold');
+    calPageEl.classList.add('pv-hold');
+
+    const tTo = to === 'today' ? { transform: 'scale(1)', opacity: 1 } : { transform: 'scale(.42)', opacity: 0 };
+    const cTo = to === 'today' ? { transform: 'scale(.93) translateY(6px)', opacity: .45 } : { transform: 'scale(1)', opacity: 1 };
+    const ez = 'cubic-bezier(.22,.9,.26,1)';
+    const a1 = todayPage.animate([tFrom, tTo], { duration: 380, easing: ez, fill: 'both' });
+    const a2 = calPageEl.animate([cFrom, cTo], { duration: 380, easing: ez, fill: 'both' });
+    pvAnims = [a1, a2];
+
+    if (to === 'today' && pg !== 'today') MC.App.showPage('today');
+    if (to === 'cal' && pg !== 'cal') MC.App.showPage('cal');
+
+    // 用定时器收尾（finish 事件在后台标签页里不一定触发）
+    setTimeout(() => {
+      if (pvAnims[0] !== a1) return;      // 已经被新的点击接管
+      pvAnims = [];
+      try { a1.cancel(); a2.cancel(); } catch (e) {}
+      todayPage.classList.remove('pv-hold');
+      calPageEl.classList.remove('pv-hold');
+    }, 400);
   });
 
   document.getElementById('fanSet').addEventListener('click', () => {
