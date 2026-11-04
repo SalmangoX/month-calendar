@@ -18,7 +18,7 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx"
     };
 
     private final MainActivity a;
@@ -149,6 +149,26 @@ final class Bridge {
     @JavascriptInterface
     public boolean pinWidget(String kind) {
         return a.pinWidget(kind);
+    }
+
+    /** 手机上装了微信没有（没装时网页不显示「分享到微信」） */
+    @JavascriptInterface
+    public boolean wxReady() { return WeChat.ready(c); }
+
+    /** 分享图片到微信：content 是 data:image/...;base64,...；scene 是 "session"（好友）或 "timeline"（朋友圈） */
+    @JavascriptInterface
+    public void wxShare(String content, String scene, String cb) {
+        Engine.BG.execute(() -> {
+            boolean ok = false;
+            try {
+                int i = content.indexOf(";base64,");
+                byte[] bytes = android.util.Base64.decode(content.substring(i + 8), android.util.Base64.DEFAULT);
+                ok = WeChat.shareImage(c, bytes, content.startsWith("data:image/png"), "timeline".equals(scene));
+            } catch (Exception ignored) { }
+            JSONObject o = new JSONObject();
+            try { o.put("ok", ok); } catch (Exception ignored) { }
+            a.runOnUiThread(() -> a.callback(cb, o));
+        });
     }
 
     @JavascriptInterface

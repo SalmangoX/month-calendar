@@ -1615,8 +1615,19 @@
     return cv;
   }
 
-  // 保存 / 分享：系统分享面板 → App 原生保存 → 浏览器下载
-  async function deliver(cv, name, type = 'image/png') {
+  // 保存 / 分享：（安卓 App 装了微信）先问发给微信好友、朋友圈还是别的方式 → 系统分享面板 → App 原生保存 → 浏览器下载
+  async function deliver(cv, name, type = 'image/png', anchor) {
+    if (anchor && MC.Native.on && MC.Native.wxReady && MC.Native.wxReady()) {
+      const v = await new Promise(r => {
+        UI.menu(anchor, [{ label: T('发给微信好友'), value: 'session' }, { label: T('分享到朋友圈'), value: 'timeline' }, { label: T('保存 / 其他方式'), value: 'other' }], r);
+      });
+      if (!v) return;
+      if (v !== 'other') {
+        const r = await MC.Native.wxShare(cv.toDataURL(type, .92), v);
+        if (!r || !r.ok) UI.toast(T('没能打开微信'));
+        return;
+      }
+    }
     const blob = await new Promise(r => cv.toBlob(r, type, .92));
     if (!blob) { UI.toast(T('图片生成失败')); return; }
     const file = new File([blob], name, { type });
@@ -1783,7 +1794,7 @@
     const nx = find(sh.id); sh.bgId = nx && nx.photos[0] ? nx.photos[0].id : ''; sh.bgImg = null; sh.tpl = 'photo'; resetAdj();
     paintOpts(); draw();
   });
-  $('#dsSave').onclick = async () => { const x = find(sh.id); if (x && sh.cv) await deliver(sh.cv, fileName(x) + (sh.tpl === 'photo' ? '.jpg' : '.png'), sh.tpl === 'photo' ? 'image/jpeg' : 'image/png'); };
+  $('#dsSave').onclick = async () => { const x = find(sh.id); if (x && sh.cv) await deliver(sh.cv, fileName(x) + (sh.tpl === 'photo' ? '.jpg' : '.png'), sh.tpl === 'photo' ? 'image/jpeg' : 'image/png', $('#dsSave')); };
 
   // ---------- 透明相机 ----------
   let camCtx = null; // { id, stream, facing, style, font, pos:{x,y}, scale, bgImg }
@@ -1950,7 +1961,7 @@
       if (b) { await P.addPhotos(x, [new File([b], 'cadence.jpg', { type: 'image/jpeg' })]); }
       return;
     }
-    await deliver(c.shot, fileName(x) + '.jpg', 'image/jpeg');
+    await deliver(c.shot, fileName(x) + '.jpg', 'image/jpeg', c.el.querySelector('[data-c="send"]'));
   }
 
   // ---------- 照片查看 ----------
@@ -1976,7 +1987,7 @@
         else if (v === 'share') {
           const u = await P.photoURL(p.id); if (!u) return;
           const im = await P.loadImg(u); const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight; cv.getContext('2d').drawImage(im, 0, 0);
-          deliver(cv, fileName(nx) + '.jpg', 'image/jpeg');
+          deliver(cv, fileName(nx) + '.jpg', 'image/jpeg', b);
         } else if (await UI.confirm(T('删除这张照片？其他设备同步后也会删除。'), { ok: T('删除'), danger: true })) { await P.removePhoto(nx, p.id); closeViewer(); }
       });
     });

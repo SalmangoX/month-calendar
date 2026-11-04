@@ -63,4 +63,6 @@ android {
 dependencies {
     // WebDAV（坚果云等）的 PROPFIND、MKCOL 请求：系统自带的 HttpURLConnection 不支持这两个方法
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // 分享到微信（好友 / 朋友圈，微信里显示「来自 节律」）
+    implementation("com.tencent.mm.opensdk:wechat-sdk-android:6.8.0")
 }

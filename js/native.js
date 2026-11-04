@@ -56,6 +56,9 @@
   Native.openUrl = url => call('openUrl', url);
   Native.pinWidget = kind => !!call('pinWidget', kind);
   Native.saveFile = (name, mime, text) => Native.ask('saveFile', name, mime, text);
+  // 分享到微信（安卓 App，接了微信开放平台：微信里显示「来自 节律」）；没装微信或旧版 App 时不可用
+  Native.wxReady = () => (feats.has('wx') ? !!call('wxReady') : false);
+  Native.wxShare = (dataUrl, scene) => Native.ask('wxShare', dataUrl, scene);
   Native.syncNow = () => call('syncNow');
   // 完成反馈：响铃模式才允许出声；旧版 App 判断不了，就不出声
   Native.soundAllowed = () => (feats.has('feedback') ? !!call('soundAllowed') : false);
