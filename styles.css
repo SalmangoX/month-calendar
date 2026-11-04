@@ -1729,3 +1729,6 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
   pointer-events: none;
 }
 .mwd span { text-align: center; }
+
+/* 预加载日程页时：占位但不可见，尺寸和真实页面一致，才能按正确宽高渲染 */
+.page.preload { display: flex !important; visibility: hidden; pointer-events: none; }

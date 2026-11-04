@@ -587,6 +587,25 @@
 
   function goPage(p) { MC.App.showPage(p); }
 
+  // 进应用就在后台把日程页画好：第一次滑过去不再现算，切页时也跳过重复渲染
+  let schedReady = false, skipSchedRender = false;
+  if (window.MC && MC.Sched && MC.Sched.render) {
+    const realSchedRender = MC.Sched.render;
+    MC.Sched.render = function () {
+      if (skipSchedRender) { skipSchedRender = false; return; }
+      return realSchedRender.apply(MC.Sched, arguments);
+    };
+  }
+  function preloadSched() {
+    if (schedReady || !pages.sched || !(window.MC && MC.Sched && MC.Sched.render)) return;
+    const el = pages.sched;
+    el.classList.add('preload');
+    try { MC.Sched.render(); schedReady = true; } catch (e) {}
+    el.classList.remove('preload');
+  }
+  setTimeout(preloadSched, 600);
+  if ('requestIdleCallback' in window) requestIdleCallback(preloadSched, { timeout: 2500 });
+
   // 今日气泡显示当前时间：跟随系统的 12/24 小时设置，冒号每秒闪一下
   function tickClock() {
     if (!label) return;
@@ -699,8 +718,7 @@
       pages[dg.pg].style.transition = 'none';
       pages[to].style.transition = 'none';
       pages[to].style.transform = `translate3d(${to === 'sched' ? 100 : -100}%,0,0)`;   // 用百分比，边缘严丝合缝
-      // 页面此刻已经有真实宽高了，这时候画日程才不会挤成一团
-      if (to === 'sched') { try { MC.Sched.render(); } catch (e) {} }
+      // 日程页已在后台按真实宽高画好（preloadSched），这里不再重画
     }
     e.preventDefault();
     const pct = dg.to === 'sched' ? 100 : -100;
@@ -746,6 +764,7 @@
         cur.classList.remove('drag');
         cur.style.transition = ''; cur.style.transform = '';
         nxt.style.transition = ''; nxt.style.transform = '';
+        if (d.to === 'sched' && schedReady) skipSchedRender = true;
         MC.App.showPage(d.to);           // 加 .active（.drag 还在，画面不闪）
         nxt.classList.remove('drag');
         requestAnimationFrame(() => { cur.style.display = ''; });
