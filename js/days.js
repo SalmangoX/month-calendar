@@ -1641,14 +1641,19 @@
   Days.refreshShare = () => { if (UI.isOpen('dayShare') && find(sh.id)) { paintOpts(); draw(); } };
   function paintOpts() {
     const x = find(sh.id); if (!x) return;
-    const chips = (list, key, cur) => list.map(([v, l]) => `<button class="qchip${cur === v ? ' on' : ''}" data-${key}="${v}">${T(l)}</button>`).join('');
-    let h = sh.tpl === 'photo' ? `<p class="ds-tip">${T(sh.lay === 'frame' ? '拖动、双指缩放照片；双击复原' : '拖动、双指缩放照片；拖动文字换位置；双击复原')}</p>` : '';
-    h += `<p class="cmp-label">${T('样式')}</p><div class="cmp-chips ds-row">${chips(TPLS, 'tpl', sh.tpl)}</div>
-      <p class="cmp-label">${T('尺寸')}</p><div class="seg small ds-seg">${RATIOS.map(r => `<button data-ratio="${r[0]}" class="${sh.ratio === r[0] ? 'on' : ''}">${r[1]}</button>`).join('')}</div>
-      <p class="cmp-label">${T('数字字体')}</p><div class="cmp-chips">${chips(FONT_NAMES, 'font', sh.font)}</div>`;
-    if (sh.tpl === 'photo') h += `<p class="cmp-label">${T('版式')}</p><div class="seg small ds-seg">${LAYOUTS.map(([v, l]) => `<button data-lay="${v}" class="${sh.lay === v ? 'on' : ''}">${T(l)}</button>`).join('')}</div>`;
-    if (sh.tpl === 'photo') h += `<p class="cmp-label">${T('背景照片')}</p><div class="ds-bgs">${[...(/^p/.test(x.cover || '') && !x.photos.some(p => p.id === x.cover) ? [{ id: x.cover }] : []), ...x.photos].map(p => `<button class="ds-bg${sh.bgId === p.id ? ' on' : ''}" data-bg="${p.id}"><img alt="" data-src="${p.id}"></button>`).join('')}<button class="ds-bg add" data-bgpick aria-label="${T('选择照片')}">${UI_IC.plus}</button></div>`;
-    if (sh.tpl === 'note') h += x.notes.length ? `<p class="cmp-label">${T('小纸条')}</p><div class="cmp-chips">${[...x.notes].sort((a, b) => b.at - a.at).map((n, i) => `<button class="qchip${(sh.note ? sh.note === n.id : i === 0) ? ' on' : ''}" data-note="${n.id}"><span data-uc>${esc(n.text.slice(0, 12))}${n.text.length > 12 ? '…' : ''}</span></button>`).join('')}</div>` : `<p class="dd-hint">${T('还没有小纸条，先在详情里写一张吧。')}</p>`;
+    // 和照片编辑器一样：上面一条玻璃切换「样式 / 尺寸 / 字体 / 版式 / 背景 / 纸条」，下面只放这一类的选项
+    const tabs = [['tpl', '样式'], ['ratio', '尺寸'], ['font', '字体'], ...(sh.tpl === 'photo' ? [['lay', '版式'], ['bg', '背景']] : []), ...(sh.tpl === 'note' ? [['note', '纸条']] : [])];
+    if (!tabs.some(t => t[0] === sh.panel)) sh.panel = 'tpl';
+    const opt = (list, key, cur) => `<div class="ds-choices">${list.map(([v, l]) => `<button class="ds-ch${cur === v ? ' on' : ''}" data-${key}="${v}">${T(l)}</button>`).join('')}</div>`;
+    let h = `<div class="ds-tabs">${UI.lgBar(tabs.map(([v, l]) => ({ v, name: T(l) })), sh.panel)}</div>`;
+    const P0 = sh.panel;
+    if (P0 === 'tpl') h += opt(TPLS, 'tpl', sh.tpl);
+    else if (P0 === 'ratio') h += opt(RATIOS.map(r => [r[0], r[1]]), 'ratio', sh.ratio);
+    else if (P0 === 'font') h += opt(FONT_NAMES, 'font', sh.font);
+    else if (P0 === 'lay') h += opt(LAYOUTS, 'lay', sh.lay);
+    else if (P0 === 'bg') h += `<div class="ds-choices ds-bgs">${[...(/^p/.test(x.cover || '') && !x.photos.some(p => p.id === x.cover) ? [{ id: x.cover }] : []), ...x.photos].map(p => `<button class="ds-bg${sh.bgId === p.id ? ' on' : ''}" data-bg="${p.id}"><img alt="" data-src="${p.id}"></button>`).join('')}<button class="ds-bg add" data-bgpick aria-label="${T('选择照片')}">${UI_IC.plus}</button></div>`;
+    else if (P0 === 'note') h += x.notes.length ? `<div class="ds-choices">${[...x.notes].sort((a, b) => b.at - a.at).map((n, i) => `<button class="ds-ch${(sh.note ? sh.note === n.id : i === 0) ? ' on' : ''}" data-note="${n.id}"><span data-uc>${esc(n.text.slice(0, 12))}${n.text.length > 12 ? '…' : ''}</span></button>`).join('')}</div>` : `<p class="dd-hint">${T('还没有小纸条，先在详情里写一张吧。')}</p>`;
+    if (sh.tpl === 'photo') h += `<p class="ds-tip">${T(sh.lay === 'frame' ? '拖动、双指缩放照片；双击复原' : '拖动、双指缩放照片；拖动文字换位置；双击复原')}</p>`;
     opts.innerHTML = h;
     opts.querySelectorAll('img[data-src]').forEach(async i => { const u = await P.photoURL(i.dataset.src); if (u) i.src = u; });
   }
@@ -1749,8 +1754,9 @@
     g.on = true; paintLive();
     clearTimeout(wheelT); wheelT = setTimeout(() => { g.on = false; draw(); }, 260);
   }, { passive: false });
+  opts.addEventListener('lgchange', e => { sh.panel = String(e.detail.v); paintOpts(); });
   opts.addEventListener('click', e => {
-    const t = e.target, b = t.closest('button'); if (!b) return;
+    const t = e.target, b = t.closest('button'); if (!b || b.closest('.lgbar')) return;
     if (b.dataset.tpl) { sh.tpl = b.dataset.tpl; if (sh.tpl === 'photo' && !sh.bgId) { $('#dayBgFile').value = ''; $('#dayBgFile').click(); } }
     else if (b.dataset.ratio) sh.ratio = b.dataset.ratio;
     else if (b.dataset.lay) { if (sh.lay !== b.dataset.lay) sh.cardX = sh.cardY = null; sh.lay = b.dataset.lay; }
@@ -1802,13 +1808,15 @@
     el.innerHTML = `<div class="cam-view"><video playsinline muted autoplay></video><img class="cam-bg" alt="" hidden><div class="cam-msg" hidden></div>
         <div class="cam-card st-glass f-sans" role="img">${camCardHTML(x)}</div></div>
       <div class="cam-top"><button class="cam-btn" data-c="close" aria-label="${T('关闭')}">${UI_IC.close}</button>
-        <div class="cam-chips" data-group="style">${CAM_STYLES.map(([v, l], i) => `<button data-style="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
-      <div class="cam-ratios cam-chips" data-group="ratio">${CAM_RATIOS.map(([v, l], i) => `<button data-cr="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
-      <div class="cam-fonts cam-chips" data-group="font">${FONT_NAMES.map(([v, l], i) => `<button data-font="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
-      <div class="cam-bottom"><button class="cam-btn" data-c="album" aria-label="${T('从相册选择')}">${UI_IC.photo}</button>
-        <button class="cam-shutter" data-c="shot" aria-label="${T('拍摄')}"><span></span></button>
-        <button class="cam-btn" data-c="flip" aria-label="${T('切换镜头')}">${UI_IC.flip}</button></div>
-      <p class="cam-tip">${T('拖动卡片调整位置，双指缩放大小')}</p>`;
+        <div class="cam-ratios cam-chips" data-group="ratio">${CAM_RATIOS.map(([v, l], i) => `<button data-cr="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
+      <p class="cam-tip">${T('拖动卡片调整位置，双指缩放大小')}</p>
+      <div class="cam-panel">
+        <div class="cam-row"><div class="cam-chips" data-group="style">${CAM_STYLES.map(([v, l], i) => `<button data-style="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
+        <div class="cam-row"><div class="cam-fonts cam-chips" data-group="font">${FONT_NAMES.map(([v, l], i) => `<button data-font="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
+        <div class="cam-bottom"><button class="cam-btn" data-c="album" aria-label="${T('从相册选择')}">${UI_IC.photo}</button>
+          <button class="cam-shutter" data-c="shot" aria-label="${T('拍摄')}"><span></span></button>
+          <button class="cam-btn" data-c="flip" aria-label="${T('切换镜头')}">${UI_IC.flip}</button></div>
+      </div>`;
     document.body.appendChild(el);
     camCtx = { id: x.id, el, stream: null, facing: 'environment', style: 'glass', font: 'sans', ratio: 'full', pos: null, scale: 1, bgImg: null, bgFile: null };
     requestAnimationFrame(() => el.classList.add('show'));
@@ -1920,9 +1928,9 @@
     c.shot = cv;
     const res = document.createElement('div'); res.className = 'cam-res';
     res.innerHTML = `<img alt="">
-      <div class="cam-res-bar"><button class="chip-btn" data-c="retake">${T('重拍')}</button>
-      <button class="chip-btn" data-c="keep">${UI_IC.photo}<span>${T('存进相册')}</span></button>
-      <button class="chip-btn accent" data-c="send">${UI_IC.share}<span>${T('保存 / 分享')}</span></button></div>`;
+      <div class="cam-res-bar"><button class="cam-pill" data-c="retake">${UI_IC.close}<span>${T('重拍')}</span></button>
+      <button class="cam-pill" data-c="keep">${UI_IC.photo}<span>${T('存进相册')}</span></button>
+      <button class="cam-pill solid" data-c="send">${UI_IC.share}<span>${T('保存 / 分享')}</span></button></div>`;
     cv.toBlob(b => { if (b) res.querySelector('img').src = URL.createObjectURL(b); }, 'image/jpeg', .9);
     el.appendChild(res); el.classList.add('done');
     try { navigator.vibrate && navigator.vibrate(10); } catch (e) {}

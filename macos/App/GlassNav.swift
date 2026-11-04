@@ -32,10 +32,11 @@ final class NavModel: ObservableObject {
     /// 网页里的玻璃控件（按钮、胶囊、优先级的水滴…）：原生在同样的位置画系统的液态玻璃（网页每一帧发来位置）
     struct LGItem: Identifiable, Equatable {
         let id: Int; let rect: CGRect; let r: CGFloat; let clip: CGRect; let k: String
-        /// 画在玻璃上面的内容：系统符号、文字、字号、粗细、颜色（CSS 的 rgb()）；相机的分段（文字、是否选中）
-        var sf = "", t = "", fs: CGFloat = 15, fw = 500, col = ""
-        var seg: [Seg] = []
-        struct Seg: Equatable { let t: String; let on: Bool }
+        /// 画在玻璃上面的内容（位置都是网页坐标）：每一段字、每个图标（系统符号）、选中项的浅色底块；玻璃的着色（网页原来的底色）
+        var runs: [Run] = [], icons: [Icon] = [], pads: [Pad] = [], tint = ""
+        struct Run: Equatable { let rect: CGRect; let t: String; let fs: CGFloat; let fw: Int; let col: String; let ls: CGFloat; let tab: Bool; let round: Bool }
+        struct Icon: Equatable { let rect: CGRect; let sf: String; let col: String; let sw: CGFloat }
+        struct Pad: Equatable { let rect: CGRect; let r: CGFloat }
     }
     @Published var lg: [LGItem] = []
     @Published var lgHoles: [CGRect] = []
@@ -80,14 +81,18 @@ final class NavModel: ObservableObject {
         let f = { (v: Any) -> CGFloat in CGFloat((v as? NSNumber)?.doubleValue ?? 0) }
         let holes = (o["h"] as? [[Any]] ?? []).compactMap { $0.count == 4 ? CGRect(x: f($0[0]), y: f($0[1]), width: f($0[2]), height: f($0[3])) : nil }
         let items = a.compactMap { x -> LGItem? in
-            guard x.count >= 17 else { return nil } // 旧版网页没有发内容（也不会藏起自己的字）：不画，免得玻璃把字糊住
+            guard x.count >= 15, x[11] is [Any] else { return nil } // 旧版网页没有发内容（也不会藏起自己的字）：不画，免得玻璃把字糊住
             var it = LGItem(id: (x[0] as? NSNumber)?.intValue ?? 0, rect: CGRect(x: f(x[1]), y: f(x[2]), width: f(x[3]), height: f(x[4])), r: f(x[5]),
                             clip: CGRect(x: f(x[6]), y: f(x[7]), width: f(x[8]), height: f(x[9])), k: x[10] as? String ?? "g")
-            if x.count >= 17 {
-                it.sf = x[11] as? String ?? ""; it.t = x[12] as? String ?? ""; it.fs = max(9, f(x[13])); it.fw = (x[14] as? NSNumber)?.intValue ?? 500
-                it.col = x[15] as? String ?? ""
-                it.seg = (x[16] as? [[Any]] ?? []).map { LGItem.Seg(t: $0.first as? String ?? "", on: (($0.last as? NSNumber)?.intValue ?? 0) == 1) }
+            let rc = { (a: [Any]) in CGRect(x: f(a[0]), y: f(a[1]), width: f(a[2]), height: f(a[3])) }
+            it.runs = (x[11] as? [[Any]] ?? []).compactMap { a in
+                guard a.count >= 10 else { return nil }
+                let fl = (a[9] as? NSNumber)?.intValue ?? 0
+                return .init(rect: rc(a), t: a[4] as? String ?? "", fs: max(6, f(a[5])), fw: (a[6] as? NSNumber)?.intValue ?? 400, col: a[7] as? String ?? "", ls: f(a[8]), tab: fl & 1 != 0, round: fl & 2 != 0)
             }
+            it.icons = (x[12] as? [[Any]] ?? []).compactMap { a in a.count >= 7 ? .init(rect: rc(a), sf: a[4] as? String ?? "", col: a[5] as? String ?? "", sw: f(a[6])) : nil }
+            it.pads = (x[13] as? [[Any]] ?? []).compactMap { a in a.count >= 5 ? .init(rect: rc(a), r: f(a[4])) : nil }
+            it.tint = x[14] as? String ?? ""
             return it
         }
         var t = Transaction(); t.disablesAnimations = true
@@ -551,12 +556,18 @@ struct GlassAddButton: View {
 struct GlassLayer: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
-    private func glass(_ k: String) -> Glass {
-        switch k {
+    private func glass(_ it: NavModel.LGItem) -> Glass {
+        switch it.k {
         case "l": return .clear                                         // 拖动中的水滴：一滴清水
-        case "d": return .regular.tint(Color.black.opacity(0.18))       // 照片、相机画面上的：偏暗，白色图标看得清
+        case "d":                                                       // 照片、相机画面上的：带上网页原来那层底色（牌子取自照片的颜色），字看得清
+            if let c = Color(css: it.tint), let a = Self.alpha(it.tint), a > 0.02 { return .regular.tint(c.opacity(min(0.9, a + 0.32))) } // 比网页原来的底色稍浓一点：字在玻璃上始终看得清
+            return .regular.tint(Color.black.opacity(0.18))
         default:  return NavGlass.chrome(scheme)                        // 和底部菜单栏同一种玻璃
         }
+    }
+    static func alpha(_ css: String) -> Double? {
+        let n = css.split(whereSeparator: { !"0123456789.".contains($0) }).compactMap { Double($0) }
+        return n.count >= 4 ? n[3] : n.count == 3 ? 1 : nil
     }
     private func weight(_ w: Int) -> Font.Weight { w >= 700 ? .bold : w >= 600 ? .semibold : w >= 500 ? .medium : .regular }
     var body: some View {
@@ -566,7 +577,7 @@ struct GlassLayer: View {
                 ZStack {
                     content(it)
                         .frame(width: it.rect.width, height: it.rect.height)
-                        .glassEffect(glass(it.k), in: shape)
+                        .glassEffect(glass(it), in: shape)
                         .macGlassFinish(shape)
                         .position(x: it.rect.midX, y: it.rect.midY)
                 }
@@ -589,30 +600,36 @@ struct GlassLayer: View {
         .transaction { $0.animation = nil }
     }
 
+    /// 照着网页排好的位置，把字、图标、选中项的底块一模一样画在玻璃上面
     @ViewBuilder private func content(_ it: NavModel.LGItem) -> some View {
-        let ink = Color(css: it.col) ?? Color.primary
-        if !it.seg.isEmpty {
-            // 相机的分段：选中的那段垫一块浅色
-            HStack(spacing: 2) {
-                ForEach(Array(it.seg.enumerated()), id: \.offset) { _, s in
-                    Text(s.t).font(.system(size: it.fs, weight: weight(it.fw))).lineLimit(1)
-                        .padding(.horizontal, 10).frame(maxHeight: .infinity)
-                        .background { if s.on { Capsule().fill(Color.white.opacity(0.28)) } }
-                }
-            }
-            .padding(4)
-            .foregroundStyle(ink)
-        } else if it.k == "l" {
+        let o = it.rect.origin
+        ZStack(alignment: .topLeading) {
             Color.clear
-        } else {
-            HStack(spacing: 6) {
-                if !it.sf.isEmpty { Image(systemName: it.sf).font(.system(size: it.t.isEmpty ? min(it.rect.height * 0.42, 20) : it.fs * 1.05, weight: weight(it.fw))) }
-                if !it.t.isEmpty { Text(it.t).font(.system(size: it.fs, weight: weight(it.fw))).lineLimit(1).minimumScaleFactor(0.8) }
+            ForEach(Array(it.pads.enumerated()), id: \.offset) { _, p in
+                RoundedRectangle(cornerRadius: p.r, style: .continuous).fill(Color.white.opacity(it.k == "d" ? 0.94 : scheme == .dark ? 0.16 : 0.5)) // 照片 / 相机上的选中项：白色，字是黑的
+                    .frame(width: p.rect.width, height: p.rect.height).position(x: p.rect.midX - o.x, y: p.rect.midY - o.y)
             }
-            .foregroundStyle(ink)
-            .padding(.horizontal, 6)
+            ForEach(Array(it.icons.enumerated()), id: \.offset) { _, c in
+                Image(systemName: c.sf)
+                    .font(.system(size: min(c.rect.width, c.rect.height) * 0.86, weight: c.sw >= 2.2 ? .semibold : .medium))
+                    .foregroundStyle(Color(css: c.col) ?? .primary)
+                    .position(x: c.rect.midX - o.x, y: c.rect.midY - o.y)
+            }
+            ForEach(Array(it.runs.enumerated()), id: \.offset) { _, t in
+                Text(t.t)
+                    .font(.system(size: t.fs, weight: weight(t.fw), design: t.round ? .rounded : .default))
+                    .monospacedDigit(t.tab)
+                    .kerning(t.ls)
+                    .foregroundStyle(Color(css: t.col) ?? .primary)
+                    .lineLimit(1).fixedSize()
+                    .position(x: t.rect.midX - o.x, y: t.rect.midY - o.y)
+            }
         }
     }
+}
+
+private extension View {
+    @ViewBuilder func monospacedDigit(_ on: Bool) -> some View { if on { self.monospacedDigit() } else { self } }
 }
 
 extension Color {

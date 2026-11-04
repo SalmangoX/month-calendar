@@ -1380,9 +1380,11 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rate-cap { display: flex; justify-content: space-between; margin: 6px 2px 0; font-size: 11.5px; color: var(--text2); }
 #calRateRev { margin-top: 8px; font-size: 13px; }
 
-/* ---------- iPhone / Mac App：玻璃控件由原生画（整块系统液态玻璃 + 上面的图标和文字，见 ui.js 的 MC.LG） ----------
-   原生正在画的控件加上 .lgx：网页这边的底、字、图标都透明，只留着接收点按 */
+/* ---------- iPhone / Mac App：玻璃控件和照片上的牌子由原生画（整块系统液态玻璃 + 照着网页位置画上去的字和图标，见 ui.js 的 MC.LG） ----------
+   原生正在画的（.lgx）：网页这边的底变透明，字（text-fill）和系统符号图标藏起来；其他图标、图片照常（只负责接收点按） */
 .lg-native .lgx { background: transparent !important; background-image: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
-  box-shadow: none !important; border-color: transparent !important; color: transparent !important; }
-.lg-native .lgx > * { opacity: 0 !important; }
+  box-shadow: none !important; border-color: transparent !important; }
+.lg-native .lgx, .lg-native .lgx * { -webkit-text-fill-color: transparent !important; }
+.lg-native .lgx svg[data-sf], .lg-native .lgx .today-ico { opacity: 0 !important; }
+.lg-native .lgx .on { background: transparent !important; box-shadow: none !important; }
 .lg-native .lgbar.dragging .lg-thumb { opacity: 0 !important; } /* 拖动时整颗水滴换成原生的透明玻璃透镜 */

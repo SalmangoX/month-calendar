@@ -340,7 +340,7 @@
   UI.lgBar = (items, cur) => {
     const i = Math.max(0, items.findIndex(p => p.v === cur));
     return `<div class="lgbar" role="radiogroup" style="--n:${items.length};--p:${i}" data-i="${i}"><span class="lg-thumb" aria-hidden="true"></span>`
-      + items.map((p, k) => `<button type="button" role="radio" aria-checked="${k === i}" class="lg-opt${k === i ? ' on' : ''}" data-i="${k}" data-v="${p.v}" style="--c:${p.color || 'var(--p0)'}"><span class="dot"></span><span data-uc>${esc(p.name)}</span></button>`).join('')
+      + items.map((p, k) => `<button type="button" role="radio" aria-checked="${k === i}" class="lg-opt${k === i ? ' on' : ''}" data-i="${k}" data-v="${p.v}" style="--c:${p.color || 'var(--text)'}">${p.color ? '<span class="dot"></span>' : ''}<span data-uc>${esc(p.name)}</span></button>`).join('')
       + '</div>';
   };
   {
@@ -352,7 +352,7 @@
       bar.classList.remove('dragging'); bar.style.setProperty('--sx', 1);
       bar.style.setProperty('--p', k); bar.dataset.i = k;
       os.forEach((o, j) => { o.classList.toggle('on', j === k); o.classList.remove('near'); o.setAttribute('aria-checked', String(j === k)); });
-      if (k !== was) { haptic(); bar.dispatchEvent(new CustomEvent('lgchange', { bubbles: true, detail: { v: Number(os[k].dataset.v), i: k } })); }
+      if (k !== was) { haptic(); bar.dispatchEvent(new CustomEvent('lgchange', { bubbles: true, detail: { v: /^-?\d+$/.test(os[k].dataset.v) ? Number(os[k].dataset.v) : os[k].dataset.v, i: k } })); }
     };
     document.addEventListener('pointerdown', e => {
       const bar = e.target.closest('.lgbar'); if (!bar || e.button > 0) return;
@@ -622,9 +622,9 @@
   // App 调用 MC.LG.start(post) 后：每一帧找出屏幕上看得见的玻璃控件（按钮、胶囊、优先级的水滴、纪念日历照片上的按钮和牌子），
   // 把位置、圆角、裁剪范围发给原生；网页自己的毛玻璃底去掉（字和图标还是网页画，原生的透明玻璃盖在上面）。
   // 只给「控件」用液态玻璃（和 Apple 的规则一样）；面板、卡片、提示条还是毛玻璃。
-  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .cam-btn, .cam-chips';
-  const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
-  const LAYERS = '.sheet.show, .dp.show, .cam.show, .confirm.show, .popover.show';
+  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .cam-btn, .cam-chips, .lgn, .dv-cover.photo .cv-plate, .dv-cover.photo .cv-tile, .dp-cover.photo .dp-plate, .cam-pill:not(.solid)';
+  const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips, .lgn-dark, .cv-plate, .cv-tile, .dp-plate, .cam-pill'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
+  const LAYERS = '.sheet.show, .dp.show, .cam.show, .cam-res, .confirm.show, .popover.show';
   MC.LG = {
     start(post) {
       if (MC.LG.on) return; MC.LG.on = true;
@@ -665,16 +665,29 @@
           if (thumb && !el.parentElement.classList.contains('dragging')) return; // 水滴停着时是网页画的白色底板（和系统的分段控件一样），按住拖动时才变成原生的玻璃透镜
           const k = thumb ? 'l' : el.matches(LG_DARK) ? 'd' : 'g';
           const n = v => Math.round(v * 10) / 10;
-          // 原生要画在玻璃上面的内容：系统符号、文字、字号、粗细、颜色；相机的分段（每段文字、选中没有）
-          let sf = '', t = '', seg = null;
+          // 原生要画在玻璃上面的内容：网页排好的每一段字（位置、字号、粗细、颜色、字距、等宽数字、圆体）、每个图标（系统符号）、
+          // 里面的浅色底块（比如相机分段里选中的那段）。原生照着位置一模一样画在玻璃上面，网页这边只把字和这些图标藏起来
+          const runs = [], icons = [], pads = [];
           if (!thumb) {
-            if (el.id === 'btnToday') sf = `${($('#todayNum') || {}).textContent || ''}.square`;
-            else { sf = el.dataset.sf || (el.querySelector('svg[data-sf]') || { dataset: {} }).dataset.sf || ''; t = el.innerText.trim(); }
-            if (el.classList.contains('cam-chips')) { seg = [...el.children].map(b => [b.innerText.trim(), b.classList.contains('on') ? 1 : 0]); t = ''; }
+            if (el.id === 'btnToday') icons.push([n(r.left), n(r.top), n(r.width), n(r.height), `${($('#todayNum') || {}).textContent || ''}.square`, cs.color, 20]);
+            else {
+              const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), rg = document.createRange();
+              for (let tn = tw.nextNode(); tn; tn = tw.nextNode()) {
+                const txt = tn.nodeValue.replace(/\s+/g, ' ').trim(); if (!txt) continue;
+                const pe = tn.parentElement; if (pe.closest('svg')) continue;
+                const ps = getComputedStyle(pe); if (ps.display === 'none' || ps.visibility === 'hidden') continue;
+                rg.selectNodeContents(tn); const q = rg.getBoundingClientRect(); if (!q.width) continue;
+                const ls = parseFloat(ps.letterSpacing) || 0;
+                runs.push([n(q.left), n(q.top), n(q.width), n(q.height), txt, parseFloat(ps.fontSize) || 15, parseInt(ps.fontWeight) || 400, ps.color, n(ls),
+                  (ps.fontVariantNumeric.includes('tabular') ? 1 : 0) + (/rounded/i.test(ps.fontFamily) ? 2 : 0)]);
+              }
+              el.querySelectorAll('svg[data-sf]').forEach(sv => { const q = sv.getBoundingClientRect(); if (q.width) icons.push([n(q.left), n(q.top), n(q.width), n(q.height), sv.dataset.sf, getComputedStyle(sv).color, parseFloat(getComputedStyle(sv).strokeWidth) || 2]); });
+              el.querySelectorAll('.on').forEach(o => { const q = o.getBoundingClientRect(); if (q.width) pads.push([n(q.left), n(q.top), n(q.width), n(q.height), n(Math.min(parseFloat(getComputedStyle(o).borderTopLeftRadius) || 0, q.height / 2))]); });
+            }
           }
-          const fc = el.classList.contains('lgx') ? (el.lgInk || '') : (el.lgInk = cs.color); // 藏起来以后颜色是透明的：用藏之前记下的
+          const tint = el.classList.contains('lgx') ? (el.lgBg || '') : (el.lgBg = cs.backgroundColor); // 网页原来的底色：拿来给玻璃着一点色
           out.push([ids.get(el), n(r.left), n(r.top), n(r.width), n(r.height), n(rad), n(cx), n(cy), n(cx2 - cx), n(cy2 - cy), k,
-            sf, t, parseFloat(cs.fontSize) || 15, parseInt(cs.fontWeight) || 500, fc, seg]);
+            runs, icons, pads, tint]);
           shown.add(el);
         });
         // 盖在玻璃上面的网页东西（提示条）：原生的玻璃在这里挖掉，不然会挡住它

@@ -289,10 +289,11 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         return vc
     }
 
-    // 纪念日历的透明相机：只允许节律自己的网页用相机，系统会再询问一次
+    // 纪念日历的透明相机：节律自己的网页直接允许（不再多弹一个「允许 xxx 使用相机」的网页框；第一次用时系统自己会问一次相机权限）
     func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo,
                  type: WKMediaCaptureType, decisionHandler: @escaping (WKPermissionDecision) -> Void) {
-        decisionHandler(origin.host == appURL.host && type == .camera ? .prompt : .deny)
+        let own = origin.host == appURL.host || origin.host == webView.url?.host
+        decisionHandler(own && type == .camera ? .grant : .deny)
     }
 
     // ---------- 导航 ----------
