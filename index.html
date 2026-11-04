@@ -637,6 +637,8 @@
       pager.classList.add('idle');
       pages[dg.pg].classList.add('drag');
       pages[to].classList.add('drag');
+      pages[dg.pg].style.transition = 'none';
+      pages[to].style.transition = 'none';
       pages[to].style.transform = `translate3d(${to === 'sched' ? 100 : -100}%,0,0)`;   // 用百分比，边缘严丝合缝
       // 页面此刻已经有真实宽高了，这时候画日程才不会挤成一团
       if (to === 'sched') { try { MC.Sched.render(); } catch (e) {} }
@@ -662,7 +664,7 @@
     const go = far || flick;
     const sign = d.to === 'sched' ? 1 : -1;
     const cur = pages[d.pg], nxt = pages[d.to];
-    const ease = go ? 'transform .34s cubic-bezier(.16,.85,.25,1)' : 'transform .45s cubic-bezier(.22,.8,.25,1)';
+    const ease = go ? 'transform .38s cubic-bezier(.2,.85,.25,1)' : 'transform .58s cubic-bezier(.16,.78,.26,1)';
     cur.style.transition = ease; nxt.style.transition = ease;
     if (!go) {
       // 另一页本来就在屏幕外：直接收走，避免它跟着动画又“闪”一下
@@ -698,7 +700,7 @@
     const onEnd = e => { if (e.target === nxt && e.propertyName === 'transform') finish(); };
     pendingFinish = finish;
     nxt.addEventListener('transitionend', onEnd);
-    setTimeout(finish, 520);
+    setTimeout(finish, go ? 520 : 700);
     pager.classList.remove('idle');
   };
   document.addEventListener('touchend', endDrag, { capture: true, passive: true });
