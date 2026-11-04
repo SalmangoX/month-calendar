@@ -141,6 +141,7 @@
       </div>
       <div id="setGroups"></div>
       <div class="foot"><img src="icons/icon-192.png" alt=""><b>节律</b><span id="statLine"></span></div>
+      <div class="pv-setfoot"><button type="button" id="pvOpen">隐私政策</button></div>
     </div>
   </section>
 </div>
@@ -440,5 +441,64 @@
 <script src="js/drawer.js?v=0.22.0"></script>
 <script src="js/app.js?v=0.22.0"></script>
 <script src="js/days.js?v=0.22.0"></script>
+<style>
+#pvGate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:rgba(20,20,26,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#pvGate .pv-card{width:100%;max-width:420px;background:var(--surface,#fff);color:var(--text,#1b1a20);
+  border-radius:20px;padding:24px 22px 20px;box-shadow:0 24px 60px rgba(0,0,0,.28);
+  font:15px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;max-height:86vh;overflow:auto}
+#pvGate h2{margin:0 0 10px;font-size:19px;font-weight:680;letter-spacing:-.01em}
+#pvGate p{margin:0 0 10px;color:var(--text2,#6e6a78);font-size:14px}
+#pvGate ul{margin:0 0 12px;padding-left:18px;color:var(--text2,#6e6a78);font-size:14px}
+#pvGate li{margin-bottom:5px}
+#pvGate a{color:var(--accent,#4a6cf7);text-decoration:none}
+#pvGate .pv-actions{display:flex;gap:10px;margin-top:16px}
+#pvGate .pv-btn{flex:1;padding:12px;border:0;border-radius:12px;font-size:15px;font-weight:600;
+  background:var(--field,rgba(0,0,0,.05));color:var(--text,#1b1a20);cursor:pointer;font-family:inherit}
+#pvGate .pv-primary{background:var(--accent,#4a6cf7);color:#fff}
+#pvGate .pv-tip{margin:12px 0 0;font-size:12.5px;color:var(--text2,#8a8694)}
+.pv-setfoot{text-align:center;padding:6px 0 22px}
+.pv-setfoot button{border:0;background:none;color:var(--text2,#8a8694);font-size:13px;font-family:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+</style>
+<div id="pvGate" role="dialog" aria-modal="true" aria-labelledby="pvTitle">
+  <div class="pv-card">
+    <h2 id="pvTitle">隐私政策</h2>
+    <p>开始使用前，请花一分钟了解节律如何处理你的数据：</p>
+    <ul>
+      <li>不需要注册，不收集你的个人信息</li>
+      <li>日程、课程、纪念日全部保存在本机</li>
+      <li>相册只在你选择封面、导入课表、保存分享图时使用</li>
+      <li>没有广告，没有统计分析 SDK</li>
+    </ul>
+    <p>完整条款见 <a href="https://salmangox.github.io/month-calendar/privacy.html" target="_blank" rel="noopener">隐私政策全文</a>，之后也可以随时在「设置」里查看。</p>
+    <div class="pv-actions">
+      <button type="button" class="pv-btn" id="pvNo">不同意</button>
+      <button type="button" class="pv-btn pv-primary" id="pvYes">同意并继续</button>
+    </div>
+    <p class="pv-tip" id="pvTip" hidden>不同意将无法使用节律。我们不会收集任何数据，日程只存在你这台设备上。</p>
+  </div>
+</div>
+<script>
+(function () {
+  var KEY = 'mcal.privacy.v1';
+  var gate = document.getElementById('pvGate');
+  if (!gate) return;
+  function open() { gate.style.display = 'flex'; document.documentElement.style.overflow = 'hidden'; }
+  function close() { gate.style.display = 'none'; document.documentElement.style.overflow = ''; }
+  var agreed = false;
+  try { agreed = !!localStorage.getItem(KEY); } catch (e) {}
+  if (agreed) close();
+  document.getElementById('pvYes').addEventListener('click', function () {
+    try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+    close();
+  });
+  document.getElementById('pvNo').addEventListener('click', function () {
+    document.getElementById('pvTip').hidden = false;
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'pvOpen') open();
+  });
+})();
+</script>
 </body>
 </html>
