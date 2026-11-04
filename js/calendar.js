@@ -50,6 +50,7 @@
   function updateBack() {
     const n = new Date();
     let away;
+    if (document.body.dataset.kind === 'days') { if (backShown) { backShown = false; $('#calBack').hidden = true; } return; } // 纪念日历的日历页有自己的翻月，不要「回到今天」
     if (view === 'week') away = MC.ymd(weekAnchor) !== MC.ymd(MC.weekStartOf(n)) || Math.abs(pagePos) > W / 2;
     else if (view === 'year') away = year !== n.getFullYear() || Math.abs(pagePos) > H / 2;
     else {

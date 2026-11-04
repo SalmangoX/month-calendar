@@ -603,14 +603,22 @@ struct GlassLayer: View {
                 ZStack {
                     // 照片上的牌子：玻璃「下面」先垫一层网页原来的底色（半透明），玻璃把它和后面的照片一起折射，字有底衬着
                     // （放在玻璃上面的话，系统会自动把它调亮，等于没垫）
-                    if it.k == "p", let c = Color(css: it.tint), let a = Self.alpha(it.tint), a > 0.02 {
-                        shape.fill(c.opacity(min(0.75, a * 1.1)))
+                    if it.k == "p" { // 照片上的牌子：垫一层淡淡的暗色（不管照片多亮，白字都看得清；照片还透得过来）
+                        shape.fill(Color.black.opacity(0.26))
                             .frame(width: it.rect.width, height: it.rect.height)
+                            .position(x: it.rect.midX, y: it.rect.midY)
+                    }
+                    // 照片上的大牌子：只有边缘一圈是玻璃（折射、高光、厚度都在这圈），中间不做透镜，照片不被拉歪
+                    if it.k == "p" {
+                        Color.clear
+                            .frame(width: it.rect.width, height: it.rect.height)
+                            .glassEffect(glass(it), in: shape)
+                            .mask(shape.strokeBorder(Color.black, lineWidth: 7))
                             .position(x: it.rect.midX, y: it.rect.midY)
                     }
                     content(it)
                         .frame(width: it.rect.width, height: it.rect.height)
-                        .glassEffect(glass(it), in: shape)
+                        .glassEffect(it.k == "p" ? Glass.identity : glass(it), in: shape)
                         .macGlassFinish(shape)
                         .position(x: it.rect.midX, y: it.rect.midY)
                 }
@@ -661,8 +669,8 @@ struct GlassLayer: View {
                     .monospacedDigit(t.tab)
                     .kerning(t.ls)
                     // 照片上的浅色字（灰色的日期、单位也一样）：提到接近白色，加一层淡阴影，背后再亮也看得清
-                    .foregroundStyle(it.k != "g" && Self.light(t.col) && Self.gray(t.col) ? Color.white.opacity(Self.lum(t.col) > 215 ? 1 : 0.86) : (Color(css: t.col) ?? .primary))
-                    .shadow(color: .black.opacity(it.k != "g" && Self.light(t.col) ? 0.38 : 0), radius: 4, y: 0.5)
+                    .foregroundStyle(it.k != "g" && Self.gray(t.col) && (it.k == "p" || Self.light(t.col)) ? Color.white.opacity(Self.lum(t.col) > 215 || Self.lum(t.col) < 60 ? 1 : 0.86) : (Color(css: t.col) ?? .primary))
+                    .shadow(color: .black.opacity(it.k != "g" ? 0.35 : 0), radius: 4, y: 0.5)
                     .lineLimit(1).fixedSize()
                     .position(x: t.rect.midX - o.x, y: t.rect.midY - o.y)
             }
