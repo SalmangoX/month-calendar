@@ -1455,14 +1455,15 @@ body[data-kind="days"] .dock2 { display: none; }
 .fan svg { position: relative; z-index: 1; }
 
 .pager {
-  display: flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 12px;
+  display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 13px; border-radius: 13px;
+  transform: translateY(12px);
   background: rgba(255, 255, 255, .02); box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 .5px rgba(255,255,255,.45), 0 5px 14px rgba(30,45,70,.08);
   -webkit-backdrop-filter: blur(2px) saturate(200%); backdrop-filter: blur(2px) saturate(200%);
   transition: opacity .35s ease;
 }
 .pager.hide { opacity: 0; pointer-events: none; }
-.pager i { width: 5px; height: 5px; border-radius: 3px; background: var(--text3); transition: width .28s var(--ease-spring, ease), background .2s; }
-.pager i.on { width: 13px; background: var(--accent); }
+.pager i { width: 7px; height: 7px; border-radius: 4px; background: var(--text3); transition: width .28s var(--ease-spring, ease), background .2s; }
+.pager i.on { width: 22px; background: var(--accent); }
 .pager.idle { opacity: .55; }
 
 .back-to-cal {
