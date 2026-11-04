@@ -785,5 +785,53 @@
   document.addEventListener('touchcancel', endDrag, { capture: true, passive: true });
 })();
 </script>
+
+<script>
+// 设计调节器：在地址后面加 ?tune=1 打开，只影响这台设备上的预览，不会影响别人
+(function () {
+  if (!/[?&]tune=1/.test(location.search)) return;
+  const V = [
+    { k: '--pill-k', label: '月份气泡纵向位置 × 行高', min: 0, max: 1.4, step: 0.02, val: 1 },
+    { k: '--pill-gap', label: '月份气泡向上偏移 (px)', min: 0, max: 160, step: 2, val: 66, unit: 'px' },
+    { k: '--pill-fs', label: '月份字号 (px)', min: 12, max: 30, step: 1, val: 18, unit: 'px' },
+    { k: '--pill-py', label: '月份上下内边距 (px)', min: 0, max: 16, step: 1, val: 5, unit: 'px' },
+    { k: '--pill-px', label: '月份左右内边距 (px)', min: 6, max: 40, step: 1, val: 19, unit: 'px' },
+    { k: '__rowsPerScreen', label: '一屏显示几行', min: 5, max: 9, step: 0.1, val: 6.5 },
+    { k: '--mwd-fs', label: '星期行字号 (px)', min: 8, max: 16, step: 0.5, val: 11, unit: 'px' },
+    { k: '--mwd-op', label: '星期行不透明度', min: 0.2, max: 1, step: 0.05, val: 1 },
+  ];
+  const root = document.documentElement;
+  const panel = document.createElement('div');
+  panel.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:14px 16px 18px;font:13px/1.5 -apple-system,"PingFang SC",sans-serif;max-height:62vh;overflow:auto';
+  let html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><b style="font-size:15px">设计调节</b><span style="color:#888;font-size:12px">调好后点复制，把结果发我</span><button id="tuneClose" style="margin-left:auto;border:0;background:#eee;border-radius:10px;padding:6px 10px;font-size:12px">收起</button></div>';
+  V.forEach((v, i) => {
+    html += `<label style="display:block;margin:10px 0 2px;color:#444">${v.label} <b id="tv${i}" style="float:right;color:#4C6EAC">${v.val}${v.unit || ''}</b></label>
+      <input id="ti${i}" type="range" min="${v.min}" max="${v.max}" step="${v.step}" value="${v.val}" style="width:100%">`;
+  });
+  html += '<button id="tuneCopy" style="margin-top:14px;width:100%;border:0;border-radius:12px;padding:12px;background:#1b1a20;color:#fff;font-size:14px;font-weight:600">复制配置</button>';
+  panel.innerHTML = html;
+  document.body.appendChild(panel);
+  const vals = V.map(v => v.val);
+  const apply = () => {
+    V.forEach((v, i) => {
+      if (v.k.startsWith('--')) root.style.setProperty(v.k, vals[i] + (v.unit || ''));
+      else window[v.k] = vals[i];
+      const out = document.getElementById('tv' + i);
+      if (out) out.textContent = vals[i] + (v.unit || '');
+    });
+    if (window.MC && MC.Cal && MC.Cal.render) { try { MC.Cal.render(); } catch (e) {} }
+  };
+  V.forEach((v, i) => {
+    document.getElementById('ti' + i).addEventListener('input', e => { vals[i] = +e.target.value; apply(); });
+  });
+  apply();
+  document.getElementById('tuneClose').onclick = () => panel.style.display = 'none';
+  document.getElementById('tuneCopy').onclick = () => {
+    const out = V.map((v, i) => `${v.label}: ${vals[i]}${v.unit || ''}`).join('\n');
+    navigator.clipboard?.writeText(out);
+    document.getElementById('tuneCopy').textContent = '已复制（也可以截图给我）';
+  };
+})();
+</script>
 </body>
 </html>
