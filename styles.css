@@ -189,6 +189,7 @@ svg.filled { fill: currentColor; stroke: none; }
 .title h1 { margin: 0; font-size: 18px; font-weight: 680; letter-spacing: .01em; }
 .title p { margin: 2px 0 0; font-size: 11px; color: var(--text2); font-variant-numeric: tabular-nums; }
 
+body .weekdays { display: none; }
 .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); font-size: 11px; color: var(--text2); text-align: center; padding: 8px 4px 6px; flex: none; }
 .weekdays.hide { visibility: hidden; height: 6px; padding: 0; }
 

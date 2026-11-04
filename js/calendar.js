@@ -193,6 +193,9 @@
         if (d.getDate() === 1) { first = true; break; }
       }
       if (first && r > 0) {
+        const mIdx = (() => { for (let c = 0; c < 7; c++) { const d = MC.addDays(start, r * 7 + c); if (d.getDate() === 1) return d; } return null; })();
+        const curIdx = focus.y * 12 + focus.m, thisIdx = mIdx ? mIdx.getFullYear() * 12 + mIdx.getMonth() : -1;
+        if (thisIdx !== curIdx && thisIdx !== curIdx + 1) continue;   // 上方缓冲区的旧月份不画
         const ws = MC.settings.weekStart;
         const letters = Array.from({ length: 7 }, (_, i) => `<span>${MC.WD[(i + ws) % 7]}</span>`).join('');
         mw += `<div class="mwd" style="top:${r * rowH - 22}px">${letters}</div>`;
