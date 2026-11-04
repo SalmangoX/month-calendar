@@ -501,7 +501,11 @@
   <feDisplacementMap in="SourceGraphic" in2="nb" scale="16" xChannelSelector="R" yChannelSelector="G"/>
 </filter></svg>
 <div class="dock2" id="dock2">
-  <button class="pod pod-today" id="bubbleToday" aria-label="切换今日 / 日历"><span id="bubbleTodayLabel">今日</span></button>
+  <button class="pod pod-today" id="bubbleToday" aria-label="切换今日 / 日历">
+    <svg class="ti ti-today" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4.5"/><path d="M8.4 12.2l2.5 2.5 4.7-5.2"/></svg>
+    <svg class="ti ti-cal" viewBox="0 0 24 24" aria-hidden="true" hidden><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.2h17M8 2.8v3.4M16 2.8v3.4"/></svg>
+    <span id="bubbleTodayLabel">今日</span>
+  </button>
   <div class="pager" id="pager" aria-hidden="true"><i class="on"></i><i></i></div>
   <div class="pod-menu" id="podMenu">
     <button class="fan fan-set" id="fanSet" aria-label="设置" tabindex="-1"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.9v.06a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg></button>
@@ -542,7 +546,11 @@
     const days = body.dataset.kind === 'days';
     dock2.classList.toggle('hide', days);
     if (days) { closeMenu(); return; }
-    label.textContent = pg === 'today' ? '日历' : '今日';
+    const toToday = pg !== 'today';
+    label.textContent = toToday ? '今日' : '日历';
+    const iToday = document.querySelector('#bubbleToday .ti-today');
+    const iCal = document.querySelector('#bubbleToday .ti-cal');
+    if (iToday && iCal) { iToday.hidden = !toToday; iCal.hidden = toToday; }
     const two = pg === 'cal' || pg === 'sched';
     pager.classList.toggle('hide', !two);
     dots.forEach((d, i) => d.classList.toggle('on', i === (pg === 'sched' ? 1 : 0)));

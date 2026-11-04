@@ -1436,8 +1436,14 @@ body[data-kind="days"] .dock2 { display: none; }
 }
 :root[data-theme="dark"] .pod, :root[data-theme="dark"] .fan { background: rgba(255, 255, 255, .03); }
 :root[data-theme="dark"] .pod::after, :root[data-theme="dark"] .fan::after { opacity: .5; }
-.pod-today { height: 52px; padding: 0 22px; font-size: 15px; font-weight: 600; letter-spacing: .02em; z-index: 1; }
-.pod-today span { position: relative; z-index: 1; }
+.pod-today {
+  height: 46px; padding: 0 18px 0 15px; z-index: 1;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 15px; font-weight: 560; letter-spacing: .035em;
+}
+.pod-today span { position: relative; top: -.5px; }          /* 中文字重心略低，抬半像素看着才居中 */
+.pod-today .ti { width: 17px; height: 17px; flex: 0 0 auto; opacity: .62; stroke-width: 1.9; }
+.pod-today:active .ti { opacity: .9; }
 
 .pod-menu { position: relative; width: 58px; height: 58px; }
 .pod-logo { width: 58px; height: 58px; border-radius: 29px; padding: 0; }
