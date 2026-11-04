@@ -1437,9 +1437,9 @@ body[data-kind="days"] .dock2 { display: none; }
 :root[data-theme="dark"] .pod, :root[data-theme="dark"] .fan { background: rgba(255, 255, 255, .03); }
 :root[data-theme="dark"] .pod::after, :root[data-theme="dark"] .fan::after { opacity: .5; }
 .pod-today {
-  width: 58px; height: 58px; padding: 0; border-radius: 29px; z-index: 1;
+  height: 46px; padding: 0 16px; border-radius: 23px; z-index: 1;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 560; letter-spacing: 0;
+  font-size: 14px; font-weight: 560; letter-spacing: .01em;
   font-variant-numeric: tabular-nums;
 }
 .pod-today span { position: relative; top: -.5px; }          /* 中文字重心略低，抬半像素看着才居中 */
