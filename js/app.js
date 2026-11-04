@@ -89,32 +89,22 @@
   }
   // 菜单第三项：四象限 / 课表 / 不显示
   const TAB3 = {
-    quad: { label: '四象限', svg: '<svg viewBox="0 0 24 24" class="filled"><rect x="4" y="4" width="7" height="7" rx="2.2"/><rect x="13" y="4" width="7" height="7" rx="2.2"/><rect x="4" y="13" width="7" height="7" rx="2.2"/><rect x="13" y="13" width="7" height="7" rx="2.2"/></svg>' },
     sched: { label: '课表', svg: '<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.5h17M9.5 9.5v11M3.5 15h17"/></svg>' },
   };
   function applyTab3() {
     const btn = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
-    // 底部第三格默认是课表；以前默认存成了四象限、自己没选过的，换成课表（自己选过四象限的保留）
-    if (MC.settings.tab3 === 'quad' && !MC.settings.tab3Picked) { MC.settings.tab3 = 'sched'; MC.saveSettings(); }
-    if (MC.settings.tab3 !== 'quad') MC.settings.tab3 = 'sched'; // 不再提供「不显示」，在页面左上角切换四象限 / 课表
+    // 底部第三格固定是课表（四象限已移除）
+    if (MC.settings.tab3 !== 'sched') { MC.settings.tab3 = 'sched'; MC.saveSettings(); }
     const v = MC.settings.tab3;
     btn.hidden = document.body.dataset.kind === 'days' || !!recCal(); // 纪念日历的菜单里没有这一项；开了等级评分的记录日历换成「统计」
     if (v !== 'off') { btn.dataset.page = v; btn.setAttribute('aria-label', TAB3[v].label); btn.innerHTML = TAB3[v].svg + `<span>${TAB3[v].label}</span>`; }
     if ((page === 'quad' || page === 'sched') && page !== v) showPage('cal'); else placeInd(false);
   }
-  // 点左上角标题，弹出菜单切换四象限 / 课表
-  document.querySelectorAll('.pswitch').forEach(btn => btn.addEventListener('click', () => {
-    UI.menu(btn, [
-      { label: '四象限', value: 'quad', on: page === 'quad' },
-      { label: '课表', value: 'sched', on: page === 'sched' },
-    ], v => { if (v === page) return; MC.settings.tab3 = v; MC.settings.tab3Picked = true; MC.saveSettings(); applyTab3(); showPage(v); });
-  }));
   function renderPage() {
     if (page === 'sched') { MC.Sched.render(); return; }
     if (page === 'cal') requestAnimationFrame(() => MC.Cal.render());
     else if (page === 'days' || page === 'dsum') { if (MC.Days) MC.Days.render(); }
     else if (page === 'today') renderToday();
-    else if (page === 'quad') renderQuad();
     else if (page === 'rstat') renderRstat();
     else renderSettings();
   }
@@ -283,21 +273,6 @@
   setInterval(() => { if (page === 'today' && tdDay === MC.todayStr() && !UI.anyOpen()) renderToday(); }, 60000);
   UI.bindList($('#todayBody'));
 
-  // ---------- 四象限 ----------
-  function renderQuad() {
-    const showDone = !!MC.settings.quadShowDone;
-    $('#btnQuadDone').classList.toggle('on', showDone);
-    $('#btnQuadDone').textContent = showDone ? '隐藏已完成' : '显示已完成';
-    $('#quadBody').innerHTML = MC.PRI.map(p => {
-      const list = MC.mainEvents().filter(e => e.priority === p.v && (showDone || !e.done))
-        .sort((a, b) => (a.done - b.done) || a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
-      return `<div class="qcard glass-panel" style="--c:${p.color}">
-        <div class="qhead"><span class="roman">${p.roman}</span>${p.quad}<span class="cnt">${list.length || ''}</span></div>
-        ${list.length ? `<ul class="qlist">${list.map(e => UI.itemHTML(e, { showDate: true, noFlag: true })).join('')}</ul>` : `<div class="qempty">没有事件</div>`}
-      </div>`;
-    }).join('');
-  }
-  UI.bindList($('#quadBody'));
 
   // ---------- 记录日历：等级统计 ----------
   // 开了「等级评分」的记录日历，底部菜单里的四象限 / 课表换成「统计」
@@ -600,7 +575,6 @@
   $('#rsSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.range = b.dataset.v; rs.off = 0; rs.pick = null; renderRstat(); });
   $('#rsPrev').onclick = () => { rs.off--; rs.pick = null; renderRstat(); };
   $('#rsNext').onclick = () => { rs.off++; rs.pick = null; renderRstat(); };
-  $('#btnQuadDone').onclick = () => { MC.settings.quadShowDone = !MC.settings.quadShowDone; MC.saveSettings(); renderQuad(); };
 
   // ---------- 头像 / 昵称 ----------
   const initial = () => (MC.data.profile.name || '我').trim().slice(0, 1).toUpperCase();
@@ -903,7 +877,6 @@
       if (Push.enabled() && MC.settings.pushReady && MC.session.token && MC.settings.subH12 !== MC.use12()) Push.resubscribe().catch(() => {});
     });
     else if (act === 'tab3') UI.menu(row.querySelector('.sval'), [
-      { label: '四象限', value: 'quad', on: MC.settings.tab3 === 'quad' },
       { label: '课表', value: 'sched', on: (MC.settings.tab3 || 'sched') === 'sched' },
       { label: '不显示', value: 'off', on: MC.settings.tab3 === 'off' },
     ], v => { MC.settings.tab3 = v; MC.settings.tab3Picked = true; MC.saveSettings(); applyTab3(); renderSettings(); });
