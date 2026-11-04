@@ -216,6 +216,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
       var bs = document.getElementById('batchSheet'); if (bs) new MutationObserver(send).observe(bs, { attributes: true, attributeFilter: ['class', 'style'] });
       new MutationObserver(send).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); // 键盘、确认框
       send(); setTimeout(send, 600);
+      if (window.MC && MC.LG) MC.LG.start(function(j){ try { H.postMessage({ name: 'lg', args: [j] }); } catch (e) {} }); // 玻璃控件换成原生液态玻璃
     })();
     """
 
@@ -237,6 +238,10 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         }
         let menu = SolidHostingView(rootView: GlassMenu(m: nav))
         let addMore = SolidHostingView(rootView: GlassAddButton(m: nav).padding(18))
+        // 网页玻璃控件的液态玻璃层：铺满网页、紧贴在网页上面（在菜单栏、加号下面），不接收鼠标
+        let lgLayer = PassThroughHostingView(rootView: GlassLayer(m: nav))
+        lgLayer.frame = web.frame; lgLayer.autoresizingMask = [.width, .height]
+        root.addSubview(lgLayer, positioned: .above, relativeTo: web)
         for v in [bar, fab, drawer, menu] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
         // 批量添加的「再加一个」：放在网页按钮的位置上（跟着网页发来的位置挪），在菜单下面
         root.addSubview(addMore, positioned: .below, relativeTo: menu)
@@ -379,6 +384,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         case "checkUpdate": Task { await Updater.shared.check(manual: true) }
         case "retry": reload()
         case "nav": nav.update(s(0))
+        case "lg": nav.updateLG(s(0))
         case "menu": nav.showMenu(id: s(0), json: s(1), anchor: CGRect(x: d(2), y: d(3), width: d(4), height: d(5)))
         case "makeInstaller": Updater.shared.makeInstaller()
         case "http": let cb = s(1), req = s(0); Task { callback(cb, await NativeHTTP.run(req)) }

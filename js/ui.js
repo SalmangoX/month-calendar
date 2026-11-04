@@ -617,4 +617,63 @@
     });
     return w;
   };
+
+  // ---------- 原生液态玻璃（iPhone / Mac App）：网页画不出系统的 Liquid Glass，由原生画在网页按钮的位置上 ----------
+  // App 调用 MC.LG.start(post) 后：每一帧找出屏幕上看得见的玻璃控件（按钮、胶囊、优先级的水滴、纪念日历照片上的按钮和牌子），
+  // 把位置、圆角、裁剪范围发给原生；网页自己的毛玻璃底去掉（字和图标还是网页画，原生的透明玻璃盖在上面）。
+  // 只给「控件」用液态玻璃（和 Apple 的规则一样）；面板、卡片、提示条还是毛玻璃。
+  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .dp-plate, .cv-plate, .cam-btn, .cam-chips';
+  const LG_DARK = '.dp-btn, .dp-setcover, .dp-plate, .cv-pin, .cv-plate, .cam-btn, .cam-chips'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
+  const LAYERS = '.sheet.show, .dp.show, .cam.show, .confirm.show, .popover.show';
+  MC.LG = {
+    start(post) {
+      if (MC.LG.on) return; MC.LG.on = true;
+      document.documentElement.classList.add('lg-native');
+      let last = '', ids = new WeakMap(), seq = 0;
+      const clipOf = el => { // 往上找会裁剪内容的祖先（滚动区、overflow 隐藏）
+        const out = [];
+        for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+          const cs = getComputedStyle(a);
+          if (cs.overflowY !== 'visible' || cs.overflowX !== 'visible') out.push(a);
+        }
+        return out;
+      };
+      const clips = new WeakMap();
+      const frame = () => {
+        requestAnimationFrame(frame);
+        if (document.hidden) return;
+        // 最上面那一层（面板、确认框、纪念日详情、相机）：只画这一层里的玻璃，被盖住的不画
+        let top = null, tz = -1;
+        document.querySelectorAll(LAYERS).forEach(l => { const z = Number(getComputedStyle(l).zIndex) || 0; if (z >= tz) { tz = z; top = l; } });
+        const W = innerWidth, H = innerHeight, out = [];
+        document.querySelectorAll(LG_SEL).forEach(el => {
+          if (top && !top.contains(el)) return;
+          if (!top && el.closest('.sheet, .dp, .cam, .popover')) return;
+          if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) {
+            if (!el.classList.contains('lg-thumb')) return; // 水滴在网页里是透明的（只给原生画），照样要发
+            if (!el.closest('.lgbar').checkVisibility({ opacityProperty: true, visibilityProperty: true })) return;
+          }
+          const r = el.getBoundingClientRect();
+          if (r.width < 2 || r.height < 2 || r.bottom < 0 || r.top > H || r.right < 0 || r.left > W) return;
+          let cx = 0, cy = 0, cx2 = W, cy2 = H;
+          if (!clips.has(el)) clips.set(el, clipOf(el));
+          for (const a of clips.get(el)) { const q = a.getBoundingClientRect(); cx = Math.max(cx, q.left); cy = Math.max(cy, q.top); cx2 = Math.min(cx2, q.right); cy2 = Math.min(cy2, q.bottom); }
+          if (cx2 - cx < 1 || cy2 - cy < 1) return;
+          if (!ids.has(el)) ids.set(el, ++seq);
+          const cs = getComputedStyle(el), rad = Math.min(parseFloat(cs.borderTopLeftRadius) || 0, r.height / 2);
+          const thumb = el.classList.contains('lg-thumb');
+          if (thumb && !el.parentElement.classList.contains('dragging')) return; // 水滴停着时是网页画的白色底板（和系统的分段控件一样），按住拖动时才变成原生的玻璃透镜
+          const k = thumb ? 'l' : el.matches(LG_DARK) ? 'd' : 'g';
+          const n = v => Math.round(v * 10) / 10;
+          out.push([ids.get(el), n(r.left), n(r.top), n(r.width), n(r.height), n(rad), n(cx), n(cy), n(cx2 - cx), n(cy2 - cy), k]);
+        });
+        // 盖在玻璃上面的网页东西（提示条）：原生的玻璃在这里挖掉，不然会挡住它
+        const holes = [];
+        document.querySelectorAll('#toast.show').forEach(t => { const r = t.getBoundingClientRect(); if (r.width) holes.push([r.left, r.top, r.width, r.height].map(v => Math.round(v))); });
+        const j = JSON.stringify({ i: out, h: holes });
+        if (j !== last) { last = j; post(j); }
+      };
+      requestAnimationFrame(frame);
+    },
+  };
 })();

@@ -46,6 +46,7 @@ struct RootView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             WebView(controller: c).ignoresSafeArea()
+            GlassLayer(m: m).ignoresSafeArea() // 网页里的玻璃控件：系统液态玻璃
             VStack(spacing: -6) {
                 HStack {
                     Spacer()

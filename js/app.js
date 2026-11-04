@@ -191,7 +191,8 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeInd(false));
 
   MC.App = { showPage: p => showPage(p), placeInd: () => placeInd(false), page: () => page };
-  $('#fab').onclick = () => page === 'today'
+  $('#fab').onclick = () => page === 'sched' ? MC.Sched.add()
+    : page === 'today'
     ? MC.Editor.openNew(MC.todayStr(), '')
     : MC.Editor.openNew(MC.Cal.selected(), (page === 'cal' || page === 'rstat') ? MC.activeCal() : '');
   document.body.dataset.page = page;

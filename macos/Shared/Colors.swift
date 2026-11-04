@@ -149,6 +149,8 @@ struct Pal {
     var accentV: UInt32 { dark ? 0xFF8B_A8DE : 0xFF4C_6EAC }
     var accent: Color { glass ? .white : Color(argb: accentV) }
     /// 加号这种白字的实色按钮：深色模式下用深一点、饱和一点的蓝（浅蓝配白字发灰）
+    /// 课表页加号（添加课程）的绿色
+    static let course = Color(argb: 0xFF34_A853)
     var fab: Color { Color(argb: dark ? 0xFF4F_74C0 : 0xFF4C_6EAC) }
     /// 玻璃样式下：色条、圆点、彩色的字 → 实色白；色块的底 → 淡淡的白
     func ink(_ v: UInt32) -> Color { glass ? .white : Color(argb: v) }

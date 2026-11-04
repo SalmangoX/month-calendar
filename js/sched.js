@@ -754,6 +754,7 @@
       btn.classList.remove('disabled');
     }
   });
+  Sched.add = () => openEdit(null); // 课表页的加号：添加课程
   function openEdit(c) {
     mode = 'edit'; editing = c || null; editDay = c ? c.day : 1;
     $('#schedTitle').textContent = c ? '编辑课程' : '添加课程';

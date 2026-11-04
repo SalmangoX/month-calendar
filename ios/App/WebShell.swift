@@ -220,6 +220,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         window.__mcMenuPick = function(id, i){ var m = cbs[id]; delete cbs[id]; if (m && i >= 0 && m.cb) m.cb(m.items[i].value, m.items[i]); };
       }
       send(); setTimeout(send, 600);
+      if (window.MC && MC.LG) MC.LG.start(function(j){ try { H.postMessage({ name: 'lg', args: [j] }); } catch (e) {} }); // 玻璃控件换成原生液态玻璃
     })();
     """
 
@@ -255,6 +256,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         case "syncNow": Task { await engine.pull() }
         case "retry": reload()
         case "nav": nav.update(s(0))
+        case "lg": nav.updateLG(s(0))
         case "menu": nav.showMenu(id: s(0), json: s(1), anchor: CGRect(x: d(2), y: d(3), width: d(4), height: d(5)))
         case "http": let cb = s(1), req = s(0); Task { callback(cb, await NativeHTTP.run(req)) }
         case "icloudChoose": let cb = s(0); CloudSync.shared.choose { [weak self] r in self?.callback(cb, r) }
