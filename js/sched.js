@@ -475,7 +475,7 @@
     week = MC.addDays(week, 7 * n);
     Sched.render();
     const inn = $('#schedBody .sc-inner'); if (!inn) return;
-    inn.style.transition = 'none'; inn.style.transform = `translate3d(${n * 36}px,0,0)`; inn.style.opacity = '.3';
+    inn.style.transition = 'none'; inn.style.transform = `translate3d(0,${n * 22}px,0) scale(.992)`; inn.style.opacity = '.35';
     requestAnimationFrame(() => requestAnimationFrame(() => { inn.style.transition = 'transform .3s cubic-bezier(.2,.9,.25,1), opacity .22s'; inn.style.transform = 'none'; inn.style.opacity = '1'; }));
   }
   $('#schedFit').onclick = () => { zoom = 1; Sched.render(); };
@@ -484,43 +484,52 @@
   $('#schedNext').onclick = () => shiftWeek(1);
   $('#schedThisWeek').onclick = () => { week = mondayOf(new Date()); Sched.render(); };
   { const sb = $('#schedBack'); if (sb) sb.onclick = () => $('#schedThisWeek').click(); }
-  // 左右滑动换周：内容跟着手指走，松手后由合成器播放滑出 / 滑入（放大时左右滑动用来滚动内容）
+  // 上下滑动换周：轻微扑克牌效果（往下 = 上一周，往上 = 下一周）
   (() => {
     const el = $('#schedBody');
-    let x0 = 0, y0 = 0, t0 = 0, dx = 0, state = 0, inner = null;
+    let x0 = 0, y0 = 0, t0 = 0, dy = 0, state = 0, inner = null, H = 1;
     el.addEventListener('touchstart', e => {
       if (e.touches.length !== 1 || zoom > 1) { state = 0; return; }
       inner = el.querySelector('.sc-inner'); if (!inner) return;
-      state = 1; dx = 0; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = performance.now();
+      state = 1; dy = 0; t0 = performance.now();
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+      H = Math.max(1, el.clientHeight);
     }, { passive: true });
     el.addEventListener('touchmove', e => {
       if (!state || e.touches.length !== 1) { state = 0; return; }
-      dx = e.touches[0].clientX - x0; const dy = e.touches[0].clientY - y0;
+      dy = e.touches[0].clientY - y0; const dx = e.touches[0].clientX - x0;
       if (state === 1) {
-        if (Math.abs(dx) < 8) return;
-        if (Math.abs(dx) < Math.abs(dy) * 1.2) { state = 0; return; }
+        if (Math.abs(dy) < 8) return;
+        if (Math.abs(dy) < Math.abs(dx) * 1.2) { state = 0; return; }
         state = 2; inner.style.transition = 'none';
       }
       e.preventDefault();
-      inner.style.transform = `translate3d(${dx}px,0,0)`;
-      inner.style.opacity = String(1 - Math.min(.35, Math.abs(dx) / 900));
+      const k = dy * .7;
+      inner.style.transform = `translate3d(0,${k}px,0) scale(${1 - Math.min(.025, Math.abs(k) / (H * 9))})`;
+      inner.style.opacity = String(1 - Math.min(.26, Math.abs(k) / (H * 1.7)));
     }, { passive: false });
     const end = () => {
       if (state !== 2) { state = 0; return; }
       state = 0;
-      const v = dx / Math.max(1, performance.now() - t0), Wd = el.clientWidth;
-      if (Math.abs(dx) > Wd * .22 || Math.abs(v) > .45) {
-        const dir = dx < 0 ? 1 : -1;
-        inner.style.transition = 'transform .2s cubic-bezier(.3,.7,.4,1), opacity .2s';
-        inner.style.transform = `translate3d(${-dir * Wd}px,0,0)`; inner.style.opacity = '0';
+      const v = dy / Math.max(1, performance.now() - t0);
+      if (Math.abs(dy) > H * .15 || Math.abs(v) > .5) {
+        const dir = dy < 0 ? 1 : -1;                       // 上滑 = 下一周
+        inner.style.transition = 'transform .17s ease-out, opacity .17s ease-out';
+        inner.style.transform = `translate3d(0,${-dir * H * .4}px,0) scale(.975)`;
+        inner.style.opacity = '0';
         setTimeout(() => {
           week = MC.addDays(week, 7 * dir); Sched.render();
           const n = el.querySelector('.sc-inner'); if (!n) return;
-          n.style.transition = 'none'; n.style.transform = `translate3d(${dir * Wd * .35}px,0,0)`; n.style.opacity = '0';
-          requestAnimationFrame(() => requestAnimationFrame(() => { n.style.transition = 'transform .32s cubic-bezier(.2,.9,.25,1), opacity .25s'; n.style.transform = 'none'; n.style.opacity = '1'; }));
-        }, 190);
+          n.style.transition = 'none';
+          n.style.transform = `translate3d(0,${dir * H * .16}px,0) scale(1.014)`;
+          n.style.opacity = '0';
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            n.style.transition = 'transform .3s cubic-bezier(.22,.9,.28,1), opacity .22s';
+            n.style.transform = 'none'; n.style.opacity = '1';
+          }));
+        }, 160);
       } else {
-        inner.style.transition = 'transform .3s cubic-bezier(.25,1.3,.4,1), opacity .2s';
+        inner.style.transition = 'transform .28s cubic-bezier(.25,1.2,.4,1), opacity .2s';
         inner.style.transform = 'none'; inner.style.opacity = '1';
       }
     };
