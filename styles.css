@@ -1747,3 +1747,22 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
   --pill-k: .72; --pill-gap: 72px; --pill-fs: 23px; --pill-py: 5px; --pill-px: 29px;
   --mwd-fs: 11px; --mwd-op: 1;
 }
+
+/* 深色主题：压掉那圈刺眼的亮白描边，只留一道很淡的玻璃边 */
+:root[data-theme="dark"] .pod,
+:root[data-theme="dark"] .fan {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    inset 0 -1px 0 rgba(0, 0, 0, .45),
+    inset 0 0 0 .5px rgba(255, 255, 255, .10),
+    0 6px 16px rgba(0, 0, 0, .55);
+}
+:root[data-theme="dark"] .pod::after,
+:root[data-theme="dark"] .fan::after { opacity: .22; }
+:root[data-theme="dark"] .pager {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), inset 0 0 0 .5px rgba(255, 255, 255, .10), 0 5px 14px rgba(0, 0, 0, .5);
+}
+:root[data-theme="dark"] #page-cal .topbar .title {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), inset 0 0 0 .5px rgba(255, 255, 255, .10), 0 6px 16px rgba(0, 0, 0, .5);
+}
+:root[data-theme="dark"] #page-cal .topbar .title::after { opacity: .22; }
