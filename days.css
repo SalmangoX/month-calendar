@@ -217,8 +217,12 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 .dd-acts button { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 14px 4px 11px; border-radius: 20px; background: var(--dv-card); box-shadow: var(--dv-shadow);
   font-size: 12px; font-weight: 580; color: var(--text); transition: transform .15s; }
 .dd-acts button:active { transform: scale(.95); }
-.ai { width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; color: var(--ac); background: color-mix(in srgb, var(--ac) 15%, transparent); }
-.ai svg { width: 21px; height: 21px; stroke-width: 2; }
+/* 和设置里的图标同一种样子：中性的灰底块 + 实心的彩色图形 */
+.ai { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: var(--ac); background: var(--tile); box-shadow: inset 0 0 0 .5px var(--tile-line); }
+.ai svg { width: 22px; height: 22px; fill: none; stroke: none; stroke-linecap: round; stroke-linejoin: round; }
+.ai svg .f { fill: currentColor; }
+.ai svg .s { stroke: currentColor; stroke-width: 2.4; }
+.ai svg .k2 { fill: var(--tile); }
 .dd-acts .on { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ac, var(--accent)) 30%, transparent), var(--dv-shadow); }
 .dd-info { margin-top: 16px; background: var(--dv-card); box-shadow: var(--dv-shadow); border-radius: 20px; }
 .dd-kv { display: flex; justify-content: space-between; gap: 12px; padding: 13px 16px; font-size: 15px; }

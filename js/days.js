@@ -266,6 +266,13 @@
     trash: '<svg viewBox="0 0 24 24"><path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l1 13h9l1-13"/></svg>',
     chev: '<svg viewBox="0 0 24 24"><path d="M9 5.5l6.5 6.5L9 18.5"/></svg>',
   };
+  // 详情页四个操作的实心图标（和设置里的图标同一种画法：.f 填色、.s 粗线、.k2 用底块颜色挖空）
+  const SOLID = {
+    share: '<svg viewBox="0 0 24 24"><path class="f" d="M6.2 10h2.6v2.2H7.4v6.4h9.2v-6.4h-1.4V10h2.6c.7 0 1.2.5 1.2 1.2v8.6c0 .7-.5 1.2-1.2 1.2H6.2c-.7 0-1.2-.5-1.2-1.2v-8.6c0-.7.5-1.2 1.2-1.2z"/><path class="s" d="M12 14.2V4.2M8.6 7.4L12 4l3.4 3.4"/></svg>',
+    cam: '<svg viewBox="0 0 24 24"><path class="f" d="M4 8.2c0-1.1.9-2 2-2h2.1l1.4-2.2h5l1.4 2.2H18c1.1 0 2 .9 2 2V18c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2z"/><circle class="k2" cx="12" cy="13" r="4"/><circle class="f" cx="12" cy="13" r="2.4"/></svg>',
+    hl: '<svg viewBox="0 0 24 24"><path class="f" d="M14.4 3.7a2 2 0 0 1 2.8 0l2.9 2.9a2 2 0 0 1 0 2.8l-8.9 8.9-5.7-5.7z"/><path class="f" d="M4.6 14l5.1 5.1-1 .9H4.6z"/><path class="s" d="M13.5 20.5h6"/></svg>',
+    pin: '<svg viewBox="0 0 24 24"><path class="f" d="M8.6 3h6.8c.6 0 1.1.6 1 1.2l-.8 3.7 3 3c.3.2.4.5.4.8V13c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1.3c0-.3.1-.6.4-.8l3-3-.8-3.7C7.5 3.6 8 3 8.6 3z"/><path class="s" d="M12 14v6.6"/></svg>',
+  };
   // App 里用原生液态玻璃画按钮时，图标换成对应的系统符号（SF Symbols）
   const SF = { list: 'list.bullet', cal: 'calendar', share: 'square.and.arrow.up', cam: 'camera', hl: 'highlighter', pin: 'pin', note: 'note.text', photo: 'photo',
     plus: 'plus', more: 'ellipsis', close: 'xmark', flip: 'arrow.triangle.2.circlepath.camera', back: 'chevron.left', trash: 'trash', chev: 'chevron.right' };
@@ -413,7 +420,7 @@
     } catch (e) { UI.toast(T('照片读取失败')); }
   }
   Days.parts = { T, F, TT, FT, info, amount, stateWord, repLabel, fmtDate, fmtDateTime, clock, milestone, milestonesIn, hits, occurrence, diffDays, t0,
-    toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, firstChar, UI_IC, emojiOf, iconOf, catColor, DUO, COVERS, setCover, setCoverFile, CATS, catDef, catOf, subKey, subName, photoURL, addPhotos, removePhoto, PDB, loadImg, DICT, LANG, dark };
+    toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, firstChar, UI_IC, SOLID, emojiOf, iconOf, catColor, DUO, COVERS, setCover, setCoverFile, CATS, catDef, catOf, subKey, subName, photoURL, addPhotos, removePhoto, PDB, loadImg, DICT, LANG, dark };
 })();
 
 /* ---------- 纪念日历视图：列表 / 日历、详情、编辑、小纸条 ---------- */
@@ -421,7 +428,7 @@
   'use strict';
   const MC = window.MC, UI = MC.UI, $ = UI.$, esc = MC.esc, Days = MC.Days;
   const P = Days.parts;
-  const { T, F, info, amount, stateWord, repLabel, fmtDate, fmtDateTime, clock, milestone, milestonesIn, hits, diffDays, t0, toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, UI_IC, CATS, catDef, catOf, subKey, subName } = P;
+  const { T, F, info, amount, stateWord, repLabel, fmtDate, fmtDateTime, clock, milestone, milestonesIn, hits, diffDays, t0, toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, UI_IC, SOLID, CATS, catDef, catOf, subKey, subName } = P;
   const body = document.body;
   const isOn = () => body.dataset.kind === 'days';
   const calId = () => MC.activeCal();
@@ -789,10 +796,10 @@
       ${inf.prog !== null ? `<div class="dp-prog" aria-hidden="true"><span style="width:${(inf.prog * 100).toFixed(1)}%;--tone:var(--${inf.state === 'past' ? 'past' : 'fut'})"></span></div>` : ''}
       ${extra.length ? `<div class="dp-ms">${extra.map(t => `<p>${t}</p>`).join('')}</div>` : ''}
       <div class="dd-acts">
-        <button data-dd="share"><span class="ai" style="--ac:#5B8DEF">${UI_IC.share}</span><span>${T('分享图片')}</span></button>
-        <button data-dd="cam"><span class="ai" style="--ac:#8B6FD6">${UI_IC.cam}</span><span>${T('透明相机')}</span></button>
-        <button data-dd="hl" class="${x.hl ? 'on' : ''}" style="${x.hl ? hlVars(x.hl) : ''}"><span class="ai" style="--ac:${x.hl ? 'var(--hl)' : '#E0869A'}">${UI_IC.hl}</span><span>${x.hl ? T('已高亮') : T('高亮')}</span></button>
-        <button data-dd="pin" class="${x.pin ? 'on' : ''}"><span class="ai" style="--ac:#E3A048">${UI_IC.pin}</span><span>${x.pin ? T('已置顶') : T('置顶')}</span></button>
+        <button data-dd="share"><span class="ai" style="--ac:#5B8DEF">${SOLID.share}</span><span>${T('分享图片')}</span></button>
+        <button data-dd="cam"><span class="ai" style="--ac:#8B6FD6">${SOLID.cam}</span><span>${T('透明相机')}</span></button>
+        <button data-dd="hl" class="${x.hl ? 'on' : ''}" style="${x.hl ? hlVars(x.hl) : ''}"><span class="ai" style="--ac:${x.hl ? 'var(--hl)' : '#E0869A'}">${SOLID.hl}</span><span>${x.hl ? T('已高亮') : T('高亮')}</span></button>
+        <button data-dd="pin" class="${x.pin ? 'on' : ''}"><span class="ai" style="--ac:#E3A048">${SOLID.pin}</span><span>${x.pin ? T('已置顶') : T('置顶')}</span></button>
       </div>
       <div class="group dd-info">
         <div class="dd-kv"><span>${x.rep || inf.state === 'past' ? T('起始日') : T('目标日')}</span><b>${esc(fmtDateTime(P.occurrence({ ...x, rep: '' }, t0()), x.time))}</b></div>
