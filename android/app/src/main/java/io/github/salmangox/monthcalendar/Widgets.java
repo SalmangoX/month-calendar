@@ -64,7 +64,7 @@ final class Widgets {
     }
 
     // ---------- 资源 id（42 个格子，按名字查一次后缓存） ----------
-    private static int[] N, CELL, MORE, DOTS, WDAY, BARS;
+    private static int[] N, CELL, MORE, DOTS, WDAY, BARS, ROW;
     private static int[][] EV, OD;
 
     private static synchronized void ids(Context c) {
@@ -72,6 +72,8 @@ final class Widgets {
         String pkg = c.getPackageName();
         android.content.res.Resources r = c.getResources();
         N = new int[42]; CELL = new int[42]; MORE = new int[42]; DOTS = new int[42]; WDAY = new int[7];
+        ROW = new int[6];
+        for (int r = 0; r < 6; r++) ROW[r] = r.getIdentifier("row" + r, "id", pkg);
         EV = new int[42][3]; OD = new int[42][3];
         for (int i = 0; i < 42; i++) {
             N[i] = r.getIdentifier("n" + i, "id", pkg);
@@ -156,7 +158,7 @@ final class Widgets {
         // 这个月实际需要几行：最后一整行都是下个月的话，整行去掉（列是等分的，隐藏一格会自动重排）
         int off0 = (jsDay - ws + 7) % 7;
         int rows = (int) Math.ceil((off0 + ym.lengthOfMonth()) / 7.0);
-        for (int i = rows * 7; i < 42; i++) rv.setViewVisibility(CELL[i], android.view.View.GONE);
+        for (int r = rows; r < 6; r++) if (ROW != null && ROW[r] != 0) rv.setViewVisibility(ROW[r], android.view.View.GONE);
 
         for (int i = 0; i < 42; i++) {
             if (i >= rows * 7) continue;
@@ -587,7 +589,7 @@ final class Widgets {
         // 这个月实际需要几行：最后一整行都是下个月的话，整行去掉（列是等分的，隐藏一格会自动重排）
         int off0 = (jsDay - ws + 7) % 7;
         int rows = (int) Math.ceil((off0 + ym.lengthOfMonth()) / 7.0);
-        for (int i = rows * 7; i < 42; i++) rv.setViewVisibility(CELL[i], android.view.View.GONE);
+        for (int r = rows; r < 6; r++) if (ROW != null && ROW[r] != 0) rv.setViewVisibility(ROW[r], android.view.View.GONE);
 
         for (int i = 0; i < 42; i++) {
             if (i >= rows * 7) continue;
