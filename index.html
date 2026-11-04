@@ -637,14 +637,14 @@
       pager.classList.add('idle');
       pages[dg.pg].classList.add('drag');
       pages[to].classList.add('drag');
-      pages[to].style.transform = `translate3d(${to === 'sched' ? dg.W : -dg.W}px,0,0)`;
+      pages[to].style.transform = `translate3d(${to === 'sched' ? 100 : -100}%,0,0)`;   // 用百分比，边缘严丝合缝
       // 页面此刻已经有真实宽高了，这时候画日程才不会挤成一团
       if (to === 'sched') { try { MC.Sched.render(); } catch (e) {} }
     }
     e.preventDefault();
-    const sign = dg.to === 'sched' ? 1 : -1;
+    const pct = dg.to === 'sched' ? 100 : -100;
     pages[dg.pg].style.transform = `translate3d(${dx}px,0,0)`;
-    pages[dg.to].style.transform = `translate3d(${dx + sign * dg.W}px,0,0)`;
+    pages[dg.to].style.transform = `translate3d(calc(${pct}% + ${dx}px),0,0)`;
   }, { capture: true, passive: false });
 
   const endDrag = e => {
@@ -667,11 +667,11 @@
     if (!go) {
       // 另一页本来就在屏幕外：直接收走，避免它跟着动画又“闪”一下
       nxt.style.transition = 'none';
-      nxt.style.transform = `translate3d(${sign * d.W * 1.4}px,0,0)`;
+      nxt.style.transform = `translate3d(${sign * 100}%,0,0)`;
       requestAnimationFrame(() => { nxt.classList.remove('drag'); });
     }
-    cur.style.transform = `translate3d(${go ? -sign * d.W : 0}px,0,0)`;
-    nxt.style.transform = `translate3d(${go ? 0 : sign * d.W}px,0,0)`;
+    cur.style.transform = `translate3d(${go ? -sign * 100 : 0}%,0,0)`;
+    nxt.style.transform = `translate3d(${go ? 0 : sign * 100}%,0,0)`;
 
     // 等动画真的播完再收尾，固定 250ms 会在动画中途把页面抽掉，看起来像卡一下
     let done = false;
