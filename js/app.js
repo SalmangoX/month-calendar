@@ -80,14 +80,12 @@
     kick();
   }
   function showPage(p) {
-    document.dispatchEvent(new CustomEvent('mc:beforepagechange'));
     page = p;
     document.body.dataset.page = p;
     document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.id === 'page-' + p));
     tabs().forEach(b => b.classList.toggle('on', b.dataset.page === p));
     placeInd();
     renderPage();
-    document.dispatchEvent(new CustomEvent('mc:pagechange', { detail: { page: p } }));
   }
   // 菜单第三项：四象限 / 课表 / 不显示
   const TAB3 = {
@@ -1651,7 +1649,6 @@
   MC.back = () => {
     if (UI.confirmOpen()) { UI.closeConfirm(); return true; }
     if (document.documentElement.classList.contains('locked')) return false;
-    if (MC.Navigation && MC.Navigation.isOpen()) { MC.Navigation.close(true); return true; }
     if (UI.menuOpen()) { UI.closeMenu(); return true; }
     if (UI.anyOpen()) { UI.close(); return true; }
     if (MC.Drawer.isOpen()) { MC.Drawer.close(); return true; }

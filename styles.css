@@ -180,15 +180,16 @@ svg.filled { fill: currentColor; stroke: none; }
 
 /* ---------- 顶栏 ---------- */
 .topbar { display: flex; align-items: center; justify-content: center; padding: 6px 14px 2px; flex: none; position: relative; z-index: 2; }
-.gbtn { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 650; color: var(--text); }
+.gbtn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 650; color: var(--text); }
 .today-ico { font-size: 11.5px; font-weight: 750; line-height: 1; border: 1.5px solid currentColor; border-radius: 6px; padding: 4px 0 3px; width: 21px; text-align: center; }
 .title-wrap { display: flex; align-items: center; gap: 2px; }
-.nav-btn { width: 48px; height: 48px; flex: none; font-size: 24px; line-height: 1; color: var(--text3); border-radius: var(--r-s); transition: color .15s; }
+.nav-btn { width: 32px; height: 36px; font-size: 24px; line-height: 1; color: var(--text3); border-radius: var(--r-s); transition: color .15s; }
 .nav-btn:active { color: var(--text2); }
 .title { text-align: center; min-width: 100px; cursor: pointer; }
 .title h1 { margin: 0; font-size: 18px; font-weight: 680; letter-spacing: .01em; }
 .title p { margin: 2px 0 0; font-size: 11px; color: var(--text2); font-variant-numeric: tabular-nums; }
 
+body .weekdays { display: none; }
 .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); font-size: 11px; color: var(--text2); text-align: center; padding: 8px 4px 6px; flex: none; }
 .weekdays.hide { visibility: hidden; height: 6px; padding: 0; }
 
@@ -494,6 +495,13 @@ body[data-page="sched"] .fab { background: #34A853; } /* 课表页的加号是�
 .tabbar button.on { color: var(--accent-text); }
 .tabbar.dragging button.hover { color: var(--accent-text); }
 .tab-avatar { width: 24px; height: 24px; border-radius: 50%; background-size: cover; background-position: center; box-shadow: 0 0 0 1.5px currentColor; }
+.back-today {
+  position: absolute; right: 22px; bottom: calc(var(--dock-b) + 152px); z-index: 16;
+  width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; color: var(--text2);
+  opacity: .72; transition: opacity .25s, transform .25s var(--ease);
+}
+.back-today[hidden] { display: grid; opacity: 0; transform: scale(.7); pointer-events: none; }
+body:not([data-page="cal"]) .back-today { display: none; }
 .fab {
   position: absolute; right: 18px; bottom: var(--fab-b); z-index: 16;
   width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
@@ -1386,150 +1394,386 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .lg-native .lgx .on { background: transparent !important; box-shadow: none !important; }
 .lg-native .lgbar.dragging .lg-thumb { opacity: 0 !important; } /* 拖动时整颗水滴换成原生的透明玻璃透镜 */
 
-/* ---------- Primary navigation ---------- */
-:root {
-  --nav-size: 56px;
-  --nav-edge: 20px;
-  --nav-bottom: max(16px, calc(var(--safe-b) + 12px));
-  --bar-space: calc(var(--nav-bottom) + var(--nav-size) + 18px);
-  --nav-surface: color-mix(in srgb, var(--surface) 88%, transparent);
-  --nav-shadow: 0 4px 16px rgba(20, 30, 45, .09), inset 0 0 0 1px var(--group-line);
-  --fan-x: 78px;
-  --fan-d: 76px;
-  --back-off: 152px;
-}
-body[data-kind="days"] { --bar-space: calc(var(--dock-h) + var(--dock-b) + 8px); }
-body:not([data-kind="days"]) #fab,
+/* ===== 新底栏 ===== */
+body:not([data-kind="days"]) #fab { display: none; }
 body:not([data-kind="days"]) .dock { display: none; }
 body[data-kind="days"] .dock2 { display: none; }
 
 .dock2 {
-  position: absolute; left: max(var(--nav-edge), env(safe-area-inset-left, 0px));
-  right: max(var(--nav-edge), env(safe-area-inset-right, 0px)); bottom: var(--nav-bottom); z-index: 16;
-  display: flex; align-items: center; justify-content: space-between; height: var(--nav-size);
-  pointer-events: none;
+  position: absolute; left: 0; right: 0; bottom: calc(var(--dock-b) + 36px); z-index: 16;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px; pointer-events: none;
 }
 .dock2.hide { display: none; }
 .dock2 > * { pointer-events: auto; }
-.pod, .fan {
-  position: relative; display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 999px; color: var(--text); touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-.pod {
-  background: var(--nav-surface); box-shadow: var(--nav-shadow);
-  -webkit-backdrop-filter: blur(20px) saturate(140%); backdrop-filter: blur(20px) saturate(140%);
-  transition: transform 160ms var(--ease), background 160ms ease;
-}
-.pod:active { transform: scale(.95); background: var(--surface); }
-.pod-today { height: var(--nav-size); min-width: 104px; padding: 0 20px; }
-.today-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.today-time { display: flex; align-items: baseline; gap: 4px; font-size: 16px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.today-time small { font-size: 10px; font-weight: 500; color: var(--text2); letter-spacing: 0; }
-#bubbleTodayCaption { font-size: 11px; line-height: 1.2; font-weight: 500; color: var(--text2); }
-.pod-today[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
-.pod-menu, .pod-logo { width: var(--nav-size); height: var(--nav-size); flex: none; }
-.pod-menu { position: relative; }
-.pod-logo { padding: 0; }
-.pod-logo img { width: 36px; height: 36px; display: block; transition: transform 240ms var(--ease); }
-.pod-menu.open .pod-logo img { transform: rotate(45deg) scale(.9); }
-.pod-menu.open .pod-logo { background: var(--surface); }
 
-/* Each satellite has a 56px hit target around its 48px visual surface. */
+/* 液态玻璃：几乎全透，靠一圈薄边高光 + 边缘折射显形 */
+.pod, .fan {
+  position: relative; border: 0; color: var(--text); font-family: inherit; cursor: pointer;
+  border-radius: 999px; display: grid; place-items: center; overflow: hidden;
+  background: rgba(255, 255, 255, .015);
+  -webkit-backdrop-filter: blur(1.5px) saturate(210%) brightness(1.04);
+  backdrop-filter: blur(1.5px) saturate(210%) brightness(1.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    inset 0 -1px 0 rgba(0, 0, 0, .05),
+    inset 1px 0 0 rgba(255, 255, 255, .40),
+    inset -1px 0 0 rgba(255, 255, 255, .25),
+    0 6px 16px rgba(30, 45, 70, .09);
+  transition: transform .18s var(--ease-spring, ease);
+}
+/* 一圈会随角度变亮变暗的镜面边：只在 1px 上显形，中间保持全透 */
+.pod::after, .fan::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  padding: 1px;
+  background: conic-gradient(from 210deg,
+    rgba(255, 255, 255, .95), rgba(255, 255, 255, .18) 22%,
+    rgba(255, 255, 255, .05) 46%, rgba(255, 255, 255, .55) 68%,
+    rgba(255, 255, 255, .95) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: .9;
+}
+:root[data-theme="dark"] .pod, :root[data-theme="dark"] .fan { background: rgba(255, 255, 255, .03); }
+:root[data-theme="dark"] .pod::after, :root[data-theme="dark"] .fan::after { opacity: .5; }
+.pod-today {
+  height: 50px; padding: 0 19px; border-radius: 999px; z-index: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 560; letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
+}
+.pod-today span { position: relative; top: -.5px; }          /* 中文字重心略低，抬半像素看着才居中 */
+
+.pod-menu { position: relative; width: 58px; height: 58px; }
+.pod-logo { width: 58px; height: 58px; border-radius: 29px; padding: 0; }
+.pod-logo img { width: 38px; height: 38px; display: block; position: relative; z-index: 1; transition: transform .32s var(--ease-spring, ease); }
+.pod-menu.open .pod-logo { transform: scale(.9); }
+.pod-menu.open .pod-logo img { transform: rotate(90deg); }
+
 .fan {
-  --x: 0px; --y: 0px;
-  position: absolute; right: 0; bottom: 0; width: 56px; height: 56px;
-  gap: 8px; opacity: 0; visibility: hidden; pointer-events: none;
-  transform: translate(0, 0) scale(.7);
-  transition: transform 260ms cubic-bezier(.2,.8,.2,1), opacity 140ms ease, visibility 260ms;
+  position: absolute; right: 1px; bottom: 1px; width: 56px; height: 56px; border-radius: 28px;
+  opacity: 0; pointer-events: none; transform: translate(0, 0) scale(.4);
+  transition: transform .34s cubic-bezier(.2, .9, .22, 1.18), opacity .2s ease;
 }
-.fan::before {
-  content: ""; position: absolute; inset: 4px; border-radius: inherit; z-index: -1;
-  background: var(--nav-surface); box-shadow: var(--nav-shadow);
-  -webkit-backdrop-filter: blur(20px) saturate(140%); backdrop-filter: blur(20px) saturate(140%);
-}
-.fan-set { --x: calc(-1 * var(--fan-x)); --y: -18px; }
-.fan-add { --x: -28px; --y: calc(-1 * var(--fan-d)); color: var(--accent-text); }
-.fan-cal { --y: -148px; color: var(--accent-text); }
-.pod-menu.open .fan { opacity: 1; visibility: visible; pointer-events: auto; transform: translate(var(--x), var(--y)) scale(1); }
-.pod-menu.open .fan-add { transition-delay: 25ms; }
-.pod-menu.open .fan-cal { transition-delay: 45ms; }
-.pod-menu.open .fan:active { transform: translate(var(--x), var(--y)) scale(.94); transition-duration: 100ms; }
-.nav-scrim { position: absolute; inset: 0; z-index: 15; background: rgba(10, 15, 25, .16); cursor: default; }
+.pod-menu.open .fan { opacity: 1; pointer-events: auto; }
+.pod-menu.open .fan-set { transform: translate(-80px, 0) scale(1); transition-delay: .01s; }
+.pod-menu.open .fan-add { transform: translate(-58px, -58px) scale(1); transition-delay: .05s; }
+.fan svg { position: relative; z-index: 1; }
 
 .pager {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  height: 28px; padding: 0 6px; pointer-events: none;
-  transition: opacity 240ms ease;
+  position: absolute; left: 50%; bottom: -30px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 13px; border-radius: 13px;
+  background: rgba(255, 255, 255, .02); box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 .5px rgba(255,255,255,.45), 0 5px 14px rgba(30,45,70,.08);
+  -webkit-backdrop-filter: blur(2px) saturate(200%); backdrop-filter: blur(2px) saturate(200%);
+  transition: opacity .35s ease;
 }
-.pager i { width: 5px; height: 5px; border-radius: 3px; background: var(--text2); opacity: .35; transition: width 220ms var(--ease), opacity 220ms ease; }
-.pager i.on { width: 15px; opacity: .85; background: var(--accent-text); }
-.pager.idle { opacity: .65; }
-/* A page boundary cannot be undone by an idle/fade style. */
-body:not([data-page="cal"]):not([data-page="sched"]) .pager { display: none; }
+.pager.hide { opacity: 0; pointer-events: none; }
+.pager i { width: 7px; height: 7px; border-radius: 4px; background: var(--text3); transition: width .28s var(--ease-spring, ease), background .2s; }
+.pager i.on { width: 22px; background: var(--accent); }
+.pager.idle { opacity: .55; }
 
 .back-to-cal {
-  display: inline-flex; align-items: center; align-self: flex-start; gap: 5px;
-  min-height: 48px; margin: 8px 0 4px; padding: 0 12px 0 8px;
-  border-radius: 16px; color: var(--accent-text); font-size: 16px; font-weight: 500;
-  transition: background 160ms ease, transform 160ms var(--ease);
+  display: inline-flex; align-items: center; gap: 3px; margin: 8px 16px 2px;
+  height: 34px; padding: 0 14px 0 9px; border: 0; border-radius: 17px; cursor: pointer;
+  font-family: inherit; font-size: 14px; font-weight: 550; color: var(--text2);
+  background: var(--frost); box-shadow: var(--glass-rim);
+  -webkit-backdrop-filter: var(--glass-fx); backdrop-filter: var(--glass-fx);
+  transition: transform .16s var(--ease-spring, ease), color .18s;
 }
-.back-to-cal svg { width: 20px; height: 20px; }
-.back-to-cal:active { background: var(--field); transform: translateX(-2px); }
-.back-today {
-  position: absolute; z-index: 16; display: grid; place-items: center; border-radius: 50%;
-  transition: opacity 180ms ease, transform 180ms var(--ease);
-  right: max(var(--nav-edge), env(safe-area-inset-right, 0px));
-  bottom: calc(var(--nav-bottom) + var(--back-off)); width: 56px; height: 56px;
-  opacity: 1; background: var(--nav-surface); box-shadow: var(--nav-shadow); color: var(--accent-text);
+.back-to-cal:active { transform: scale(.95); color: var(--text); }
+
+/* 真折射：把背景按噪声位移，边缘会有液体似的扭曲（Chromium） */
+.lg-refract .pod, .lg-refract .fan {
+  -webkit-backdrop-filter: blur(2px) saturate(220%) url(#lg-refract);
+  backdrop-filter: blur(2px) saturate(220%) url(#lg-refract);
 }
-body:not([data-page="cal"]) .back-today { display: none; }
+/* WebKit（iOS / Mac 壳）：做不了位移折射，改用更重的模糊 + 更亮的镜面 */
+.native-ios .pod, .native-ios .fan,
+.native-mac .pod, .native-mac .fan {
+  background: color-mix(in srgb, #fff 10%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(200%) brightness(1.03);
+  backdrop-filter: blur(14px) saturate(200%) brightness(1.03);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, .95),
+    inset 0 -1.5px 0 color-mix(in srgb, var(--accent) 24%, transparent),
+    inset 0 0 0 .5px var(--frost-edge),
+    0 12px 30px rgba(30, 45, 70, .16);
+}
+
+/* 日程页的「回到本周」：位置和日历的「回到今天」一致，浮在 logo 气泡上方 */
 .sched-back { display: none; }
 body[data-page="sched"] .sched-back { display: grid; }
-body.tune-show-back .back-today { display: grid !important; opacity: 1 !important; transform: none !important; }
+body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); pointer-events: none; }
 
-/* The month is part of layout, below the safe area; it never covers dates or a cutout. */
-#page-cal .topbar { position: relative; padding: 12px 16px 10px; min-height: 70px; z-index: 6; }
-#page-cal .title {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 48px; min-width: 148px; padding: 0 18px; border-radius: 24px;
-  background: var(--nav-surface); box-shadow: inset 0 0 0 1px var(--group-line);
-  transition: background 160ms ease, transform 160ms var(--ease);
-}
-#page-cal .title:active { background: var(--surface); transform: scale(.97); }
-#calTitle { font-size: 20px; line-height: 1.2; font-weight: 600; letter-spacing: -.025em; }
-#calSub { font-size: 12px; line-height: 1.2; font-weight: 450; color: var(--text2); font-variant-numeric: tabular-nums; }
-#page-cal .title svg { margin-left: 2px; color: var(--text2); }
-body:not([data-kind="days"]) #page-cal .cal-body { padding-bottom: var(--bar-space); }
-.weekdays { padding: 0 4px 10px; font-size: 11px; font-weight: 500; letter-spacing: .04em; }
-.mframe path { stroke-opacity: .22; stroke-width: 1; stroke-dasharray: none; }
-:root[data-theme="dark"] .mframe path { stroke-opacity: .22; }
-#page-sched .ptitle { padding: 16px 20px 8px; align-items: center; }
-#page-sched .ptitle h1 { font-size: 26px; font-weight: 650; }
-#page-sched .sc-nav { padding: 0 12px 8px; }
-#page-sched .sc-week { min-height: 48px; justify-content: center; gap: 3px; }
-#page-sched .sc-week b { font-size: 15px; }
-#page-sched .sc-week small { font-size: 12px; }
-.page.drag { display: flex !important; animation: none !important; will-change: transform; background: var(--bg); backface-visibility: hidden; }
-.page.no-in, #page-today.active { animation: none !important; }
+/* 日程页抬头收紧：标题小一号、上下留白减半，周导航贴紧 */
+#page-sched .ptitle { padding: 8px 18px 2px; align-items: center; }
+#page-sched .ptitle h1 { font-size: 23px; }
+#page-sched .sc-nav { padding: 0 8px 4px; }
+#page-sched .sc-week { padding: 1px 0; }
+#page-sched .sc-week b { font-size: 14.5px; }
+#page-sched .sc-week small { font-size: 11px; }
+
+
+/* deploy retry */
+
+/* 拖拽切页时两页同时在场 */
+.page.drag { display: flex !important; animation: none !important; will-change: transform; }
+
+.page.no-in { animation: none !important; }
+
+/* 切页时两页底色一致，任何一帧的缝隙都不会露出白底 */
 #page-cal, #page-sched { background: var(--bg); }
+.page.drag { background: var(--bg); will-change: transform; backface-visibility: hidden; }
 
-/* Small glyphs keep their visual weight, while touch targets remain generous. */
-.help { position: relative; width: 48px; height: 48px; background: transparent; }
-.help::before { content: ""; position: absolute; inset: 12px; border-radius: 50%; background: var(--accent-soft); pointer-events: none; }
-button { touch-action: manipulation; }
-@media (max-width: 359px) {
-  :root { --nav-edge: 16px; }
-  .pod-today { min-width: 92px; padding: 0 16px; }
-  .pager { left: 51%; }
+/* deploy 1533 */
+
+/* 今日气泡：时钟 */
+
+.pod-today span i { font-style: normal; animation: pv-blink 1s steps(1, end) infinite; }
+.pod-today span s { text-decoration: none; font-size: 7px; opacity: .42; margin-left: .5px; vertical-align: baseline; display: inline-block; transform: translateY(-3px); letter-spacing: .02em; }
+@keyframes pv-blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: .2 } }
+
+/* 没有返回键时，扇形铺开、按钮略大；设置始终在水平位置 */
+.pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
+.pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
+
+#page-today.active { animation: none; }
+#page-cal { z-index: 1; }
+#page-today { z-index: 2; }
+.page.pv-hold { display: flex !important; }
+/* 没有返回键时，扇形铺开、按钮略大；设置始终在水平位置 */
+.pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
+.pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
+
+#page-today.active { animation: none; }   /* 关掉默认淡入，改用下面的缩放进场 */
+#page-cal { z-index: 1; }
+#page-today { z-index: 2; }
+
+/* 切换时两页同时在场：旧页往后退、变暗，新页从气泡位置长出来 */
+.page.pv-hold { display: flex !important; animation: none !important; }
+
+#page-today.pv-in { animation: pvIn .46s cubic-bezier(.12,.86,.2,1.02); will-change: transform, opacity; }
+#page-today.pv-out { animation: pvOut .3s cubic-bezier(.5,0,.75,.2) forwards; will-change: transform, opacity; }
+#page-cal.pv-behind { animation: pvBehind .5s cubic-bezier(.2,.8,.3,1) forwards; will-change: transform, opacity, filter; }
+#page-cal.pv-front { animation: pvFront .46s cubic-bezier(.16,.86,.24,1); will-change: transform, opacity, filter; }
+
+@keyframes pvIn {
+  from { opacity: 0; transform: scale(.42); }
+  55%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
 }
-@media (max-height: 520px) and (orientation: landscape) {
-  :root { --nav-bottom: max(8px, var(--safe-b)); --nav-size: 48px; }
-  #page-cal .topbar { min-height: 56px; padding: 4px 16px; }
+@keyframes pvOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(.42); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .page, .pod, .fan, .pod-logo img, .pager, .pager i, .back-to-cal, .back-today, #calZoom {
-    animation: none !important; transition: none !important;
-  }
+@keyframes pvBehind {
+  from { transform: none; opacity: 1; filter: none; }
+  to   { transform: scale(.93) translateY(6px); opacity: .45; filter: saturate(.85) blur(.5px); }
 }
+@keyframes pvFront {
+  from { transform: scale(.93) translateY(6px); opacity: .45; filter: saturate(.85) blur(.5px); }
+  to   { transform: none; opacity: 1; filter: none; }
+}
+/* 没有返回键时，扇形铺开、按钮略大；设置始终在水平位置 */
+.pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
+.pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
+
+#page-today.active { animation: none; }   /* 关掉默认淡入，改用下面的缩放展开 */
+#page-today.pv-in {
+  animation: pvIn .46s cubic-bezier(.12,.86,.2,1.02);
+  will-change: transform, opacity;
+}
+#page-today.pv-out {
+  animation: pvOut .3s cubic-bezier(.5,0,.75,.2) forwards;
+  will-change: transform, opacity;
+}
+@keyframes pvIn {
+  from { opacity: 0; transform: scale(.42); }
+  55%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes pvOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(.42); }
+}
+/* 没有返回键时，扇形铺开、按钮略大；设置始终在水平位置 */
+.pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
+.pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
+
+#page-today { --cx: 50vw; --cy: 100vh; }
+#page-today.circle-in { animation: pvCircleIn .42s cubic-bezier(.2,.85,.25,1); }
+#page-today.circle-out { animation: pvCircleOut .34s cubic-bezier(.4,0,.7,.2) forwards; }
+@keyframes pvCircleIn {
+  from { clip-path: circle(0 at var(--cx) var(--cy)); opacity: .55; }
+  to   { clip-path: circle(150% at var(--cx) var(--cy)); opacity: 1; }
+}
+@keyframes pvCircleOut {
+  from { clip-path: circle(150% at var(--cx) var(--cy)); opacity: 1; }
+  to   { clip-path: circle(0 at var(--cx) var(--cy)); opacity: .6; }
+}
+
+/* 今日气泡：时钟 */
+
+.pod-today span i { font-style: normal; animation: pv-blink 1s steps(1, end) infinite; }
+.pod-today span s { text-decoration: none; font-size: 7px; opacity: .42; margin-left: .5px; vertical-align: baseline; display: inline-block; transform: translateY(-3px); letter-spacing: .02em; }
+@keyframes pv-blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: .2 } }
+
+/* 没有返回键时，扇形铺开、按钮略大；设置始终在水平位置 */
+.pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
+.pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
+
+#page-today.active { animation: none; }   /* 关掉默认淡入，改用下面的缩放进场 */
+#page-cal { z-index: 1; }
+#page-today { z-index: 2; }
+
+/* 切换时两页同时在场：旧页往后退、变暗，新页从气泡位置长出来 */
+.page.pv-hold { display: flex !important; animation: none !important; }
+
+#page-today.pv-in { animation: pvIn .46s cubic-bezier(.12,.86,.2,1.02); will-change: transform, opacity; }
+#page-today.pv-out { animation: pvOut .3s cubic-bezier(.5,0,.75,.2) forwards; will-change: transform, opacity; }
+#page-cal.pv-behind { animation: pvBehind .5s cubic-bezier(.2,.8,.3,1) forwards; will-change: transform, opacity, filter; }
+#page-cal.pv-front { animation: pvFront .46s cubic-bezier(.16,.86,.24,1); will-change: transform, opacity, filter; }
+
+@keyframes pvIn {
+  from { opacity: 0; transform: scale(.42); }
+  55%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes pvOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(.42); }
+}
+@keyframes pvBehind {
+  from { transform: none; opacity: 1; filter: none; }
+  to   { transform: scale(.93) translateY(6px); opacity: .45; filter: saturate(.85) blur(.5px); }
+}
+@keyframes pvFront {
+  from { transform: scale(.93) translateY(6px); opacity: .45; filter: saturate(.85) blur(.5px); }
+  to   { transform: none; opacity: 1; filter: none; }
+}
+/* 没有返回键时，扇形铺开、按钮略大；设置始终在水平位置 */
+.pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
+.pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
+
+#page-today.active { animation: none; }   /* 关掉默认淡入，改用下面的缩放展开 */
+#page-today.pv-in {
+  animation: pvIn .46s cubic-bezier(.12,.86,.2,1.02);
+  will-change: transform, opacity;
+}
+#page-today.pv-out {
+  animation: pvOut .3s cubic-bezier(.5,0,.75,.2) forwards;
+  will-change: transform, opacity;
+}
+@keyframes pvIn {
+  from { opacity: 0; transform: scale(.42); }
+  55%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes pvOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(.42); }
+}
+/* 没有返回键时，扇形铺开、按钮略大；设置始终在水平位置 */
+.pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
+.pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
+
+#page-today { --cx: 50vw; --cy: 100vh; }
+#page-today.circle-in { animation: pvCircleIn .42s cubic-bezier(.2,.85,.25,1); }
+#page-today.circle-out { animation: pvCircleOut .34s cubic-bezier(.4,0,.7,.2) forwards; }
+@keyframes pvCircleIn {
+  from { clip-path: circle(0 at var(--cx) var(--cy)); opacity: .55; }
+  to   { clip-path: circle(150% at var(--cx) var(--cy)); opacity: 1; }
+}
+@keyframes pvCircleOut {
+  from { clip-path: circle(150% at var(--cx) var(--cy)); opacity: 1; }
+  to   { clip-path: circle(0 at var(--cx) var(--cy)); opacity: .6; }
+}
+
+/* 月份信息改成悬浮：不占布局高度，日历能多显示一行 */
+/* 星期那行让开悬浮的月份，日历整体仍然比原来多出一截 */
+
+/* 悬浮月份：液态玻璃，位置贴在当月星期行的正上方，不压日期 */
+#page-cal .topbar {
+  position: absolute; left: 0; right: 0; top: calc(var(--rowh, 140px) * var(--pill-k, .72) - var(--pill-gap, 72px));
+  z-index: 6; pointer-events: none;
+}
+#page-cal .topbar .title-wrap { pointer-events: none; }
+#page-cal .topbar .title {
+  pointer-events: auto;
+  display: inline-flex; align-items: baseline; gap: 7px;
+  padding: 9px 26px; border-radius: 999px; min-width: 0;
+  background: rgba(255, 255, 255, .015);
+  -webkit-backdrop-filter: blur(1.5px) saturate(210%) brightness(1.04);
+  backdrop-filter: blur(1.5px) saturate(210%) brightness(1.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    inset 0 -1px 0 rgba(0, 0, 0, .05),
+    0 6px 16px rgba(30, 45, 70, .09);
+  position: relative; overflow: hidden;
+}
+#page-cal .topbar .title::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 1px;
+  background: conic-gradient(from 210deg,
+    rgba(255,255,255,.95), rgba(255,255,255,.18) 22%, rgba(255,255,255,.05) 46%,
+    rgba(255,255,255,.55) 68%, rgba(255,255,255,.95) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+#page-cal .topbar .title h1 { font-size: 22px; letter-spacing: -.01em; line-height: 1; }
+#page-cal .topbar .title p { font-size: 12px; margin: 0; opacity: .72; font-variant-numeric: tabular-nums; line-height: 1; }
+
+/* 每个月第一天那一行上方的星期条，跟着内容一起滚 */
+.mwd {
+  position: absolute; left: 6px; right: 6px; height: 22px; z-index: 3;
+  display: grid; grid-template-columns: repeat(7, 1fr); align-items: center;
+  color: var(--text2); font-size: var(--mwd-fs, 11px); font-weight: 550; letter-spacing: .06em; opacity: var(--mwd-op, 1);
+  background: linear-gradient(to bottom, var(--bg) 70%, transparent);
+  pointer-events: none;
+}
+.mwd span { text-align: center; }
+
+/* 预加载日程页时：占位但不可见，尺寸和真实页面一致，才能按正确宽高渲染 */
+.page.preload { display: flex !important; visibility: hidden; pointer-events: none; }
+
+/* 设计调节器调出来的默认值 */
+:root {
+  --pill-k: .72; --pill-gap: 72px; --pill-fs: 23px; --pill-py: 5px; --pill-px: 29px;
+  --mwd-fs: 11px; --mwd-op: 1;
+}
+
+/* 深色主题：压掉那圈刺眼的亮白描边，只留一道很淡的玻璃边 */
+:root[data-theme="dark"] .pod,
+:root[data-theme="dark"] .fan {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    inset 0 -1px 0 rgba(0, 0, 0, .45),
+    inset 0 0 0 .5px rgba(255, 255, 255, .10),
+    0 6px 16px rgba(0, 0, 0, .55);
+}
+:root[data-theme="dark"] .pod::after,
+:root[data-theme="dark"] .fan::after { opacity: .22; }
+:root[data-theme="dark"] .pager {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), inset 0 0 0 .5px rgba(255, 255, 255, .10), 0 5px 14px rgba(0, 0, 0, .5);
+}
+:root[data-theme="dark"] #page-cal .topbar .title {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), inset 0 0 0 .5px rgba(255, 255, 255, .10), 0 6px 16px rgba(0, 0, 0, .5);
+}
+:root[data-theme="dark"] #page-cal .topbar .title::after { opacity: .22; }
+
+/* deploy retry 1793830753 */
+
+/* 扇形距离与返回键位置（?tune=1 可调） */
+:root { --fan-x: 100px; --fan-d: 70px; --back-off: 152px; }
+.pod-menu.wide .fan-set { transform: translate(calc(-1 * var(--fan-x)), 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(calc(-1 * var(--fan-d)), calc(-1 * var(--fan-d))) scale(1); }
+.back-today { bottom: calc(var(--dock-b) + var(--back-off)); }
+body.tune-show-back .back-today { display: grid !important; opacity: 1 !important; transform: none !important; }

@@ -22,16 +22,18 @@
   // ---------- 尺寸 ----------
   // 打开当天预览时，日历区域变矮：每一周还是原来的高度（不压扁），只是少显示几周，可以照常上下滚动
   let fullH = 0;
+  let firstOpenDone = false;
   function measure() {
     W = vp.clientWidth; H = vp.clientHeight;
     const pv = body.classList.contains('previewing');
     if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
-    rowH = (pv ? fullH : H) / 6;
+    rowH = (pv ? fullH : H) / 6.5;
     const head = 39 + 3; // 数字区 + 底部留白
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
     withMore = Math.floor((rowH - head - 12 + 2) / 17);
     room = rowH - head; tw = (W - 4) / 7 - 8;
     document.documentElement.style.setProperty('--rowh', rowH + 'px');
+    if (!firstOpenDone) { firstOpenDone = true; scrollY = -rowH; }   // 打开时当月第一行也在半行处
   }
   // 时间文字宽度：用 canvas 量，判断一行放不放得下
   let room = 0, tw = 0, mctx = null;
@@ -43,7 +45,11 @@
   const oneLine = e => textW(rangeOf(e)) <= tw - 2;
   function setT(x, y) { track.style.transform = `translate3d(${x}px,${y}px,0)`; try { updateBack(); } catch (e) {} }
   // 今天不在屏幕上（滑到了别的周、月、年）：在加号上方显示「回到今天」
-  let backShown = false;
+  let backShown = false, barPx = null;
+  function barSpace() { // 底部导航栏挡住的高度（--bar-space 换算成像素）
+    if (barPx == null) { const d = document.createElement('div'); d.style.cssText = 'position:absolute;visibility:hidden;height:var(--bar-space)'; document.body.appendChild(d); barPx = d.offsetHeight; d.remove(); }
+    return barPx;
+  }
   function updateBack() {
     const n = new Date();
     let away;
@@ -55,7 +61,7 @@
       // 本周那一行要整行露在导航栏上面才算看得到：压在导航栏下面、只露一截也给返回
       const off = scrollY - Math.round(scrollY / (rowH || 1)) * rowH;
       const row = Math.round((MC.weekStartOf(n) - top) / (7 * 864e5)), rowTop = row * rowH - off;
-      away = rowTop < -2 || rowTop + rowH > H + 2 || focus.y !== n.getFullYear() || focus.m !== n.getMonth(); // 看的是别的月份也算
+      away = rowTop < -2 || rowTop + rowH > H - (body.classList.contains('previewing') ? 0 : barSpace()) + 2 || focus.y !== n.getFullYear() || focus.m !== n.getMonth(); // 看的是别的月份也算
     }
     if (away === backShown) return;
     backShown = away; $('#calBack').hidden = !away;
@@ -178,8 +184,26 @@
       }
       h += barsHTML(lay, days, lims) + '</div>';
     }
+    // 每个月第一天所在的那一行，上方贴一条「日 … 六」
+    let mw = '';
+    for (let r = 0; r < 6 + BUF * 2; r++) {
+      let first = false;
+      for (let c = 0; c < 7; c++) {
+        const d = MC.addDays(start, r * 7 + c);
+        if (d.getDate() === 1) { first = true; break; }
+      }
+      if (first && r > 0) {
+        const mIdx = (() => { for (let c = 0; c < 7; c++) { const d = MC.addDays(start, r * 7 + c); if (d.getDate() === 1) return d; } return null; })();
+        const curIdx = focus.y * 12 + focus.m, thisIdx = mIdx ? mIdx.getFullYear() * 12 + mIdx.getMonth() : -1;
+        if (thisIdx !== curIdx && thisIdx !== curIdx + 1) continue;   // 上方缓冲区的旧月份不画
+        const ws = MC.settings.weekStart;
+        const letters = Array.from({ length: 7 }, (_, i) => `<span>${MC.WD[(i + ws) % 7]}</span>`).join('');
+        mw += `<div class="mwd" style="top:${r * rowH - 22}px">${letters}</div>`;
+      }
+    }
+
     track.style.cssText = '';
-    track.innerHTML = h + `<svg class="mframe" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
+    track.innerHTML = h + mw + `<svg class="mframe" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
     setT(0, -(BUF * rowH + scrollY));
     monthTitle();
     drawFrame();
@@ -211,6 +235,7 @@
     const t1 = $('#calTitle'), t2 = $('#calSub');
     if (!t1) return;                      // 顶部抬头已移除
     t1.textContent = `${focus.m + 1}月`;
+    const { total, done } = tally(`${focus.y}-${MC.pad(focus.m + 1)}-`);
     if (t2) t2.textContent = String(focus.y);
   }
   // ---------- 物理滚动：弹簧动画，接住手指松开时的速度 ----------
@@ -284,6 +309,7 @@
   }
   function snapMonth(v) { // v：滚动速度（px/ms）
     recenter(1);
+    let monthSnap = false;
     const proj = scrollY + v * 230;                      // 按速度预估惯性距离
     let n = Math.round(proj / rowH);
     const cur = scrollY / rowH;
@@ -298,8 +324,10 @@
         const k = Math.round((MC.weekStartOf(new Date(mid.getFullYear(), mid.getMonth() + dm, 1)) - anchor) / (7 * 864e5));
         if ((v > 0 ? k > cur : k < cur) && (best === null || Math.abs(k - n) < Math.abs(best - n))) best = k;
       }
-      if (best !== null && Math.abs(best - n) <= reach) { n = best; }
+      if (best !== null && Math.abs(best - n) <= reach) { n = best; monthSnap = true; }
     }
+    // 吸到某个月时，让这个月的第一行稍低于顶部（半行），上面露出上个月的尾巴
+    if (monthSnap) n -= 1;
     n = Math.max(-(BUF - 1), Math.min(BUF - 1, n));
     spring(scrollY, n * rowH, v, monthH, settle);
   }
@@ -539,7 +567,7 @@
       let ref;
       if (view === 'year') ref = target && target.m != null ? new Date(target.y, target.m, 1) : new Date(year, sd.getFullYear() === year ? sd.getMonth() : 0, 1);
       else { const mid = MC.addDays(weekAnchor, 3); ref = new Date(mid.getFullYear(), mid.getMonth(), 1); }
-      anchor = MC.weekStartOf(ref); scrollY = 0;
+      anchor = MC.weekStartOf(ref); scrollY = -rowH;
     }
     if (v === 'week') weekAnchor = MC.weekStartOf(target && target.date ? MC.parse(target.date) : sd);
     if (v === 'year') year = view === 'month' ? focus.y : MC.addDays(weekAnchor, 3).getFullYear();
@@ -588,7 +616,7 @@
   function goToday() {
     const n = new Date(), from = view;
     selected = MC.todayStr();
-    stopAnim(); scrollY = 0; pagePos = 0;
+    stopAnim(); scrollY = -rowH; pagePos = 0;
     anchor = MC.weekStartOf(new Date(n.getFullYear(), n.getMonth(), 1));
     weekAnchor = MC.weekStartOf(n);
     year = n.getFullYear();

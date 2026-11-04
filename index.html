@@ -43,7 +43,7 @@
   <section class="page active" id="page-cal">
     <header class="topbar">
       <div class="title-wrap">
-        <button class="title" id="btnView" aria-label="切换日历视图" aria-haspopup="true"><span id="calTitle"></span><span id="calSub"></span><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
+        <div class="title"><h1 id="calTitle"></h1><p id="calSub"></p></div>
       </div>
     </header>
     <div class="weekdays" id="weekdays"></div>
@@ -493,27 +493,311 @@
 
 <!-- 新底栏：左「今日/日历」气泡 · 中分页点 · 右「logo」扇形菜单 -->
 
-<button class="nav-scrim" id="navScrim" aria-label="关闭快捷菜单" tabindex="-1" hidden></button>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lg-refract" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+  <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="1" seed="9" result="n"/>
+  <feGaussianBlur in="n" stdDeviation="1.4" result="nb"/>
+  <feDisplacementMap in="SourceGraphic" in2="nb" scale="16" xChannelSelector="R" yChannelSelector="G"/>
+</filter></svg>
 <div class="dock2" id="dock2">
-  <button class="pod pod-today" id="bubbleToday" aria-label="切换今日 / 日历"><span class="today-copy"><span class="today-time"><span id="bubbleTodayLabel"></span><small id="bubblePeriod" hidden></small></span><span id="bubbleTodayCaption">今日</span></span></button>
+  <button class="pod pod-today" id="bubbleToday" aria-label="切换今日 / 日历"><span id="bubbleTodayLabel">今日</span></button>
   <div class="pager" id="pager" aria-hidden="true"><i class="on"></i><i></i></div>
   <div class="pod-menu" id="podMenu">
-    <button class="fan fan-cal" id="fanCal" aria-label="回到日历" tabindex="-1" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="4"/><path d="M8 3v4m8-4v4M4 10h16m-10 5h4"/></svg></button>
     <button class="fan fan-set" id="fanSet" aria-label="设置" tabindex="-1"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.9v.06a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg></button>
     <button class="fan fan-add" id="fanAdd" aria-label="添加事件" tabindex="-1"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
-    <button class="pod pod-logo" id="bubbleLogo" aria-label="更多" aria-expanded="false" aria-controls="fanCal fanSet fanAdd"><img src="icons/logo.png" alt=""></button>
+    <button class="pod pod-logo" id="bubbleLogo" aria-label="更多"><img src="icons/logo.png" alt=""></button>
   </div>
 </div>
-<script src="js/navigation.js?v=0.22.0"></script>
+<script>
+(function () {
+  const dock2 = document.getElementById('dock2');
+  if (!dock2) return;
+  const label = document.getElementById('bubbleTodayLabel');
+  const pager = document.getElementById('pager');
+  const dots = [...pager.querySelectorAll('i')];
+  const menu = document.getElementById('podMenu');
+  const body = document.body;
+  let open = false;
+
+  // 真折射需要 backdrop-filter 支持 SVG 滤镜（Chromium 支持，Safari 不支持）
+  try {
+    if (window.CSS && CSS.supports && CSS.supports('backdrop-filter', 'url(#lg-refract)')) {
+      document.documentElement.classList.add('lg-refract');
+    }
+  } catch (e) {}
+  // 原生壳：iOS / Mac 上换成更接近 Apple 液态玻璃的配比
+  try {
+    const N = window.MC && MC.Native;
+    if (N && N.ios) body.classList.add('native-ios');
+    if (N && N.mac) body.classList.add('native-mac');
+  } catch (e) {}
+
+  const closeMenu = () => { open = false; menu.classList.remove('open'); };
+  const openMenu = () => { open = true; menu.classList.add('open'); };
+
+  let lastDragEnd = 0;   // 刚拖完页面的那一下，不要顺手把菜单点开
+  document.getElementById('bubbleLogo').addEventListener('click', e => {
+    e.stopPropagation();
+    if (Date.now() - lastDragEnd < 320) return;
+    if (open) closeMenu(); else openMenu();
+  });
+
+  // 页面变化时同步：气泡文字、分页点、显隐
+  function sync() {
+    const pg = body.dataset.page || 'cal';
+    const days = body.dataset.kind === 'days';
+    dock2.classList.toggle('hide', days);
+    if (days) { closeMenu(); return; }
+
+    const two = pg === 'cal' || pg === 'sched';
+    pager.classList.toggle('hide', !two);
+    dots.forEach((d, i) => d.classList.toggle('on', i === (pg === 'sched' ? 1 : 0)));
+  }
+  // 扇形始终铺开，不再给返回键预留空间（返回键已经上移）
+  menu.classList.add('wide');
+  new MutationObserver(sync).observe(body, { attributes: true, attributeFilter: ['data-page', 'data-kind'] });
+  sync();
+
+  // 状态栏跟着当前页的底色走（只在原生壳里有效）
+  const hex2 = v => {
+    const m = String(v).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/);
+    if (!m) return null;
+    if (m[4] !== undefined && parseFloat(m[4]) < 0.05) return null;   // 全透明：别当成黑色传给原生
+    return '#' + [1, 2, 3].map(i => (+m[i]).toString(16).padStart(2, '0')).join('');
+  };
+  function syncChrome() {
+    const N = window.MC && MC.Native;
+    if (!N || !N.on || !N.has || !N.has('chrome')) return;
+    const el = document.querySelector('.page.active');
+    let c = el ? hex2(getComputedStyle(el).backgroundColor) : null;
+    if (!c) c = hex2(getComputedStyle(document.body).backgroundColor);
+    if (!c) c = hex2(getComputedStyle(document.documentElement).backgroundColor);
+    if (c) N.chrome(c);
+  }
+  new MutationObserver(syncChrome).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  new MutationObserver(syncChrome).observe(body, { attributes: true, attributeFilter: ['data-page'] });
+  setTimeout(syncChrome, 300);
+
+  // 分页点：静止一会儿就淡下去，一碰就回来
+  let idleTimer = 0;
+  const wake = () => { pager.classList.remove('idle'); clearTimeout(idleTimer); idleTimer = setTimeout(() => pager.classList.add('idle'), 1400); };
+  ['touchstart', 'touchmove', 'pointerdown'].forEach(ev => document.addEventListener(ev, wake, { passive: true }));
+  wake();
+
+  function goPage(p) { MC.App.showPage(p); }
+
+  // 进应用就在后台把日程页画好：第一次滑过去不再现算，切页时也跳过重复渲染
+  let schedReady = false, skipSchedRender = false;
+  if (window.MC && MC.Sched && MC.Sched.render) {
+    const realSchedRender = MC.Sched.render;
+    MC.Sched.render = function () {
+      if (skipSchedRender) { skipSchedRender = false; return; }
+      return realSchedRender.apply(MC.Sched, arguments);
+    };
+  }
+  function preloadSched() {
+    if (schedReady || !pages.sched || !(window.MC && MC.Sched && MC.Sched.render)) return;
+    const el = pages.sched;
+    el.classList.add('preload');
+    try { MC.Sched.render(); schedReady = true; } catch (e) {}
+    el.classList.remove('preload');
+  }
+  setTimeout(preloadSched, 600);
+  if ('requestIdleCallback' in window) requestIdleCallback(preloadSched, { timeout: 2500 });
+
+  // 今日气泡显示当前时间：跟随系统的 12/24 小时设置，冒号每秒闪一下
+  function tickClock() {
+    if (!label) return;
+    const d = new Date();
+    const h12 = !!(window.MC && MC.use12 && MC.use12());
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, '0');
+    if (h12) {
+      const ap = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      label.innerHTML = `${h}<i>:</i>${m}<s>${ap}</s>`;
+    } else {
+      label.innerHTML = `${String(h).padStart(2, '0')}<i>:</i>${m}`;
+    }
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+  // 今日页从时钟气泡位置放大，日历在后面退后；动画随时可以被打断并从当前状态反向
+  const todayPage = document.getElementById('page-today');
+  const calPageEl = document.getElementById('page-cal');
+  let pvAnims = [];
+
+  const stopPv = () => { pvAnims.forEach(a => { try { a.cancel(); } catch (e) {} }); pvAnims = []; };
+
+  document.getElementById('bubbleToday').addEventListener('click', e => {
+    if (!todayPage || !calPageEl) return;
+    const pg = body.dataset.page || 'cal';
+    const to = pg === 'today' ? 'cal' : 'today';
+    const r = e.currentTarget.getBoundingClientRect();
+    todayPage.style.transformOrigin = `${r.left + r.width / 2}px ${r.top + r.height / 2}px`;
+
+    // 先读当前视觉状态，动画才能从中断处接着走，而不是跳回起点
+    const tS = getComputedStyle(todayPage), cS = getComputedStyle(calPageEl);
+    const tFrom = { transform: tS.transform === 'none' ? 'scale(1)' : tS.transform, opacity: +tS.opacity };
+    const cFrom = { transform: cS.transform === 'none' ? 'scale(1)' : cS.transform, opacity: +cS.opacity };
+
+    stopPv();
+    todayPage.classList.add('pv-hold');
+    calPageEl.classList.add('pv-hold');
+
+    const tTo = to === 'today' ? { transform: 'scale(1)', opacity: 1 } : { transform: 'scale(.42)', opacity: 0 };
+    const cTo = to === 'today' ? { transform: 'scale(.93) translateY(6px)', opacity: .45 } : { transform: 'scale(1)', opacity: 1 };
+    const ez = 'cubic-bezier(.22,.9,.26,1)';
+    const a1 = todayPage.animate([tFrom, tTo], { duration: 380, easing: ez, fill: 'both' });
+    const a2 = calPageEl.animate([cFrom, cTo], { duration: 380, easing: ez, fill: 'both' });
+    pvAnims = [a1, a2];
+
+    if (to === 'today' && pg !== 'today') MC.App.showPage('today');
+    if (to === 'cal' && pg !== 'cal') MC.App.showPage('cal');
+
+    // 用定时器收尾（finish 事件在后台标签页里不一定触发）
+    setTimeout(() => {
+      if (pvAnims[0] !== a1) return;      // 已经被新的点击接管
+      pvAnims = [];
+      try { a1.cancel(); a2.cancel(); } catch (e) {}
+      todayPage.classList.remove('pv-hold');
+      calPageEl.classList.remove('pv-hold');
+    }, 400);
+  });
+
+  document.getElementById('fanSet').addEventListener('click', () => {
+    closeMenu();
+    const b = document.querySelector('.tabbar button[data-page="set"]');
+    if (b) b.click();
+  });
+  const backBtn = document.getElementById('backToCal');
+  if (backBtn) backBtn.addEventListener('click', () => goPage('cal'));
+  document.getElementById('fanAdd').addEventListener('click', () => {
+    closeMenu();
+    const f = document.getElementById('fab');
+    if (f) f.click();
+  });
+  document.addEventListener('click', e => { if (open && !menu.contains(e.target)) closeMenu(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+  // 日历 ←→ 日程：跟手拖拽切页（拖动过程中另一页就在旁边）
+  const pages = { cal: document.getElementById('page-cal'), sched: document.getElementById('page-sched') };
+  let pendingFinish = null;   // 上一次切换的收尾还没跑完时，新的滑动要先把它落地
+  // 这两页现在靠滑动切换，不要每次进入都播一次淡入（会闪）
+  Object.values(pages).forEach(el => el && el.classList.add('no-in'));
+  let dg = null;
+
+  const blockedBy = t => !!(t && t.closest && t.closest('.drawer, .sheet, .drawer-scrim, .dock2, .tabbar, .preview, .wkpick'));
+
+  document.addEventListener('touchstart', e => {
+    if (pendingFinish) { pendingFinish(); }        // 上一次还没收完尾就手快又滑：先立刻落地
+    if (e.touches.length !== 1 || dg) { dg = null; return; }
+    const pg = body.dataset.page;
+    if (!pages[pg]) return;
+    if (blockedBy(e.target)) return;
+    if (e.touches[0].clientX < 26) return;          // 左边缘留给抽屉
+    dg = { pg, x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: performance.now(), active: false };
+  }, { capture: true, passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!dg || e.touches.length !== 1) return;
+    const t = e.touches[0], dx = t.clientX - dg.x0, dy = t.clientY - dg.y0;
+    if (!dg.active) {
+      if (Math.abs(dx) < 12) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.25) { dg = null; return; }
+      // 只有「日历往左」「日程往右」才切，反方向不做任何事
+      if (dg.pg === 'cal' && dx > 0) { dg = null; return; }
+      if (dg.pg === 'sched' && dx < 0) { dg = null; return; }
+      const to = dg.pg === 'cal' ? 'sched' : 'cal';
+      if (!pages[to]) { dg = null; return; }
+      dg.active = true; dg.to = to; dg.W = pages[dg.pg].clientWidth || 1;
+      pager.classList.add('idle');
+      pages[dg.pg].classList.add('drag');
+      pages[to].classList.add('drag');
+      pages[dg.pg].style.transition = 'none';
+      pages[to].style.transition = 'none';
+      pages[to].style.transform = `translate3d(${to === 'sched' ? 100 : -100}%,0,0)`;   // 用百分比，边缘严丝合缝
+      // 日程页已在后台按真实宽高画好（preloadSched），这里不再重画
+    }
+    e.preventDefault();
+    const pct = dg.to === 'sched' ? 100 : -100;
+    pages[dg.pg].style.transform = `translate3d(${dx}px,0,0)`;
+    pages[dg.to].style.transform = `translate3d(calc(${pct}% + ${dx}px),0,0)`;
+  }, { capture: true, passive: false });
+
+  const endDrag = e => {
+    if (!dg) return;
+    const d = dg; dg = null;
+    if (!d.active) return;
+    lastDragEnd = Date.now();     // 只有真拖动了才拦 logo 点击
+    const t = e.changedTouches && e.changedTouches[0];
+    const dx = t ? t.clientX - d.x0 : 0;
+    // 快滑（甩）：速度够快、距离过了最低门槛就走；慢滑：必须拖过 1/4 屏才走，否则轻轻回去
+    const dt = Math.max(1, performance.now() - d.t0);
+    const v = Math.abs(dx) / dt;                       // px/ms
+    const far = Math.abs(dx) > d.W * 0.25;
+    const flick = v > 0.55 && Math.abs(dx) > 36;
+    const go = far || flick;
+    const sign = d.to === 'sched' ? 1 : -1;
+    const cur = pages[d.pg], nxt = pages[d.to];
+    const ease = go ? 'transform .38s cubic-bezier(.2,.85,.25,1)' : 'transform .58s cubic-bezier(.16,.78,.26,1)';
+    cur.style.transition = ease; nxt.style.transition = ease;
+    if (!go) {
+      // 另一页本来就在屏幕外：直接收走，避免它跟着动画又“闪”一下
+      nxt.style.transition = 'none';
+      nxt.style.transform = `translate3d(${sign * 100}%,0,0)`;
+      requestAnimationFrame(() => { nxt.classList.remove('drag'); });
+    }
+    cur.style.transform = `translate3d(${go ? -sign * 100 : 0}%,0,0)`;
+    nxt.style.transform = `translate3d(${go ? 0 : sign * 100}%,0,0)`;
+
+    // 等动画真的播完再收尾，固定 250ms 会在动画中途把页面抽掉，看起来像卡一下
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      pendingFinish = null;
+      nxt.removeEventListener('transitionend', onEnd);
+      if (go) {
+        cur.style.display = 'none';
+        cur.classList.remove('drag');
+        cur.style.transition = ''; cur.style.transform = '';
+        nxt.style.transition = ''; nxt.style.transform = '';
+        if (d.to === 'sched' && schedReady) skipSchedRender = true;
+        MC.App.showPage(d.to);           // 加 .active（.drag 还在，画面不闪）
+        nxt.classList.remove('drag');
+        requestAnimationFrame(() => { cur.style.display = ''; });
+      } else {
+        cur.style.transition = ''; cur.style.transform = '';
+        nxt.style.transition = ''; nxt.style.transform = '';
+        nxt.classList.remove('drag');
+        cur.classList.remove('drag');
+      }
+    };
+    const onEnd = e => { if (e.target === nxt && e.propertyName === 'transform') finish(); };
+    pendingFinish = finish;
+    nxt.addEventListener('transitionend', onEnd);
+    setTimeout(finish, go ? 520 : 700);
+    pager.classList.remove('idle');
+  };
+  document.addEventListener('touchend', endDrag, { capture: true, passive: true });
+  document.addEventListener('touchcancel', endDrag, { capture: true, passive: true });
+})();
+</script>
 
 <script>
 // 设计调节器：侧面抽屉，上预览下参数；只在这台设备的 ?tune=1 打开
 (function () {
   if (!/[?&]tune=1/.test(location.search)) return;
   const V = [
-    { k: '--nav-edge', label: '底部按钮左右留白', min: 12, max: 32, step: 2, val: 20, unit: 'px' },
-    { k: '--fan-x', label: '扇形「设置」水平距离', min: 40, max: 170, step: 2, val: 78, unit: 'px' },
-    { k: '--fan-d', label: '扇形「添加」斜向距离', min: 30, max: 110, step: 2, val: 76, unit: 'px' },
+    { k: '--pill-k', label: '月份气泡位置 × 行高', min: 0, max: 1.4, step: 0.02, val: 0.72 },
+    { k: '--pill-gap', label: '月份气泡向上偏移', min: 0, max: 160, step: 2, val: 72, unit: 'px' },
+    { k: '--pill-fs', label: '月份字号', min: 12, max: 30, step: 1, val: 23, unit: 'px' },
+    { k: '--pill-py', label: '月份上下内边距', min: 0, max: 16, step: 1, val: 5, unit: 'px' },
+    { k: '--pill-px', label: '月份左右内边距', min: 6, max: 40, step: 1, val: 29, unit: 'px' },
+    { k: '--mwd-fs', label: '星期行字号', min: 8, max: 16, step: 0.5, val: 11, unit: 'px' },
+    { k: '--mwd-op', label: '星期行不透明度', min: 0.2, max: 1, step: 0.05, val: 1 },
+    { k: '--fan-x', label: '扇形「设置」水平距离', min: 40, max: 170, step: 2, val: 100, unit: 'px' },
+    { k: '--fan-d', label: '扇形「添加」斜向距离', min: 30, max: 110, step: 2, val: 70, unit: 'px' },
     { k: '--back-off', label: '返回键底部偏移', min: 90, max: 240, step: 2, val: 152, unit: 'px' },
   ];
   const root = document.documentElement;
