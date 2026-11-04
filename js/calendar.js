@@ -32,7 +32,7 @@
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
     withMore = Math.floor((rowH - head - 12 + 2) / 17);
     room = rowH - head; tw = (W - 4) / 7 - 8;
-    if (!firstOpenDone) { firstOpenDone = true; scrollY = -rowH * 0.5; }   // 打开时当月第一行也在半行处
+    if (!firstOpenDone) { firstOpenDone = true; scrollY = -rowH; }   // 打开时当月第一行也在半行处
   }
   // 时间文字宽度：用 canvas 量，判断一行放不放得下
   let room = 0, tw = 0, mctx = null;
@@ -323,7 +323,7 @@
       if (best !== null && Math.abs(best - n) <= reach) { n = best; monthSnap = true; }
     }
     // 吸到某个月时，让这个月的第一行稍低于顶部（半行），上面露出上个月的尾巴
-    if (monthSnap) n -= 0.5;
+    if (monthSnap) n -= 1;
     n = Math.max(-(BUF - 1), Math.min(BUF - 1, n));
     spring(scrollY, n * rowH, v, monthH, settle);
   }
@@ -563,7 +563,7 @@
       let ref;
       if (view === 'year') ref = target && target.m != null ? new Date(target.y, target.m, 1) : new Date(year, sd.getFullYear() === year ? sd.getMonth() : 0, 1);
       else { const mid = MC.addDays(weekAnchor, 3); ref = new Date(mid.getFullYear(), mid.getMonth(), 1); }
-      anchor = MC.weekStartOf(ref); scrollY = -rowH * 0.5;
+      anchor = MC.weekStartOf(ref); scrollY = -rowH;
     }
     if (v === 'week') weekAnchor = MC.weekStartOf(target && target.date ? MC.parse(target.date) : sd);
     if (v === 'year') year = view === 'month' ? focus.y : MC.addDays(weekAnchor, 3).getFullYear();
