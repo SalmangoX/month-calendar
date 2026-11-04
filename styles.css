@@ -1496,3 +1496,11 @@ body[data-kind="days"] .dock2 { display: none; }
 .sched-back { display: none; }
 body[data-page="sched"] .sched-back { display: grid; }
 body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); pointer-events: none; }
+
+/* 日程页抬头收紧：标题小一号、上下留白减半，周导航贴紧 */
+#page-sched .ptitle { padding: 8px 18px 2px; align-items: center; }
+#page-sched .ptitle h1 { font-size: 23px; }
+#page-sched .sc-nav { padding: 0 8px 4px; }
+#page-sched .sc-week { padding: 1px 0; }
+#page-sched .sc-week b { font-size: 14.5px; }
+#page-sched .sc-week small { font-size: 11px; }
