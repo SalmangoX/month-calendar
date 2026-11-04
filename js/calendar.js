@@ -303,6 +303,7 @@
   }
   function snapMonth(v) { // v：滚动速度（px/ms）
     recenter(1);
+    let monthSnap = false;
     const proj = scrollY + v * 230;                      // 按速度预估惯性距离
     let n = Math.round(proj / rowH);
     const cur = scrollY / rowH;
@@ -317,8 +318,10 @@
         const k = Math.round((MC.weekStartOf(new Date(mid.getFullYear(), mid.getMonth() + dm, 1)) - anchor) / (7 * 864e5));
         if ((v > 0 ? k > cur : k < cur) && (best === null || Math.abs(k - n) < Math.abs(best - n))) best = k;
       }
-      if (best !== null && Math.abs(best - n) <= reach) n = best;
+      if (best !== null && Math.abs(best - n) <= reach) { n = best; monthSnap = true; }
     }
+    // 吸到某个月时，让这个月的第一行落在界面第二行：上面那行留作上下文
+    if (monthSnap) n -= 1;
     n = Math.max(-(BUF - 1), Math.min(BUF - 1, n));
     spring(scrollY, n * rowH, v, monthH, settle);
   }
