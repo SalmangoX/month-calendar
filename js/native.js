@@ -195,5 +195,10 @@
     const j = await mr.json();
     return save({ latest: Number(j.code) || 0, name: j.name || '', src: 'mirror' });
   };
-  Native.update = () => Native.openUrl(Native.apkUrl());
+  Native.update = async () => {
+    // 新版 APK：原生直接下载 + 调起安装器；旧版 App 或浏览器里没有这个接口，退回浏览器下载
+    const r = await Native.ask('update');
+    if (r == null) return Native.openUrl(Native.apkUrl());
+    return r;
+  };
 })();

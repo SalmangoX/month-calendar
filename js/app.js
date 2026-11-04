@@ -851,7 +851,10 @@
       try {
         const up = await MC.Native.checkUpdate(true);
         if (up) {
-          if (await UI.confirm(`安卓 App 有新版本 ${up.name}。现在下载？\n下载完成后点通知栏里的文件安装，数据和设置都会保留。`, { ok: '下载' })) MC.Native.update();
+          if (await UI.confirm(`安卓 App 有新版本 ${up.name}。现在下载并安装？\n数据、设置和小组件都会保留。`, { ok: '更新' })) {
+            const r = await MC.Native.update();
+            if (r && r.msg) UI.toast(r.msg);
+          }
         } else UI.toast(MC.Native.lastCheck().latest ? '已经是最新版本' : '仓库里还没有发布安卓 App');
       } catch (err) { UI.toast('检查失败：' + err.message); }
       renderSettings();

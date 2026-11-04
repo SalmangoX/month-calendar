@@ -19,7 +19,7 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update"
     };
 
     private final MainActivity a;
@@ -190,6 +190,27 @@ final class Bridge {
     @JavascriptInterface
     public void http(String json, String cb) {
         Http.NET.execute(() -> a.callback(cb, Http.run(json)));
+    }
+
+    /** 应用内检查更新：有新版就下载并调起安装器 */
+    @JavascriptInterface
+    public void update(String cb) {
+        Engine.BG.execute(() -> {
+            JSONObject o = new JSONObject();
+            try {
+                JSONObject l = Update.latest(BuildConfig.REPO);
+                int code = l.optInt("code", 0);
+                String url = l.optString("url", "");
+                if (url.isEmpty()) { o.put("ok", false); o.put("msg", l.optString("error", "没有可用的安装包")); }
+                else if (code <= BuildConfig.VERSION_CODE) { o.put("ok", false); o.put("msg", "已经是最新版"); }
+                else {
+                    java.io.File apk = Update.download(c, url);
+                    o.put("ok", true); o.put("msg", "已下载，准备安装…");
+                    a.runOnUiThread(() -> Update.install(c, apk));
+                }
+            } catch (Exception e) { try { o.put("ok", false); o.put("msg", e.getMessage()); } catch (Exception ignored) { } }
+            a.runOnUiThread(() -> a.callback(cb, o));
+        });
     }
 
     @JavascriptInterface
