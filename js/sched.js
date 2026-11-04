@@ -324,8 +324,12 @@
     const wts = days.map(d => (d > 5 && !byDay[d].length ? 0.36 : 1));
     const inWeek = days.flatMap(d => byDay[d]);
     const ts = termStart();
-    const minH = inWeek.length ? Math.min(8, ...inWeek.map(c => Math.floor(toMin(c.start) / 60))) : 8;
-    const maxH = inWeek.length ? Math.max(17, ...inWeek.map(c => Math.ceil(toMin(c.end) / 60))) : 18;
+    // 按本周实际内容裁剪时间轴：上下各留一小时，至少显示 9 小时，避免只有一两节课时被放得过大
+    let minH = inWeek.length ? Math.min(...inWeek.map(c => Math.floor(toMin(c.start) / 60))) - 1 : 8;
+    let maxH = inWeek.length ? Math.max(...inWeek.map(c => Math.ceil(toMin(c.end) / 60))) + 1 : 18;
+    minH = Math.max(0, minH);
+    maxH = Math.min(24, maxH);
+    if (maxH - minH < 9) { if (minH + 9 <= 24) maxH = minH + 9; else minH = Math.max(0, maxH - 9); }
     // 尺寸：全览时按屏幕等比缩小；放大时按倍数加大，可以滚动
     const cs = getComputedStyle(body);
     const availH = body.clientHeight - parseFloat(cs.paddingBottom) - parseFloat(cs.paddingTop) - 44;
