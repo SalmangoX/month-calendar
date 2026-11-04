@@ -645,17 +645,23 @@
   }, { capture: true, passive: false });
 
   const endDrag = e => {
-    lastDragEnd = Date.now();
     if (!dg) return;
     const d = dg; dg = null;
     if (!d.active) return;
+    lastDragEnd = Date.now();     // 只有真拖动了才拦 logo 点击
     const t = e.changedTouches && e.changedTouches[0];
     const dx = t ? t.clientX - d.x0 : 0;
     const go = Math.abs(dx) > d.W * 0.33;
     const sign = d.to === 'sched' ? 1 : -1;
     const cur = pages[d.pg], nxt = pages[d.to];
-    const ease = 'transform .34s cubic-bezier(.16,.85,.25,1)';
+    const ease = go ? 'transform .34s cubic-bezier(.16,.85,.25,1)' : 'transform .45s cubic-bezier(.22,.8,.25,1)';
     cur.style.transition = ease; nxt.style.transition = ease;
+    if (!go) {
+      // 另一页本来就在屏幕外：直接收走，避免它跟着动画又“闪”一下
+      nxt.style.transition = 'none';
+      nxt.style.transform = `translate3d(${sign * d.W * 1.4}px,0,0)`;
+      requestAnimationFrame(() => { nxt.classList.remove('drag'); });
+    }
     cur.style.transform = `translate3d(${go ? -sign * d.W : 0}px,0,0)`;
     nxt.style.transform = `translate3d(${go ? 0 : sign * d.W}px,0,0)`;
 
