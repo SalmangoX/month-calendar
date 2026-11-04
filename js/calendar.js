@@ -22,6 +22,7 @@
   // ---------- 尺寸 ----------
   // 打开当天预览时，日历区域变矮：每一周还是原来的高度（不压扁），只是少显示几周，可以照常上下滚动
   let fullH = 0;
+  let firstOpenDone = false;
   function measure() {
     W = vp.clientWidth; H = vp.clientHeight;
     const pv = body.classList.contains('previewing');
@@ -31,6 +32,7 @@
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
     withMore = Math.floor((rowH - head - 12 + 2) / 17);
     room = rowH - head; tw = (W - 4) / 7 - 8;
+    if (!firstOpenDone) { firstOpenDone = true; scrollY = -rowH * 0.5; }   // 打开时当月第一行也在半行处
   }
   // 时间文字宽度：用 canvas 量，判断一行放不放得下
   let room = 0, tw = 0, mctx = null;
@@ -298,7 +300,7 @@
   function settle() {
     const k = Math.round(scrollY / rowH);
     anchor = MC.addDays(anchor, 7 * k);
-    scrollY = 0;
+    scrollY = scrollY - k * rowH;      // 保留不足一行的余量（半行吸附靠它）
     renderMonth();
   }
   function snapMonth(v) { // v：滚动速度（px/ms）
@@ -320,8 +322,8 @@
       }
       if (best !== null && Math.abs(best - n) <= reach) { n = best; monthSnap = true; }
     }
-    // 吸到某个月时，让这个月的第一行落在界面第二行：上面那行留作上下文
-    if (monthSnap) n -= 1;
+    // 吸到某个月时，让这个月的第一行稍低于顶部（半行），上面露出上个月的尾巴
+    if (monthSnap) n -= 0.5;
     n = Math.max(-(BUF - 1), Math.min(BUF - 1, n));
     spring(scrollY, n * rowH, v, monthH, settle);
   }
@@ -561,7 +563,7 @@
       let ref;
       if (view === 'year') ref = target && target.m != null ? new Date(target.y, target.m, 1) : new Date(year, sd.getFullYear() === year ? sd.getMonth() : 0, 1);
       else { const mid = MC.addDays(weekAnchor, 3); ref = new Date(mid.getFullYear(), mid.getMonth(), 1); }
-      anchor = MC.weekStartOf(ref); scrollY = 0;
+      anchor = MC.weekStartOf(ref); scrollY = -rowH * 0.5;
     }
     if (v === 'week') weekAnchor = MC.weekStartOf(target && target.date ? MC.parse(target.date) : sd);
     if (v === 'year') year = view === 'month' ? focus.y : MC.addDays(weekAnchor, 3).getFullYear();
