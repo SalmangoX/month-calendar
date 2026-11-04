@@ -791,11 +791,11 @@
 (function () {
   if (!/[?&]tune=1/.test(location.search)) return;
   const V = [
-    { k: '--pill-k', label: '月份气泡纵向位置 × 行高', min: 0, max: 1.4, step: 0.02, val: 1 },
-    { k: '--pill-gap', label: '月份气泡向上偏移 (px)', min: 0, max: 160, step: 2, val: 66, unit: 'px' },
-    { k: '--pill-fs', label: '月份字号 (px)', min: 12, max: 30, step: 1, val: 18, unit: 'px' },
+    { k: '--pill-k', label: '月份气泡纵向位置 × 行高', min: 0, max: 1.4, step: 0.02, val: 0.72 },
+    { k: '--pill-gap', label: '月份气泡向上偏移 (px)', min: 0, max: 160, step: 2, val: 72, unit: 'px' },
+    { k: '--pill-fs', label: '月份字号 (px)', min: 12, max: 30, step: 1, val: 23, unit: 'px' },
     { k: '--pill-py', label: '月份上下内边距 (px)', min: 0, max: 16, step: 1, val: 5, unit: 'px' },
-    { k: '--pill-px', label: '月份左右内边距 (px)', min: 6, max: 40, step: 1, val: 19, unit: 'px' },
+    { k: '--pill-px', label: '月份左右内边距 (px)', min: 6, max: 40, step: 1, val: 29, unit: 'px' },
     { k: '--mwd-fs', label: '星期行字号 (px)', min: 8, max: 16, step: 0.5, val: 11, unit: 'px' },
     { k: '--mwd-op', label: '星期行不透明度', min: 0.2, max: 1, step: 0.05, val: 1 },
   ];

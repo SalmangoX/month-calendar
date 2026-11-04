@@ -1702,12 +1702,12 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 
 /* 悬浮月份：液态玻璃，位置贴在当月星期行的正上方，不压日期 */
 #page-cal .topbar {
-  position: absolute; left: 0; right: 0; top: calc(var(--rowh, 140px) * var(--pill-k, 1) - var(--pill-gap, 66px));
+  position: absolute; left: 0; right: 0; top: calc(var(--rowh, 140px) * var(--pill-k, .72) - var(--pill-gap, 72px));
   z-index: 6; pointer-events: none;
 }
 #page-cal .topbar .title-wrap { pointer-events: none; }
 #page-cal .topbar .title {
-  pointer-events: auto; padding: var(--pill-py, 5px) var(--pill-px, 19px) calc(var(--pill-py, 5px) + 1px); border-radius: 18px; min-width: 92px;
+  pointer-events: auto; padding: var(--pill-py, 5px) var(--pill-px, 29px) calc(var(--pill-py, 5px) + 1px); border-radius: 18px; min-width: 92px;
   background: rgba(255, 255, 255, .015);
   -webkit-backdrop-filter: blur(1.5px) saturate(210%) brightness(1.04);
   backdrop-filter: blur(1.5px) saturate(210%) brightness(1.04);
@@ -1726,7 +1726,7 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
   -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask-composite: exclude;
 }
-#page-cal .topbar .title h1 { font-size: var(--pill-fs, 18px); letter-spacing: -.01em; }
+#page-cal .topbar .title h1 { font-size: var(--pill-fs, 23px); letter-spacing: -.01em; }
 #page-cal .topbar .title p { font-size: 10px; margin-top: 0; opacity: .7; }
 
 /* 每个月第一天那一行上方的星期条，跟着内容一起滚 */
@@ -1741,3 +1741,9 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 
 /* 预加载日程页时：占位但不可见，尺寸和真实页面一致，才能按正确宽高渲染 */
 .page.preload { display: flex !important; visibility: hidden; pointer-events: none; }
+
+/* 设计调节器调出来的默认值 */
+:root {
+  --pill-k: .72; --pill-gap: 72px; --pill-fs: 23px; --pill-py: 5px; --pill-px: 29px;
+  --mwd-fs: 11px; --mwd-op: 1;
+}
