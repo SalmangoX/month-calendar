@@ -73,7 +73,7 @@ final class Widgets {
         android.content.res.Resources r = c.getResources();
         N = new int[42]; CELL = new int[42]; MORE = new int[42]; DOTS = new int[42]; WDAY = new int[7];
         ROW = new int[6];
-        for (int r = 0; r < 6; r++) ROW[r] = r.getIdentifier("row" + r, "id", pkg);
+        for (int k = 0; k < 6; k++) ROW[k] = r.getIdentifier("row" + k, "id", pkg);
         EV = new int[42][3]; OD = new int[42][3];
         for (int i = 0; i < 42; i++) {
             N[i] = r.getIdentifier("n" + i, "id", pkg);
