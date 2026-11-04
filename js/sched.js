@@ -348,7 +348,7 @@
     for (let h = minH; h < maxH; h++) hours += `<div class="sc-hr" style="top:${(h - minH) * HOUR}px">${h12 ? MC.hourLabel(h, true) : `${h}:00`}</div>`;
     const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
     // 当前时间：整周一条半透明的线压在所有课程上面；左边时间轴上一个实色的时间标签，右边缘正好接上这条线
-    const showNow = nowMin >= minH * 60 && nowMin <= maxH * 60; // 换到别的周也显示「现在几点」
+    const showNow = todayIdx >= 0 && nowMin >= minH * 60 && nowMin <= maxH * 60; // 只有今天在这一周才画时间线
     const nowTop = (nowMin / 60 - minH) * HOUR;
     nowState = { minH, maxH, HOUR, day: todayStr, show: showNow };
     const compact = unit * zoom < 84; // 一天一列不到 84px（手机竖屏）：课程块用紧凑写法

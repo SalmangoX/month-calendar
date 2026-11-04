@@ -1507,3 +1507,6 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 
 
 /* deploy retry */
+
+/* 拖拽切页时两页同时在场 */
+.page.drag { display: flex !important; animation: none !important; transition: none !important; will-change: transform; }
