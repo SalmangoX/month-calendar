@@ -168,15 +168,23 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         + '.topbar{padding:0 14px 2px!important}'
         // 课表页：「‹ 11月2日 – 8日 ›」那一行挪进标题行的正中间（窗口够宽），省掉一整行
         + '#page-sched .sc-nav{position:absolute!important;top:var(--safe-t);left:50%;transform:translateX(-50%);width:min(440px,48%);height:42px;padding:0!important;z-index:3}'
-        + '#page-sched .sc-week{padding:0!important}';
+        + '#page-sched .sc-week{padding:0!important}#batchAddRow{visibility:hidden!important}';
       document.head.appendChild(st);
       var last = '';
+      // 批量添加的「再加一个」：原生用液态玻璃画在同一个位置（网页的按钮只占位置）；面板没开、正在被拖、弹出键盘或盖了别的面板时不显示
+      function addRow(){
+        var s = document.getElementById('batchSheet'), b = document.getElementById('batchAddRow');
+        if (!s || !b || !s.classList.contains('show') || s.style.transform || document.documentElement.classList.contains('kb-open')
+            || document.querySelector('.sheet.show:not(#batchSheet)') || (window.MC && MC.UI && MC.UI.confirmOpen && MC.UI.confirmOpen())) return null;
+        var x = 0, y = 0, e = b; while (e) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; } // 不算面板弹出动画的位移，直接取停下来的位置
+        return { x: x, y: y, w: b.offsetWidth, h: b.offsetHeight, t: b.textContent.trim() };
+      }
       function send(){
         var tabs = [].map.call(tb.querySelectorAll('button[data-page]'), function(b){
           var l = b.querySelector('span:not(.tab-avatar)'); return { page: b.dataset.page, label: l ? l.textContent.trim() : '', hidden: !!b.hidden };
         });
         var page = document.body.dataset.page || 'cal', fab = document.getElementById('fab');
-        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, holes: holes ? holes() : [], back: page === 'cal' && !!document.getElementById('calBack') && !document.getElementById('calBack').hidden });
+        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, holes: holes ? holes() : [], back: page === 'cal' && !!document.getElementById('calBack') && !document.getElementById('calBack').hidden, add: addRow() });
         if (j !== last) { last = j; try { H.postMessage({ name: 'nav', args: [j] }); } catch (e) {} }
       }
       // 标题栏一行：可点的按钮位置（其余地方拖动窗口）
@@ -205,6 +213,8 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
       }
       new MutationObserver(send).observe(tb, { attributes: true, subtree: true, childList: true, characterData: true });
       var cb = document.getElementById('calBack'); if (cb) new MutationObserver(send).observe(cb, { attributes: true, attributeFilter: ['hidden'] }); // 「回到今天」出现 / 消失
+      var bs = document.getElementById('batchSheet'); if (bs) new MutationObserver(send).observe(bs, { attributes: true, attributeFilter: ['class', 'style'] });
+      new MutationObserver(send).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); // 键盘、确认框
       send(); setTimeout(send, 600);
     })();
     """
@@ -226,7 +236,11 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             return self.nav.drawerScroll(e) ? nil : e
         }
         let menu = SolidHostingView(rootView: GlassMenu(m: nav))
+        let addMore = SolidHostingView(rootView: GlassAddButton(m: nav).padding(18))
         for v in [bar, fab, drawer, menu] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
+        // 批量添加的「再加一个」：放在网页按钮的位置上（跟着网页发来的位置挪），在菜单下面
+        root.addSubview(addMore, positioned: .below, relativeTo: menu)
+        addMore.isHidden = true
         drawer.isHidden = true
         menu.isHidden = true
         NSLayoutConstraint.activate([
@@ -242,6 +256,11 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         // 隐藏时让出点击：加号在设置页不显示；日历栏收起的动画放完再隐藏
         navSubs = [
             nav.$fab.sink { fab.isHidden = !$0 },
+            nav.$addRow.sink { [weak self] r in
+                guard let self, let r else { addMore.isHidden = true; return }
+                addMore.frame = self.web.convert(r, to: root).insetBy(dx: -18, dy: -18)
+                addMore.isHidden = false
+            },
             nav.$menu.sink { [weak self] m in
                 if m != nil { menu.isHidden = false; return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { if self?.nav.menu == nil { menu.isHidden = true } }

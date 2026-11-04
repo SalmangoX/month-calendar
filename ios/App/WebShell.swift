@@ -179,9 +179,17 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
       var H = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.mc;
       var tb = document.getElementById('tabbar'); if (!H || !tb || window.__mcNav) return; window.__mcNav = 1;
       var native = window.MC && MC.Drawer && MC.Drawer.model;
-      var st = document.createElement('style'); st.textContent = '#dock,#fab,#calBack' + (native ? ',#drawerScrim,#calDrawer' : '') + '{display:none!important}';
+      var st = document.createElement('style'); st.textContent = '#dock,#fab,#calBack' + (native ? ',#drawerScrim,#calDrawer' : '') + '{display:none!important}#batchAddRow{visibility:hidden!important}';
       document.head.appendChild(st);
       var last = '';
+      // 批量添加的「再加一个」：原生用液态玻璃画在同一个位置（网页的按钮只占位置）；面板没开、正在被拖、弹出键盘或盖了别的面板时不显示
+      function addRow(){
+        var s = document.getElementById('batchSheet'), b = document.getElementById('batchAddRow');
+        if (!s || !b || !s.classList.contains('show') || s.style.transform || document.documentElement.classList.contains('kb-open')
+            || document.querySelector('.sheet.show:not(#batchSheet)') || (window.MC && MC.UI && MC.UI.confirmOpen && MC.UI.confirmOpen())) return null;
+        var x = 0, y = 0, e = b; while (e) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; } // 不算面板弹出动画的位移，直接取停下来的位置
+        return { x: x, y: y, w: b.offsetWidth, h: b.offsetHeight, t: b.textContent.trim() };
+      }
       function covered(){
         var u = (window.MC && MC.UI) || {};
         return !!((u.anyOpen && u.anyOpen()) || (u.confirmOpen && u.confirmOpen()) || document.documentElement.classList.contains('locked')
@@ -192,12 +200,13 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
           var l = b.querySelector('span:not(.tab-avatar)'); return { page: b.dataset.page, label: l ? l.textContent.trim() : '', hidden: !!b.hidden };
         });
         var page = document.body.dataset.page || 'cal', fab = document.getElementById('fab');
-        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, cover: covered(), back: page === 'cal' && !!document.getElementById('calBack') && !document.getElementById('calBack').hidden });
+        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, cover: covered(), back: page === 'cal' && !!document.getElementById('calBack') && !document.getElementById('calBack').hidden, add: addRow() });
         if (j !== last) { last = j; try { H.postMessage({ name: 'nav', args: [j] }); } catch (e) {} }
       }
       new MutationObserver(send).observe(document.body, { attributes: true, attributeFilter: ['data-page'] });
       new MutationObserver(send).observe(tb, { attributes: true, subtree: true, childList: true, characterData: true });
       var cb = document.getElementById('calBack'); if (cb) new MutationObserver(send).observe(cb, { attributes: true, attributeFilter: ['hidden'] }); // 「回到今天」出现 / 消失
+      var bs = document.getElementById('batchSheet'); if (bs) new MutationObserver(send).observe(bs, { attributes: true, attributeFilter: ['class', 'style'] });
       // 面板、确认框开关：类名变化时发一次（iPhone 的面板从底部弹出，玻璃菜单栏先让开）
       new MutationObserver(send).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['class'] });
       if (window.MC && MC.UI && MC.UI.menu) {

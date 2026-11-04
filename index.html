@@ -227,7 +227,7 @@
   </div>
   <div class="cmp-sec">
     <span class="cmp-label" id="cmpPriLabel">优先级</span>
-    <div class="cmp-chips" id="cmpPri"></div>
+    <div id="cmpPri"></div>
   </div>
   <div class="cmp-sec" id="cmpSegSec" hidden>
     <span class="cmp-label">分段评价<small>每半小时一段 · 先点一段，再选等级</small></span>
@@ -339,6 +339,7 @@
     <div class="seg small mode-seg"><button id="batchSingle">单个</button><button class="on" aria-pressed="true">批量</button></div>
     <button class="cmp-save" id="batchSave">添加</button>
   </div>
+  <div class="batch-scroll" id="batchScroll">
   <div class="bpaste">
     <textarea id="batchPaste" rows="2" placeholder="粘贴文字自动识别，一行一个事件&#10;例：10/27 15:00-17:00 组会 高 提醒"></textarea>
     <button class="chip-btn glass" id="batchParse" disabled>识别</button>
@@ -346,7 +347,8 @@
   <p class="sheet-hint" id="batchHint">名称必填；不选优先级默认为灰色；备注可不填。</p>
   <div class="batch-presets" id="batchPresets" hidden></div>
   <div class="batch-list" id="batchList"></div>
-  <div class="batch-foot"><button class="chip-btn glass" id="batchAddRow">＋ 再加一行</button></div>
+  </div>
+  <button class="float-add glass" id="batchAddRow"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg><span>再加一个</span></button>
 </section>
 
 <!-- 日期 / 时间段 -->

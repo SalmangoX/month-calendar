@@ -26,6 +26,9 @@ final class NavModel: ObservableObject {
     @Published var cover = false
     /// 日历滑到了别的周、月：加号上方显示「回到今天」
     @Published var back = false
+    /// 批量添加面板里「再加一个」按钮的位置（网页坐标）和文字；面板没开时是 nil
+    @Published var addRow: CGRect?
+    @Published var addLabel = ""
     @Published var drawer: Drawer?
     @Published var drawerOpen = false
     /// 日历栏被左右拉动的距离：负 = 往回推（收起），正 = 往外拉（果冻一样变宽）
@@ -44,7 +47,8 @@ final class NavModel: ObservableObject {
 
     /// 网页每次切页、菜单栏有变化时发来：{tabs, page, fab, holes}
     func update(_ json: String) {
-        struct State: Decodable { let tabs: [Tab]; let page: String; let fab: Bool; let holes: [[Double]]?; let cover: Bool?; let back: Bool? }
+        struct Add: Decodable { let x, y, w, h: Double; let t: String }
+        struct State: Decodable { let tabs: [Tab]; let page: String; let fab: Bool; let holes: [[Double]]?; let cover: Bool?; let back: Bool?; let add: Add? }
         guard let d = json.data(using: .utf8), let s = try? JSONDecoder().decode(State.self, from: d) else { return }
         if s.tabs.map(\.id) != tabs.map(\.id) || s.tabs.map(\.label) != tabs.map(\.label) || s.tabs.map(\.hidden) != tabs.map(\.hidden) { tabs = s.tabs }
         if page != s.page { page = s.page }
@@ -52,12 +56,16 @@ final class NavModel: ObservableObject {
         if back != (s.back ?? false) { withAnimation(.spring(response: 0.36, dampingFraction: 0.7)) { back = s.back ?? false } }
         // 面板弹出时菜单栏马上让开（0.12 秒淡出，不会和从底部升起的面板叠在一起）；面板收起后再弹回来
         if cover != (s.cover ?? false) { withAnimation(s.cover == true ? .easeOut(duration: 0.12) : .spring(response: 0.32, dampingFraction: 0.86)) { cover = s.cover ?? false } }
+        let ar = s.add.map { CGRect(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
+        if let t = s.add?.t, t != addLabel { addLabel = t }
+        if ar != addRow { withAnimation(.spring(response: 0.34, dampingFraction: 0.72)) { addRow = ar } }
         if let h = s.holes { onDragHoles(h.compactMap { $0.count == 4 ? CGRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) : nil }) }
     }
 
     func go(_ p: String) { eval("document.querySelector('#tabbar [data-page=\"\(p)\"]').click()", nil) }
     func add() { eval("document.getElementById('fab').click()", nil) }
     func goToday() { eval("document.getElementById('btnToday').click()", nil) }
+    func addMore() { eval("document.getElementById('batchAddRow').click()", nil) }
 
     // ---------- 日历栏 ----------
     func openDrawer() {
@@ -484,6 +492,28 @@ private enum FabSize {
     static let icon: CGFloat = 20, side: CGFloat = 36, back: CGFloat = 46
     static let control = ControlSize.regular
     #endif
+}
+
+/// 批量添加面板底部的「再加一个」：和菜单栏同一种系统液态玻璃（网页里画不出这种玻璃，所以由原生画在网页按钮的位置上）
+@available(macOS 26.0, iOS 26.0, *)
+struct GlassAddButton: View {
+    @ObservedObject var m: NavModel
+    @Environment(\.colorScheme) private var scheme
+    var body: some View {
+        Button { m.addMore() } label: {
+            HStack(spacing: 7) {
+                Image(systemName: "plus").font(.system(size: 16, weight: .semibold))
+                Text(m.addLabel).font(.system(size: 15.5, weight: .semibold))
+            }
+            .foregroundStyle(Pal(dark: scheme == .dark).accent)
+            .padding(.leading, 20).padding(.trailing, 24)
+            .frame(height: 48)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .modifier(ChromeGlass(shape: Capsule(), interactive: true))
+        .macGlassFinish(Capsule())
+    }
 }
 
 /// 右下角的加号：带主色的圆形玻璃

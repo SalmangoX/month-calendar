@@ -168,8 +168,10 @@
     paintTools();
     const rc = mode === 'edit' && editing ? editing.cal : newCal, rated = MC.rateOn(rc);
     $('#cmpPriLabel').textContent = rated ? '等级' : '优先级';
-    if (rated) $('#cmpPri').innerHTML = [{ v: 0, name: '无' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n }))].map(p => `<button class="qchip pri rate${p.v === (draft.rate || 0) ? ' on' : ''}" data-v="${p.v}" style="--c:${p.v ? `var(--lv${p.v})` : 'var(--p0)'}"><span class="dot"></span><span data-uc>${esc(p.name)}</span></button>`).join('');
-    else $('#cmpPri').innerHTML = MC.PRI_ASC.map(p => `<button class="qchip pri${p.v === draft.priority ? ' on' : ''}" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span>${p.name}</button>`).join('');
+    // 正在拖的时候不重画（不然水滴会跳回去）
+    if (!$('#cmpPri .lgbar.dragging')) $('#cmpPri').innerHTML = rated
+      ? UI.lgBar([{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n, color: `var(--lv${i + 1})` }))], draft.rate || 0)
+      : UI.lgBar(MC.PRI_ASC, draft.priority);
     $('#cmpSave').classList.toggle('disabled', !$('#cmpTitle').value.trim());
     $('#cmpDone').setAttribute('aria-pressed', String(!!draft.done));
   }
@@ -261,10 +263,8 @@
     if (b.dataset.act === 'other') { otherOpen = !otherOpen; otherCal = null; paintQuick(); renderOther(); return; }
     draft.date = b.dataset.ds; otherOpen = false; paintComposer(); renderOther();
   });
-  $('#cmpPri').addEventListener('click', e => {
-    const b = e.target.closest('.qchip'); if (!b) return;
-    if (MC.rateOn(mode === 'edit' && editing ? editing.cal : newCal)) draft.rate = Number(b.dataset.v); else draft.priority = Number(b.dataset.v);
-    paintComposer();
+  $('#cmpPri').addEventListener('lgchange', e => {
+    if (MC.rateOn(mode === 'edit' && editing ? editing.cal : newCal)) draft.rate = e.detail.v; else draft.priority = e.detail.v;
   });
   $('#cmpDone').onclick = () => { draft.done = !draft.done; paintComposer(); };
   $('#cmpDate').onclick = () => {
@@ -877,7 +877,7 @@
     const rc = MC.rateOn(newCal) && MC.cal(newCal);
     const list = rc ? [{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n, color: `var(--lv${i + 1})` }))] : MC.PRI_ASC;
     const cur = rc ? r.rate || 0 : r.priority;
-    return list.map(p => `<button class="qchip pri sm${p.v === cur ? ' on' : ''}" data-act="pri" data-v="${p.v}" style="--c:${p.color}"><span class="dot"></span><span data-uc>${esc(p.name)}</span></button>`).join('');
+    return UI.lgBar(list, cur);
   }
   function renderBatch() {
     $('#batchList').innerHTML = rows.map((r, i) => `
@@ -885,7 +885,6 @@
         <button class="b-swdel" data-act="del" tabindex="-1">删除</button>
         <div class="b-card">
           <div class="b-top">
-            <span class="b-idx">${i + 1}</span>
             <div class="b-name">
               <input class="b-title" value="${esc(r.title)}" placeholder="名称（必填）" enterkeyhint="next">
               <input class="b-note" value="${esc(r.note)}" placeholder="备注（选填）">
@@ -932,6 +931,12 @@
     if (e.target.classList.contains('b-note')) r.note = e.target.value;
     saveBatchDraft();
   });
+  $('#batchList').addEventListener('lgchange', e => {
+    const el = e.target.closest('.brow'); if (!el) return;
+    const r = rows[Number(el.dataset.i)];
+    if (MC.rateOn(newCal)) r.rate = e.detail.v; else r.priority = e.detail.v;
+    saveBatchDraft();
+  });
   $('#batchList').addEventListener('focusin', e => { const el = e.target.closest('.brow'); if (el) batchFocus = Number(el.dataset.i); });
   // 键盘挡住输入框时的处理统一在 ui.js（只在会被挡住时才挪，挪刚好够的距离）
   $('#batchList').addEventListener('keydown', e => {
@@ -952,12 +957,7 @@
         renderBatch();
       });
     }
-    else if (a.dataset.act === 'pri') {
-      const v = Number(a.dataset.v);
-      if (MC.rateOn(newCal)) r.rate = v; else r.priority = v;
-      el.querySelectorAll('.b-pri .qchip').forEach(b => b.classList.toggle('on', b === a));
-      saveBatchDraft();
-    }
+
     else if (a.dataset.act === 'flag') UI.menu(a, MC.rateOn(newCal) ? UI.rateMenuItems(newCal, r.rate) : UI.priMenuItems(r.priority), v => { if (MC.rateOn(newCal)) r.rate = v; else r.priority = v; paintFlag(a, v); saveBatchDraft(); });
     else if (a.dataset.act === 'date') {
       document.activeElement && document.activeElement.blur();
@@ -979,7 +979,7 @@
   const setX = (card, x, anim) => { card.style.transition = anim ? 'transform .28s var(--ease)' : 'none'; card.style.transform = x ? `translateX(${x}px)` : ''; };
   function closeSwipe() { if (openCard) { setX(openCard, 0, true); openCard.closest('.brow').classList.remove('swiped'); openCard = null; } }
   $('#batchList').addEventListener('touchstart', e => {
-    const card = e.target.closest('.b-card'); if (!card || e.touches.length !== 1) return;
+    const card = e.target.closest('.b-card'); if (!card || e.touches.length !== 1 || e.target.closest('.lgbar')) { sw = null; return; }
     if (openCard && openCard !== card) closeSwipe();
     const t = e.touches[0];
     sw = { card, x0: t.clientX, y0: t.clientY, base: card === openCard ? -DEL_W : 0, mode: 0, x: 0 };
@@ -1008,7 +1008,7 @@
     const last = rows[rows.length - 1];
     rows.push(blankRow(last ? last.date : draft.date));
     renderBatch();
-    $('#batchList').scrollTop = $('#batchList').scrollHeight;
+    $('#batchScroll').scrollTop = $('#batchScroll').scrollHeight;
   }
   $('#batchAddRow').onclick = addRow;
   // 粘贴栏：一行一个事件，认出名称和日期的变成下面的行，认不出的留在粘贴栏里
@@ -1031,7 +1031,7 @@
     if (!bad.length) paste.blur();
     renderBatch();
     const el = $('#batchList').querySelectorAll('.brow')[first];
-    if (el) $('#batchList').scrollTop = el.offsetTop - $('#batchList').offsetTop - 4;
+    if (el) { const sc = $('#batchScroll'); sc.scrollTop += el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 4; }
     UI.toast(bad.length ? `已识别 ${ok.length} 个事件，${bad.length} 行缺少名称或日期，留在粘贴栏里` : `已识别 ${ok.length} 个事件`, { ms: bad.length ? 3500 : 2200 });
   };
   $('#batchSave').onclick = () => {

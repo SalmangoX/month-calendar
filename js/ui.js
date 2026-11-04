@@ -101,7 +101,7 @@
   // 可滚动的内容在最顶部时下拉 = 收起，否则正常滚动。向上拉有阻尼的橡皮筋效果，松手回弹。
   const rubber = (x, dim = 140, c = .55) => (1 - 1 / (x * c / dim + 1)) * dim;
   const EDITABLE = 'input:not([type=checkbox]), textarea, select, [contenteditable], .wheel';
-  const SCROLLERS = '.batch-list, .pk-body:not(.cmp-pk), .help-body, .form, .list, .pv-list, .cmp-scroll';
+  const SCROLLERS = '.batch-scroll, .pk-body:not(.cmp-pk), .help-body, .form, .list, .pv-list, .cmp-scroll';
   // 面板本身永远不滚动（防止浏览器为了显示输入框把整个面板顶走）
   document.querySelectorAll('.sheet').forEach(sh => sh.addEventListener('scroll', () => { if (!sh.classList.contains('composer') && sh.scrollTop) sh.scrollTop = 0; }));
   document.querySelectorAll('.sheet').forEach(sh => {
@@ -124,7 +124,7 @@
       if (state === 1) {
         if (Math.abs(dy) < 6 || Math.abs(dy) < Math.abs(dx)) return;
         const atTop = !sc || sc.scrollTop <= 0;
-        if ((dy > 0 && atTop) || (dy < 0 && !sc)) {
+        if ((dy > 0 && atTop) || (dy < 0 && !sc && (!sizing || grab))) {
           state = 2; y0 = y; sh.style.transition = 'none';
           if (sizing) { P = sh.parentElement.clientHeight; h0 = sh.offsetHeight; H = UI.detents(sh).map(f => f * P); }
         }
@@ -333,6 +333,61 @@
     }
     try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}
   };
+
+  // ---------- 液态玻璃拖动条（优先级 / 等级）：和底部菜单栏一样，一颗玻璃水滴停在选中的那格上 ----------
+  // 点哪格水滴就弹过去；按住左右拖，水滴跟着手指走（越快拉得越长），经过的字被放大，松手吸到最近的一格。
+  // 选中后在条上发 lgchange 事件（detail.v 是选的值）
+  UI.lgBar = (items, cur) => {
+    const i = Math.max(0, items.findIndex(p => p.v === cur));
+    return `<div class="lgbar" role="radiogroup" style="--n:${items.length};--p:${i}" data-i="${i}"><span class="lg-thumb" aria-hidden="true"></span>`
+      + items.map((p, k) => `<button type="button" role="radio" aria-checked="${k === i}" class="lg-opt${k === i ? ' on' : ''}" data-i="${k}" data-v="${p.v}" style="--c:${p.color || 'var(--p0)'}"><span class="dot"></span><span data-uc>${esc(p.name)}</span></button>`).join('')
+      + '</div>';
+  };
+  {
+    let g = null;
+    const opts = bar => bar.querySelectorAll('.lg-opt');
+    const near = (bar, p) => opts(bar).forEach((o, k) => o.classList.toggle('near', Math.abs(k - p) < 0.5));
+    const pick = (bar, k) => {
+      const os = opts(bar), was = Number(bar.dataset.i);
+      bar.classList.remove('dragging'); bar.style.setProperty('--sx', 1);
+      bar.style.setProperty('--p', k); bar.dataset.i = k;
+      os.forEach((o, j) => { o.classList.toggle('on', j === k); o.classList.remove('near'); o.setAttribute('aria-checked', String(j === k)); });
+      if (k !== was) { haptic(); bar.dispatchEvent(new CustomEvent('lgchange', { bubbles: true, detail: { v: Number(os[k].dataset.v), i: k } })); }
+    };
+    document.addEventListener('pointerdown', e => {
+      const bar = e.target.closest('.lgbar'); if (!bar || e.button > 0) return;
+      const r = bar.getBoundingClientRect(), n = opts(bar).length;
+      g = { bar, id: e.pointerId, x0: e.clientX, y0: e.clientY, r, n, seg: (r.width - 6) / n, moved: false, p: Number(bar.dataset.i), lx: e.clientX, lt: performance.now() };
+    }, true);
+    document.addEventListener('pointermove', e => {
+      if (!g || e.pointerId !== g.id) return;
+      const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+      if (!g.moved) {
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { g = null; return; } // 竖着划：交给页面滚动
+        if (Math.abs(dx) < 6) return;
+        g.moved = true; g.bar.classList.add('dragging');
+        try { g.bar.setPointerCapture(e.pointerId); } catch (_) {}
+        UI.cancelPresses && UI.cancelPresses();
+      }
+      const now = performance.now(), v = (e.clientX - g.lx) / Math.max(1, now - g.lt); g.lx = e.clientX; g.lt = now;
+      g.p = Math.max(-0.25, Math.min(g.n - 0.75, (e.clientX - g.r.left - 3 - g.seg / 2) / g.seg));
+      g.bar.style.setProperty('--p', g.p);
+      g.bar.style.setProperty('--sx', 1 + Math.min(0.3, Math.abs(v) * 0.18)); // 越快拉得越长
+      near(g.bar, g.p);
+      const k = Math.round(Math.max(0, Math.min(g.n - 1, g.p)));
+      if (k !== g.last) { if (g.last !== undefined) haptic(); g.last = k; }
+    }, true);
+    const end = e => {
+      if (!g || e.pointerId !== g.id) return;
+      const s = g; g = null;
+      if (s.moved) { s.bar._swallow = Date.now(); pick(s.bar, Math.round(Math.max(0, Math.min(s.n - 1, s.p)))); return; }
+      if (e.type === 'pointercancel') return;
+      const o = e.target.closest && e.target.closest('.lg-opt');
+      pick(s.bar, o && s.bar.contains(o) ? Number(o.dataset.i) : Math.max(0, Math.min(s.n - 1, Math.floor((e.clientX - s.r.left - 3) / s.seg))));
+    };
+    document.addEventListener('pointerup', end, true);
+    document.addEventListener('pointercancel', end, true);
+  }
   UI.doneFeedback = () => { haptic(); chime(); };
 
   // ---------- 事件的快捷操作：长按（手机）或右键（电脑）弹出 ----------

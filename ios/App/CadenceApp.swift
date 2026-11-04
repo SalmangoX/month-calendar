@@ -58,6 +58,15 @@ struct RootView: View {
             .opacity(m.cover ? 0 : 1)
             .allowsHitTesting(!m.cover)
             .ignoresSafeArea(.keyboard)
+            // 批量添加的「再加一个」：系统液态玻璃，画在网页按钮的位置上（网页坐标 = 屏幕坐标）
+            ZStack {
+                if let r = m.addRow {
+                    GlassAddButton(m: m).position(x: r.midX, y: r.midY)
+                        .transition(.scale(scale: 0.7).combined(with: .opacity))
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
             GlassMenu(m: m).ignoresSafeArea().allowsHitTesting(m.menu != nil)
             GlassDrawer(m: m).allowsHitTesting(m.drawerOpen)
         }
