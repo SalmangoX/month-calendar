@@ -581,14 +581,11 @@
     ], v => setView(v));
   }
 
-  $('#btnPrev').onclick = () => {
-    if (animating) return;
-    if (view === 'month') jumpToMonth(focus.y, focus.m - 1); else page(-1);
-  };
-  $('#btnNext').onclick = () => {
-    if (animating) return;
-    if (view === 'month') jumpToMonth(focus.y, focus.m + 1); else page(1);
-  };
+  { // 月份左右切换按钮已移除；键盘和手势仍然能翻
+    const prev = $('#btnPrev'), next = $('#btnNext');
+    if (prev) prev.onclick = () => { if (!animating) { if (view === 'month') jumpToMonth(focus.y, focus.m - 1); else page(-1); } };
+    if (next) next.onclick = () => { if (!animating) { if (view === 'month') jumpToMonth(focus.y, focus.m + 1); else page(1); } };
+  }
   function goToday() {
     const n = new Date(), from = view;
     selected = MC.todayStr();
