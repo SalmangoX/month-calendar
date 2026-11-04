@@ -1718,7 +1718,7 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 #page-cal .topbar .title h1 { font-size: 23px; letter-spacing: -.01em; }
 #page-cal .topbar .title p { font-size: 11.5px; margin-top: 2px; opacity: .75; }
 #page-cal .weekdays { display: none; }          /* 星期行改成每个月一条，顶部这条不要了 */
-#page-cal .cal-body { margin-top: 64px; }        /* 让开悬浮的月份 */
+#page-cal .cal-body { margin-top: 0; }        /* 让开悬浮的月份 */
 
 /* 每个月第一天那一行上方的星期条，跟着内容一起滚 */
 .mwd {
