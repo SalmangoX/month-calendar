@@ -27,11 +27,12 @@
     W = vp.clientWidth; H = vp.clientHeight;
     const pv = body.classList.contains('previewing');
     if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
-    rowH = (pv ? fullH : H) / 6;
+    rowH = (pv ? fullH : H) / 6.5;
     const head = 39 + 3; // 数字区 + 底部留白
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
     withMore = Math.floor((rowH - head - 12 + 2) / 17);
     room = rowH - head; tw = (W - 4) / 7 - 8;
+    document.documentElement.style.setProperty('--rowh', rowH + 'px');
     if (!firstOpenDone) { firstOpenDone = true; scrollY = -rowH; }   // 打开时当月第一行也在半行处
   }
   // 时间文字宽度：用 canvas 量，判断一行放不放得下
@@ -612,7 +613,7 @@
   function goToday() {
     const n = new Date(), from = view;
     selected = MC.todayStr();
-    stopAnim(); scrollY = 0; pagePos = 0;
+    stopAnim(); scrollY = -rowH; pagePos = 0;
     anchor = MC.weekStartOf(new Date(n.getFullYear(), n.getMonth(), 1));
     weekAnchor = MC.weekStartOf(n);
     year = n.getFullYear();
