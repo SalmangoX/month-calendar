@@ -1438,7 +1438,7 @@ body[data-kind="days"] .dock2 { display: none; }
 :root[data-theme="dark"] .pod, :root[data-theme="dark"] .fan { background: rgba(255, 255, 255, .03); }
 :root[data-theme="dark"] .pod::after, :root[data-theme="dark"] .fan::after { opacity: .5; }
 .pod-today {
-  height: 50px; padding: 0 19px; border-radius: 25px; z-index: 1;
+  height: 50px; padding: 0 19px; border-radius: 999px; z-index: 1;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 15px; font-weight: 560; letter-spacing: .01em;
   font-variant-numeric: tabular-nums;
