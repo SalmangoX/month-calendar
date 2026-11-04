@@ -1496,3 +1496,6 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 #page-sched .sc-week { padding: 1px 0; }
 #page-sched .sc-week b { font-size: 14.5px; }
 #page-sched .sc-week small { font-size: 11px; }
+
+
+/* deploy retry */
