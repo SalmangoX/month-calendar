@@ -1393,6 +1393,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 body:not([data-kind="days"]) #fab { display: none; }
 body:not([data-kind="days"]) .dock { display: none; }
 body[data-kind="days"] .dock2 { display: none; }
+
 .dock2 {
   position: absolute; left: 0; right: 0; bottom: calc(var(--dock-b) + 14px); z-index: 16;
   display: flex; align-items: center; justify-content: space-between;
@@ -1400,34 +1401,54 @@ body[data-kind="days"] .dock2 { display: none; }
 }
 .dock2.hide { display: none; }
 .dock2 > * { pointer-events: auto; }
-.pod {
-  border: 0; font-family: inherit; color: var(--text); cursor: pointer;
-  background: var(--bar-frost); border-radius: 26px;
-  box-shadow: var(--glass-rim), var(--frost-shadow);
-  -webkit-backdrop-filter: var(--glass-fx); backdrop-filter: var(--glass-fx);
-  display: grid; place-items: center; transition: transform .18s var(--ease-spring, ease);
+
+/* 液态玻璃：透、有折射边、左上角一道镜面高光 */
+.pod, .fan {
+  position: relative; border: 0; color: var(--text); font-family: inherit; cursor: pointer;
+  border-radius: 999px; display: grid; place-items: center; overflow: hidden;
+  background:
+    linear-gradient(158deg,
+      color-mix(in srgb, var(--frost-hi) 86%, transparent) 0%,
+      var(--frost) 40%,
+      color-mix(in srgb, var(--accent) 12%, var(--frost)) 100%);
+  -webkit-backdrop-filter: var(--glass-fx-strong);
+  backdrop-filter: var(--glass-fx-strong);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 90%, transparent),
+    inset 1px 0 0 color-mix(in srgb, #fff 50%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--accent) 26%, transparent),
+    inset 0 0 0 .5px var(--frost-edge),
+    0 10px 28px rgba(30, 45, 70, .13);
+  transition: transform .18s var(--ease-spring, ease);
 }
-.pod:active { transform: scale(.94); }
-.pod-today { height: 50px; padding: 0 20px; font-size: 14.5px; font-weight: 600; letter-spacing: .02em; }
-.pod-menu { position: relative; width: 56px; height: 56px; }
-.pod-logo { width: 56px; height: 56px; border-radius: 28px; padding: 0; }
-.pod-logo img { width: 34px; height: 34px; display: block; transition: transform .32s var(--ease-spring, ease); }
+.pod::after, .fan::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(120% 82% at 26% -12%, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 58%);
+}
+:root[data-theme="dark"] .pod::after, :root[data-theme="dark"] .fan::after { opacity: .16; }
+.pod:active, .fan:active { transform: scale(.94); }
+
+.pod-today { height: 52px; padding: 0 22px; font-size: 15px; font-weight: 600; letter-spacing: .02em; z-index: 1; }
+.pod-today span { position: relative; z-index: 1; }
+
+.pod-menu { position: relative; width: 58px; height: 58px; }
+.pod-logo { width: 58px; height: 58px; border-radius: 29px; padding: 0; }
+.pod-logo img { width: 38px; height: 38px; display: block; position: relative; z-index: 1; transition: transform .32s var(--ease-spring, ease); }
 .pod-menu.open .pod-logo img { transform: rotate(90deg) scale(.86); }
+
 .fan {
-  position: absolute; right: 5px; bottom: 5px; width: 46px; height: 46px; border-radius: 23px;
-  border: 0; cursor: pointer; color: var(--text); font-family: inherit;
-  background: var(--bar-frost); box-shadow: var(--glass-rim), var(--frost-shadow);
-  -webkit-backdrop-filter: var(--glass-fx); backdrop-filter: var(--glass-fx);
-  display: grid; place-items: center; opacity: 0; pointer-events: none;
-  transform: translate(0, 0) scale(.4); transform-origin: center;
+  position: absolute; right: 1px; bottom: 1px; width: 56px; height: 56px; border-radius: 28px;
+  opacity: 0; pointer-events: none; transform: translate(0, 0) scale(.4);
   transition: transform .34s cubic-bezier(.2, .9, .22, 1.18), opacity .2s ease;
 }
 .pod-menu.open .fan { opacity: 1; pointer-events: auto; }
-.pod-menu.open .fan-set { transform: translate(-50px, -50px) scale(1); transition-delay: .04s; }
-.pod-menu.open .fan-add { transform: translate(-74px, 0) scale(1); transition-delay: .01s; }
+.pod-menu.open .fan-set { transform: translate(-62px, -62px) scale(1); transition-delay: .05s; }
+.pod-menu.open .fan-add { transform: translate(-88px, 0) scale(1); transition-delay: .01s; }
+.fan svg { position: relative; z-index: 1; }
+
 .pager {
   display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 15px;
-  background: var(--bar-frost); box-shadow: var(--glass-rim);
+  background: var(--frost); box-shadow: var(--glass-rim);
   -webkit-backdrop-filter: var(--glass-fx); backdrop-filter: var(--glass-fx);
   transition: opacity .2s;
 }
