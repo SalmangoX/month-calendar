@@ -534,6 +534,13 @@
   const closeMenu = () => { open = false; menu.classList.remove('open'); };
   const openMenu = () => { open = true; menu.classList.add('open'); };
 
+  let lastDragEnd = 0;   // 刚拖完页面的那一下，不要顺手把菜单点开
+  document.getElementById('bubbleLogo').addEventListener('click', e => {
+    e.stopPropagation();
+    if (Date.now() - lastDragEnd < 320) return;
+    if (open) closeMenu(); else openMenu();
+  });
+
   // 页面变化时同步：气泡文字、分页点、显隐
   function sync() {
     const pg = body.dataset.page || 'cal';
