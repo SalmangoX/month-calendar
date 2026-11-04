@@ -1525,3 +1525,23 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 .page.drag { background: var(--bg); will-change: transform; backface-visibility: hidden; }
 
 /* deploy 1533 */
+
+/* 今日气泡：时钟 */
+.pod-today { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.pod-today span i { font-style: normal; animation: pv-blink 1s steps(1, end) infinite; }
+.pod-today span s { text-decoration: none; font-size: 9.5px; opacity: .5; margin-left: 3px; }
+@keyframes pv-blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: .2 } }
+
+/* 点按时的水波 */
+.pod-today { position: relative; overflow: hidden; }
+.ripple {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,.9), rgba(255,255,255,0) 62%);
+  transform: scale(0); opacity: .85; animation: pv-ripple .6s ease-out forwards;
+}
+@keyframes pv-ripple { to { transform: scale(1); opacity: 0 } }
+
+/* 没有返回键时，扇形铺开、按钮略大；设置始终在水平位置 */
+.pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
+.pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }

@@ -541,12 +541,23 @@
     const pg = body.dataset.page || 'cal';
     const days = body.dataset.kind === 'days';
     dock2.classList.toggle('hide', days);
+    syncSpread();
     if (days) { closeMenu(); return; }
-    label.textContent = pg === 'today' ? '日历' : '今日';
+
     const two = pg === 'cal' || pg === 'sched';
     pager.classList.toggle('hide', !two);
     dots.forEach((d, i) => d.classList.toggle('on', i === (pg === 'sched' ? 1 : 0)));
   }
+  // 上方有「回到今天 / 回到本周」时，扇形只能挤在下面；没有返回键就铺开一点
+  function syncSpread() {
+    const back = (document.getElementById('calBack') && !document.getElementById('calBack').hidden)
+              || (document.getElementById('schedBack') && !document.getElementById('schedBack').hidden);
+    menu.classList.toggle('wide', !back);
+  }
+  ['calBack', 'schedBack'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) new MutationObserver(syncSpread).observe(el, { attributes: true, attributeFilter: ['hidden'] });
+  });
   new MutationObserver(sync).observe(body, { attributes: true, attributeFilter: ['data-page', 'data-kind'] });
   sync();
 
@@ -577,6 +588,35 @@
   wake();
 
   function goPage(p) { MC.App.showPage(p); }
+
+  // 今日气泡显示当前时间：跟随系统的 12/24 小时设置，冒号每秒闪一下
+  function tickClock() {
+    if (!label) return;
+    const d = new Date();
+    const h12 = !!(window.MC && MC.use12 && MC.use12());
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, '0');
+    if (h12) {
+      const ap = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      label.innerHTML = `${h}<i>:</i>${m}<s>${ap}</s>`;
+    } else {
+      label.innerHTML = `${String(h).padStart(2, '0')}<i>:</i>${m}`;
+    }
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+  document.getElementById('bubbleToday').addEventListener('pointerdown', e => {
+    const b = e.currentTarget, r = b.getBoundingClientRect();
+    const d = Math.max(r.width, r.height) * 2.2;
+    const s = document.createElement('span');
+    s.className = 'ripple';
+    s.style.width = s.style.height = d + 'px';
+    s.style.left = (e.clientX - r.left - d / 2) + 'px';
+    s.style.top = (e.clientY - r.top - d / 2) + 'px';
+    b.appendChild(s);
+    setTimeout(() => s.remove(), 620);
+  });
   document.getElementById('bubbleToday').addEventListener('click', () => {
     const pg = body.dataset.page || 'cal';
     goPage(pg === 'today' ? 'cal' : 'today');
