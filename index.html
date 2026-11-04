@@ -560,9 +560,10 @@
   if ('requestIdleCallback' in window) requestIdleCallback(preload, { timeout: 2500 });
   else setTimeout(preload, 1200);
 
+  function goPage(p) { MC.App.showPage(p); }
   document.getElementById('bubbleToday').addEventListener('click', () => {
     const pg = body.dataset.page || 'cal';
-    MC.App.showPage(pg === 'today' ? 'cal' : 'today');
+    goPage(pg === 'today' ? 'cal' : 'today');
   });
 
   document.getElementById('bubbleLogo').addEventListener('click', e => {
@@ -575,7 +576,7 @@
     if (b) b.click();
   });
   const backBtn = document.getElementById('backToCal');
-  if (backBtn) backBtn.addEventListener('click', () => MC.App.showPage('cal'));
+  if (backBtn) backBtn.addEventListener('click', () => goPage('cal'));
   document.getElementById('fanAdd').addEventListener('click', () => {
     closeMenu();
     const f = document.getElementById('fab');
@@ -586,6 +587,8 @@
 
   // 日历 ←→ 日程：跟手拖拽切页（拖动过程中另一页就在旁边）
   const pages = { cal: document.getElementById('page-cal'), sched: document.getElementById('page-sched') };
+  // 这两页现在靠滑动切换，不要每次进入都播一次淡入（会闪）
+  Object.values(pages).forEach(el => el && el.classList.add('no-in'));
   let dg = null;
 
   const blockedBy = t => !!(t && t.closest && t.closest('.drawer, .sheet, .drawer-scrim, .dock2, .tabbar, .preview, .wkpick'));
@@ -632,17 +635,18 @@
     cur.style.transform = `translate3d(${go ? -sign * d.W : 0}px,0,0)`;
     nxt.style.transform = `translate3d(${go ? 0 : sign * d.W}px,0,0)`;
     setTimeout(() => {
-      cur.style.transition = nxt.style.transition = '';
-      cur.style.transform = nxt.style.transform = '';
       if (go) {
-        nxt.classList.remove('drag');
+        // 先把旧页藏掉再归位，避免看到它「弹回去」
+        cur.style.display = 'none';
         cur.classList.remove('drag');
-        MC.App.showPage(d.to);
-        const el = pages[d.to];
-        el.classList.remove('from-left', 'from-right');
-        void el.offsetWidth;
-        el.classList.add(d.to === 'sched' ? 'from-left' : 'from-right');
+        cur.style.transition = ''; cur.style.transform = '';
+        nxt.style.transition = ''; nxt.style.transform = '';
+        MC.App.showPage(d.to);           // 加 .active（.drag 还在，画面不闪）
+        nxt.classList.remove('drag');
+        requestAnimationFrame(() => { cur.style.display = ''; });
       } else {
+        cur.style.transition = nxt.style.transition = '';
+        cur.style.transform = nxt.style.transform = '';
         nxt.classList.remove('drag');
         cur.classList.remove('drag');
       }
