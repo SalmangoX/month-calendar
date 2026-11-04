@@ -548,23 +548,28 @@
   document.addEventListener('click', e => { if (open && !menu.contains(e.target)) closeMenu(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 
-  // 日历 ←→ 日程：左右滑动切页
-  function swipe(el, dir) {
-    let x0 = 0, y0 = 0, t0 = 0, on = false;
-    el.addEventListener('touchstart', e => {
-      if (e.touches.length !== 1) { on = false; return; }
-      on = true; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
-    }, { passive: true });
-    el.addEventListener('touchend', e => {
-      if (!on) return; on = false;
-      const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
-      if (Date.now() - t0 > 600 || Math.abs(dy) > 60) return;
-      if (dx * dir > 90) MC.App.showPage(dir > 0 ? 'sched' : 'cal');
-    }, { passive: true });
-  }
-  const calPage = document.getElementById('page-cal'), schedPage = document.getElementById('page-sched');
-  if (calPage) swipe(calPage, -1);
-  if (schedPage) swipe(schedPage, 1);
+  // 日历 ←→ 日程：左右滑动切页（capture 阶段监听，避免被日历自己的手势吞掉）
+  let sx = 0, sy = 0, st = 0, tracking = false;
+  const blocked = t => !!(t && t.closest && t.closest('.drawer, .sheet, .drawer-scrim, .dock2, .tabbar, .preview'));
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    const pg = body.dataset.page;
+    if (pg !== 'cal' && pg !== 'sched') { tracking = false; return; }
+    if (blocked(e.target)) { tracking = false; return; }
+    tracking = true;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
+  }, { capture: true, passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Date.now() - st > 700 || Math.abs(dy) > 60 || Math.abs(dx) < 60) return;
+    const pg = body.dataset.page;
+    if (pg === 'cal' && dx < 0) MC.App.showPage('sched');
+    else if (pg === 'sched' && dx > 0) MC.App.showPage('cal');
+  }, { capture: true, passive: true });
 })();
 </script>
 </body>

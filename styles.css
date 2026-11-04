@@ -1394,7 +1394,7 @@ body:not([data-kind="days"]) #fab { display: none; }
 body:not([data-kind="days"]) .dock { display: none; }
 body[data-kind="days"] .dock2 { display: none; }
 .dock2 {
-  position: absolute; left: 0; right: 0; bottom: var(--dock-b); z-index: 16;
+  position: absolute; left: 0; right: 0; bottom: calc(var(--dock-b) + 14px); z-index: 16;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 18px; pointer-events: none;
 }
