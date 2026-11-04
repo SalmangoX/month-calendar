@@ -785,54 +785,80 @@
 </script>
 
 <script>
-// 设计调节器：在地址后面加 ?tune=1 打开，只影响这台设备上的预览，不会影响别人
+// 设计调节器：侧面抽屉，上预览下参数；只在这台设备的 ?tune=1 打开
 (function () {
   if (!/[?&]tune=1/.test(location.search)) return;
   const V = [
-    { k: '--pill-k', label: '月份气泡纵向位置 × 行高', min: 0, max: 1.4, step: 0.02, val: 0.72 },
-    { k: '--pill-gap', label: '月份气泡向上偏移 (px)', min: 0, max: 160, step: 2, val: 72, unit: 'px' },
-    { k: '--pill-fs', label: '月份字号 (px)', min: 12, max: 30, step: 1, val: 23, unit: 'px' },
-    { k: '--pill-py', label: '月份上下内边距 (px)', min: 0, max: 16, step: 1, val: 5, unit: 'px' },
-    { k: '--pill-px', label: '月份左右内边距 (px)', min: 6, max: 40, step: 1, val: 29, unit: 'px' },
-    { k: '--mwd-fs', label: '星期行字号 (px)', min: 8, max: 16, step: 0.5, val: 11, unit: 'px' },
+    { k: '--pill-k', label: '月份气泡位置 × 行高', min: 0, max: 1.4, step: 0.02, val: 0.72 },
+    { k: '--pill-gap', label: '月份气泡向上偏移', min: 0, max: 160, step: 2, val: 72, unit: 'px' },
+    { k: '--pill-fs', label: '月份字号', min: 12, max: 30, step: 1, val: 23, unit: 'px' },
+    { k: '--pill-py', label: '月份上下内边距', min: 0, max: 16, step: 1, val: 5, unit: 'px' },
+    { k: '--pill-px', label: '月份左右内边距', min: 6, max: 40, step: 1, val: 29, unit: 'px' },
+    { k: '--mwd-fs', label: '星期行字号', min: 8, max: 16, step: 0.5, val: 11, unit: 'px' },
     { k: '--mwd-op', label: '星期行不透明度', min: 0.2, max: 1, step: 0.05, val: 1 },
-    { k: '--fan-x', label: '扇形「设置」水平距离 (px)', min: 40, max: 170, step: 2, val: 100, unit: 'px' },
-    { k: '--fan-d', label: '扇形「添加」斜向距离 (px)', min: 30, max: 110, step: 2, val: 70, unit: 'px' },
-    { k: '--back-off', label: '返回键底部偏移 (px)', min: 90, max: 240, step: 2, val: 152, unit: 'px' },
+    { k: '--fan-x', label: '扇形「设置」水平距离', min: 40, max: 170, step: 2, val: 100, unit: 'px' },
+    { k: '--fan-d', label: '扇形「添加」斜向距离', min: 30, max: 110, step: 2, val: 70, unit: 'px' },
+    { k: '--back-off', label: '返回键底部偏移', min: 90, max: 240, step: 2, val: 152, unit: 'px' },
   ];
   const root = document.documentElement;
-  const panel = document.createElement('div');
-  panel.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:14px 16px 18px;font:13px/1.5 -apple-system,"PingFang SC",sans-serif;max-height:62vh;overflow:auto';
-  let html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><b style="font-size:15px">设计调节</b><span style="color:#888;font-size:12px">调好后点复制，把结果发我</span><button id="tuneClose" style="margin-left:auto;border:0;background:#eee;border-radius:10px;padding:6px 10px;font-size:12px">收起</button></div>';
-  V.forEach((v, i) => {
-    html += `<label style="display:block;margin:10px 0 2px;color:#444">${v.label} <b id="tv${i}" style="float:right;color:#4C6EAC">${v.val}${v.unit || ''}</b></label>
-      <input id="ti${i}" type="range" min="${v.min}" max="${v.max}" step="${v.step}" value="${v.val}" style="width:100%">`;
-  });
-  html += '<button id="tuneCopy" style="margin-top:14px;width:100%;border:0;border-radius:12px;padding:12px;background:#1b1a20;color:#fff;font-size:14px;font-weight:600">复制配置</button>';
-  panel.innerHTML = html;
-  document.body.appendChild(panel);
-  document.body.classList.add('tune-show-back');   // 把返回键亮出来，方便看着调位置
+
+  const css = document.createElement('style');
+  css.textContent = `
+    #tuneToggle { position:fixed; top:10px; right:10px; z-index:99999; border:0; border-radius:999px;
+      background:#1b1a20; color:#fff; padding:8px 14px; font:13px/1 -apple-system,sans-serif; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+    #tuneDrawer { position:fixed; top:0; right:0; bottom:0; width:min(360px,92vw); z-index:99998;
+      background:#fbfaf8; box-shadow:-12px 0 40px rgba(0,0,0,.18);
+      transform:translateX(100%); transition:transform .28s cubic-bezier(.2,.8,.25,1);
+      display:flex; flex-direction:column; font:13px/1.5 -apple-system,"PingFang SC",sans-serif; }
+    #tuneDrawer.open { transform:translateX(0); }
+    #tuneDrawer .tp { height:44vh; flex:none; overflow:hidden; background:#e9e6e1; border-bottom:1px solid #e3e0da; }
+    #tuneDrawer .tp iframe { border:0; width:520px; height:880px; transform:scale(.62); transform-origin:0 0; pointer-events:none; }
+    #tuneDrawer .tc { flex:1; overflow:auto; padding:12px 16px 20px; }
+    #tuneDrawer .tc label { display:block; margin:11px 0 2px; color:#3a3742; }
+    #tuneDrawer .tc label b { float:right; color:#4C6EAC; }
+    #tuneDrawer .tc input[type=range] { width:100%; }
+    #tuneDrawer .tc button { margin-top:14px; width:100%; border:0; border-radius:12px; padding:12px;
+      background:#1b1a20; color:#fff; font:600 14px/1 -apple-system,sans-serif; cursor:pointer; }
+    #tuneDrawer .th { flex:none; display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid #e3e0da; }
+    #tuneDrawer .th b { font-size:15px; }
+    #tuneClose { margin-left:auto; border:0; background:#ece9e4; border-radius:10px; padding:6px 10px; font-size:12px; cursor:pointer; }
+  `;
+  document.head.appendChild(css);
+
+  const toggle = document.createElement('button');
+  toggle.id = 'tuneToggle'; toggle.textContent = '⚙ 调节';
+  document.body.appendChild(toggle);
+
+  const drawer = document.createElement('div');
+  drawer.id = 'tuneDrawer';
+  const src = location.pathname.split('/').pop() || 'index.html';
+  drawer.innerHTML = `<div class="th"><b>设计调节</b><span style="color:#999;font-size:11px">调完点复制发我</span><button id="tuneClose">收起</button></div>
+    <div class="tp"><iframe src="./${src}"></iframe></div>
+    <div class="tc">${V.map((v, i) => `<label>${v.label} <b id="tv${i}">${v.val}${v.unit || ''}</b></label><input id="ti${i}" type="range" min="${v.min}" max="${v.max}" step="${v.step}" value="${v.val}">`).join('')}
+    <button id="tuneCopy">复制配置</button></div>`;
+  document.body.appendChild(drawer);
+
+  toggle.onclick = () => drawer.classList.toggle('open');
+  document.getElementById('tuneClose').onclick = () => drawer.classList.remove('open');
+
   const vals = V.map(v => v.val);
   const apply = () => {
     V.forEach((v, i) => {
       if (v.k.startsWith('--')) root.style.setProperty(v.k, vals[i] + (v.unit || ''));
-      else window[v.k] = vals[i];
       const out = document.getElementById('tv' + i);
       if (out) out.textContent = vals[i] + (v.unit || '');
     });
-    if (window.MC && MC.Cal && MC.Cal.render) { try { MC.Cal.render(); } catch (e) {} }
   };
   V.forEach((v, i) => {
     document.getElementById('ti' + i).addEventListener('input', e => { vals[i] = +e.target.value; apply(); });
   });
-  apply();
-  document.getElementById('tuneClose').onclick = () => panel.style.display = 'none';
   document.getElementById('tuneCopy').onclick = () => {
     const out = V.map((v, i) => `${v.label}: ${vals[i]}${v.unit || ''}`).join('\n');
     navigator.clipboard?.writeText(out);
-    document.getElementById('tuneCopy').textContent = '已复制（也可以截图给我）';
+    document.getElementById('tuneCopy').textContent = '已复制（也可截图发我）';
   };
 })();
 </script>
+
 </body>
 </html>
