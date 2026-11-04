@@ -181,8 +181,23 @@
       }
       h += barsHTML(lay, days, lims) + '</div>';
     }
+    // 每个月第一天所在的那一行，上方贴一条「日 … 六」
+    let mw = '';
+    for (let r = 0; r < 6 + BUF * 2; r++) {
+      let first = false;
+      for (let c = 0; c < 7; c++) {
+        const d = MC.addDays(start, r * 7 + c);
+        if (d.getDate() === 1) { first = true; break; }
+      }
+      if (first && r > 0) {
+        const ws = MC.settings.weekStart;
+        const letters = Array.from({ length: 7 }, (_, i) => `<span>${MC.WD[(i + ws) % 7]}</span>`).join('');
+        mw += `<div class="mwd" style="top:${r * rowH - 22}px">${letters}</div>`;
+      }
+    }
+
     track.style.cssText = '';
-    track.innerHTML = h + `<svg class="mframe" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
+    track.innerHTML = h + mw + `<svg class="mframe" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
     setT(0, -(BUF * rowH + scrollY));
     monthTitle();
     drawFrame();
