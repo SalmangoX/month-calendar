@@ -1538,6 +1538,40 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 .pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
 .pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
 
+#page-today.active { animation: none; }   /* 关掉默认淡入，改用下面的缩放进场 */
+#page-cal { z-index: 1; }
+#page-today { z-index: 2; }
+
+/* 切换时两页同时在场：旧页往后退、变暗，新页从气泡位置长出来 */
+.page.pv-hold { display: flex !important; animation: none !important; }
+
+#page-today.pv-in { animation: pvIn .46s cubic-bezier(.12,.86,.2,1.02); will-change: transform, opacity; }
+#page-today.pv-out { animation: pvOut .3s cubic-bezier(.5,0,.75,.2) forwards; will-change: transform, opacity; }
+#page-cal.pv-behind { animation: pvBehind .5s cubic-bezier(.2,.8,.3,1) forwards; will-change: transform, opacity, filter; }
+#page-cal.pv-front { animation: pvFront .46s cubic-bezier(.16,.86,.24,1); will-change: transform, opacity, filter; }
+
+@keyframes pvIn {
+  from { opacity: 0; transform: scale(.42); }
+  55%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes pvOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(.42); }
+}
+@keyframes pvBehind {
+  from { transform: none; opacity: 1; filter: none; }
+  to   { transform: scale(.93) translateY(6px); opacity: .45; filter: saturate(.85) blur(.5px); }
+}
+@keyframes pvFront {
+  from { transform: scale(.93) translateY(6px); opacity: .45; filter: saturate(.85) blur(.5px); }
+  to   { transform: none; opacity: 1; filter: none; }
+}
+/* 没有返回键时，扇形铺开、按钮略大；设置始终在水平位置 */
+.pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
+.pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
+.pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
+
 #page-today.active { animation: none; }   /* 关掉默认淡入，改用下面的缩放展开 */
 #page-today.pv-in {
   animation: pvIn .46s cubic-bezier(.12,.86,.2,1.02);

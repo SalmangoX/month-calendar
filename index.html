@@ -604,32 +604,40 @@
   }
   tickClock();
   setInterval(tickClock, 1000);
-  // 今日页从气泡位置放大展开，再点一次原路缩回
+  // 今日页从气泡位置放大，日历在后面退后变暗；收回时反过来
   const todayPage = document.getElementById('page-today');
+  const calPageEl = document.getElementById('page-cal');
   let todayBusy = false;
 
+  const clearPv = () => {
+    todayPage.classList.remove('pv-in', 'pv-out', 'pv-hold');
+    if (calPageEl) calPageEl.classList.remove('pv-behind', 'pv-front', 'pv-hold');
+    todayBusy = false;
+  };
+
   document.getElementById('bubbleToday').addEventListener('click', e => {
-    if (todayBusy || !todayPage) { return; }
+    if (todayBusy || !todayPage) return;
     const pg = body.dataset.page || 'cal';
     const r = e.currentTarget.getBoundingClientRect();
     todayPage.style.transformOrigin = `${r.left + r.width / 2}px ${r.top + r.height / 2}px`;
-    todayPage.classList.remove('pv-in', 'pv-out');
 
     if (pg === 'today') {
+      // 收回：今日缩小，日历从后面顶上来
       todayBusy = true;
-      todayPage.classList.add('pv-out');
-      const done = () => {
-        todayPage.classList.remove('pv-out');
-        todayBusy = false;
+      todayPage.classList.remove('pv-in');
+      todayPage.classList.add('pv-hold', 'pv-out');
+      if (calPageEl) calPageEl.classList.add('pv-hold', 'pv-front');
+      setTimeout(() => {
         MC.App.showPage('cal');
-      };
-      todayPage.addEventListener('animationend', done, { once: true });
-      setTimeout(() => { if (todayBusy) done(); }, 360);
+        if (calPageEl) calPageEl.classList.remove('pv-front', 'pv-hold');
+        setTimeout(clearPv, 320);
+      }, 280);
     } else {
-      void todayPage.offsetWidth;          // 先把起始状态落地，动画才看得见
+      todayBusy = true;
       todayPage.classList.add('pv-in');
+      if (calPageEl) calPageEl.classList.add('pv-behind');
       MC.App.showPage('today');
-      todayPage.addEventListener('animationend', () => todayPage.classList.remove('pv-in'), { once: true });
+      setTimeout(clearPv, 520);
     }
   });
 
