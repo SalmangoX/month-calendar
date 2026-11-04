@@ -153,7 +153,13 @@ final class Widgets {
         rv.setViewVisibility(R.id.m_today, off == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
         for (int k = 0; k < 7; k++) rv.setTextViewText(WDAY[k], I18n.wdHead((k + ws) % 7));
 
+        // 这个月实际需要几行：最后一整行都是下个月的话，整行去掉（列是等分的，隐藏一格会自动重排）
+        int off0 = (jsDay - ws + 7) % 7;
+        int rows = (int) Math.ceil((off0 + ym.lengthOfMonth()) / 7.0);
+        for (int i = rows * 7; i < 42; i++) rv.setViewVisibility(CELL[i], android.view.View.GONE);
+
         for (int i = 0; i < 42; i++) {
+            if (i >= rows * 7) continue;
             LocalDate day = start.plusDays(i);
             boolean in = day.getMonthValue() == ym.getMonthValue();
             rv.setTextViewText(N[i], String.valueOf(day.getDayOfMonth()));
@@ -578,7 +584,13 @@ final class Widgets {
         rv.setViewVisibility(R.id.m_today, off == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
         for (int k = 0; k < 7; k++) rv.setTextViewText(WDAY[k], I18n.wdHead((k + ws) % 7));
         int perCell = Math.max(1, cap);
+        // 这个月实际需要几行：最后一整行都是下个月的话，整行去掉（列是等分的，隐藏一格会自动重排）
+        int off0 = (jsDay - ws + 7) % 7;
+        int rows = (int) Math.ceil((off0 + ym.lengthOfMonth()) / 7.0);
+        for (int i = rows * 7; i < 42; i++) rv.setViewVisibility(CELL[i], android.view.View.GONE);
+
         for (int i = 0; i < 42; i++) {
+            if (i >= rows * 7) continue;
             LocalDate day = start.plusDays(i);
             boolean in = day.getMonthValue() == ym.getMonthValue();
             rv.setTextViewText(N[i], String.valueOf(day.getDayOfMonth()));
