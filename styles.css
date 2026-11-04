@@ -1530,7 +1530,7 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 /* 今日气泡：时钟 */
 
 .pod-today span i { font-style: normal; animation: pv-blink 1s steps(1, end) infinite; }
-.pod-today span s { text-decoration: none; font-size: 8px; opacity: .5; margin-left: 1px; vertical-align: super; }
+.pod-today span s { text-decoration: none; font-size: 7px; opacity: .42; margin-left: .5px; vertical-align: baseline; display: inline-block; transform: translateY(-3px); letter-spacing: .02em; }
 @keyframes pv-blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: .2 } }
 
 /* 点按时的水波 */
