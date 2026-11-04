@@ -99,7 +99,7 @@
   <!-- 课表 -->
   <section class="page" id="page-sched">
     <header class="ptitle">
-      <div><h1>课表</h1></div>
+      <div><h1>日程</h1></div>
       <div class="sc-actions"><button class="chip-btn glass" id="schedImport">导入</button></div>
     </header>
     <div class="sc-nav" id="schedNav">
@@ -157,7 +157,7 @@
       <svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>
       <span>统计</span>
     </button>
-    <button data-page="sched" aria-label="课表">
+    <button data-page="sched" aria-label="日程">
       <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.5h17M9.5 9.5v11M3.5 15h17"/></svg>
       <span>课表</span>
     </button>
@@ -365,7 +365,7 @@
 </section>
 
 <!-- 课表：导入 / 编辑 -->
-<section class="sheet tall" id="schedSheet" aria-label="课表">
+<section class="sheet tall" id="schedSheet" aria-label="日程">
   <div class="handle"></div>
   <div class="sheet-head">
     <button class="text-btn muted" data-close>取消</button>
@@ -485,6 +485,86 @@
   document.addEventListener('click', function (e) {
     if (e.target && e.target.id === 'pvOpen') open();
   });
+})();
+</script>
+
+<!-- 新底栏：左「今日/日历」气泡 · 中分页点 · 右「logo」扇形菜单 -->
+<div class="dock2" id="dock2">
+  <button class="pod pod-today" id="bubbleToday" aria-label="切换今日 / 日历"><span id="bubbleTodayLabel">今日</span></button>
+  <div class="pager" id="pager" aria-hidden="true"><i class="on"></i><i></i></div>
+  <div class="pod-menu" id="podMenu">
+    <button class="fan fan-set" id="fanSet" aria-label="设置" tabindex="-1"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.9v.06a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg></button>
+    <button class="fan fan-add" id="fanAdd" aria-label="添加事件" tabindex="-1"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <button class="pod pod-logo" id="bubbleLogo" aria-label="更多"><img src="icons/logo.png" alt=""></button>
+  </div>
+</div>
+<script>
+(function () {
+  const dock2 = document.getElementById('dock2');
+  if (!dock2) return;
+  const label = document.getElementById('bubbleTodayLabel');
+  const pager = document.getElementById('pager');
+  const dots = [...pager.querySelectorAll('i')];
+  const menu = document.getElementById('podMenu');
+  const body = document.body;
+  let open = false;
+
+  const closeMenu = () => { open = false; menu.classList.remove('open'); };
+  const openMenu = () => { open = true; menu.classList.add('open'); };
+
+  // 页面变化时同步：气泡文字、分页点、显隐
+  function sync() {
+    const pg = body.dataset.page || 'cal';
+    const days = body.dataset.kind === 'days';
+    dock2.classList.toggle('hide', days);
+    if (days) { closeMenu(); return; }
+    label.textContent = pg === 'today' ? '日历' : '今日';
+    const two = pg === 'cal' || pg === 'sched';
+    pager.classList.toggle('hide', !two);
+    dots.forEach((d, i) => d.classList.toggle('on', i === (pg === 'sched' ? 1 : 0)));
+  }
+  new MutationObserver(sync).observe(body, { attributes: true, attributeFilter: ['data-page', 'data-kind'] });
+  sync();
+
+  document.getElementById('bubbleToday').addEventListener('click', () => {
+    const pg = body.dataset.page || 'cal';
+    MC.App.showPage(pg === 'today' ? 'cal' : 'today');
+  });
+
+  document.getElementById('bubbleLogo').addEventListener('click', e => {
+    e.stopPropagation();
+    open ? closeMenu() : openMenu();
+  });
+  document.getElementById('fanSet').addEventListener('click', () => {
+    closeMenu();
+    const b = document.querySelector('.tabbar button[data-page="set"]');
+    if (b) b.click();
+  });
+  document.getElementById('fanAdd').addEventListener('click', () => {
+    closeMenu();
+    const f = document.getElementById('fab');
+    if (f) f.click();
+  });
+  document.addEventListener('click', e => { if (open && !menu.contains(e.target)) closeMenu(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+  // 日历 ←→ 日程：左右滑动切页
+  function swipe(el, dir) {
+    let x0 = 0, y0 = 0, t0 = 0, on = false;
+    el.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) { on = false; return; }
+      on = true; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+    }, { passive: true });
+    el.addEventListener('touchend', e => {
+      if (!on) return; on = false;
+      const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      if (Date.now() - t0 > 600 || Math.abs(dy) > 60) return;
+      if (dx * dir > 90) MC.App.showPage(dir > 0 ? 'sched' : 'cal');
+    }, { passive: true });
+  }
+  const calPage = document.getElementById('page-cal'), schedPage = document.getElementById('page-sched');
+  if (calPage) swipe(calPage, -1);
+  if (schedPage) swipe(schedPage, 1);
 })();
 </script>
 </body>

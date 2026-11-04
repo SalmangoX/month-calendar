@@ -313,7 +313,7 @@
     $('#schedFit').hidden = zoom <= 1;
     $('#schedNav').hidden = !all.length;
     if (!all.length) {
-      body.innerHTML = `<div class="big-empty"><span class="em-ico"><svg viewBox="0 0 24 24"><rect class="f" x="3.5" y="4.5" width="17" height="16" rx="3.6"/><path class="k" d="M3.5 10h17M9.2 10v10.5M3.5 15.2h17"/></svg></span>还没有课表<br><small style="color:var(--text3)">点右上角「导入」，粘贴课程表文字即可</small></div>`;
+      body.innerHTML = `<div class="big-empty"><span class="em-ico"><svg viewBox="0 0 24 24"><rect class="f" x="3.5" y="4.5" width="17" height="16" rx="3.6"/><path class="k" d="M3.5 10h17M9.2 10v10.5M3.5 15.2h17"/></svg></span>还没有日程<br><small style="color:var(--text3)">点右上角「导入」，粘贴日程表文字即可</small></div>`;
       return;
     }
     const byDay = {};
@@ -567,13 +567,13 @@
   let parsed = [], mode = 'import', editing = null, editDay = 1, editEvery = 1;
   function openImport() {
     mode = 'import'; parsed = []; impSel = -1;
-    $('#schedTitle').textContent = '导入课表';
+    $('#schedTitle').textContent = '导入日程';
     $('#schedOk').textContent = '导入';
     $('#schedForm').innerHTML = `
-      <p class="hint" style="margin:0 2px 10px">从学校选课系统、教务网站、Excel 表格或任何日历里复制课程表，粘贴到下面即可；也可以导入 .ics 文件、保存下来的网页，或者拍一张课表照片。识别结果会画成课表，确认后再导入。</p>
+      <p class="hint" style="margin:0 2px 10px">从学校选课系统、教务网站、Excel 表格或任何日历里复制课程表，粘贴到下面即可；也可以导入 .ics 文件、保存下来的网页，或者拍一张课表照片。识别结果会画成日程，确认后再导入。</p>
       <div class="help-tip" style="margin-bottom:10px">小技巧：网页上的周课表可以直接全选复制（电脑按 ⌘A / Ctrl+A，手机长按后「全选」），表格的行和列会一起带过来。有「列表视图」的系统（比如 uoZone 的「List View」）切到列表再复制更准。<br>也可以自己一行写一节：<code>MAT 2348 周二 14:30-15:50 Tabaret 333</code><br>或从 Excel 复制带表头的表格（课程 / 星期 / 开始 / 结束 / 教室）。</div>
       <textarea id="schedText" rows="6" placeholder="在这里粘贴课程表…"></textarea>
-      <div class="btn-line imp-src"><span><button class="chip-btn glass" id="schedIcs">.ics / 网页文件</button> <button class="chip-btn glass" id="schedPhotoBtn">照片识别</button> <button class="chip-btn glass" id="schedManual">手动添加</button></span><label class="replace-opt"><input type="checkbox" id="schedReplace" checked> 替换现有课表</label></div>
+      <div class="btn-line imp-src"><span><button class="chip-btn glass" id="schedIcs">.ics / 网页文件</button> <button class="chip-btn glass" id="schedPhotoBtn">照片识别</button> <button class="chip-btn glass" id="schedManual">手动添加</button></span><label class="replace-opt"><input type="checkbox" id="schedReplace" checked> 替换现有日程</label></div>
       <p class="hint imp-status" id="impStatus" hidden></p>
       <div class="imp-range" id="impRange" hidden>
         <p class="hint" style="margin:12px 4px 8px">有些课程没有写日期，请选择它们的上课时间：</p>
