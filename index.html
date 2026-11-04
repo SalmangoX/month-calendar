@@ -115,6 +115,10 @@
   <!-- 设置 -->
   <section class="page" id="page-set">
     <div class="pscroll" id="setBody">
+      <button class="back-to-cal" id="backToCal" aria-label="回到日历">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M14.5 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        日历
+      </button>
       <div class="profile">
         <button class="avatar" id="avatarBtn" aria-label="更换头像">
           <img id="avatarImg" alt="" hidden>
@@ -540,6 +544,8 @@
     const b = document.querySelector('.tabbar button[data-page="set"]');
     if (b) b.click();
   });
+  const backBtn = document.getElementById('backToCal');
+  if (backBtn) backBtn.addEventListener('click', () => MC.App.showPage('cal'));
   document.getElementById('fanAdd').addEventListener('click', () => {
     closeMenu();
     const f = document.getElementById('fab');

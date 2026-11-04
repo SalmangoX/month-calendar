@@ -1455,3 +1455,13 @@ body[data-kind="days"] .dock2 { display: none; }
 .pager.hide { opacity: 0; pointer-events: none; }
 .pager i { width: 6px; height: 6px; border-radius: 4px; background: var(--text3); transition: width .28s var(--ease-spring, ease), background .2s; }
 .pager i.on { width: 16px; background: var(--accent); }
+
+.back-to-cal {
+  display: inline-flex; align-items: center; gap: 3px; margin: 8px 16px 2px;
+  height: 34px; padding: 0 14px 0 9px; border: 0; border-radius: 17px; cursor: pointer;
+  font-family: inherit; font-size: 14px; font-weight: 550; color: var(--text2);
+  background: var(--frost); box-shadow: var(--glass-rim);
+  -webkit-backdrop-filter: var(--glass-fx); backdrop-filter: var(--glass-fx);
+  transition: transform .16s var(--ease-spring, ease), color .18s;
+}
+.back-to-cal:active { transform: scale(.95); color: var(--text); }
