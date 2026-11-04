@@ -1,5 +1,6 @@
 import Combine
 import SwiftUI
+import ImageIO
 #if os(macOS)
 import AppKit
 #else
@@ -559,11 +560,20 @@ struct GlassLayer: View {
     private func glass(_ it: NavModel.LGItem) -> Glass {
         switch it.k {
         case "l": return .clear                                         // 拖动中的水滴：一滴清水
-        case "d":                                                       // 照片、相机画面上的：带上网页原来那层底色（牌子取自照片的颜色），字看得清
-            if let c = Color(css: it.tint), let a = Self.alpha(it.tint), a > 0.02 { return .regular.tint(c.opacity(min(0.9, a + 0.32))) } // 比网页原来的底色稍浓一点：字在玻璃上始终看得清
-            return .regular.tint(Color.black.opacity(0.18))
+        case "p":                                                       // 照片上带字的牌子：透亮的 clear 玻璃（背后的照片清清楚楚地折射过来），着一层网页原来底色的淡色，字看得清
+            return .clear // 底色由 content 里铺的那层半透明色负责（clear 玻璃的 tint 太淡，字会看不清）
+        case "d": return .clear.tint(Color.black.opacity(0.12))         // 照片、相机画面上的按钮：和系统相机一样的透亮玻璃
         default:  return NavGlass.chrome(scheme)                        // 和底部菜单栏同一种玻璃
         }
+    }
+    static func lum(_ css: String) -> Double {
+        let n = css.split(whereSeparator: { !"0123456789.".contains($0) }).compactMap { Double($0) }
+        return n.count >= 3 ? 0.299 * n[0] + 0.587 * n[1] + 0.114 * n[2] : 0
+    }
+    static func light(_ css: String) -> Bool { lum(css) > 150 }
+    static func gray(_ css: String) -> Bool { // 灰色系（不是蓝、橙这种有颜色的字）
+        let n = css.split(whereSeparator: { !"0123456789.".contains($0) }).compactMap { Double($0) }
+        return n.count >= 3 && (n[0...2].max()! - n[0...2].min()!) < 40
     }
     static func alpha(_ css: String) -> Double? {
         let n = css.split(whereSeparator: { !"0123456789.".contains($0) }).compactMap { Double($0) }
@@ -575,6 +585,13 @@ struct GlassLayer: View {
             ForEach(m.lg) { it in
                 let shape = RoundedRectangle(cornerRadius: it.r, style: .continuous)
                 ZStack {
+                    // 照片上的牌子：玻璃「下面」先垫一层网页原来的底色（半透明），玻璃把它和后面的照片一起折射，字有底衬着
+                    // （放在玻璃上面的话，系统会自动把它调亮，等于没垫）
+                    if it.k == "p", let c = Color(css: it.tint), let a = Self.alpha(it.tint), a > 0.02 {
+                        shape.fill(c.opacity(min(0.75, a * 1.1)))
+                            .frame(width: it.rect.width, height: it.rect.height)
+                            .position(x: it.rect.midX, y: it.rect.midY)
+                    }
                     content(it)
                         .frame(width: it.rect.width, height: it.rect.height)
                         .glassEffect(glass(it), in: shape)
@@ -604,23 +621,31 @@ struct GlassLayer: View {
     @ViewBuilder private func content(_ it: NavModel.LGItem) -> some View {
         let o = it.rect.origin
         ZStack(alignment: .topLeading) {
+            // 照片上的牌子：玻璃上铺一层网页原来的底色（半透明），背后的照片还看得见折射，字有底衬着
             Color.clear
             ForEach(Array(it.pads.enumerated()), id: \.offset) { _, p in
                 RoundedRectangle(cornerRadius: p.r, style: .continuous).fill(Color.white.opacity(it.k == "d" ? 0.94 : scheme == .dark ? 0.16 : 0.5)) // 照片 / 相机上的选中项：白色，字是黑的
                     .frame(width: p.rect.width, height: p.rect.height).position(x: p.rect.midX - o.x, y: p.rect.midY - o.y)
             }
             ForEach(Array(it.icons.enumerated()), id: \.offset) { _, c in
-                Image(systemName: c.sf)
-                    .font(.system(size: min(c.rect.width, c.rect.height) * 0.86, weight: c.sw >= 2.2 ? .semibold : .medium))
-                    .foregroundStyle(Color(css: c.col) ?? .primary)
-                    .position(x: c.rect.midX - o.x, y: c.rect.midY - o.y)
+                if c.sf.hasPrefix("data:"), let img = LGImage.get(c.sf) {
+                    Image(decorative: img, scale: 3).resizable().frame(width: c.rect.width, height: c.rect.height)
+                        .position(x: c.rect.midX - o.x, y: c.rect.midY - o.y)
+                } else if !c.sf.hasPrefix("data:") {
+                    Image(systemName: c.sf)
+                        .font(.system(size: min(c.rect.width, c.rect.height) * 0.86, weight: c.sw >= 2.2 ? .semibold : .medium))
+                        .foregroundStyle(Color(css: c.col) ?? .primary)
+                        .position(x: c.rect.midX - o.x, y: c.rect.midY - o.y)
+                }
             }
             ForEach(Array(it.runs.enumerated()), id: \.offset) { _, t in
                 Text(t.t)
                     .font(.system(size: t.fs, weight: weight(t.fw), design: t.round ? .rounded : .default))
                     .monospacedDigit(t.tab)
                     .kerning(t.ls)
-                    .foregroundStyle(Color(css: t.col) ?? .primary)
+                    // 照片上的浅色字（灰色的日期、单位也一样）：提到接近白色，加一层淡阴影，背后再亮也看得清
+                    .foregroundStyle(it.k != "g" && Self.light(t.col) && Self.gray(t.col) ? Color.white.opacity(Self.lum(t.col) > 215 ? 1 : 0.86) : (Color(css: t.col) ?? .primary))
+                    .shadow(color: .black.opacity(it.k != "g" && Self.light(t.col) ? 0.38 : 0), radius: 4, y: 0.5)
                     .lineLimit(1).fixedSize()
                     .position(x: t.rect.midX - o.x, y: t.rect.midY - o.y)
             }
@@ -630,6 +655,19 @@ struct GlassLayer: View {
 
 private extension View {
     @ViewBuilder func monospacedDigit(_ on: Bool) -> some View { if on { self.monospacedDigit() } else { self } }
+}
+
+/// 网页转好的自定义图标（PNG data URL）解码一次就缓存
+enum LGImage {
+    nonisolated(unsafe) private static var cache: [String: CGImage] = [:]
+    static func get(_ url: String) -> CGImage? {
+        if let c = cache[url] { return c }
+        guard let comma = url.firstIndex(of: ","), let d = Data(base64Encoded: String(url[url.index(after: comma)...])),
+              let src = CGImageSourceCreateWithData(d as CFData, nil), let img = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return nil }
+        if cache.count > 200 { cache.removeAll() }
+        cache[url] = img
+        return img
+    }
 }
 
 extension Color {

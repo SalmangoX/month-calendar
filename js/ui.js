@@ -622,9 +622,23 @@
   // App 调用 MC.LG.start(post) 后：每一帧找出屏幕上看得见的玻璃控件（按钮、胶囊、优先级的水滴、纪念日历照片上的按钮和牌子），
   // 把位置、圆角、裁剪范围发给原生；网页自己的毛玻璃底去掉（字和图标还是网页画，原生的透明玻璃盖在上面）。
   // 只给「控件」用液态玻璃（和 Apple 的规则一样）；面板、卡片、提示条还是毛玻璃。
-  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .cam-btn, .cam-chips, .lgn, .dv-cover.photo .cv-plate, .dv-cover.photo .cv-tile, .dp-cover.photo .dp-plate, .cam-pill:not(.solid)';
+  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .cam-btn, .cam-chips, .lgn, .dv-cover.photo .cv-plate, .dv-cover.photo .cv-tile, .dp-cover.photo .dp-plate, .cam-pill:not(.solid), .cam-card.st-glass';
   const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips, .lgn-dark, .cv-plate, .cv-tile, .dp-plate, .cam-pill'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
   const LAYERS = '.sheet.show, .dp.show, .cam.show, .cam-res, .confirm.show, .popover.show';
+  // 自定义 SVG 图标转成 PNG（data URL）：把 CSS 里的线宽、颜色写进图标本身，按 3 倍大小画到画布上；同样的图标只转一次
+  const rasterCache = new Map();
+  function rasterIcon(sv) {
+    const cs = getComputedStyle(sv), w = Math.round(sv.getBoundingClientRect().width), key = (sv.getAttribute('viewBox') || '') + sv.innerHTML + cs.color + w; // 不含 class：转好后加的 lgr（把网页的藏起来）不算换了图标
+    if (rasterCache.has(key)) return rasterCache.get(key);
+    rasterCache.set(key, null);
+    const c = sv.cloneNode(true), all = [c, ...c.querySelectorAll('*')], src = [sv, ...sv.querySelectorAll('*')];
+    all.forEach((e, i) => { const s = getComputedStyle(src[i]); ['fill', 'fill-opacity', 'stroke', 'stroke-opacity', 'stroke-width', 'stroke-linecap', 'stroke-linejoin'].forEach(p => e.setAttribute(p, s.getPropertyValue(p).replace(/currentcolor/i, cs.color))); });
+    c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', w * 3); c.setAttribute('height', w * 3); c.removeAttribute('class');
+    const im = new Image();
+    im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = w * 3; cv.getContext('2d').drawImage(im, 0, 0, w * 3, w * 3); rasterCache.set(key, cv.toDataURL('image/png')); };
+    im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c));
+    return null;
+  }
   MC.LG = {
     start(post) {
       if (MC.LG.on) return; MC.LG.on = true;
@@ -663,7 +677,8 @@
           const cs = getComputedStyle(el), rad = Math.min(parseFloat(cs.borderTopLeftRadius) || 0, r.height / 2);
           const thumb = el.classList.contains('lg-thumb');
           if (thumb && !el.parentElement.classList.contains('dragging')) return; // 水滴停着时是网页画的白色底板（和系统的分段控件一样），按住拖动时才变成原生的玻璃透镜
-          const k = thumb ? 'l' : el.matches(LG_DARK) ? 'd' : 'g';
+          const k = thumb ? 'l' : el.matches('.cv-plate, .dp-plate, .cam-card') ? 'p' : el.matches(LG_DARK) ? 'd' : 'g'; // p：照片上带字的牌子；d：照片 / 相机上的按钮
+          const sc = el.offsetWidth ? r.width / el.offsetWidth : 1; // 被缩放过（相机里双指缩放的卡片）：字号跟着缩放
           const n = v => Math.round(v * 10) / 10;
           // 原生要画在玻璃上面的内容：网页排好的每一段字（位置、字号、粗细、颜色、字距、等宽数字、圆体）、每个图标（系统符号）、
           // 里面的浅色底块（比如相机分段里选中的那段）。原生照着位置一模一样画在玻璃上面，网页这边只把字和这些图标藏起来
@@ -678,10 +693,15 @@
                 const ps = getComputedStyle(pe); if (ps.display === 'none' || ps.visibility === 'hidden') continue;
                 rg.selectNodeContents(tn); const q = rg.getBoundingClientRect(); if (!q.width) continue;
                 const ls = parseFloat(ps.letterSpacing) || 0;
-                runs.push([n(q.left), n(q.top), n(q.width), n(q.height), txt, parseFloat(ps.fontSize) || 15, parseInt(ps.fontWeight) || 400, ps.color, n(ls),
+                runs.push([n(q.left), n(q.top), n(q.width), n(q.height), txt, (parseFloat(ps.fontSize) || 15) * sc, parseInt(ps.fontWeight) || 400, ps.color, n(ls * sc),
                   (ps.fontVariantNumeric.includes('tabular') ? 1 : 0) + (/rounded/i.test(ps.fontFamily) ? 2 : 0)]);
               }
-              el.querySelectorAll('svg[data-sf]').forEach(sv => { const q = sv.getBoundingClientRect(); if (q.width) icons.push([n(q.left), n(q.top), n(q.width), n(q.height), sv.dataset.sf, getComputedStyle(sv).color, parseFloat(getComputedStyle(sv).strokeWidth) || 2]); });
+              el.querySelectorAll('svg').forEach(sv => {
+                const q = sv.getBoundingClientRect(); if (!q.width) return;
+                if (sv.dataset.sf) { icons.push([n(q.left), n(q.top), n(q.width), n(q.height), sv.dataset.sf, getComputedStyle(sv).color, parseFloat(getComputedStyle(sv).strokeWidth) || 2]); return; }
+                // 没有对应系统符号的自定义图标（纪念日的蛋糕、礼物…）：转成图片交给原生画在玻璃上面，转好之前网页的照常显示
+                const img = rasterIcon(sv); if (img) { sv.classList.add('lgr'); icons.push([n(q.left), n(q.top), n(q.width), n(q.height), img, '', 0]); }
+              });
               el.querySelectorAll('.on').forEach(o => { const q = o.getBoundingClientRect(); if (q.width) pads.push([n(q.left), n(q.top), n(q.width), n(q.height), n(Math.min(parseFloat(getComputedStyle(o).borderTopLeftRadius) || 0, q.height / 2))]); });
             }
           }
