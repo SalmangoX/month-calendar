@@ -310,6 +310,7 @@
     $('#schedWeekMain').textContent = t.main;
     $('#schedWeekSub').textContent = t.sub;
     $('#schedThisWeek').hidden = MC.ymd(week) === MC.ymd(mondayOf(new Date()));
+    { const sb = $('#schedBack'); if (sb) sb.hidden = $('#schedThisWeek').hidden; }
     $('#schedFit').hidden = zoom <= 1;
     $('#schedNav').hidden = !all.length;
     if (!all.length) {
@@ -482,6 +483,7 @@
   $('#schedPrev').onclick = () => shiftWeek(-1);
   $('#schedNext').onclick = () => shiftWeek(1);
   $('#schedThisWeek').onclick = () => { week = mondayOf(new Date()); Sched.render(); };
+  { const sb = $('#schedBack'); if (sb) sb.onclick = () => $('#schedThisWeek').click(); }
   // 左右滑动换周：内容跟着手指走，松手后由合成器播放滑出 / 滑入（放大时左右滑动用来滚动内容）
   (() => {
     const el = $('#schedBody');

@@ -175,6 +175,7 @@
 
 <!-- 加号：固定在右下角菜单栏上方 -->
 <!-- 滑到别的周、月、年时出现：回到今天（在加号上方，淡淡的半透明） -->
+<button class="back-today glass sched-back" id="schedBack" aria-label="回到本周" hidden><svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 14L4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
 <button class="back-today glass" id="calBack" aria-label="回到今天" hidden><svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 14L4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
 <button class="fab glass accent" id="fab" aria-label="添加事件">
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
@@ -592,8 +593,8 @@
     const dx = t.clientX - sx, dy = t.clientY - sy;
     if (Date.now() - st > 700 || Math.abs(dy) > 60 || Math.abs(dx) < 60) return;
     const pg = body.dataset.page;
-    if (pg === 'cal' && dx < 0) MC.App.showPage('sched');
-    else if (pg === 'sched' && dx > 0) MC.App.showPage('cal');
+    const to = (pg === 'cal' && dx < 0) ? 'sched' : (pg === 'sched' && dx > 0) ? 'cal' : null;
+    if (to) requestAnimationFrame(() => MC.App.showPage(to));
   }, { capture: true, passive: true });
 })();
 </script>

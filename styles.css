@@ -1395,7 +1395,7 @@ body:not([data-kind="days"]) .dock { display: none; }
 body[data-kind="days"] .dock2 { display: none; }
 
 .dock2 {
-  position: absolute; left: 0; right: 0; bottom: calc(var(--dock-b) + 14px); z-index: 16;
+  position: absolute; left: 0; right: 0; bottom: var(--fab-b); z-index: 16;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 18px; pointer-events: none;
 }
@@ -1491,3 +1491,8 @@ body[data-kind="days"] .dock2 { display: none; }
     inset 0 0 0 .5px var(--frost-edge),
     0 12px 30px rgba(30, 45, 70, .16);
 }
+
+/* 日程页的「回到本周」：位置和日历的「回到今天」一致，浮在 logo 气泡上方 */
+.sched-back { display: none; }
+body[data-page="sched"] .sched-back { display: grid; }
+body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); pointer-events: none; }
