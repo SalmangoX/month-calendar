@@ -622,7 +622,7 @@
   // App 调用 MC.LG.start(post) 后：每一帧找出屏幕上看得见的玻璃控件（按钮、胶囊、优先级的水滴、纪念日历照片上的按钮和牌子），
   // 把位置、圆角、裁剪范围发给原生；网页自己的毛玻璃底去掉（字和图标还是网页画，原生的透明玻璃盖在上面）。
   // 只给「控件」用液态玻璃（和 Apple 的规则一样）；面板、卡片、提示条还是毛玻璃。
-  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .cam-btn, .cam-chips, .lgn, .dv-cover.photo .cv-plate, .dv-cover.photo .cv-tile, .dp-cover.photo .dp-plate, .cam-pill:not(.solid), .cam-card.st-glass';
+  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .cam-btn, .cam-chips, .lgn, .dv-cover.photo .cv-tile, .cam-pill:not(.solid), .cam-card.st-glass';
   const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips, .lgn-dark, .cv-plate, .cv-tile, .dp-plate, .cam-pill'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
   const LAYERS = '.sheet.show, .dp.show, .cam.show, .cam-res, .confirm.show, .popover.show';
   // 自定义 SVG 图标转成 PNG（data URL）：把 CSS 里的线宽、颜色写进图标本身，按 3 倍大小画到画布上；同样的图标只转一次
@@ -723,6 +723,8 @@
         document.querySelectorAll('#toast.show').forEach(t => { const r = t.getBoundingClientRect(); if (r.width) holes.push([...[r.left, r.top, r.width, r.height].map(v => Math.round(v)), 14]); });
         // 固定在顶上的栏（纪念日历的筛选栏、记录统计的切换栏）：内容滚到它下面时，玻璃也要被它挡住
         document.querySelectorAll('.page.active .dv-bar, .page.active .rs-ctl').forEach(t => { const r = t.getBoundingClientRect(); if (r.width && r.height) holes.push([...[r.left, r.top, r.width, r.height].map(v => Math.round(v)), 0]); });
+        // 纪念日详情：下面的内容区往上盖住照片底部（圆角），牌子的玻璃也要被它挡住
+        document.querySelectorAll('.dp.show .dp-body').forEach(t => { const r = t.getBoundingClientRect(); if (r.width && r.top < H) holes.push([...[r.left, r.top, r.width, Math.min(r.height, H - r.top + 40)].map(v => Math.round(v)), 26]); });
         // 原生正在画的控件：网页自己的字和图标藏起来（不然会被玻璃糊住、和原生画的叠在一起）；不画了就恢复
         document.querySelectorAll('.lgx').forEach(e => { if (!shown.has(e)) e.classList.remove('lgx'); });
         shown.forEach(e => { if (!e.classList.contains('lg-thumb')) e.classList.add('lgx'); });

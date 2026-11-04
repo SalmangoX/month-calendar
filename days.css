@@ -62,7 +62,7 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 .dv-cover.past { --tone: var(--past); }
 .cv-img { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .3s; }
 .cv-img.ok { opacity: 1; }
-.cv-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.cv-top { position: relative; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; }
 .cv-tile { width: 52px; height: 52px; border-radius: 17px; display: grid; place-items: center; color: var(--ic);
   background: color-mix(in srgb, var(--dv-card) 78%, transparent); box-shadow: 0 1px 2px rgba(30, 50, 80, .06); }
 .cv-tile svg { width: 28px; height: 28px; }
@@ -184,7 +184,15 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 .dp-setcover svg { width: 16px; height: 16px; }
 .dp-plate { position: absolute; z-index: 2; left: 14px; right: 14px; bottom: 38px; padding: 16px 20px 14px; border-radius: 26px; display: flex; flex-direction: column; align-items: flex-start;
   background: var(--plate); color: var(--plate-ink); -webkit-backdrop-filter: var(--glass-fx-strong); backdrop-filter: var(--glass-fx-strong); box-shadow: var(--glass-rim), 0 12px 30px -16px rgba(0, 0, 0, .3); }
-.dp-cover.photo .dp-plate { right: auto; max-width: calc(100% - 28px); padding-right: 28px; } /* 照片上：牌子只包住文字，照片多露出来 */
+/* 照片做封面：不放牌子（玻璃会挡住、扭曲照片），字直接写在照片上；照片底部一层淡淡的渐变暗色，白字带一点阴影（和锁屏、相册「回忆」一样） */
+.dp-cover.photo::after, .dv-cover.photo::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 62%; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, .18) 45%, rgba(0, 0, 0, .52)); }
+.dv-cover.photo::after { height: 70%; border-radius: inherit; }
+.dp-cover.photo .dp-plate, .dv-cover.photo .cv-plate { background: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important;
+  --plate-ink: #fff; --plate-ink2: rgba(255, 255, 255, .82); color: #fff; text-shadow: 0 1px 10px rgba(0, 0, 0, .28); z-index: 2; }
+.dp-cover.photo .dp-plate { padding-left: 6px; padding-bottom: 6px; }
+.dv-cover.photo .cv-plate { position: relative; padding: 0 2px; margin: 0; }
+.dp-cover.photo .dp-st, .dv-cover.photo .cv-r small { color: color-mix(in srgb, var(--tone) 55%, #fff); }
 .dp-cover:not(.photo) .dp-plate { background: color-mix(in srgb, var(--dv-card) 84%, transparent); }
 .dp-title { font-size: 18px; font-weight: 650; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dp-st { margin-top: 10px; font-size: 14px; font-weight: 650; color: var(--tone); }
