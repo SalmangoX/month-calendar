@@ -1437,9 +1437,10 @@ body[data-kind="days"] .dock2 { display: none; }
 :root[data-theme="dark"] .pod, :root[data-theme="dark"] .fan { background: rgba(255, 255, 255, .03); }
 :root[data-theme="dark"] .pod::after, :root[data-theme="dark"] .fan::after { opacity: .5; }
 .pod-today {
-  height: 46px; padding: 0 20px; z-index: 1;
-  display: inline-flex; align-items: center;
-  font-size: 15px; font-weight: 560; letter-spacing: .035em;
+  width: 58px; height: 58px; padding: 0; border-radius: 29px; z-index: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 560; letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
 }
 .pod-today span { position: relative; top: -.5px; }          /* 中文字重心略低，抬半像素看着才居中 */
 
@@ -1527,9 +1528,9 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 /* deploy 1533 */
 
 /* 今日气泡：时钟 */
-.pod-today { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+
 .pod-today span i { font-style: normal; animation: pv-blink 1s steps(1, end) infinite; }
-.pod-today span s { text-decoration: none; font-size: 9.5px; opacity: .5; margin-left: 3px; }
+.pod-today span s { text-decoration: none; font-size: 8px; opacity: .5; margin-left: 1px; vertical-align: super; }
 @keyframes pv-blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: .2 } }
 
 /* 点按时的水波 */
@@ -1545,3 +1546,15 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.7); 
 .pod-menu.wide .fan { width: 60px; height: 60px; border-radius: 30px; }
 .pod-menu.wide .fan-set { transform: translate(-100px, 0) scale(1); }
 .pod-menu.wide .fan-add { transform: translate(-70px, -70px) scale(1); }
+
+#page-today { --cx: 50vw; --cy: 100vh; }
+#page-today.circle-in { animation: pvCircleIn .42s cubic-bezier(.2,.85,.25,1); }
+#page-today.circle-out { animation: pvCircleOut .34s cubic-bezier(.4,0,.7,.2) forwards; }
+@keyframes pvCircleIn {
+  from { clip-path: circle(0 at var(--cx) var(--cy)); opacity: .55; }
+  to   { clip-path: circle(150% at var(--cx) var(--cy)); opacity: 1; }
+}
+@keyframes pvCircleOut {
+  from { clip-path: circle(150% at var(--cx) var(--cy)); opacity: 1; }
+  to   { clip-path: circle(0 at var(--cx) var(--cy)); opacity: .6; }
+}

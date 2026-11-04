@@ -617,9 +617,26 @@
     b.appendChild(s);
     setTimeout(() => s.remove(), 620);
   });
-  document.getElementById('bubbleToday').addEventListener('click', () => {
+  // 今日页从气泡位置像水波一样圆形展开，再点一次原路收回
+  const todayPage = document.getElementById('page-today');
+  document.getElementById('bubbleToday').addEventListener('click', e => {
     const pg = body.dataset.page || 'cal';
-    goPage(pg === 'today' ? 'cal' : 'today');
+    const r = e.currentTarget.getBoundingClientRect();
+    if (todayPage) {
+      todayPage.style.setProperty('--cx', (r.left + r.width / 2) + 'px');
+      todayPage.style.setProperty('--cy', (r.top + r.height / 2) + 'px');
+      todayPage.classList.remove('circle-out', 'circle-in');
+    }
+    if (pg === 'today') {
+      if (!todayPage) { goPage('cal'); return; }
+      todayPage.classList.add('circle-out');
+      const back = () => { todayPage.classList.remove('circle-out'); goPage('cal'); };
+      todayPage.addEventListener('animationend', back, { once: true });
+      setTimeout(() => { if (body.dataset.page === 'today') back(); }, 420);
+    } else {
+      if (todayPage) todayPage.classList.add('circle-in');
+      goPage('today');
+    }
   });
 
   let lastDragEnd = 0;
