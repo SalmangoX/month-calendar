@@ -165,6 +165,10 @@ svg.filled { fill: currentColor; stroke: none; }
 }
 .page.active { display: flex; animation: pagein .28s var(--ease); }
 @keyframes pagein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes slidein-l { from { opacity: .35; transform: translateX(34px); } to { opacity: 1; transform: none; } }
+@keyframes slidein-r { from { opacity: .35; transform: translateX(-34px); } to { opacity: 1; transform: none; } }
+.page.active.from-left { animation: slidein-l .22s var(--ease); }
+.page.active.from-right { animation: slidein-r .22s var(--ease); }
 #page-today, #page-quad, #page-set { background: var(--bg-grouped); }
 .ptitle { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 16px 20px 12px; flex: none; }
 .ptitle h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -.01em; }
@@ -491,7 +495,7 @@ body[data-page="sched"] .fab { background: #34A853; } /* 课表页的加号是�
 .tabbar.dragging button.hover { color: var(--accent-text); }
 .tab-avatar { width: 24px; height: 24px; border-radius: 50%; background-size: cover; background-position: center; box-shadow: 0 0 0 1.5px currentColor; }
 .back-today {
-  position: absolute; right: 22px; bottom: calc(var(--fab-b) + 68px); z-index: 16;
+  position: absolute; right: 22px; bottom: calc(var(--dock-b) + 106px); z-index: 16;
   width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; color: var(--text2);
   opacity: .72; transition: opacity .25s, transform .25s var(--ease);
 }
@@ -1395,43 +1399,39 @@ body:not([data-kind="days"]) .dock { display: none; }
 body[data-kind="days"] .dock2 { display: none; }
 
 .dock2 {
-  position: absolute; left: 0; right: 0; bottom: calc(var(--dock-b) + 14px); z-index: 16;
+  position: absolute; left: 0; right: 0; bottom: calc(var(--dock-b) + 36px); z-index: 16;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 18px; pointer-events: none;
 }
 .dock2.hide { display: none; }
 .dock2 > * { pointer-events: auto; }
 
-/* 液态玻璃：透、有折射边、左上角一道镜面高光 */
+/* 液态玻璃：几乎不铺色，靠薄边高光和折射 */
 .pod, .fan {
   position: relative; border: 0; color: var(--text); font-family: inherit; cursor: pointer;
   border-radius: 999px; display: grid; place-items: center; overflow: hidden;
-  background:
-    linear-gradient(158deg,
-      color-mix(in srgb, var(--frost-hi) 86%, transparent) 0%,
-      var(--frost) 40%,
-      color-mix(in srgb, var(--accent) 12%, var(--frost)) 100%);
-  -webkit-backdrop-filter: var(--glass-fx-strong);
-  backdrop-filter: var(--glass-fx-strong);
+  background: color-mix(in srgb, #fff 7%, transparent);
+  -webkit-backdrop-filter: blur(9px) saturate(190%) brightness(1.02);
+  backdrop-filter: blur(9px) saturate(190%) brightness(1.02);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #fff 90%, transparent),
-    inset 1px 0 0 color-mix(in srgb, #fff 50%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--accent) 26%, transparent),
-    inset 0 0 0 .5px var(--frost-edge),
-    0 10px 28px rgba(30, 45, 70, .13);
+    inset 0 1px 0 rgba(255, 255, 255, .85),
+    inset 0 -1px 0 rgba(255, 255, 255, .30),
+    inset 0 0 0 .5px rgba(255, 255, 255, .45),
+    0 8px 20px rgba(30, 45, 70, .14);
   transition: transform .18s var(--ease-spring, ease);
 }
 .pod::after, .fan::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: radial-gradient(120% 82% at 26% -12%, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 58%);
+  background: radial-gradient(90% 60% at 30% -20%, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 62%);
 }
-:root[data-theme="dark"] .pod::after, :root[data-theme="dark"] .fan::after { opacity: .16; }
+:root[data-theme="dark"] .pod, :root[data-theme="dark"] .fan { background: rgba(255, 255, 255, .05); }
+:root[data-theme="dark"] .pod::after, :root[data-theme="dark"] .fan::after { opacity: .2; }
 .pod:active, .fan:active { transform: scale(.94); }
 
 .pod-today { height: 52px; padding: 0 22px; font-size: 15px; font-weight: 600; letter-spacing: .02em; z-index: 1; }
 .pod-today span { position: relative; z-index: 1; }
 
-.pod-menu { position: relative; width: 58px; height: 58px; transform: translateY(calc(-1 * var(--dock-h))); }
+.pod-menu { position: relative; width: 58px; height: 58px; }
 .pod-logo { width: 58px; height: 58px; border-radius: 29px; padding: 0; }
 .pod-logo img { width: 38px; height: 38px; display: block; position: relative; z-index: 1; transition: transform .32s var(--ease-spring, ease); }
 .pod-menu.open .pod-logo img { transform: rotate(90deg) scale(.86); }
@@ -1468,23 +1468,15 @@ body[data-kind="days"] .dock2 { display: none; }
 
 /* 真折射：把背景按噪声位移，边缘会有液体似的扭曲（Chromium） */
 .lg-refract .pod, .lg-refract .fan {
-  -webkit-backdrop-filter: blur(6px) saturate(185%) url(#lg-refract);
-  backdrop-filter: blur(6px) saturate(185%) url(#lg-refract);
-}
-.lg-refract .pod::before, .lg-refract .fan::before {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: linear-gradient(150deg, transparent 42%, color-mix(in srgb, #fff 55%, transparent) 50%, transparent 58%);
-  mix-blend-mode: screen; opacity: .45;
+  -webkit-backdrop-filter: blur(4px) saturate(195%) url(#lg-refract);
+  backdrop-filter: blur(4px) saturate(195%) url(#lg-refract);
 }
 /* WebKit（iOS / Mac 壳）：做不了位移折射，改用更重的模糊 + 更亮的镜面 */
 .native-ios .pod, .native-ios .fan,
 .native-mac .pod, .native-mac .fan {
-  background: linear-gradient(158deg,
-    color-mix(in srgb, #fff 78%, transparent) 0%,
-    var(--frost) 34%,
-    color-mix(in srgb, var(--accent) 16%, var(--frost)) 100%);
-  -webkit-backdrop-filter: blur(34px) saturate(210%) brightness(1.06);
-  backdrop-filter: blur(34px) saturate(210%) brightness(1.06);
+  background: color-mix(in srgb, #fff 10%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(200%) brightness(1.03);
+  backdrop-filter: blur(14px) saturate(200%) brightness(1.03);
   box-shadow:
     inset 0 1.5px 0 rgba(255, 255, 255, .95),
     inset 0 -1.5px 0 color-mix(in srgb, var(--accent) 24%, transparent),

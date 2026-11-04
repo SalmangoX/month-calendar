@@ -550,6 +550,16 @@
   new MutationObserver(sync).observe(body, { attributes: true, attributeFilter: ['data-page', 'data-kind'] });
   sync();
 
+  // 预渲染日程页：空闲时先画一次，第一次滑过去就不会卡在重绘上
+  let preloaded = false;
+  const preload = () => {
+    if (preloaded) return;
+    preloaded = true;
+    try { if (MC.Sched && MC.Sched.render) MC.Sched.render(); } catch (e) {}
+  };
+  if ('requestIdleCallback' in window) requestIdleCallback(preload, { timeout: 2500 });
+  else setTimeout(preload, 1200);
+
   document.getElementById('bubbleToday').addEventListener('click', () => {
     const pg = body.dataset.page || 'cal';
     MC.App.showPage(pg === 'today' ? 'cal' : 'today');
@@ -594,7 +604,15 @@
     if (Date.now() - st > 700 || Math.abs(dy) > 60 || Math.abs(dx) < 60) return;
     const pg = body.dataset.page;
     const to = (pg === 'cal' && dx < 0) ? 'sched' : (pg === 'sched' && dx > 0) ? 'cal' : null;
-    if (to) requestAnimationFrame(() => MC.App.showPage(to));
+    if (to) requestAnimationFrame(() => {
+      MC.App.showPage(to);
+      const el = document.getElementById('page-' + to);
+      if (el) {
+        el.classList.remove('from-left', 'from-right');
+        void el.offsetWidth;
+        el.classList.add(to === 'sched' ? 'from-left' : 'from-right');
+      }
+    });
   }, { capture: true, passive: true });
 })();
 </script>
