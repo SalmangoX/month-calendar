@@ -1406,28 +1406,36 @@ body[data-kind="days"] .dock2 { display: none; }
 .dock2.hide { display: none; }
 .dock2 > * { pointer-events: auto; }
 
-/* 液态玻璃：几乎不铺色，靠薄边高光和折射 */
+/* 液态玻璃：几乎全透，靠一圈薄边高光 + 边缘折射显形 */
 .pod, .fan {
   position: relative; border: 0; color: var(--text); font-family: inherit; cursor: pointer;
   border-radius: 999px; display: grid; place-items: center; overflow: hidden;
-  background: color-mix(in srgb, #fff 7%, transparent);
-  -webkit-backdrop-filter: blur(9px) saturate(190%) brightness(1.02);
-  backdrop-filter: blur(9px) saturate(190%) brightness(1.02);
+  background: rgba(255, 255, 255, .015);
+  -webkit-backdrop-filter: blur(1.5px) saturate(210%) brightness(1.04);
+  backdrop-filter: blur(1.5px) saturate(210%) brightness(1.04);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .85),
-    inset 0 -1px 0 rgba(255, 255, 255, .30),
-    inset 0 0 0 .5px rgba(255, 255, 255, .45),
-    0 8px 20px rgba(30, 45, 70, .14);
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    inset 0 -1px 0 rgba(0, 0, 0, .05),
+    inset 1px 0 0 rgba(255, 255, 255, .40),
+    inset -1px 0 0 rgba(255, 255, 255, .25),
+    0 6px 16px rgba(30, 45, 70, .09);
   transition: transform .18s var(--ease-spring, ease);
 }
+/* 一圈会随角度变亮变暗的镜面边：只在 1px 上显形，中间保持全透 */
 .pod::after, .fan::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: radial-gradient(90% 60% at 30% -20%, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 62%);
+  padding: 1px;
+  background: conic-gradient(from 210deg,
+    rgba(255, 255, 255, .95), rgba(255, 255, 255, .18) 22%,
+    rgba(255, 255, 255, .05) 46%, rgba(255, 255, 255, .55) 68%,
+    rgba(255, 255, 255, .95) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: .9;
 }
-:root[data-theme="dark"] .pod, :root[data-theme="dark"] .fan { background: rgba(255, 255, 255, .05); }
-:root[data-theme="dark"] .pod::after, :root[data-theme="dark"] .fan::after { opacity: .2; }
-.pod:active, .fan:active { transform: scale(.94); }
-
+:root[data-theme="dark"] .pod, :root[data-theme="dark"] .fan { background: rgba(255, 255, 255, .03); }
+:root[data-theme="dark"] .pod::after, :root[data-theme="dark"] .fan::after { opacity: .5; }
 .pod-today { height: 52px; padding: 0 22px; font-size: 15px; font-weight: 600; letter-spacing: .02em; z-index: 1; }
 .pod-today span { position: relative; z-index: 1; }
 
@@ -1448,8 +1456,8 @@ body[data-kind="days"] .dock2 { display: none; }
 
 .pager {
   display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 15px;
-  background: var(--frost); box-shadow: var(--glass-rim);
-  -webkit-backdrop-filter: var(--glass-fx); backdrop-filter: var(--glass-fx);
+  background: rgba(255, 255, 255, .02); box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 .5px rgba(255,255,255,.45), 0 5px 14px rgba(30,45,70,.08);
+  -webkit-backdrop-filter: blur(2px) saturate(200%); backdrop-filter: blur(2px) saturate(200%);
   transition: opacity .2s;
 }
 .pager.hide { opacity: 0; pointer-events: none; }
@@ -1468,8 +1476,8 @@ body[data-kind="days"] .dock2 { display: none; }
 
 /* 真折射：把背景按噪声位移，边缘会有液体似的扭曲（Chromium） */
 .lg-refract .pod, .lg-refract .fan {
-  -webkit-backdrop-filter: blur(4px) saturate(195%) url(#lg-refract);
-  backdrop-filter: blur(4px) saturate(195%) url(#lg-refract);
+  -webkit-backdrop-filter: blur(2px) saturate(220%) url(#lg-refract);
+  backdrop-filter: blur(2px) saturate(220%) url(#lg-refract);
 }
 /* WebKit（iOS / Mac 壳）：做不了位移折射，改用更重的模糊 + 更亮的镜面 */
 .native-ios .pod, .native-ios .fan,
