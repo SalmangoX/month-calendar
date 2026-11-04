@@ -673,13 +673,14 @@
           if (!clips.has(el)) clips.set(el, clipOf(el));
           for (const a of clips.get(el)) { const q = a.getBoundingClientRect(); cx = Math.max(cx, q.left); cy = Math.max(cy, q.top); cx2 = Math.min(cx2, q.right); cy2 = Math.min(cy2, q.bottom); }
           if (cx2 - cx < 1 || cy2 - cy < 1) return;
-          // 正在动的（滚动、面板弹出）：原生的玻璃会晚一两帧、和网页错开，所以动的时候先由网页自己画，停下 0.12 秒再换回原生的
-          if (!el.classList.contains('lg-thumb')) {
-            const pv = el._lgPos, now = performance.now();
-            if (pv && (Math.abs(pv[0] - r.left) > 0.5 || Math.abs(pv[1] - r.top) > 0.5)) el._lgMove = now;
-            el._lgPos = [r.left, r.top];
-            if (!pv || now - (el._lgMove || 0) < 120) return;
+          // 移动速度（px/ms，平滑过）：原生收到位置要晚一两帧，它按这个速度每一帧自己往前推算，滚动时玻璃紧贴着控件走
+          const tnow = performance.now(), pv = el._lgPos;
+          let vx = 0, vy = 0;
+          if (pv && tnow - pv[2] < 100) {
+            const dt = Math.max(1, tnow - pv[2]), ix = (r.left - pv[0]) / dt, iy = (r.top - pv[1]) / dt;
+            vx = Math.abs(r.left - pv[0]) < 0.3 ? 0 : pv[3] * 0.4 + ix * 0.6; vy = Math.abs(r.top - pv[1]) < 0.3 ? 0 : pv[4] * 0.4 + iy * 0.6;
           }
+          el._lgPos = [r.left, r.top, tnow, vx, vy];
           if (!ids.has(el)) ids.set(el, ++seq);
           const cs = getComputedStyle(el), rad = Math.min(parseFloat(cs.borderTopLeftRadius) || 0, r.height / 2);
           const thumb = el.classList.contains('lg-thumb');
@@ -714,17 +715,20 @@
           }
           const tint = el.classList.contains('lgx') ? (el.lgBg || '') : (el.lgBg = cs.backgroundColor); // 网页原来的底色：拿来给玻璃着一点色
           out.push([ids.get(el), n(r.left), n(r.top), n(r.width), n(r.height), n(rad), n(cx), n(cy), n(cx2 - cx), n(cy2 - cy), k,
-            runs, icons, pads, tint]);
+            runs, icons, pads, tint, Math.round(vx * 1000) / 1000, Math.round(vy * 1000) / 1000]);
           shown.add(el);
         });
         // 盖在玻璃上面的网页东西（提示条）：原生的玻璃在这里挖掉，不然会挡住它
         const holes = [];
-        document.querySelectorAll('#toast.show').forEach(t => { const r = t.getBoundingClientRect(); if (r.width) holes.push([r.left, r.top, r.width, r.height].map(v => Math.round(v))); });
+        document.querySelectorAll('#toast.show').forEach(t => { const r = t.getBoundingClientRect(); if (r.width) holes.push([...[r.left, r.top, r.width, r.height].map(v => Math.round(v)), 14]); });
+        // 固定在顶上的栏（纪念日历的筛选栏、记录统计的切换栏）：内容滚到它下面时，玻璃也要被它挡住
+        document.querySelectorAll('.page.active .dv-bar, .page.active .rs-ctl').forEach(t => { const r = t.getBoundingClientRect(); if (r.width && r.height) holes.push([...[r.left, r.top, r.width, r.height].map(v => Math.round(v)), 0]); });
         // 原生正在画的控件：网页自己的字和图标藏起来（不然会被玻璃糊住、和原生画的叠在一起）；不画了就恢复
         document.querySelectorAll('.lgx').forEach(e => { if (!shown.has(e)) e.classList.remove('lgx'); });
         shown.forEach(e => { if (!e.classList.contains('lg-thumb')) e.classList.add('lgx'); });
-        const j = JSON.stringify({ i: out, h: holes });
-        if (j !== last) { last = j; post(j); }
+        const j = JSON.stringify({ i: out, h: holes, t: Date.now() });
+        const jj = j.replace(/,"t":\d+}$/, '}'); // 时间戳不算变化：停着时不重复发
+        if (jj !== last) { last = jj; post(j); }
       };
       requestAnimationFrame(frame);
     },

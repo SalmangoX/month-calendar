@@ -33,6 +33,8 @@ final class NavModel: ObservableObject {
     /// 网页里的玻璃控件（按钮、胶囊、优先级的水滴…）：原生在同样的位置画系统的液态玻璃（网页每一帧发来位置）
     struct LGItem: Identifiable, Equatable {
         let id: Int; let rect: CGRect; let r: CGFloat; let clip: CGRect; let k: String
+        /// 移动速度（点 / 毫秒）：原生按它每一帧往前推算位置
+        var vx: CGFloat = 0, vy: CGFloat = 0
         /// 画在玻璃上面的内容（位置都是网页坐标）：每一段字、每个图标（系统符号）、选中项的浅色底块；玻璃的着色（网页原来的底色）
         var runs: [Run] = [], icons: [Icon] = [], pads: [Pad] = [], tint = ""
         struct Run: Equatable { let rect: CGRect; let t: String; let fs: CGFloat; let fw: Int; let col: String; let ls: CGFloat; let tab: Bool; let round: Bool }
@@ -40,7 +42,10 @@ final class NavModel: ObservableObject {
         struct Pad: Equatable { let rect: CGRect; let r: CGFloat }
     }
     @Published var lg: [LGItem] = []
-    @Published var lgHoles: [CGRect] = []
+    struct Hole: Equatable { let rect: CGRect; let r: CGFloat }
+    @Published var lgHoles: [Hole] = []
+    /// 网页发出这一批位置的时间（毫秒，和 Date 同一个时钟）
+    var lgT: Double = 0
     @Published var drawer: Drawer?
     @Published var drawerOpen = false
     /// 日历栏被左右拉动的距离：负 = 往回推（收起），正 = 往外拉（果冻一样变宽）
@@ -80,7 +85,7 @@ final class NavModel: ObservableObject {
     func updateLG(_ json: String) {
         guard let d = json.data(using: .utf8), let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any], let a = o["i"] as? [[Any]] else { return }
         let f = { (v: Any) -> CGFloat in CGFloat((v as? NSNumber)?.doubleValue ?? 0) }
-        let holes = (o["h"] as? [[Any]] ?? []).compactMap { $0.count == 4 ? CGRect(x: f($0[0]), y: f($0[1]), width: f($0[2]), height: f($0[3])) : nil }
+        let holes = (o["h"] as? [[Any]] ?? []).compactMap { $0.count >= 4 ? Hole(rect: CGRect(x: f($0[0]), y: f($0[1]), width: f($0[2]), height: f($0[3])), r: $0.count >= 5 ? f($0[4]) : 14) : nil }
         let items = a.compactMap { x -> LGItem? in
             guard x.count >= 15, x[11] is [Any] else { return nil } // 旧版网页没有发内容（也不会藏起自己的字）：不画，免得玻璃把字糊住
             var it = LGItem(id: (x[0] as? NSNumber)?.intValue ?? 0, rect: CGRect(x: f(x[1]), y: f(x[2]), width: f(x[3]), height: f(x[4])), r: f(x[5]),
@@ -94,9 +99,11 @@ final class NavModel: ObservableObject {
             it.icons = (x[12] as? [[Any]] ?? []).compactMap { a in a.count >= 7 ? .init(rect: rc(a), sf: a[4] as? String ?? "", col: a[5] as? String ?? "", sw: f(a[6])) : nil }
             it.pads = (x[13] as? [[Any]] ?? []).compactMap { a in a.count >= 5 ? .init(rect: rc(a), r: f(a[4])) : nil }
             it.tint = x[14] as? String ?? ""
+            if x.count >= 17 { it.vx = f(x[15]); it.vy = f(x[16]) }
             return it
         }
         var t = Transaction(); t.disablesAnimations = true
+        lgT = (o["t"] as? NSNumber)?.doubleValue ?? Date().timeIntervalSince1970 * 1000
         withTransaction(t) { lg = items; if holes != lgHoles { lgHoles = holes } }
     }
     func addMore() { eval("document.getElementById('batchAddRow').click()", nil) }
@@ -581,6 +588,15 @@ struct GlassLayer: View {
     }
     private func weight(_ w: Int) -> Font.Weight { w >= 700 ? .bold : w >= 600 ? .semibold : w >= 500 ? .medium : .regular }
     var body: some View {
+        // 有控件在动时按屏幕刷新率重画：位置 = 网页最后告诉的位置 + 速度 × 过去的时间（最多往前推 90 毫秒），停着时不重画
+        let moving = m.lg.contains { $0.vx != 0 || $0.vy != 0 }
+        TimelineView(.animation(minimumInterval: nil, paused: !moving)) { tl in
+            let dt = CGFloat(min(90, max(0, tl.date.timeIntervalSince1970 * 1000 - m.lgT)))
+            layer(dt)
+        }
+    }
+
+    @ViewBuilder private func layer(_ dt: CGFloat) -> some View {
         ZStack {
             ForEach(m.lg) { it in
                 let shape = RoundedRectangle(cornerRadius: it.r, style: .continuous)
@@ -598,6 +614,7 @@ struct GlassLayer: View {
                         .macGlassFinish(shape)
                         .position(x: it.rect.midX, y: it.rect.midY)
                 }
+                .offset(x: it.vx * dt, y: it.vy * dt)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .mask { Rectangle().frame(width: it.clip.width, height: it.clip.height).position(x: it.clip.midX, y: it.clip.midY) }
             }
@@ -607,7 +624,7 @@ struct GlassLayer: View {
             ZStack {
                 Rectangle()
                 ForEach(Array(m.lgHoles.enumerated()), id: \.offset) { _, h in
-                    RoundedRectangle(cornerRadius: 14).frame(width: h.width, height: h.height).position(x: h.midX, y: h.midY).blendMode(.destinationOut)
+                    RoundedRectangle(cornerRadius: h.r).frame(width: h.rect.width, height: h.rect.height).position(x: h.rect.midX, y: h.rect.midY).blendMode(.destinationOut)
                 }
             }
             .compositingGroup()
