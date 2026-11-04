@@ -552,15 +552,18 @@
 
   // 状态栏跟着当前页的底色走（只在原生壳里有效）
   const hex2 = v => {
-    const m = String(v).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    const m = String(v).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/);
     if (!m) return null;
+    if (m[4] !== undefined && parseFloat(m[4]) < 0.05) return null;   // 全透明：别当成黑色传给原生
     return '#' + [1, 2, 3].map(i => (+m[i]).toString(16).padStart(2, '0')).join('');
   };
   function syncChrome() {
     const N = window.MC && MC.Native;
     if (!N || !N.on || !N.has || !N.has('chrome')) return;
-    const el = document.querySelector('.page.active') || document.body;
-    const c = hex2(getComputedStyle(el).backgroundColor);
+    const el = document.querySelector('.page.active');
+    let c = el ? hex2(getComputedStyle(el).backgroundColor) : null;
+    if (!c) c = hex2(getComputedStyle(document.body).backgroundColor);
+    if (!c) c = hex2(getComputedStyle(document.documentElement).backgroundColor);
     if (c) N.chrome(c);
   }
   new MutationObserver(syncChrome).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -616,7 +619,7 @@
     if (!pages[pg]) return;
     if (blockedBy(e.target)) return;
     if (e.touches[0].clientX < 26) return;          // 左边缘留给抽屉
-    dg = { pg, x0: e.touches[0].clientX, y0: e.touches[0].clientY, active: false };
+    dg = { pg, x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: performance.now(), active: false };
   }, { capture: true, passive: true });
 
   document.addEventListener('touchmove', e => {
@@ -651,7 +654,12 @@
     lastDragEnd = Date.now();     // 只有真拖动了才拦 logo 点击
     const t = e.changedTouches && e.changedTouches[0];
     const dx = t ? t.clientX - d.x0 : 0;
-    const go = Math.abs(dx) > d.W * 0.33;
+    // 快滑（甩）：速度够快、距离过了最低门槛就走；慢滑：必须拖过 1/4 屏才走，否则轻轻回去
+    const dt = Math.max(1, performance.now() - d.t0);
+    const v = Math.abs(dx) / dt;                       // px/ms
+    const far = Math.abs(dx) > d.W * 0.25;
+    const flick = v > 0.55 && Math.abs(dx) > 36;
+    const go = far || flick;
     const sign = d.to === 'sched' ? 1 : -1;
     const cur = pages[d.pg], nxt = pages[d.to];
     const ease = go ? 'transform .34s cubic-bezier(.16,.85,.25,1)' : 'transform .45s cubic-bezier(.22,.8,.25,1)';
