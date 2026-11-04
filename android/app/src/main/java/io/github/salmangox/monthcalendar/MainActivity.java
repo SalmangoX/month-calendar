@@ -254,6 +254,17 @@ public class MainActivity extends Activity {
         return (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
     }
 
+    /** 状态栏那条（root 的 padding 区域）和网页页面同色；深色页面配浅色图标 */
+    void applyChrome(int color, boolean dark) {
+        if (root != null) root.setBackgroundColor(color);
+        if (web != null) web.setBackgroundColor(color);
+        WindowInsetsController ic = getWindow().getInsetsController();
+        if (ic != null) {
+            int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+            ic.setSystemBarsAppearance(dark ? 0 : mask, mask);
+        }
+    }
+
     void applyTheme(String pref) {
         boolean dark = isDark(pref);
         int bg = dark ? 0xFF141416 : 0xFFF7FAFC;

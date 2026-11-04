@@ -54,6 +54,8 @@
   Native.test = () => call('test');
   Native.testLater = sec => call('testLater', sec);
   Native.openUrl = url => call('openUrl', url);
+  // 把当前页的背景色交给原生，状态栏/导航条跟着页面走
+  Native.chrome = color => call('chrome', color);
   Native.pinWidget = kind => !!call('pinWidget', kind);
   Native.saveFile = (name, mime, text) => Native.ask('saveFile', name, mime, text);
   // 分享到微信（安卓 App，接了微信开放平台：微信里显示「来自 节律」）；没装微信或旧版 App 时不可用

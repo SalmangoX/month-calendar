@@ -550,6 +550,23 @@
   new MutationObserver(sync).observe(body, { attributes: true, attributeFilter: ['data-page', 'data-kind'] });
   sync();
 
+  // 状态栏跟着当前页的底色走（只在原生壳里有效）
+  const hex2 = v => {
+    const m = String(v).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (!m) return null;
+    return '#' + [1, 2, 3].map(i => (+m[i]).toString(16).padStart(2, '0')).join('');
+  };
+  function syncChrome() {
+    const N = window.MC && MC.Native;
+    if (!N || !N.on || !N.has || !N.has('chrome')) return;
+    const el = document.querySelector('.page.active') || document.body;
+    const c = hex2(getComputedStyle(el).backgroundColor);
+    if (c) N.chrome(c);
+  }
+  new MutationObserver(syncChrome).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  new MutationObserver(syncChrome).observe(body, { attributes: true, attributeFilter: ['data-page'] });
+  setTimeout(syncChrome, 300);
+
   // 预渲染日程页：空闲时先画一次，第一次滑过去就不会卡在重绘上
   let preloaded = false;
   const preload = () => {

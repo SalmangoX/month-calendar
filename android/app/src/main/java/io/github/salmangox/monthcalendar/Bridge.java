@@ -2,6 +2,7 @@ package io.github.salmangox.monthcalendar;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.webkit.JavascriptInterface;
@@ -18,7 +19,7 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome"
     };
 
     private final MainActivity a;
@@ -27,6 +28,15 @@ final class Bridge {
     Bridge(MainActivity a) {
         this.a = a;
         this.c = a.getApplicationContext();
+    }
+
+    /** 网页把当前页的背景色告诉原生，状态栏那条就跟着页面走，不再是一条系统白 */
+    @JavascriptInterface
+    public void chrome(String color) {
+        int c;
+        try { c = Color.parseColor(color); } catch (Exception e) { return; }
+        double lum = (0.299 * Color.red(c) + 0.587 * Color.green(c) + 0.114 * Color.blue(c)) / 255.0;
+        a.runOnUiThread(() -> a.applyChrome(c, lum < 0.5));
     }
 
     @JavascriptInterface
