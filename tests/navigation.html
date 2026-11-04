@@ -1,0 +1,75 @@
+<!doctype html><meta charset="utf-8"><title>Cadence navigation regression checks</title>
+<style>body{font:14px system-ui;margin:24px;background:#f5f5f7;color:#171b20}button{padding:12px 20px}iframe{border:1px solid #ddd;width:393px;height:852px;display:block;margin-top:20px}pre{white-space:pre-wrap}.pass{color:#167344}.fail{color:#b23}</style>
+<h1>Navigation regression checks</h1>
+<p>Serve this repository on localhost in a clean browser profile. Uses only local fixture data; does not accept the privacy policy or connect an account.</p>
+<button id="run">Run checks</button><pre id="results">Ready</pre><iframe id="app" title="App under test" src="../index.html"></iframe>
+<script>
+const frame=document.getElementById('app'), output=document.getElementById('results');
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const results=[];
+function check(name,ok){results.push({name,ok:!!ok});output.textContent=results.map(x=>`${x.ok?'PASS':'FAIL'} ${x.name}`).join('\n');if(!ok)throw Error(name);}
+document.getElementById('run').onclick=async()=>{
+ if(!['localhost','127.0.0.1','[::1]'].includes(location.hostname)){output.textContent='Run on localhost only.';return;}
+ const w=frame.contentWindow,d=w.document,$=id=>d.getElementById(id),MC=w.MC;
+ if(MC.session.token){output.textContent='Use a clean local browser profile without a connected account.';return;}
+ results.length=0;
+ const errors=[];const onError=e=>errors.push(e.message);w.addEventListener('error',onError);
+ try{
+  // Hide only the test fixture overlay; never write an agreement or user data.
+  $('pvGate').hidden=true;
+  const rect=id=>$(id).getBoundingClientRect();
+  const visible=id=>{const e=$(id),s=w.getComputedStyle(e);return !e.hidden&&s.display!=='none'&&s.visibility!=='hidden'&&+s.opacity>0;};
+  const click=id=>$(id).click();
+  for(const width of [320,393,430,768]){
+   frame.style.width=width+'px';await wait(200);
+   for(const theme of ['light','dark']){
+    d.documentElement.dataset.theme=theme;MC.App.showPage('cal');await wait(60);
+    check(`${width}/${theme}: balanced bottom controls`,Math.abs(rect('bubbleLogo').bottom-rect('bubbleToday').bottom)<1);
+    check(`${width}/${theme}: calendar clears dock`,rect('calViewport').bottom<=rect('bubbleLogo').top);
+    check(`${width}/${theme}: month below safe area`,rect('btnView').top>=0&&rect('btnView').bottom<=rect('weekdays').top+1);
+    click('bubbleLogo');await wait(330);
+    const ids=['fanSet','fanAdd','bubbleLogo'];
+    check(`${width}/${theme}: 56px touch targets`,ids.every(id=>rect(id).width>=55&&rect(id).height>=55));
+    check(`${width}/${theme}: satellites stay inside viewport`,ids.every(id=>rect(id).left>=0&&rect(id).right<=width&&rect(id).top>=0));
+    check(`${width}/${theme}: satellites do not overlap`,ids.every((id,i)=>ids.slice(i+1).every(other=>{const a=rect(id),b=rect(other);return a.right<=b.left||b.right<=a.left||a.bottom<=b.top||b.bottom<=a.top;})));
+    check(`${width}/${theme}: hidden calendar action is not focusable`,$('fanCal').hidden&&$('fanCal').tabIndex===-1);
+    click('fanSet');await wait(50);click('bubbleLogo');await wait(330);
+    check(`${width}/${theme}: three circular setting actions`,['fanCal','fanSet','fanAdd'].every(id=>visible(id)&&Math.abs(rect(id).width-rect(id).height)<1&&$('fanCal').tabIndex===0));
+    check(`${width}/${theme}: calendar action above fan`,rect('fanCal').bottom<rect('fanAdd').top);
+    click('fanCal');await wait(50);
+    check(`${width}/${theme}: return action navigates to calendar`,d.body.dataset.page==='cal'&&!MC.Navigation.isOpen());
+   }
+  }
+  frame.style.width='393px';await wait(220);
+  MC.App.showPage('set');d.body.dispatchEvent(new w.Event('pointerdown',{bubbles:true}));await wait(1550);
+  check('Settings pager remains absent after idle timer',!visible('pager'));
+  click('bubbleToday');await wait(300);
+  check('Today navigation updates caption and hides pager',d.body.dataset.page==='today'&&$('bubbleToday').getAttribute('aria-pressed')==='true'&&!visible('pager'));
+  for(let i=0;i<9;i++){click('bubbleToday');await wait(20);}
+  MC.App.showPage('set');await wait(450);
+  check('Rapid navigation never leaves an old page visible',d.body.dataset.page==='set'&&d.querySelectorAll('.page.active').length===1&&!d.querySelector('.pv-hold, .drag')&&w.getComputedStyle($('page-today')).display==='none');
+  click('bubbleLogo');await wait(330);check('Android back closes the menu first',MC.back()&&d.body.dataset.page==='set'&&!MC.Navigation.isOpen());
+  click('bubbleLogo');await wait(330);d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  check('Escape closes menu and restores focus',!MC.Navigation.isOpen()&&d.activeElement===$('bubbleLogo'));
+  MC.App.showPage('cal');await wait(40);click('bubbleLogo');await wait(330);click('fanAdd');await wait(100);
+  check('Add action still opens event composer',MC.UI.anyOpen());MC.UI.close();await wait(300);
+  for(const view of ['year','week','month']){MC.Cal.setView(view);await wait(400);check(`${view} view renders without covering header`,!!$('calTrack').children.length&&rect('btnView').bottom<=rect('calViewport').top);}
+  d.documentElement.style.setProperty('--safe-t','59px');d.documentElement.style.setProperty('--safe-b','34px');w.dispatchEvent(new w.Event('resize'));await wait(220);
+  check('59px top cutout is respected',rect('btnView').top>=59);
+  check('34px bottom safe area is respected',rect('bubbleLogo').bottom<=w.innerHeight-34);
+  d.documentElement.style.removeProperty('--safe-t');d.documentElement.style.removeProperty('--safe-b');
+  function touch(type,x,y){const e=new w.Event(type,{bubbles:true,cancelable:true});Object.defineProperties(e,{touches:{value:type==='touchstart'||type==='touchmove'?[{clientX:x,clientY:y}]:[]},changedTouches:{value:[{clientX:x,clientY:y}]}});$('pages').dispatchEvent(e);}
+  MC.App.showPage('cal');await wait(50);touch('touchstart',300,400);touch('touchmove',130,400);touch('touchend',90,400);await wait(650);
+  check('Swipe switches calendar to schedule',d.body.dataset.page==='sched'&&visible('pager'));
+  touch('touchstart',90,400);touch('touchmove',230,400);touch('touchcancel',250,400);await wait(750);
+  check('Cancelled touch keeps current page',d.body.dataset.page==='sched'&&!d.querySelector('.drag'));
+  touch('touchstart',90,400);touch('touchmove',230,400);touch('touchend',300,400);MC.App.showPage('set');await wait(750);
+  check('Pending swipe cannot override later navigation',d.body.dataset.page==='set'&&!d.querySelector('.drag')&&!visible('pager'));
+  MC.App.showPage('cal');await wait(100);d.body.dataset.kind='days';await wait(30);
+  check('Anniversary calendar retains its own dock',w.getComputedStyle($('dock2')).display==='none');
+  delete d.body.dataset.kind;MC.App.showPage('cal');await wait(100);
+  check('No runtime errors during checks',errors.length===0);
+  output.className='pass';output.textContent+=`\n\n${results.length} checks passed.`;
+ }catch(e){output.className='fail';output.textContent+='\nERROR: '+e.message;}finally{w.removeEventListener('error',onError);}
+};
+</script>
