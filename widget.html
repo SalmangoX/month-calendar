@@ -153,7 +153,9 @@
 
     const first = new Date(y, m, 1);
     const off = (first.getDay() - WS + 7) % 7;
-    const rows = Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7); // 只显示本月所在的几周
+    let rows = Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7); // 只显示本月所在的几周
+    // 兜底：最后一行如果全是下个月的日子，整行去掉，绝不出现一整行别月的日期
+    while (rows > 1 && (off + (rows - 1) * 7) >= (off + new Date(y, m + 1, 0).getDate())) rows--;
     const gridH = window.innerHeight - 30;
     const rowH = gridH / rows;
     const max = Math.max(1, Math.floor((rowH - 24) / 15));
