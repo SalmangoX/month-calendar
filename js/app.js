@@ -1661,7 +1661,7 @@
     if (document.querySelector('.dp.show, .cam.show, .pv.show')) return; // 纪念日主页、相机、看照片时不响应
     const k = e.key.toLowerCase();
     if (k === 'n') { e.preventDefault(); $('#fab').click(); }
-    else if (k === 't') { e.preventDefault(); if (page !== 'cal') showPage('cal'); if (document.body.dataset.kind !== 'days') $('#btnToday').click(); }
+    else if (k === 't') { e.preventDefault(); if (page !== 'cal') showPage('cal'); if (document.body.dataset.kind !== 'days' && MC.Cal.goToday) MC.Cal.goToday(); }
     else if (page === 'cal' && document.body.dataset.kind !== 'days' && { y: 1, m: 1, w: 1 }[k]) { e.preventDefault(); MC.Cal.setView({ y: 'year', m: 'month', w: 'week' }[k]); }
     else if (/^[1-5]$/.test(k)) { const b = tabs()[Number(k) - 1]; if (b) { e.preventDefault(); showPage(b.dataset.page); } }
   });
