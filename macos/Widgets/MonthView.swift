@@ -60,7 +60,19 @@ struct MonthView: View {
                         }
                     }
                     .padding(.top, MonthView.sp)
+                    #if os(iOS)
+                    // 格子不铺底色，整个小组件只有一层底（系统的小组件底）；分隔线单独画在格子之间的缝里。
+                    // 以前每格自己铺底色、缝里露出线的颜色，深色模式下系统给小组件底的颜色和格子的底不一样，上面的标题栏就成了一条色差
+                    .background {
+                        Canvas { ctx, size in
+                            let sp = MonthView.sp
+                            for r in 0..<rows { ctx.fill(Path(CGRect(x: 0, y: CGFloat(r) * (rowH + sp), width: size.width, height: sp)), with: .color(pal.line)) }
+                            for k in 1..<7 { ctx.fill(Path(CGRect(x: CGFloat(k) * (cw + sp) - sp, y: 0, width: sp, height: size.height)), with: .color(pal.line)) }
+                        }
+                    }
+                    #else
                     .background(pal.line)
+                    #endif
                 }
                 .padding(.top, MonthView.topPad)
             }
@@ -148,7 +160,7 @@ struct MonthView: View {
                     cell(wk[k], occ: lay.occ[k], lim: lim[k], ym: ym, today: today, cap: cap, cw: cw, rowH: rowH, pal: pal)
                         .frame(width: cw, height: rowH, alignment: .topLeading)
                         // 底色铺满整格（只盖住日期那一行时，下面会露出分隔线的灰色）
-                        .background { ZStack { pal.bg; if wk[k] == today { pal.todayCell } } }
+                        .background { if wk[k] == today { RoundedRectangle(cornerRadius: 7, style: .continuous).fill(pal.todayCell).padding(1.5) } } // 今天：圆角的淡色块
                         .clipped()
                 }
             }

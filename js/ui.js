@@ -622,8 +622,8 @@
   // App 调用 MC.LG.start(post) 后：每一帧找出屏幕上看得见的玻璃控件（按钮、胶囊、优先级的水滴、纪念日历照片上的按钮和牌子），
   // 把位置、圆角、裁剪范围发给原生；网页自己的毛玻璃底去掉（字和图标还是网页画，原生的透明玻璃盖在上面）。
   // 只给「控件」用液态玻璃（和 Apple 的规则一样）；面板、卡片、提示条还是毛玻璃。
-  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .dp-plate, .cv-plate, .cam-btn, .cam-chips';
-  const LG_DARK = '.dp-btn, .dp-setcover, .dp-plate, .cv-pin, .cv-plate, .cam-btn, .cam-chips'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
+  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .cam-btn, .cam-chips';
+  const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
   const LAYERS = '.sheet.show, .dp.show, .cam.show, .confirm.show, .popover.show';
   MC.LG = {
     start(post) {
@@ -645,7 +645,7 @@
         // 最上面那一层（面板、确认框、纪念日详情、相机）：只画这一层里的玻璃，被盖住的不画
         let top = null, tz = -1;
         document.querySelectorAll(LAYERS).forEach(l => { const z = Number(getComputedStyle(l).zIndex) || 0; if (z >= tz) { tz = z; top = l; } });
-        const W = innerWidth, H = innerHeight, out = [];
+        const W = innerWidth, H = innerHeight, out = [], shown = new Set();
         document.querySelectorAll(LG_SEL).forEach(el => {
           if (top && !top.contains(el)) return;
           if (!top && el.closest('.sheet, .dp, .cam, .popover')) return;
@@ -665,11 +665,24 @@
           if (thumb && !el.parentElement.classList.contains('dragging')) return; // 水滴停着时是网页画的白色底板（和系统的分段控件一样），按住拖动时才变成原生的玻璃透镜
           const k = thumb ? 'l' : el.matches(LG_DARK) ? 'd' : 'g';
           const n = v => Math.round(v * 10) / 10;
-          out.push([ids.get(el), n(r.left), n(r.top), n(r.width), n(r.height), n(rad), n(cx), n(cy), n(cx2 - cx), n(cy2 - cy), k]);
+          // 原生要画在玻璃上面的内容：系统符号、文字、字号、粗细、颜色；相机的分段（每段文字、选中没有）
+          let sf = '', t = '', seg = null;
+          if (!thumb) {
+            if (el.id === 'btnToday') sf = `${($('#todayNum') || {}).textContent || ''}.square`;
+            else { sf = el.dataset.sf || (el.querySelector('svg[data-sf]') || { dataset: {} }).dataset.sf || ''; t = el.innerText.trim(); }
+            if (el.classList.contains('cam-chips')) { seg = [...el.children].map(b => [b.innerText.trim(), b.classList.contains('on') ? 1 : 0]); t = ''; }
+          }
+          const fc = el.classList.contains('lgx') ? (el.lgInk || '') : (el.lgInk = cs.color); // 藏起来以后颜色是透明的：用藏之前记下的
+          out.push([ids.get(el), n(r.left), n(r.top), n(r.width), n(r.height), n(rad), n(cx), n(cy), n(cx2 - cx), n(cy2 - cy), k,
+            sf, t, parseFloat(cs.fontSize) || 15, parseInt(cs.fontWeight) || 500, fc, seg]);
+          shown.add(el);
         });
         // 盖在玻璃上面的网页东西（提示条）：原生的玻璃在这里挖掉，不然会挡住它
         const holes = [];
         document.querySelectorAll('#toast.show').forEach(t => { const r = t.getBoundingClientRect(); if (r.width) holes.push([r.left, r.top, r.width, r.height].map(v => Math.round(v))); });
+        // 原生正在画的控件：网页自己的字和图标藏起来（不然会被玻璃糊住、和原生画的叠在一起）；不画了就恢复
+        document.querySelectorAll('.lgx').forEach(e => { if (!shown.has(e)) e.classList.remove('lgx'); });
+        shown.forEach(e => { if (!e.classList.contains('lg-thumb')) e.classList.add('lgx'); });
         const j = JSON.stringify({ i: out, h: holes });
         if (j !== last) { last = j; post(j); }
       };

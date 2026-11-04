@@ -266,6 +266,10 @@
     trash: '<svg viewBox="0 0 24 24"><path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l1 13h9l1-13"/></svg>',
     chev: '<svg viewBox="0 0 24 24"><path d="M9 5.5l6.5 6.5L9 18.5"/></svg>',
   };
+  // App 里用原生液态玻璃画按钮时，图标换成对应的系统符号（SF Symbols）
+  const SF = { list: 'list.bullet', cal: 'calendar', share: 'square.and.arrow.up', cam: 'camera', hl: 'highlighter', pin: 'pin', note: 'note.text', photo: 'photo',
+    plus: 'plus', more: 'ellipsis', close: 'xmark', flip: 'arrow.triangle.2.circlepath.camera', back: 'chevron.left', trash: 'trash', chev: 'chevron.right' };
+  for (const k in SF) UI_IC[k] = UI_IC[k].replace('<svg ', `<svg data-sf="${SF[k]}" `);
 
   // ---------- 照片：本机存在 IndexedDB，同步到单独的私密 Gist ----------
   const PDB = (() => {

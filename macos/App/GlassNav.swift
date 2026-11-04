@@ -30,7 +30,13 @@ final class NavModel: ObservableObject {
     @Published var addRow: CGRect?
     @Published var addLabel = ""
     /// 网页里的玻璃控件（按钮、胶囊、优先级的水滴…）：原生在同样的位置画系统的液态玻璃（网页每一帧发来位置）
-    struct LGItem: Identifiable, Equatable { let id: Int; let rect: CGRect; let r: CGFloat; let clip: CGRect; let k: String }
+    struct LGItem: Identifiable, Equatable {
+        let id: Int; let rect: CGRect; let r: CGFloat; let clip: CGRect; let k: String
+        /// 画在玻璃上面的内容：系统符号、文字、字号、粗细、颜色（CSS 的 rgb()）；相机的分段（文字、是否选中）
+        var sf = "", t = "", fs: CGFloat = 15, fw = 500, col = ""
+        var seg: [Seg] = []
+        struct Seg: Equatable { let t: String; let on: Bool }
+    }
     @Published var lg: [LGItem] = []
     @Published var lgHoles: [CGRect] = []
     @Published var drawer: Drawer?
@@ -74,9 +80,15 @@ final class NavModel: ObservableObject {
         let f = { (v: Any) -> CGFloat in CGFloat((v as? NSNumber)?.doubleValue ?? 0) }
         let holes = (o["h"] as? [[Any]] ?? []).compactMap { $0.count == 4 ? CGRect(x: f($0[0]), y: f($0[1]), width: f($0[2]), height: f($0[3])) : nil }
         let items = a.compactMap { x -> LGItem? in
-            guard x.count >= 11 else { return nil }
-            return LGItem(id: (x[0] as? NSNumber)?.intValue ?? 0, rect: CGRect(x: f(x[1]), y: f(x[2]), width: f(x[3]), height: f(x[4])), r: f(x[5]),
-                          clip: CGRect(x: f(x[6]), y: f(x[7]), width: f(x[8]), height: f(x[9])), k: x[10] as? String ?? "g")
+            guard x.count >= 17 else { return nil } // 旧版网页没有发内容（也不会藏起自己的字）：不画，免得玻璃把字糊住
+            var it = LGItem(id: (x[0] as? NSNumber)?.intValue ?? 0, rect: CGRect(x: f(x[1]), y: f(x[2]), width: f(x[3]), height: f(x[4])), r: f(x[5]),
+                            clip: CGRect(x: f(x[6]), y: f(x[7]), width: f(x[8]), height: f(x[9])), k: x[10] as? String ?? "g")
+            if x.count >= 17 {
+                it.sf = x[11] as? String ?? ""; it.t = x[12] as? String ?? ""; it.fs = max(9, f(x[13])); it.fw = (x[14] as? NSNumber)?.intValue ?? 500
+                it.col = x[15] as? String ?? ""
+                it.seg = (x[16] as? [[Any]] ?? []).map { LGItem.Seg(t: $0.first as? String ?? "", on: (($0.last as? NSNumber)?.intValue ?? 0) == 1) }
+            }
+            return it
         }
         var t = Transaction(); t.disablesAnimations = true
         withTransaction(t) { lg = items; if holes != lgHoles { lgHoles = holes } }
@@ -532,30 +544,29 @@ struct GlassAddButton: View {
     }
 }
 
-/// 网页里的玻璃控件换成系统的液态玻璃：一块块透明玻璃精确盖在网页控件的位置上（字和图标还是网页画，从玻璃下面透出来），
-/// 每一帧跟着网页的位置走（滚动、拖动、面板弹出）；被滚动区裁掉的部分也一样裁掉。不接收点击（点的还是网页）
+/// 网页里的玻璃控件换成系统的液态玻璃：整块玻璃精确盖在网页控件的位置上，图标（系统符号）和文字画在玻璃上面
+/// （网页那边这时把自己的底、字、图标都藏起来，只负责接收点按）。每一帧跟着网页的位置走（滚动、拖动、面板弹出），
+/// 被滚动区裁掉的部分也一样裁掉。优先级的水滴只在按住拖动时由这里画成透明的玻璃透镜（停着时是网页画的白色底板）
 @available(macOS 26.0, iOS 26.0, *)
 struct GlassLayer: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
     private func glass(_ k: String) -> Glass {
         switch k {
-        case "d": return .clear.tint(Color.black.opacity(0.12)) // 照片、相机画面上的：一点点暗，白字看得清
-        default:  return .clear                                 // 其他：透明的玻璃（字和图标在玻璃下面，不能被蒙住）
+        case "l": return .clear                                         // 拖动中的水滴：一滴清水
+        case "d": return .regular.tint(Color.black.opacity(0.18))       // 照片、相机画面上的：偏暗，白色图标看得清
+        default:  return NavGlass.chrome(scheme)                        // 和底部菜单栏同一种玻璃
         }
     }
+    private func weight(_ w: Int) -> Font.Weight { w >= 700 ? .bold : w >= 600 ? .semibold : w >= 500 ? .medium : .regular }
     var body: some View {
         ZStack {
             ForEach(m.lg) { it in
                 let shape = RoundedRectangle(cornerRadius: it.r, style: .continuous)
-                // 停着的控件：只在边缘一圈画玻璃（折射、高光、厚度），里面让网页的字和图标清清楚楚；
-                // 按住拖动的水滴：整颗都是玻璃透镜（和菜单栏拖动时一样）
-                let ring = it.k == "l" ? max(it.rect.width, it.rect.height) : it.k == "t" ? 3 : min(8, max(4, it.rect.height * 0.2)) // 水滴里的字离边很近，边窄一点，不会把字折射进边里
                 ZStack {
-                    shape.fill(Color.clear)
+                    content(it)
                         .frame(width: it.rect.width, height: it.rect.height)
                         .glassEffect(glass(it.k), in: shape)
-                        .mask(shape.strokeBorder(Color.black, lineWidth: ring))
                         .macGlassFinish(shape)
                         .position(x: it.rect.midX, y: it.rect.midY)
                 }
@@ -576,6 +587,40 @@ struct GlassLayer: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .allowsHitTesting(false)
         .transaction { $0.animation = nil }
+    }
+
+    @ViewBuilder private func content(_ it: NavModel.LGItem) -> some View {
+        let ink = Color(css: it.col) ?? Color.primary
+        if !it.seg.isEmpty {
+            // 相机的分段：选中的那段垫一块浅色
+            HStack(spacing: 2) {
+                ForEach(Array(it.seg.enumerated()), id: \.offset) { _, s in
+                    Text(s.t).font(.system(size: it.fs, weight: weight(it.fw))).lineLimit(1)
+                        .padding(.horizontal, 10).frame(maxHeight: .infinity)
+                        .background { if s.on { Capsule().fill(Color.white.opacity(0.28)) } }
+                }
+            }
+            .padding(4)
+            .foregroundStyle(ink)
+        } else if it.k == "l" {
+            Color.clear
+        } else {
+            HStack(spacing: 6) {
+                if !it.sf.isEmpty { Image(systemName: it.sf).font(.system(size: it.t.isEmpty ? min(it.rect.height * 0.42, 20) : it.fs * 1.05, weight: weight(it.fw))) }
+                if !it.t.isEmpty { Text(it.t).font(.system(size: it.fs, weight: weight(it.fw))).lineLimit(1).minimumScaleFactor(0.8) }
+            }
+            .foregroundStyle(ink)
+            .padding(.horizontal, 6)
+        }
+    }
+}
+
+extension Color {
+    /// CSS 的 rgb(r, g, b) / rgba(r, g, b, a)
+    init?(css: String) {
+        let nums = css.split(whereSeparator: { !"0123456789.".contains($0) }).compactMap { Double($0) }
+        guard nums.count >= 3 else { return nil }
+        self.init(.sRGB, red: nums[0] / 255, green: nums[1] / 255, blue: nums[2] / 255, opacity: nums.count >= 4 ? nums[3] : 1)
     }
 }
 

@@ -124,6 +124,9 @@ struct WidgetShell<Content: View>: View {
         // 所以这里照旧用自己的底色；系统的液态玻璃只在「透明 / 着色」样式下出现，那时 containerBackground 这层会被换成玻璃
         let pal = Pal(dark: scheme == .dark, glass: mode != .fullColor)
         content(pal)
+            // 彩色样式下自己再铺一层同样的底色：iPhone 深色模式下系统会把 containerBackground 画得比这个颜色亮一点，
+            // 只有它露出来的地方（标题栏）就和下面的格子差了一截颜色
+            .background { if !pal.glass { pal.bg } }
             .containerBackground(for: .widget) { pal.bg }
             .widgetURL(Shared.openURL(hash))
     }
