@@ -546,23 +546,14 @@
     const pg = body.dataset.page || 'cal';
     const days = body.dataset.kind === 'days';
     dock2.classList.toggle('hide', days);
-    syncSpread();
     if (days) { closeMenu(); return; }
 
     const two = pg === 'cal' || pg === 'sched';
     pager.classList.toggle('hide', !two);
     dots.forEach((d, i) => d.classList.toggle('on', i === (pg === 'sched' ? 1 : 0)));
   }
-  // 上方有「回到今天 / 回到本周」时，扇形只能挤在下面；没有返回键就铺开一点
-  function syncSpread() {
-    const back = (document.getElementById('calBack') && !document.getElementById('calBack').hidden)
-              || (document.getElementById('schedBack') && !document.getElementById('schedBack').hidden);
-    menu.classList.toggle('wide', !back);
-  }
-  ['calBack', 'schedBack'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) new MutationObserver(syncSpread).observe(el, { attributes: true, attributeFilter: ['hidden'] });
-  });
+  // 扇形始终铺开，不再给返回键预留空间（返回键已经上移）
+  menu.classList.add('wide');
   new MutationObserver(sync).observe(body, { attributes: true, attributeFilter: ['data-page', 'data-kind'] });
   sync();
 
