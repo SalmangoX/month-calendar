@@ -673,6 +673,13 @@
           if (!clips.has(el)) clips.set(el, clipOf(el));
           for (const a of clips.get(el)) { const q = a.getBoundingClientRect(); cx = Math.max(cx, q.left); cy = Math.max(cy, q.top); cx2 = Math.min(cx2, q.right); cy2 = Math.min(cy2, q.bottom); }
           if (cx2 - cx < 1 || cy2 - cy < 1) return;
+          // 正在动的（滚动、面板弹出）：原生的玻璃会晚一两帧、和网页错开，所以动的时候先由网页自己画，停下 0.12 秒再换回原生的
+          if (!el.classList.contains('lg-thumb')) {
+            const pv = el._lgPos, now = performance.now();
+            if (pv && (Math.abs(pv[0] - r.left) > 0.5 || Math.abs(pv[1] - r.top) > 0.5)) el._lgMove = now;
+            el._lgPos = [r.left, r.top];
+            if (!pv || now - (el._lgMove || 0) < 120) return;
+          }
           if (!ids.has(el)) ids.set(el, ++seq);
           const cs = getComputedStyle(el), rad = Math.min(parseFloat(cs.borderTopLeftRadius) || 0, r.height / 2);
           const thumb = el.classList.contains('lg-thumb');
