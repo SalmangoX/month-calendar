@@ -798,7 +798,10 @@
           if (!ids.has(el)) ids.set(el, ++seq);
           const cs = getComputedStyle(el), rad = Math.min(parseFloat(cs.borderTopLeftRadius) || 0, r.height / 2);
           const thumb = el.classList.contains('lg-thumb');
-          if (thumb && !el.parentElement.classList.contains('dragging')) return; // 水滴停着时是网页画的白色底板（和系统的分段控件一样），按住拖动时才变成原生的玻璃透镜
+          if (thumb && !el.parentElement.classList.contains('dragging')) return;
+          // 优先级条的滑块同理：停着时由网页画（跟着面板一起移动，不会抖）；按住拖的时候才换成原生玻璃透镜。
+          // （原生收到位置要晚一两帧、按速度往前推算，面板上下滑时推算不准，滑块就会跟着抖——用户发现的）
+          if (el.classList.contains('pb-thumb') && !el.closest('.pbar.dragging')) return; // 水滴停着时是网页画的白色底板（和系统的分段控件一样），按住拖动时才变成原生的玻璃透镜
           const k = thumb ? 'l' : el.matches('.cv-plate, .dp-plate, .cam-card') ? 'p' : el.matches(LG_DARK) ? 'd' : 'g'; // p：照片上带字的牌子；d：照片 / 相机上的按钮
           const sc = el.offsetWidth ? r.width / el.offsetWidth : 1; // 被缩放过（相机里双指缩放的卡片）：字号跟着缩放
           const n = v => Math.round(v * 10) / 10;

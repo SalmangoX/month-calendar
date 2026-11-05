@@ -369,6 +369,17 @@
   <form class="form" id="formBody" autocomplete="off"></form>
 </section>
 
+<!-- 从其他日历导入：每个来源日历选导到哪里（js/calimport.js） -->
+<section class="sheet fl" id="importSheet" aria-label="从其他日历导入">
+  <div class="handle"></div>
+  <div class="sheet-head">
+    <button class="sh-btn lgbtn lgn tap" data-close>取消</button>
+    <h2>导入日历</h2>
+    <button class="sh-ok tap" id="impGo">导入</button>
+  </div>
+  <div class="form" id="impBody"></div>
+</section>
+
 <!-- 课表：导入 / 编辑 -->
 <section class="sheet tall" id="schedSheet" aria-label="日程">
   <div class="handle"></div>
@@ -460,6 +471,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="avatarFile" accept="image/*" hidden>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
+<input type="file" id="icsFile" accept=".ics,text/calendar" hidden>
 <input type="file" id="icFile" accept="application/json,.json" hidden>
 
 <script src="js/store.js?v=0.22.0"></script>
@@ -473,6 +485,7 @@
 <script src="js/schedread.js?v=0.22.0"></script>
 <script src="js/drawer.js?v=0.22.0"></script>
 <script src="js/app.js?v=0.22.0"></script>
+<script src="js/calimport.js?v=0.22.0"></script>
 <script src="js/days.js?v=0.22.0"></script>
 <style>
 #pvGate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;

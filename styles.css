@@ -760,8 +760,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .lg-thumb { position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n)); border-radius: 999px; pointer-events: none;
   transform: translateX(calc(var(--p) * 100%)); scale: var(--sx, 1) 1;
   transition: transform .52s cubic-bezier(.28, 1.42, .48, 1), scale .4s cubic-bezier(.3, 1.6, .5, 1), background .25s, box-shadow .25s;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .62));
-  -webkit-backdrop-filter: blur(8px) saturate(180%) brightness(1.06); backdrop-filter: blur(8px) saturate(180%) brightness(1.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .82));   /* 停着时不用背景模糊（理由同 .pb-thumb：会跟着面板抖） */
   box-shadow: inset 0 1px 0 #fff, inset 0 -1px 1px rgba(255, 255, 255, .55), inset 1px 0 0 rgba(255, 255, 255, .5), inset -1px 0 0 rgba(255, 255, 255, .5),
     0 0 0 .5px rgba(0, 0, 0, .05), 0 1px 2px rgba(0, 0, 0, .08), 0 3px 10px rgba(0, 0, 0, .07); }
 /* 上半部的一道高光（玻璃的镜面反光） */
@@ -1927,8 +1926,9 @@ body #page-cal .weekdays.hide { display: none; }
 .pb-thumb {
   position: absolute; top: var(--pad); width: var(--th); height: var(--th); border-radius: 50%; pointer-events: none;
   left: calc(var(--pad) + var(--f) * (100% - var(--pad) * 2 - var(--th)));
-  background: linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(255, 255, 255, .42));
-  -webkit-backdrop-filter: blur(2px) saturate(190%) brightness(1.08); backdrop-filter: blur(2px) saturate(190%) brightness(1.08);
+  /* 停着时不用背景模糊：iPhone / 安卓的网页里带 backdrop-filter 的元素放在会动的面板里，面板上下滑时它会慢一两帧、跟着抖（用户发现的）；
+     下面就是一条纯色的槽，模糊了也看不出区别。只有按着拖的时候（页面不会滚）才变成透镜 */
+  background: linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .7));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 .5px rgba(255, 255, 255, .6), inset 0 -3px 6px -2px rgba(20, 30, 50, .10),
     0 3px 9px rgba(20, 30, 50, .18), 0 1px 2px rgba(20, 30, 50, .1);
   transition: left .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1)), transform .45s var(--spring-out, ease), background .3s;
@@ -1939,8 +1939,9 @@ body #page-cal .weekdays.hide { display: none; }
   transition: transform .45s var(--spring-out, ease), background .3s;
   transform: scale(1.55);
   background: linear-gradient(180deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .08));
+  -webkit-backdrop-filter: blur(2px) saturate(190%) brightness(1.08); backdrop-filter: blur(2px) saturate(190%) brightness(1.08);
 }
-.lg-refract .pb-thumb { -webkit-backdrop-filter: blur(1px) saturate(200%) brightness(1.08) url(#lg-refract); backdrop-filter: blur(1px) saturate(200%) brightness(1.08) url(#lg-refract); }
+.lg-refract .pbar.dragging .pb-thumb { -webkit-backdrop-filter: blur(1px) saturate(200%) brightness(1.08) url(#lg-refract); backdrop-filter: blur(1px) saturate(200%) brightness(1.08) url(#lg-refract); }
 .pbar:focus-visible .pb-track { box-shadow: 0 0 0 2px var(--accent); }
 :root[data-theme="dark"] .pb-track { background: color-mix(in srgb, var(--brand-b) 12%, var(--field)); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .3); }
 :root[data-theme="dark"] .pb-thumb { background: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .22));
@@ -1975,3 +1976,13 @@ body #page-cal .weekdays.hide { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .face, .fan, .pod-menu.open .fan, .pt-lbl, .pod-logo img, .pod-logo .x, .pod-today .face { transition-duration: .01s !important; transition-delay: 0s !important; }
 }
+
+/* ---------- 从其他日历导入（js/calimport.js） ---------- */
+.imp-lead { margin: 2px 4px 12px; font-size: 13px; line-height: 1.55; color: var(--text2); }
+.imp-note { margin: 12px 6px 4px; font-size: 12px; line-height: 1.55; color: var(--text2); }
+.imp-row .slabel small { display: block; margin-top: 1px; font-size: 12px; color: var(--text2); font-weight: 400; }
+.imp-row .slabel { flex: 1; min-width: 0; }
+.imp-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--c); margin: 0 10px 0 10px; }
+.imp-row .sval { flex: none; font-size: 14px; font-weight: 600; color: var(--text); }
+.imp-row .sval.off { color: var(--text3); }
+#importSheet .sh-ok.disabled { opacity: .45; pointer-events: none; }

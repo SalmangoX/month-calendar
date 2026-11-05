@@ -19,7 +19,7 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update", "nativeDock", "getData", "autoBackup"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update", "nativeDock", "getData", "autoBackup", "sysCal"
     };
 
     private final MainActivity a;
@@ -215,6 +215,10 @@ final class Bridge {
     public void saveFile(String name, String mime, String content, String cb) {
         a.runOnUiThread(() -> a.saveFile(name, mime, content, cb));
     }
+
+    /** 导入：读手机系统日历（谷歌、Outlook、手机自带日历…）。第一次会问日历权限；from / to 是毫秒时间戳 */
+    @JavascriptInterface
+    public void sysCalRead(String json, String cb) { a.readSysCal(json, cb); }
 
     /** WebDAV（坚果云等）的请求由 App 代发：网页直接请求这类服务器会被浏览器的跨域限制挡住 */
     @JavascriptInterface

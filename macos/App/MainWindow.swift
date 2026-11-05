@@ -14,6 +14,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         f.append("makeInstaller") // 设置里「生成安装包」
         f.append("http")          // WebDAV（坚果云等）的请求由原生端发，没有网页跨域限制
         f.append("icloud")        // iCloud 云盘同步
+        f.append("sysCal")        // 导入：读系统日历（iCloud、谷歌、Outlook…）
         return f
     }
 
@@ -357,7 +358,8 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             http: function (j, cb) { post('http', [String(j), String(cb)]); },
             icloudChoose: function (cb) { post('icloudChoose', [String(cb)]); },
             icloudRead: function (tag, cb) { post('icloudRead', [String(tag || ''), String(cb)]); },
-            icloudWrite: function (body, cb) { post('icloudWrite', [String(body), String(cb)]); }
+            icloudWrite: function (body, cb) { post('icloudWrite', [String(body), String(cb)]); },
+            sysCalRead: function (j, cb) { post('sysCalRead', [String(j), String(cb)]); }
           };
         })();
         """
@@ -407,6 +409,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         case "icloudChoose": let cb = s(0); DispatchQueue.main.async { self.callback(cb, CloudSync.shared.choose()) }
         case "icloudRead": callback(s(1), CloudSync.shared.read(ifNot: s(0)))
         case "icloudWrite": callback(s(1), CloudSync.shared.write(s(0)))
+        case "sysCalRead": let cb = s(1), j = s(0); Task { callback(cb, await SysCal.read(j)) }   // 导入：读系统日历
         case "drawer": nav.openDrawer()
         default: break
         }

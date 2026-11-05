@@ -46,6 +46,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>从系统日历（iCloud、谷歌、Outlook 等）把日程导入节律，只读不改。</string>
 	<key>NSCameraUsageDescription</key>
 	<string>纪念日历的透明相机用相机拍摄带倒数的照片。</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

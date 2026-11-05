@@ -17,6 +17,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- 纪念日历的透明相机（不是必需的硬件） -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 导入：读手机里的系统日历（只读，不写） -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- Android 11 起要声明才能看到、打开微信 -->
     <queries>

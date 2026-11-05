@@ -942,6 +942,7 @@
         sub: bi.on ? `${bi.folder || '已选的文件夹'} · 每天一份，留最近 7 份${biWhen ? ' · 上次 ' + biWhen : ''}` : '选一个手机文件夹，每天自动备份一份' })] : []),
       srow({ act: 'export', icon: 'export', tone: 'jade', label: '导出备份', chev: false }),
       srow({ act: 'import', icon: 'import', tone: 'sky', label: '导入备份', sub: '与现有数据合并', chev: false }),
+      srow({ act: 'calimport', icon: 'import', tone: 'orchid', label: '从其他日历导入', sub: '系统日历、谷歌、Outlook、.ics 文件', chev: false }),
     ]);
     const gAbout = group('关于', [...about,
       srow({ act: 'update', icon: 'refresh', tone: 'lavender', label: '检查更新', sub: `当前版本 ${MC.versionText()}`, chev: false })], aboutHint);
@@ -1090,6 +1091,7 @@
       });
     }
     else if (act === 'import') $('#importFile').click();
+    else if (act === 'calimport') MC.CalImport && MC.CalImport.start(row.querySelector('.slabel') || row);
     else if (act === 'update') {
       // 清掉旧缓存并重新下载最新版本；日历数据和令牌都保存在别处，不受影响
       if (!navigator.onLine) { UI.toast('检查更新需要联网'); return; }

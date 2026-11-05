@@ -40,6 +40,7 @@ targets:
         CadenceAppURL: https://salmangox.github.io/month-calendar/
         CadenceRepo: SalmangoX/month-calendar
         NSCameraUsageDescription: 纪念日历的透明相机用相机拍摄带倒数的照片。
+        NSCalendarsFullAccessUsageDescription: 从系统日历（iCloud、谷歌、Outlook 等）把日程导入节律，只读不改。
         CadenceAppGroup: $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
         CFBundleURLTypes:
           - CFBundleURLName: io.github.salmangox.cadence
@@ -52,6 +53,7 @@ targets:
         com.apple.security.files.user-selected.read-write: true
         com.apple.security.files.bookmarks.app-scope: true
         com.apple.security.device.camera: true
+        com.apple.security.personal-information.calendars: true   # 导入：读系统日历
         com.apple.security.application-groups:
           - $(DEVELOPMENT_TEAM).io.github.salmangox.cadence
     dependencies:

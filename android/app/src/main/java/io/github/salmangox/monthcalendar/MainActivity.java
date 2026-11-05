@@ -48,7 +48,8 @@ import java.util.regex.Pattern;
  */
 public class MainActivity extends androidx.activity.ComponentActivity {
     static final String EXTRA_HASH = "hash";
-    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_PERM = 13, REQ_CAM = 14, REQ_TREE = 15;
+    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_PERM = 13, REQ_CAM = 14, REQ_TREE = 15, REQ_CAL = 16;
+    private String calJson, calCb;   // 导入系统日历：等权限回来再读
     private android.webkit.PermissionRequest camReq;
 
     private WebView web;
@@ -441,9 +442,34 @@ public class MainActivity extends androidx.activity.ComponentActivity {
         }
     }
 
+    // ---------- 导入：读系统日历（谷歌、Outlook、手机自带日历都在里面） ----------
+    void readSysCal(String json, String cb) {
+        runOnUiThread(() -> {
+            if (checkSelfPermission(Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
+                calJson = json; calCb = cb;
+                requestPermissions(new String[]{Manifest.permission.READ_CALENDAR}, REQ_CAL);
+                return;
+            }
+            doReadSysCal(json, cb);
+        });
+    }
+    private void doReadSysCal(String json, String cb) {
+        Http.NET.execute(() -> {
+            long from = System.currentTimeMillis() - 365L * 86400000L, to = System.currentTimeMillis() + 730L * 86400000L;
+            try { JSONObject o = new JSONObject(json); from = o.optLong("from", from); to = o.optLong("to", to); } catch (Exception ignored) { }
+            callback(cb, SysCal.read(this, from, to));
+        });
+    }
+
     @Override
     public void onRequestPermissionsResult(int req, String[] perms, int[] results) {
         super.onRequestPermissionsResult(req, perms, results);
+        if (req == REQ_CAL && calCb != null) {
+            String cb = calCb, js = calJson; calCb = null; calJson = null;
+            if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) doReadSysCal(js, cb);
+            else { JSONObject o = new JSONObject(); try { o.put("ok", false); o.put("error", "denied"); } catch (Exception ignored) { } callback(cb, o); }
+            return;
+        }
         if (req == REQ_CAM && camReq != null) {
             android.webkit.PermissionRequest r = camReq;
             camReq = null;

@@ -13,7 +13,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
     static let shared = WebController()
     static let bridgeVersion = 1
     static let features = ["data", "prefs", "token", "notify", "test", "sync", "feedback", "saveFile", "openUrl", "camera",
-                           "http", "icloud", "glassDrawer"]
+                           "http", "icloud", "glassDrawer", "sysCal"]
 
     let web: WKWebView
     let nav = NavModel()
@@ -162,7 +162,8 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
             http: function (j, cb) { post('http', [String(j), String(cb)]); },
             icloudChoose: function (cb) { post('icloudChoose', [String(cb)]); },
             icloudRead: function (tag, cb) { post('icloudRead', [String(tag || ''), String(cb)]); },
-            icloudWrite: function (body, cb) { post('icloudWrite', [String(body), String(cb)]); }
+            icloudWrite: function (body, cb) { post('icloudWrite', [String(body), String(cb)]); },
+            sysCalRead: function (j, cb) { post('sysCalRead', [String(j), String(cb)]); }
           };
         })();
         """
@@ -279,6 +280,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         case "icloudChoose": let cb = s(0); CloudSync.shared.choose { [weak self] r in self?.callback(cb, r) }
         case "icloudRead": callback(s(1), CloudSync.shared.read(ifNot: s(0)))
         case "icloudWrite": callback(s(1), CloudSync.shared.write(s(0)))
+        case "sysCalRead": let cb = s(1), j = s(0); Task { callback(cb, await SysCal.read(j)) }   // 导入：读系统日历
         case "drawer": nav.openDrawer()
         case "drawerPull": // 手指从网页里拉侧栏：开始 / 拉到哪 / 松手时的速度
             switch s(0) { case "begin": nav.pullBegin(); case "move": nav.pullMove(d(1)); default: nav.pullEnd(d(2)) }

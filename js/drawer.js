@@ -158,12 +158,35 @@
   const menuOf = c => (c.kind === 'days'
     ? [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: T('名称、颜色和图标'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }]
     : [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: '通知', value: 'notify', on: c.notify, sw: true },
-      { label: '名称、颜色和等级', value: 'edit' }, { label: '删除这个日历', value: 'del', danger: true }]);
+      { label: '名称、颜色和等级', value: 'edit' },
+      { label: '把主日历同名事件加进来', value: 'pull' }, { label: '并入主日历', value: 'merge' },
+      { label: '删除这个日历', value: 'del', danger: true }]);
   D.act = async (id, v) => {
     const c = MC.cal(id); if (!c) return;
     if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? (c.kind === 'days' ? `「${c.name}」的日子会显示在主日历` : `「${c.name}」的事件会显示在主日历`) : `「${c.name}」不再显示在主日历`); }
     else if (v === 'notify') { MC.updateCal(c, { notify: !c.notify }); render(); UI.toast(c.notify ? `已打开「${c.name}」的通知` : `已关闭「${c.name}」的通知`); }
     else if (v === 'edit') calForm(c);
+    else if (v === 'pull') {
+      // 主日历里和这个子日历里某条事件同名的，一起挪进来（挪，不是复制：同一件事不会出现两份）
+      const names = new Set(MC.data.events.filter(e => e.cal === c.id).map(e => e.title.trim()).filter(Boolean));
+      const hit = MC.data.events.filter(e => !e.cal && names.has(e.title.trim()));
+      if (!names.size) { UI.toast(`「${c.name}」里还没有事件，先记几条再来找同名的`); return; }
+      if (!hit.length) { UI.toast('主日历里没有和它同名的事件'); return; }
+      const kinds = [...new Set(hit.map(e => e.title.trim()))];
+      if (!(await UI.confirm(`主日历里有 ${hit.length} 条和「${c.name}」同名的事件（${kinds.slice(0, 4).join('、')}${kinds.length > 4 ? ' 等' : ''}），挪到「${c.name}」里？\n挪过去以后主日历里不再单独有这几条；打开「在主日历显示」仍然能在主日历看到。`, { ok: '挪进来' }))) return;
+      const t = Date.now(); hit.forEach(e => { e.cal = c.id; e.updatedAt = t; });
+      MC.commit(); MC.reindex && MC.reindex(); render(); MC.Cal.render(); UI.toast(`已把 ${hit.length} 条事件挪到「${c.name}」`);
+    }
+    else if (v === 'merge') {
+      // 并入主日历：事件全部变成主日历的，这个子日历删掉（不可逆，要说清楚）
+      const n = MC.countIn(c.id);
+      if (!(await UI.confirm(`把「${c.name}」的 ${n} 条事件并入主日历，然后删掉「${c.name}」？\n这一步不能撤销：并入后分不出哪些原来属于「${c.name}」，等级评分也不再显示。`, { ok: '并入主日历', danger: true }))) return;
+      const t = Date.now();
+      MC.data.events.forEach(e => { if (e.cal === c.id) { e.cal = ''; e.updatedAt = t; } });
+      MC.data.cals = MC.data.cals.filter(x => x.id !== c.id); MC.data.deleted['cal:' + c.id] = t;
+      if (MC.settings.activeCal === c.id) { MC.settings.activeCal = ''; MC.saveSettings(); }
+      MC.commit(); MC.reindex && MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast(`已把「${c.name}」并入主日历`);
+    }
     else if (v === 'del') {
       const n = MC.countIn(c.id), days = c.kind === 'days';
       const msg = days ? T('删除「{0}」？').replace('{0}', c.name) + (n ? T('里面的 {0} 个日子、小纸条和相册会一起删除，').replace('{0}', n) : '') + T('其他设备同步后也会删除。')
