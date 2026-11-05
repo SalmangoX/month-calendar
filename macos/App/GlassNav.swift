@@ -757,7 +757,7 @@ enum DockSize {
     static func bottom(_ safe: CGFloat) -> CGFloat { max(24, safe + 10) }
     /// 扇形按钮沿四分之一圆弧均匀排开：两个时彼此的间距和到 logo 的间距一样；记录日历多一个中间的「统计」
     static func fan(_ n: Int) -> [CGSize] {
-        let (r, a): (CGFloat, [CGFloat]) = n == 3 ? (88, [90, 135, 180]) : (84, [105, 165])
+        let (r, a): (CGFloat, [CGFloat]) = n == 3 ? (88, [100, 145, 190]) : (84, [115, 175])   // 整体相对 logo 逆时针转 10°：加号不要太高、太靠右
         return a.map { d in CGSize(width: cos(d * .pi / 180) * r, height: -sin(d * .pi / 180) * r) }
     }
 }

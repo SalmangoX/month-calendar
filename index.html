@@ -586,7 +586,7 @@
 
   // ---------- logo 扇形菜单 ----------
   // 按钮沿四分之一圆弧排开，彼此的间距和到 logo 的间距一样；在设置页里「设置」换成「返回」
-  // 开了等级评分的记录日历：加号和设置中间多一个「统计」（三个时半径 88，90° / 135° / 180°，和原生 DockSize.fan 一样）；在统计页里它换成「返回」
+  // 开了等级评分的记录日历：加号和设置中间多一个「统计」（三个时半径 88，100° / 145° / 190°，和原生 DockSize.fan 一样）；在统计页里它换成「返回」
   let open = false, lastMain = 'cal', statFrom = 'cal';
   function layoutFans() {
     const inSet = page() === 'set', inStat = page() === 'rstat';
@@ -595,7 +595,7 @@
     fans.stat.classList.toggle('as-back', inStat);
     fans.stat.setAttribute('aria-label', inStat ? '返回' : '统计');
     const order = [fans.add, fans.stat, fans.set].filter(b => !b.hidden);   // 从上到下
-    const R = order.length === 3 ? 88 : 84, angles = order.length === 3 ? [90, 135, 180] : [105, 165];
+    const R = order.length === 3 ? 88 : 84, angles = order.length === 3 ? [100, 145, 190] : [115, 175];   // 整体相对 logo 逆时针转 10°：加号不要太高、太靠右
     order.forEach((b, k) => {
       const a = angles[k] * Math.PI / 180;
       b.style.setProperty('--fx', (Math.cos(a) * R).toFixed(1) + 'px');

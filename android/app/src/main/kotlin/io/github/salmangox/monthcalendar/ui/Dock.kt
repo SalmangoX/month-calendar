@@ -40,6 +40,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -252,7 +254,7 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
     val density = LocalDensity.current
     // 设置页里「设置」换成「返回」；开了等级评分的记录日历在中间多一个「统计」（统计页里换成「返回」）
     val items = if (d.st) listOf("add", "stat", "set") else listOf("add", "set")
-    val r = if (items.size == 3) 88f else 84f; val angles = if (items.size == 3) listOf(90.0, 135.0, 180.0) else listOf(105.0, 165.0)
+    val r = if (items.size == 3) 88f else 84f; val angles = if (items.size == 3) listOf(100.0, 145.0, 190.0) else listOf(115.0, 175.0)   // 整体相对 logo 逆时针转 10°
     val inStat = m.page == "rstat"
     Box(modifier.size(DockModel.HIT.dp)) {
         // 回到今天 / 本周：平时贴在 logo 正上方；扇形弹出时被顶到扇形上方，收起时落回来
@@ -307,16 +309,15 @@ private fun PlusIcon(c: Color) = Canvas(Modifier.size(19.dp)) {
     drawLine(c, Offset(w * .08f, w / 2), Offset(w * .92f, w / 2), st, StrokeCap.Round)
 }
 
+/** 设置：和网页、iOS 同一个齿轮（网页 #fanSet 里的路径，24 × 24 坐标），按 22dp 缩放后描边 */
+private val GEAR_PATH = PathParser().parsePathString("M10.40 5.08L10.75 2.48 L13.25 2.48 L13.60 5.08A7.1 7.1 0 0 1 15.76 5.98L17.84 4.38 L19.62 6.16 L18.02 8.24A7.1 7.1 0 0 1 18.92 10.40L21.52 10.75 L21.52 13.25 L18.92 13.60A7.1 7.1 0 0 1 18.02 15.76L19.62 17.84 L17.84 19.62 L15.76 18.02A7.1 7.1 0 0 1 13.60 18.92L13.25 21.52 L10.75 21.52 L10.40 18.92A7.1 7.1 0 0 1 8.24 18.02L6.16 19.62 L4.38 17.84 L5.98 15.76A7.1 7.1 0 0 1 5.08 13.60L2.48 13.25 L2.48 10.75 L5.08 10.40A7.1 7.1 0 0 1 5.98 8.24L4.38 6.16 L6.16 4.38 L8.24 5.98A7.1 7.1 0 0 1 10.40 5.08Z").toPath()
 @Composable
 private fun GearIcon(c: Color) = Canvas(Modifier.size(22.dp)) {
-    val w = size.width; val cx = w / 2; val st = 1.7.dp.toPx()
-    for (i in 0 until 8) {
-        val a = Math.toRadians(i * 45.0)
-        drawLine(c, Offset(cx + (cos(a) * w * .3f).toFloat(), cx + (sin(a) * w * .3f).toFloat()),
-            Offset(cx + (cos(a) * w * .45f).toFloat(), cx + (sin(a) * w * .45f).toFloat()), st * 1.6f, StrokeCap.Round)
+    val k = size.width / 24f
+    scale(k, k, pivot = Offset.Zero) {
+        drawPath(GEAR_PATH, c, style = Stroke(1.7.dp.toPx() / k, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+        drawCircle(c, 3f, Offset(12f, 12f), style = Stroke(1.7.dp.toPx() / k))
     }
-    drawCircle(c, w * .3f, style = Stroke(st))
-    drawCircle(c, w * .12f, style = Stroke(st))
 }
 
 /** 记录日历的「统计」：三根高低不一的竖条 */
