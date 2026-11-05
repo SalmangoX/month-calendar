@@ -64,6 +64,8 @@
   UI.isOpen = id => stack.includes(id);
   UI.anyOpen = () => stack.length > 0;
   function syncBackdrop() {
+    // 有面板开着：根元素挂 ui-open，iPhone / Mac / 安卓的注入脚本都在看根元素的 class，原生的底栏控件（时钟、logo、回到今天、分页点）跟着让开【联动:底部悬浮控件】
+    document.documentElement.classList.toggle('ui-open', stack.length > 0);
     if (!stack.length) { backdrop.classList.remove('show'); return; }
     const top = $('#' + stack[stack.length - 1]);
     backdrop.style.zIndex = (parseInt(getComputedStyle(top).zIndex, 10) || 30) - 1;

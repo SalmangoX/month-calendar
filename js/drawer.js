@@ -165,11 +165,46 @@
   };
   // 新建子日历：先弹出两种日历的介绍卡片（左：记录日历，右：纪念日历），点哪张就新建哪种；原生的侧拉菜单调 MC.Drawer.add('') 也走这里
   D.add = kind => (kind === 'days' || kind === 'rec' ? calForm(null, kind === 'days' ? 'days' : '') : openKinds());
+  // iPhone / Mac 的侧拉菜单是原生的、盖在网页上面，打开卡片前原生会先收起它；没选就取消时把它原样打开回来（网页 / 安卓的侧拉菜单就在卡片下面，不用收）
+  // 展开 / 收回：从「新建子日历」那颗胶囊长成卡片，收回时缩回胶囊（clip-path 从胶囊的位置和圆角长到整张卡片，里面的内容稍后淡入）
+  // 网页 / 安卓：胶囊就是侧拉菜单里的按钮；iPhone / Mac 的原生侧拉菜单已经收起，按原生按钮的位置算（面板宽 300、外边距 10、按钮左右各留 12、高 52）
+  const KS = $('#calKindSheet');
+  const reduceMo = matchMedia('(prefers-reduced-motion: reduce)');
+  let sbProbe = null;
+  function pillRect() {
+    const b = $('#drawerAdd'), r = b.getBoundingClientRect();
+    if (!nativeDrawer() && r.width > 0) return r;
+    if (!sbProbe) { sbProbe = document.createElement('div'); sbProbe.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:var(--safe-b);visibility:hidden;pointer-events:none'; document.body.appendChild(sbProbe); }
+    const mac = MC.Native.has && document.body.classList.contains('native-mac'), sb = mac ? 0 : sbProbe.offsetHeight;
+    const h = 52, top = innerHeight - sb - 10 - 12 - h;
+    return { left: 22, top, width: Math.min(300, innerWidth - 20) - 24, height: h, right: 22 + Math.min(300, innerWidth - 20) - 24, bottom: top + h };
+  }
+  function morphKinds(opening, done) {
+    if (reduceMo.matches || !KS.animate) { done && done(); return; }
+    const p = pillRect(), r = KS.getBoundingClientRect();
+    const from = `inset(${(p.top - r.top).toFixed(1)}px ${(r.right - p.right).toFixed(1)}px ${(r.bottom - p.bottom).toFixed(1)}px ${(p.left - r.left).toFixed(1)}px round ${p.height / 2}px)`, to = 'inset(0px 0px 0px 0px round 34px)';
+    const btn = $('#drawerAdd'); btn.style.opacity = '0';
+    KS.classList.add('morph');
+    const kids = [...KS.children];
+    const a = KS.animate([{ clipPath: from }, { clipPath: to }].map((f, i, l) => (opening ? f : l[1 - i])),
+      { duration: opening ? 520 : 380, easing: opening ? 'cubic-bezier(.3,1.15,.4,1)' : 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
+    kids.forEach(k => k.animate(opening ? [{ opacity: 0 }, { opacity: 0, offset: .3 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0, offset: .55 }, { opacity: 0 }],
+      { duration: opening ? 520 : 380, fill: 'forwards' }));
+    a.onfinish = () => {
+      done && done();
+      requestAnimationFrame(() => { a.cancel(); kids.forEach(k => k.getAnimations().forEach(x => x.cancel())); KS.classList.remove('morph'); btn.style.opacity = ''; });
+    };
+  }
   function openKinds() {
-    const pick = k => { UI.close('calKindSheet'); setTimeout(() => calForm(null, k), 280); };
-    $('#calKindSheet [data-k="rec"]').onclick = () => pick('');
-    $('#calKindSheet [data-k="days"]').onclick = () => pick('days');
-    UI.open('calKindSheet');
+    let picked = false;
+    const pick = k => { picked = true; UI.close('calKindSheet', true); setTimeout(() => calForm(null, k), 120); };
+    KS.querySelector('[data-k="rec"]').onclick = () => pick('');
+    KS.querySelector('[data-k="days"]').onclick = () => pick('days');
+    // 关闭前先缩回胶囊（往下拉着关的已经跟着手指走了，直接收起）
+    UI.guard('calKindSheet', proceed => { if (KS.style.transform) { proceed(); return; } morphKinds(false, proceed); });
+    UI.open('calKindSheet', () => { UI.guard('calKindSheet'); if (!picked && nativeDrawer()) D.open(); });
+    KS.classList.add('morph'); void KS.offsetWidth;   // 先没有过渡地放到最终位置，再从胶囊长出来
+    morphKinds(true);
   }
   $('#drawerAdd').onclick = () => openKinds();
 
@@ -185,7 +220,7 @@
       submit: c ? '保存' : '新建',
       // 顶上的预览：图标块用选中的颜色，名字跟着输入实时变
       hero: `<div class="cf-hero" id="cfHero" style="--cc:${color}"><div class="cf-tile">${days ? ICON_DAYS : ICON_REC}</div><div class="cf-name${c ? '' : ' ph'}" id="cfName">${MC.esc(c ? c.name : (days ? T('纪念日历') : '记录日历'))}</div></div>`,
-      fields: [{ id: 'calName', label: '名称', ph: days ? T('比如：我们、生日、考试') : '日历名称', val: c ? c.name : '', max: 24 }],
+      fields: [{ id: 'calName', label: '名称', ph: days ? T('比如：我们、生日、旅行') : '日历名称', val: c ? c.name : '', max: 24 }],
       note: days && !c ? T('纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。') : '',
       extra: sw() + (days ? `<div class="group dr-switches">
         <label class="pk-row"><span>在主日历显示<small>${T('每个日子到了那一天，也出现在主日历里')}</small></span><input type="checkbox" class="switch" id="calMain"${c && c.showInMain ? ' checked' : ''}></label>

@@ -558,8 +558,17 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .sh-btn.pressed, .sh-ok.pressed { transform: scale(.94); transition: transform .14s var(--press-in); }
 .sheet.fl .form { padding: 0 16px 6px; gap: 14px; }
 .sheet.fl .field input { background: var(--field); border-radius: 18px; padding: 14px 16px; }
+/* 窗口宽、够高的时候（Mac、iPad）：悬浮卡片在屏幕正中弹出（轻轻上浮 + 淡入），不贴在最底下；手机上还是从底部弹出 */
+@media (min-width: 700px) and (min-height: 520px) {
+  .sheet.fl { top: 50%; bottom: auto; translate: 0 -50%; max-height: calc(100% - 80px); opacity: 1;
+    transition: transform .34s var(--ease), opacity .22s ease, visibility 0s .34s; }
+  .sheet.fl.show { transition: transform .4s var(--spring-out), opacity .22s ease, visibility 0s; }
+  .sheet.fl:not(.show) { transform: translateY(28px) scale(.97); opacity: 0; }
+  .sheet.tall.fl { top: 40px; bottom: 40px; translate: none; }
+}
 /* 新建子日历：两种日历的介绍卡片，左右并排，各带一个简单的效果图 */
 #calKindSheet { z-index: 42; }
+#calKindSheet.morph { transition: none !important; }   /* 从胶囊长出来 / 缩回胶囊时：位置不再走面板自己的弹出过渡，形状由 drawer.js 的 morphKinds 画 */
 .ck-lead { margin: -4px 20px 12px; font-size: 13px; line-height: 1.5; color: var(--text2); text-align: center; }
 .ck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 4px; }
 .ck-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 14px; border-radius: 24px; text-align: left; background: var(--surface);
