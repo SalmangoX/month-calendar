@@ -76,6 +76,39 @@
     const d = e.target.closest('.pk-d'); if (!d) return;
     draft.date = d.dataset.ds; paintQuick(); paintTools(); renderOther();
   });
+  // ---- 同名事件：编辑某条事件时，看看同一个日历里还有几条同名的，可以一起放进某个子日历 ----
+  const sameOf = e => MC.data.events.filter(x => x.cal === e.cal && x.title.trim() === e.title.trim() && !x.dv);
+  function paintSame() {
+    const b = $('#cmpSame'); if (!b) return;
+    const e = mode === 'edit' && editing;
+    const targets = e ? MC.data.cals.filter(c => c.kind !== 'days' && c.id !== e.cal) : [];
+    if (!e || !e.title.trim() || (!targets.length && !e.cal)) { b.hidden = true; return; }
+    const n = sameOf(e).length, here = e.cal && MC.cal(e.cal) ? `「${MC.cal(e.cal).name}」` : '主日历';
+    b.hidden = false;
+    b.innerHTML = `<span class="cs-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h11M4 12h16M4 17h8"/></svg></span>
+      <span class="cs-t"><b>${n > 1 ? `同名事件 ${n} 条` : '只有这一条'}</b><small>在${esc(here)} · 点了放进子日历</small></span><svg class="cs-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`;
+  }
+  $('#cmpSame') && ($('#cmpSame').onclick = () => {
+    const e = editing; if (!e) return;
+    const list = sameOf(e).sort((a, b) => a.date.localeCompare(b.date));
+    const items = [...(e.cal ? [{ label: '放回主日历', value: '' }] : []),
+      ...MC.data.cals.filter(c => c.kind !== 'days' && c.id !== e.cal).map(c => ({ label: `放进「${c.name}」`, value: c.id, icon: `<span class="cs-dot" style="--c:${c.color}"></span>` }))];
+    UI.menu($('#cmpSame'), items, async to => {
+      const name = to ? `「${MC.cal(to).name}」` : '主日历';
+      let all = true;
+      if (list.length > 1) {
+        const ds = list.slice(0, 6).map(x => MC.dateLabel(x.date)).join('、') + (list.length > 6 ? ` 等` : '');
+        const r = await UI.confirm(`「${e.title}」一共 ${list.length} 条（${ds}）。\n全部放进${name}，还是只放这一条？`, { ok: `全部 ${list.length} 条`, cancel: '只放这一条', dismiss: null });
+        if (r === null) return;
+        all = r;
+      }
+      const t = Date.now(), moved = all ? list : [e];
+      moved.forEach(x => { x.cal = to; x.updatedAt = t; });
+      MC.commit(); MC.reindex && MC.reindex(); if (MC.Cal) MC.Cal.render(); if (MC.Drawer && MC.Drawer.paint) MC.Drawer.paint();
+      UI.toast(`已把 ${moved.length} 条放进${name}`);
+      paintSame(); paintComposer();
+    });
+  });
   function paintTools() {
     const extra = [];
     if (draft.time) extra.push(MC.timeLabel(draft));
@@ -167,6 +200,7 @@
       : UI.priBar(draft.priority);
     $('#cmpSave').classList.toggle('disabled', !$('#cmpTitle').value.trim());
     $('#cmpDone').setAttribute('aria-pressed', String(!!draft.done));
+    paintSame();
   }
   function growTitle() {
     const t = $('#cmpTitle');

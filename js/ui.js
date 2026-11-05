@@ -334,7 +334,7 @@
         ${bits.length ? `<div class="item-sub">${bits.join(' · ')}</div>` : ''}
       </div>
       ${MC.rateOn(e.cal) ? (e.rate && !opts.noFlag ? UI.rateTag(e) : '') : (e.priority && !opts.noFlag ? UI.flagSVG(e.priority) : '')}
-      <div class="swipe-acts" aria-hidden="true"><button data-act="edit" tabindex="-1">编辑</button><button data-act="del" class="del" tabindex="-1">删除</button></div>
+      <div class="swipe-acts" aria-hidden="true"><button data-act="edit" tabindex="-1"><i><svg viewBox="0 0 24 24"><path d="M14.5 5.5l4 4L9 19H5v-4z"/><path d="M13 7l4 4"/></svg></i><span>编辑</span></button><button data-act="del" class="del" tabindex="-1"><i><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></i><span>删除</span></button></div>
     </li>`;
   };
   // ---------- 完成反馈：清脆的一声 + 一点点触感 ----------

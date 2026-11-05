@@ -350,10 +350,21 @@ body .weekdays { display: none; }
 .item { position: relative; overflow: hidden; }
 .item > :not(.swipe-acts) { transform: translateX(var(--sx, 0px)); }
 .item.sw-anim > :not(.swipe-acts) { transition: transform .26s var(--ease); }
-.swipe-acts { position: absolute; top: 0; right: 0; bottom: 0; width: 148px; display: flex; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.swipe-acts { position: absolute; top: 0; right: 0; bottom: 0; width: 148px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding-right: 14px;
+  opacity: 0; pointer-events: none; transition: opacity .15s; }
 .item.swiping .swipe-acts { opacity: 1; pointer-events: auto; }
-.swipe-acts button { flex: 1; font-size: 14px; font-weight: 600; color: #fff; background: var(--text3); }
-.swipe-acts button.del { background: var(--red); }
+/* 左滑露出的操作：两颗软色调的圆按钮（图标 + 小字），不要整块的纯色平面块（用户嫌塑料感）；拉出来时依次轻轻放大出现 */
+.swipe-acts button { position: relative; width: 52px; height: 100%; display: grid; place-items: center; color: var(--text2);
+  transform: scale(.6); opacity: 0; transition: transform .35s var(--spring-out), opacity .2s; }
+.item.swiping .swipe-acts button { transform: none; opacity: 1; }
+.item.swiping .swipe-acts button.del { transition-delay: .04s; }
+.swipe-acts button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }   /* 文字只给读屏用：行再矮也放得下 */
+.swipe-acts button i { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, var(--surface)); box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--text) 8%, transparent); }
+.swipe-acts button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.swipe-acts button.del { color: var(--red); }
+.swipe-acts button.del i { color: var(--red); background: color-mix(in srgb, var(--red) 13%, var(--surface)); box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--red) 18%, transparent); }
+.swipe-acts button:active i { transform: scale(.92); }
 .td-ev .swipe-acts { display: none; }
 /* ---------- 今日：本周日期条 + 全天 + 时间线（参考苹果日历的「日」视图）---------- */
 #todayBody { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
@@ -1972,3 +1983,14 @@ body #page-cal .weekdays.hide { display: none; }
 .imp-row .sval { flex: none; font-size: 14px; font-weight: 600; color: var(--text); }
 .imp-row .sval.off { color: var(--text3); }
 #importSheet .sh-ok.disabled { opacity: .45; pointer-events: none; }
+
+/* 编辑事件里的「同名事件」一行（js/editor.js 的 paintSame）：和面板里的卡片同一种白底大圆角 */
+.cmp-same { display: flex; align-items: center; gap: 12px; width: 100%; margin: 10px 0 2px; padding: 12px 14px; border-radius: 20px; text-align: left;
+  background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); }
+.cmp-same .cs-ic { flex: none; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--tile); color: var(--text2); }
+.cmp-same .cs-ic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.cmp-same .cs-t { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cmp-same .cs-t b { font-size: 15px; font-weight: 600; }
+.cmp-same .cs-t small { font-size: 12px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-same .cs-chev { flex: none; width: 16px; height: 16px; fill: none; stroke: var(--text3); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.cs-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }

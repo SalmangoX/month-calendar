@@ -156,12 +156,7 @@ final class NavModel: ObservableObject {
         refresh { [weak self] in
             guard let self else { return }
             self.drawerPull = 0
-            self.drawerOpen = true
-            // 果冻：弹出来时往外多冲一点，再弹回
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                withAnimation(.spring(response: 0.22, dampingFraction: 0.7)) { self.drawerPull = 22 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) { withAnimation(.spring(response: 0.5, dampingFraction: 0.45)) { self.drawerPull = 0 } }
-            }
+            self.drawerOpen = true   // 顺滑吸到位置上，不再往外多冲一段再弹回（用户定的：没故意拉就不晃）
         }
     }
     // ---------- iPhone：手指从网页里往右拉，侧栏跟着手指出来 ----------
@@ -176,7 +171,7 @@ final class NavModel: ObservableObject {
     /// 松手：拉出一半以上、或者往右甩，就弹开（带一点果冻回弹）；否则收回去
     func pullEnd(_ v: CGFloat) {
         if drawerPull > -NavModel.panelW * 0.5 || v > 450 {
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.62)) { drawerPull = 0 }
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.92)) { drawerPull = 0 }   // 松手展开：吸到位，不晃
         } else {
             withAnimation(.spring(response: 0.28, dampingFraction: 0.95)) { drawerPull = -NavModel.panelW }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { [weak self] in
@@ -220,7 +215,7 @@ final class NavModel: ObservableObject {
     func releaseDrawer(predicted: CGFloat) {
         wheeling = false
         if drawerPull < -70 || predicted < -200 { closeDrawer(); return }
-        withAnimation(.spring(response: 0.46, dampingFraction: 0.48)) { drawerPull = 0 }
+        withAnimation(.spring(response: 0.36, dampingFraction: 0.9)) { drawerPull = 0 }   // 拉长后松手：收回，不来回弹
     }
     private func refresh(_ done: (() -> Void)? = nil) {
         eval("JSON.stringify(MC.Drawer.model())") { [weak self] r in
@@ -234,9 +229,9 @@ final class NavModel: ObservableObject {
         refresh()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in self?.closeDrawer() }
     }
-    /// 开关类的选项留在栏里刷新；编辑、删除会弹出网页的表单 / 确认框，先把栏收起来
+    /// 开关类的选项留在栏里刷新；其他的（编辑、删除、并入…）会弹出网页的表单 / 确认框 / 选择菜单，先把栏收起来，不然原生的栏盖在它们上面
     func act(_ id: String, _ v: String) {
-        if v == "edit" || v == "del" { closeDrawer() }
+        if v != "main" && v != "notify" { closeDrawer() }
         eval("MC.Drawer.act(\(Self.q(id)),\(Self.q(v)))", nil)
         if v == "main" || v == "notify" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in self?.refresh() } }
     }

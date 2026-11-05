@@ -210,6 +210,8 @@
     <textarea id="cmpTitle" rows="1" placeholder="准备做什么？" enterkeyhint="done"></textarea>
     <textarea id="cmpNote" rows="2" placeholder="备注（选填）"></textarea>
   </div>
+  <!-- 编辑已有事件时：同名的事件有几条、在哪个日历；点开选放进哪个子日历（js/editor.js 的 paintSame） -->
+  <button class="cmp-same tap" id="cmpSame" type="button" hidden></button>
   <div class="cmp-sec">
     <span class="cmp-label" id="cmpPriLabel">优先级</span>
     <div id="cmpPri"></div>

@@ -298,7 +298,7 @@
   }
   // ---------- 物理滚动：弹簧动画，接住手指松开时的速度 ----------
   // 松手后的弹簧轨迹预先算好，交给系统合成器播放（可跑满 120Hz，不受脚本限帧影响）
-  const SPRING_W = 0.0165; // 固有频率（rad/ms），临界阻尼：不回弹、不拖沓
+  const SPRING_W = 0.02; // 固有频率（rad/ms），临界阻尼：不回弹、不拖沓（比以前快一点，吸附更干脆）
   let wa = null, raf = null;
   function stopAnim() {
     if (wa) {
@@ -365,7 +365,7 @@
     const before = focus.y * 12 + focus.m;
     computeFocus();
     try { updateBack(); } catch (e) {} // setT 时 focus 还是旧的月份：算完再看一次
-    if (focus.y * 12 + focus.m !== before || lastFocusKey === '') { lastFocusKey = 'x'; monthTitle(); drawFrame(); }
+    if (focus.y * 12 + focus.m !== before || lastFocusKey === '') { lastFocusKey = 'x'; monthTitle(); drawFrame(); if (view === 'month') markOut(); }
   }
   // 滚得太远时把 anchor 往前/后挪，画面不动，保证两侧始终有足够的预渲染行
   function recenter(margin = 4) {
@@ -376,12 +376,18 @@
     renderMonth();
     return k * rowH;
   }
+  // 停稳了：不再整页重画（几十行、所有事件，安卓上很重；而且手指正好落下时会把手指下面的元素换掉，第二下就滑不动——用户发现的）。
+  // 只有滚得离预先画好的范围太远时才补画；当月 / 别的月的灰色在 refreshFocus 里原地切换（markOut）
   function settle() {
-    const k = Math.round(scrollY / rowH);
-    anchor = MC.addDays(anchor, 7 * k);
-    scrollY = scrollY - k * rowH;      // 保留不足一行的余量（半行吸附靠它）
-    renderMonth();
-    endMoving();                       // 停稳了：星期条和月框一起收回
+    if (!recenter(3)) markOut();
+    endMoving();                       // 虚线月框收回
+  }
+  // 当月以外的日子变灰：原地切 class，不重画
+  let outKey = -1;
+  function markOut(force) {
+    const fk = focus.y * 12 + focus.m;
+    if (!force && fk === outKey) return; outKey = fk;
+    track.querySelectorAll('.cell[data-date]').forEach(c => { const d = c.dataset.date; c.classList.toggle('out', (+d.slice(0, 4)) * 12 + (+d.slice(5, 7)) - 1 !== fk); });
   }
   function snapMonth(v) { // v：滚动速度（px/ms）
     recenter(1);
@@ -728,6 +734,8 @@
     return Math.max(-6, Math.min(6, v));
   };
   vp.addEventListener('touchstart', e => {
+    // 后面的移动 / 松手也直接挂在按下的那个元素上：滚到太远补画时它会被换掉，换掉后事件就不再冒泡到 vp，手势会断
+    { const tg = e.target; if (tg && tg !== vp && !tg.__mcHook) { tg.__mcHook = 1; tg.addEventListener('touchmove', onMove, { passive: false }); tg.addEventListener('touchend', end); tg.addEventListener('touchcancel', onCancel); } }
     if (e.touches.length === 2) {
       // 注意：这里不能重画（settle / render 会换掉手指下面的元素，之后的 touchmove 就传不到日历，捏合失效）；
       // 先只停住动画，等手指抬起、确定没有切换视图时再对齐
@@ -750,7 +758,8 @@
     base = view === 'month' ? scrollY : pagePos;
     samples = [[performance.now(), view === 'week' ? sx : sy]];
   }, { passive: true });
-  vp.addEventListener('touchmove', e => {
+  const onMove = e => {
+    if (e.__mcCal) return; e.__mcCal = 1;   // 同一个事件既挂在按下的元素上、又冒泡到 vp：只处理一次
     if (pinch && e.touches.length === 2) {
       e.preventDefault();
       pinch.s = Math.max(.55, Math.min(1.7, tdist(e.touches) / pinch.d0));
@@ -779,8 +788,10 @@
       const size = horiz ? W : H, d = horiz ? dx : dy;
       setPage(Math.max(-size, Math.min(size, base + d)));
     }
-  }, { passive: false });
+  };
+  vp.addEventListener('touchmove', onMove, { passive: false });
   const end = e => {
+    if (e && e.__mcCalEnd) return; if (e) e.__mcCalEnd = 1;
     if (pinch) {
       if (e && e.touches && e.touches.length >= 2) return;
       const { s: sc, target } = pinch;
@@ -844,7 +855,8 @@
   });
   vp.addEventListener('touchend', end);
   // 触摸被系统取消（比如上滑回到桌面）：回到按下前的位置，不按惯性滚动
-  vp.addEventListener('touchcancel', () => {
+  const onCancel = e => {
+    if (e && e.__mcCalC) return; if (e) e.__mcCalC = 1;
     if (pinch) { pinch = null; resetZoomStyle(); return; }
     if (!tracking) return;
     tracking = false;
@@ -854,7 +866,8 @@
       const back = Math.round(base / rowH) * rowH;
       spring(scrollY, back, 0, monthH, settle);
     } else page(0);
-  });
+  };
+  vp.addEventListener('touchcancel', onCancel);
 
   // 触控板 / 鼠标滚轮：月视图跟手滚动，停下后对齐整行
   let wAcc = 0, wLock = false, wTimer = null;

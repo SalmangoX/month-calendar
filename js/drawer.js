@@ -159,33 +159,33 @@
     ? [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: T('名称、颜色和图标'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }]
     : [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: '通知', value: 'notify', on: c.notify, sw: true },
       { label: '名称、颜色和等级', value: 'edit' },
-      { label: '把主日历同名事件加进来', value: 'pull' }, { label: '并入主日历', value: 'merge' },
+      { label: '并入…', value: 'merge' },
       { label: '删除这个日历', value: 'del', danger: true }]);
   D.act = async (id, v) => {
     const c = MC.cal(id); if (!c) return;
     if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? (c.kind === 'days' ? `「${c.name}」的日子会显示在主日历` : `「${c.name}」的事件会显示在主日历`) : `「${c.name}」不再显示在主日历`); }
     else if (v === 'notify') { MC.updateCal(c, { notify: !c.notify }); render(); UI.toast(c.notify ? `已打开「${c.name}」的通知` : `已关闭「${c.name}」的通知`); }
     else if (v === 'edit') calForm(c);
-    else if (v === 'pull') {
-      // 主日历里和这个子日历里某条事件同名的，一起挪进来（挪，不是复制：同一件事不会出现两份）
-      const names = new Set(MC.data.events.filter(e => e.cal === c.id).map(e => e.title.trim()).filter(Boolean));
-      const hit = MC.data.events.filter(e => !e.cal && names.has(e.title.trim()));
-      if (!names.size) { UI.toast(`「${c.name}」里还没有事件，先记几条再来找同名的`); return; }
-      if (!hit.length) { UI.toast('主日历里没有和它同名的事件'); return; }
-      const kinds = [...new Set(hit.map(e => e.title.trim()))];
-      if (!(await UI.confirm(`主日历里有 ${hit.length} 条和「${c.name}」同名的事件（${kinds.slice(0, 4).join('、')}${kinds.length > 4 ? ' 等' : ''}），挪到「${c.name}」里？\n挪过去以后主日历里不再单独有这几条；打开「在主日历显示」仍然能在主日历看到。`, { ok: '挪进来' }))) return;
-      const t = Date.now(); hit.forEach(e => { e.cal = c.id; e.updatedAt = t; });
-      MC.commit(); MC.reindex && MC.reindex(); render(); MC.Cal.render(); UI.toast(`已把 ${hit.length} 条事件挪到「${c.name}」`);
-    }
     else if (v === 'merge') {
-      // 并入主日历：事件全部变成主日历的，这个子日历删掉（不可逆，要说清楚）
-      const n = MC.countIn(c.id);
-      if (!(await UI.confirm(`把「${c.name}」的 ${n} 条事件并入主日历，然后删掉「${c.name}」？\n这一步不能撤销：并入后分不出哪些原来属于「${c.name}」，等级评分也不再显示。`, { ok: '并入主日历', danger: true }))) return;
-      const t = Date.now();
-      MC.data.events.forEach(e => { if (e.cal === c.id) { e.cal = ''; e.updatedAt = t; } });
-      MC.data.cals = MC.data.cals.filter(x => x.id !== c.id); MC.data.deleted['cal:' + c.id] = t;
-      if (MC.settings.activeCal === c.id) { MC.settings.activeCal = ''; MC.saveSettings(); }
-      MC.commit(); MC.reindex && MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast(`已把「${c.name}」并入主日历`);
+      // 并入…：选并到主日历还是另一个子日历；当前子日历的事件全部转移过去，然后删掉它（不可逆，要说清楚）
+      const others = MC.data.cals.filter(x => x.kind !== 'days' && x.id !== c.id);
+      const items = [{ label: '主日历', value: '' }, ...others.map(x => ({ label: `「${x.name}」`, value: x.id, icon: `<span class="cs-dot" style="--c:${x.color}"></span>` }))];
+      // 从原生侧拉菜单点进来时网页的那一行不在屏幕上：菜单以屏幕中间为中心弹出
+      const row = document.querySelector(`#drawerList [data-id="${CSS.escape(c.id)}"]`);
+      let anchor = row && row.getBoundingClientRect().width ? row : null, tmp = null;
+      if (!anchor) { tmp = document.createElement('div'); tmp.style.cssText = 'position:fixed;left:50%;top:45%;width:1px;height:1px'; document.body.appendChild(tmp); anchor = tmp; }
+      UI.menu(anchor, items, async to => {
+        if (tmp) tmp.remove();
+        if (to === undefined) return;
+        const n = MC.countIn(c.id), dest = to ? `「${MC.cal(to).name}」` : '主日历';
+        if (!(await UI.confirm(`把「${c.name}」的 ${n} 条事件全部转移到${dest}，然后删掉「${c.name}」？\n这一步不能撤销：转过去以后分不出哪些原来属于「${c.name}」。`, { ok: `并入${dest}`, danger: true }))) return;
+        const t = Date.now(), rated = to && MC.rateOn(to);
+        MC.data.events.forEach(e => { if (e.cal === c.id) { e.cal = to; if (!rated) { e.rate = 0; e.segs = {}; } e.updatedAt = t; } });
+        MC.data.cals = MC.data.cals.filter(x => x.id !== c.id); MC.data.deleted['cal:' + c.id] = t;
+        if (MC.settings.activeCal === c.id) { MC.settings.activeCal = to; MC.saveSettings(); }
+        MC.commit(); MC.reindex && MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast(`已把「${c.name}」并入${dest}`);
+      }, { center: true });
+      setTimeout(() => { if (tmp && !UI.menuOpen()) tmp.remove(); }, 4000);
     }
     else if (v === 'del') {
       const n = MC.countIn(c.id), days = c.kind === 'days';
