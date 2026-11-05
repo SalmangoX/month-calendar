@@ -937,7 +937,7 @@ html.locked .lock { display: grid; }
 :root[data-theme="dark"] .mi-sw { background: rgba(0, 0, 0, .28); }
 .mi-sw::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 17px; border-radius: 999px; opacity: 0; filter: blur(8px);
   background: linear-gradient(90deg, #9E9AC8, #C7B3CF 50%, #EBC7A6);
-  transition: width .6s cubic-bezier(.3, 1.15, .45, 1), filter .55s ease, opacity .25s ease; }
+  transition: width .26s cubic-bezier(.2, .9, .3, 1), filter .2s ease-out, opacity .12s ease; }   /* 干脆：一下涨满，不拖（用户嫌慢） */
 .mi-sw.on::before { width: 100%; opacity: 1; filter: blur(0); }
 .mi-sw::after { content: ""; position: absolute; inset: 0; border-radius: inherit;
   background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .02) 55%, rgba(255, 255, 255, .08));
@@ -945,9 +945,9 @@ html.locked .lock { display: grid; }
 /* 白色小勾：颜色充到一大半时从左往右画出来（stroke-dashoffset），底下一层带紫调的柔和投影，像压在水滴表面 */
 .mi-sw .mi-ck { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; }
 .mi-sw .mi-ck svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
-  stroke-dasharray: 18; stroke-dashoffset: 18; transition: stroke-dashoffset .12s ease-in;
+  stroke-dasharray: 18; stroke-dashoffset: 18; transition: stroke-dashoffset .08s ease-in;
   filter: drop-shadow(0 1px 1.2px rgba(90, 74, 128, .45)) drop-shadow(0 2px 4px rgba(90, 74, 128, .2)); }
-.mi-sw.on .mi-ck svg { stroke-dashoffset: 0; transition: stroke-dashoffset .32s ease-out .24s; }
+.mi-sw.on .mi-ck svg { stroke-dashoffset: 0; transition: stroke-dashoffset .15s ease-out .1s; }
 /* 点击反馈：按下去水滴被压扁一点，松手像果冻一样弹回 */
 .mi-sw { transition: transform .45s cubic-bezier(.3, 1.8, .4, 1); }
 .popover button.sw:active .mi-sw { transform: scale(1.1, .86); transition: transform .16s cubic-bezier(.2, .8, .3, 1); }
@@ -1628,7 +1628,7 @@ body.dock-pv { --d2-lift: calc(40px + var(--d2-pv, 0px)); }   /* 中轴本来就
   opacity: 0; pointer-events: none;
   /* 收起：沿圆弧转回第一个按钮的方向，缩回 logo 里 */
   transform: rotate(var(--fa0, 0deg)) translateX(0px) rotate(calc(-1 * var(--fa0, 0deg))) scale(.35);
-  transition: transform .3s cubic-bezier(.5, 0, .75, .3), opacity .2s ease .06s;
+  transition: transform .2s cubic-bezier(.5, 0, .75, .3), opacity .14s ease .04s;
 }
 .fan .face { width: 50px; height: 50px; }
 .fan svg { position: relative; z-index: 1; width: 22px; height: 22px; }
@@ -1640,7 +1640,7 @@ body.dock-pv { --d2-lift: calc(40px + var(--d2-pv, 0px)); }   /* 中轴本来就
 .pod-menu.open .fan {
   opacity: 1; pointer-events: auto;
   transform: rotate(var(--fa, 0deg)) translateX(var(--fr, 84px)) rotate(calc(-1 * var(--fa, 0deg))) scale(1);
-  transition: transform .58s cubic-bezier(.3, 1.3, .45, 1) calc(var(--i, 0) * 55ms), opacity .18s ease calc(var(--i, 0) * 55ms);
+  transition: transform .36s cubic-bezier(.3, 1.25, .45, 1) calc(var(--i, 0) * 35ms), opacity .12s ease calc(var(--i, 0) * 35ms);   /* 要干脆（用户嫌慢） */
 }
 .fan-add .face { background: var(--fab-fill, var(--accent)); color: #fff; }
 .fan-add .face::after { opacity: .35; }

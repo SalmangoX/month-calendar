@@ -114,7 +114,7 @@ final class NavModel: ObservableObject {
     func setFan(_ open: Bool) {
         guard open != fanOpen else { return }
         navTick()
-        withAnimation(.spring(response: open ? 0.46 : 0.34, dampingFraction: open ? 0.7 : 0.85)) { fanOpen = open }
+        withAnimation(.spring(response: open ? 0.32 : 0.24, dampingFraction: open ? 0.74 : 0.88)) { fanOpen = open }
     }
     func fan(_ id: String) {
         setFan(false)
@@ -766,7 +766,7 @@ struct GlassDock: View {
                 .buttonStyle(.plain)
                 .modifier(DockRect(m: m, key: "back"))
                 .offset(y: m.fanOpen ? -151 : -62)
-                .animation(.spring(response: 0.48, dampingFraction: 0.68), value: m.fanOpen)
+                .animation(.spring(response: 0.32, dampingFraction: 0.72), value: m.fanOpen)
                 .transition(.scale(scale: 0.6).combined(with: .opacity))
                 .accessibilityLabel(Text(I18n.t("回到今天")))
             }
@@ -787,9 +787,9 @@ struct GlassDock: View {
                             // 像扇子打开（和网页一样）：从 logo 出发，先朝第一个按钮的方向，一边往外走一边沿圆弧转到自己的位置，按顺序一个接一个
                             .transition(.asymmetric(
                                 insertion: .modifier(active: FanArc(t: 0, a: arc.a[k], a0: arc.a[0], r: arc.r), identity: FanArc(t: 1, a: arc.a[k], a0: arc.a[0], r: arc.r))
-                                    .animation(.spring(response: 0.5, dampingFraction: 0.66).delay(Double(k) * 0.055)),
+                                    .animation(.spring(response: 0.32, dampingFraction: 0.72).delay(Double(k) * 0.035)),   // 要干脆（用户嫌慢）
                                 removal: .modifier(active: FanBack(t: 0, a: arc.a[k], r: arc.r), identity: FanBack(t: 1, a: arc.a[k], r: arc.r))
-                                    .animation(.easeIn(duration: 0.24))))
+                                    .animation(.easeIn(duration: 0.16))))
                             .accessibilityLabel(Text(it.label))
                         }
                     }
@@ -920,7 +920,7 @@ struct GlassDrawer: View {
             if m.drawerOpen, let d = m.drawer {
                 // 遮罩跟着侧栏拉出来的程度变深
                 let shown = max(0, min(1, 1 + min(0, m.drawerPull) / NavModel.panelW))
-                Color.black.opacity((scheme == .dark ? 0.32 : 0.14) * shown)
+                Color.black.opacity((scheme == .dark ? 0.4 : 0.2) * shown)   // 遮罩稍微深一点，侧栏和后面的日历拉开层次
                     #if os(iOS)
                     .ignoresSafeArea() // iPhone：遮罩也盖住状态栏和 Home 条那一条
                     #endif
@@ -999,8 +999,19 @@ struct GlassDrawer: View {
         }
         .frame(width: width)
         .frame(maxHeight: .infinity)
-        // 透明的液态玻璃（靠边缘高光和折射，压一层半透明的底色：字看得清，后面的月份胶囊、日期也盖得住）。.regular 在这么大一块上会糊成一整块灰
-        .glassEffect(.clear.tint(scheme == .dark ? Color.black.opacity(0.56) : Color.white.opacity(0.66)), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        // 中间：一张带圆角、透光的磨砂卡片（系统磨砂材质 + 一层很淡的白 / 黑），字都在它上面，看得清
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.thinMaterial)
+                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(scheme == .dark ? Color.black.opacity(0.18) : Color.white.opacity(0.22)))
+                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.white.opacity(scheme == .dark ? 0.08 : 0.45), lineWidth: 0.6))
+                .padding(7)
+        }
+        // 边缘：一圈透明的液态玻璃（高光和折射），露在磨砂卡片外面那 7pt。.regular 在这么大一块上会糊成一整块灰，所以用 .clear
+        .glassEffect(.clear.tint(scheme == .dark ? Color.black.opacity(0.22) : Color.white.opacity(0.12)), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        // 层次感：整块浮在日历上面，投一层柔和的影子（贴近的一层浓一点、远的一层散开）
+        .shadow(color: .black.opacity(scheme == .dark ? 0.45 : 0.14), radius: 30, x: 8, y: 12)
+        .shadow(color: .black.opacity(scheme == .dark ? 0.3 : 0.08), radius: 6, x: 1, y: 2)
         .padding(10)
         #if os(macOS)
         .padding(.top, 26) // 让开窗口左上角的红黄绿按钮
@@ -1136,8 +1147,8 @@ struct GlassDrawer: View {
     // 收起倒过来，卡片一口气缩回胶囊、融进去。中途再点会接着当前位置反向
     private func morphKinds(_ o: Bool) {
         kTask?.cancel()
-        if o { withAnimation(.spring(response: 0.62, dampingFraction: 0.74)) { kPhase = 2 } }
-        else { withAnimation(.spring(response: 0.46, dampingFraction: 0.86)) { kPhase = 0 } }
+        if o { withAnimation(.spring(response: 0.4, dampingFraction: 0.78)) { kPhase = 2 } }   // 干脆：0.4 秒左右到位（用户嫌长）
+        else { withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) { kPhase = 0 } }
     }
 
     private func kindsContent(_ k: NavModel.Kinds, close: @escaping () -> Void) -> some View {
@@ -1162,7 +1173,7 @@ struct GlassDrawer: View {
             .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)
-        .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.22).delay(0.16)),   // 内容等玻璃放大得差不多了再出来
+        .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.16).delay(0.1)),   // 内容等玻璃放大得差不多了再出来
                                 removal: .opacity.animation(.easeIn(duration: 0.08))))           // 收起时先把字收掉，再缩回水滴
     }
 
@@ -1284,7 +1295,7 @@ struct FillToggleBody: View {
                         .frame(width: on ? g.size.width : g.size.height * 0.6)
                         .blur(radius: on ? 0 : 8)
                         .opacity(on ? 1 : 0)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: on)
+                        .animation(on ? .spring(response: 0.26, dampingFraction: 0.9) : .easeIn(duration: 0.14), value: on)   // 干脆：一下涨满，不拖
                 }
                 .clipShape(Capsule())
                 Capsule().fill(Color.clear)   // 最上面：系统的透明液态玻璃，折射下面的颜色，像一颗水滴
@@ -1297,7 +1308,7 @@ struct FillToggleBody: View {
                     .shadow(color: Color(argb: 0xFF5A_4A80).opacity(0.45), radius: 1.2, y: 1)
                     .shadow(color: Color(argb: 0xFF5A_4A80).opacity(0.2), radius: 4, y: 2)
                     .frame(maxWidth: .infinity)
-                    .animation(on ? .easeOut(duration: 0.32).delay(0.24) : .easeIn(duration: 0.12), value: on)
+                    .animation(on ? .easeOut(duration: 0.15).delay(0.1) : .easeIn(duration: 0.08), value: on)   // 颜色快满时紧跟着一笔画出
             }
             .frame(width: 50, height: 28)
             // 点击反馈：按下去水滴被压扁一点（横向变宽、纵向变矮），松手像果冻一样弹回

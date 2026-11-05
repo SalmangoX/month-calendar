@@ -261,7 +261,7 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
     val inStat = m.page == "rstat"
     Box(modifier.size(DockModel.HIT.dp)) {
         // 回到今天 / 本周：平时贴在 logo 正上方；扇形弹出时被顶到扇形上方，收起时落回来
-        val backY by animateDpAsState(if (m.fanOpen) (-151).dp else (-62).dp, spring(.68f, 300f), label = "by")
+        val backY by animateDpAsState(if (m.fanOpen) (-151).dp else (-62).dp, spring(.72f, 650f), label = "by")
         AnimatedVisibility(m.back, Modifier.align(Alignment.Center).offset(y = backY), enter = fadeIn() + scaleIn(initialScale = .6f), exit = fadeOut() + scaleOut(targetScale = .6f)) {
             Tap(Modifier.size((DockModel.BACK + 18).dp), label = tr("回到今天"), haptic = false, onClick = { m.goToday() }) { mod ->
                 Box(mod.size(DockModel.BACK.dp).glass(CircleShape, t), contentAlignment = Alignment.Center) { BackIcon(t.text.copy(alpha = .7f)) }
@@ -270,7 +270,7 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
         items.forEachIndexed { k, id ->
             val a = remember(id) { Animatable(0f) }
             LaunchedEffect(m.fanOpen) {
-                if (m.fanOpen) { delay(k * 55L); a.animateTo(1f, spring(.6f, 300f)) } else a.animateTo(0f, tween(220))   // 从上往下一个接一个展开
+                if (m.fanOpen) { delay(k * 35L); a.animateTo(1f, spring(.7f, 700f)) } else a.animateTo(0f, tween(160))   // 要干脆（用户嫌慢）   // 从上往下一个接一个展开
             }
             val v = a.value
             if (v > 0.01f) {

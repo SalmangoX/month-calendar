@@ -232,19 +232,19 @@
     KS.classList.add('morph'); KS.style.opacity = '0';
     const kf = opening ? frames.map((f, k) => ({ ...f, offset: offs[k] }))
       : [frames[3], frames[1], frames[0]].map((f, k) => ({ ...f, offset: [0, .6, 1][k] }));   // 收起：直接缩回去，不再冲过
-    const a = blob.animate(kf, { duration: opening ? 560 : 440, easing: opening ? 'cubic-bezier(.3,.75,.35,1)' : 'cubic-bezier(.45,0,.4,1)', fill: 'forwards' });
+    const a = blob.animate(kf, { duration: opening ? 380 : 300, easing: opening ? 'cubic-bezier(.3,.75,.35,1)' : 'cubic-bezier(.45,0,.4,1)', fill: 'forwards' });
     let fin = false;
     const finish = () => {
       if (fin) return; fin = true;
       if (opening) {
         KS.style.opacity = '';
-        [...KS.children].forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' }));
+        [...KS.children].forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' }));
       } else { btn.classList.remove('empty'); KS.style.opacity = ''; }
       blob.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160 }).onfinish = () => blob.remove();
       KS.classList.remove('morph');
       done && done();
     };
-    a.onfinish = finish; setTimeout(finish, (opening ? 560 : 440) + 120);   // 动画事件没来（后台标签页）也照样收尾
+    a.onfinish = finish; setTimeout(finish, (opening ? 380 : 300) + 120);   // 动画事件没来（后台标签页）也照样收尾
   }
   function openKinds() {
     let picked = false;

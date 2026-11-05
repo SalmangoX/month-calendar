@@ -495,6 +495,8 @@
     let x0 = 0, y0 = 0, t0 = 0, dy = 0, state = 0, inner = null, H = 1;
     el.addEventListener('touchstart', e => {
       if (e.touches.length !== 1 || zoom > 1) { state = 0; return; }
+      // 从屏幕最下面那一条（Home 条、系统上滑回桌面的手势区）开始的不算换周
+      if (e.touches[0].clientY > innerHeight - 44) { state = 0; return; }
       inner = el.querySelector('.sc-inner'); if (!inner) return;
       state = 1; dy = 0; t0 = performance.now();
       x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
@@ -513,11 +515,13 @@
       inner.style.transform = `translate3d(0,${k}px,0) scale(${1 - Math.min(.025, Math.abs(k) / (H * 9))})`;
       inner.style.opacity = String(1 - Math.min(.26, Math.abs(k) / (H * 1.7)));
     }, { passive: false });
-    const end = () => {
+    const end = e => {
       if (state !== 2) { state = 0; return; }
       state = 0;
       const v = dy / Math.max(1, performance.now() - t0);
-      if (Math.abs(dy) > H * .15 || Math.abs(v) > .5) {
+      // 触摸被系统取消（上滑回桌面、来电、通知中心）或者页面已经切到后台：不换周，弹回原位
+      const cancelled = (e && e.type === 'touchcancel') || document.hidden;
+      if (!cancelled && (Math.abs(dy) > H * .15 || Math.abs(v) > .5)) {
         const dir = dy < 0 ? 1 : -1;                       // 上滑 = 下一周
         inner.style.transition = 'transform .17s ease-out, opacity .17s ease-out';
         inner.style.transform = `translate3d(0,${-dir * H * .4}px,0) scale(.975)`;

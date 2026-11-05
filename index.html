@@ -978,7 +978,8 @@
     const t = e.changedTouches && e.changedTouches[0];
     const dx = t ? t.clientX - d.x0 : 0;
     const v = Math.abs(dx) / Math.max(1, performance.now() - d.t0);
-    const go = Math.abs(dx) > d.W * 0.25 || (v > 0.55 && Math.abs(dx) > 36);   // 拖过 1/4 屏，或者甩得够快
+    // 触摸被系统取消（上滑回桌面、来电）：不算松手，弹回原页
+    const go = e.type !== 'touchcancel' && (Math.abs(dx) > d.W * 0.25 || (v > 0.55 && Math.abs(dx) > 36));   // 拖过 1/4 屏，或者甩得够快
     slide(d.pg, d.to, dx, go);
   };
   document.addEventListener('touchend', endDrag, { capture: true, passive: true });
@@ -1013,7 +1014,7 @@
     if (!s.on) return;
     const t = e.changedTouches && e.changedTouches[0], dx = t ? t.clientX - s.x0 : 0;
     const v = dx / Math.max(1, performance.now() - s.t0);
-    const go = dx > s.W * .3 || (v > .5 && dx > 40);   // 拖过三成屏，或者甩得够快
+    const go = e.type !== 'touchcancel' && (dx > s.W * .3 || (v > .5 && dx > 40));   // 拖过三成屏，或者甩得够快；被系统取消的不算
     setPage.style.transition = 'transform .28s cubic-bezier(.32,.72,0,1), opacity .28s';
     if (go) {
       setPage.style.transform = `translate3d(${s.W}px,0,0)`; setPage.style.opacity = '0';
