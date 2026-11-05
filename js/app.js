@@ -92,13 +92,13 @@
     sched: { label: '课表', svg: '<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.5h17M9.5 9.5v11M3.5 15h17"/></svg>' },
   };
   function applyTab3() {
-    const btn = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
+    const btn = tabbar.querySelector('button[data-page="sched"]');
     // 底部第三格固定是课表（四象限已移除）
     if (MC.settings.tab3 !== 'sched') { MC.settings.tab3 = 'sched'; MC.saveSettings(); }
     const v = MC.settings.tab3;
     btn.hidden = document.body.dataset.kind === 'days' || !!recCal(); // 纪念日历的菜单里没有这一项；开了等级评分的记录日历换成「统计」
     if (v !== 'off') { btn.dataset.page = v; btn.setAttribute('aria-label', TAB3[v].label); btn.innerHTML = TAB3[v].svg + `<span>${TAB3[v].label}</span>`; }
-    if ((page === 'quad' || page === 'sched') && page !== v) showPage('cal'); else placeInd(false);
+    if (page === 'sched' && page !== v) showPage('cal'); else placeInd(false);
   }
   function renderPage() {
     if (page === 'sched') { MC.Sched.render(); return; }
@@ -279,12 +279,12 @@
   const rs = { range: 'month', off: 0, tab: 'all', openEv: null, allEv: false };
   const recCal = () => { const id = MC.activeCal(); return id && MC.rateOn(id) ? MC.cal(id) : null; };
   function syncRecTabs() {
-    const stat = tabbar.querySelector('button[data-page="rstat"]'), t3 = tabbar.querySelector('button[data-page="quad"], button[data-page="sched"]');
+    const stat = tabbar.querySelector('button[data-page="rstat"]'), t3 = tabbar.querySelector('button[data-page="sched"]');
     if (!stat || !t3 || document.body.dataset.kind === 'days') return; // 纪念日历的菜单由 days.js 管
     const rc = !!recCal();
     stat.hidden = !rc; t3.hidden = rc;
     if (!rc && page === 'rstat') showPage('cal');
-    else if (rc && (page === 'quad' || page === 'sched')) showPage('cal');
+    else if (rc && page === 'sched') showPage('cal');
     else { if (page === 'rstat') renderRstat(); placeInd(false); }
   }
   MC.onCalChange = syncRecTabs;

@@ -27,13 +27,12 @@ body[data-kind="days"] .dv { display: flex; }
 
 .dv-bar { position: sticky; top: 0; z-index: 3; margin: 0 -16px; padding: 2px 16px 10px;
   background: color-mix(in srgb, var(--dv-bg) 86%, transparent); -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%); }
-.dv-seg { background: color-mix(in srgb, var(--text) 6%, transparent); }
 .dv-books { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 10px -16px 0; padding: 1px 16px; }
 .dv-books::-webkit-scrollbar { display: none; }
 .dv-book, .dv-sub { flex: none; height: 34px; padding: 0 13px; border-radius: 17px; display: flex; align-items: center; gap: 6px;
   background: var(--dv-card); box-shadow: var(--dv-shadow); font-size: 13.5px; font-weight: 580; color: var(--text); transition: background .2s, color .2s; }
-.dv-book .e, .qi, .kv-ic { display: inline-grid; color: var(--ic); }
-.dv-book .e svg, .qi svg { width: 17px; height: 17px; }
+.dv-book .e, .kv-ic { display: inline-grid; color: var(--ic); }
+.dv-book .e svg { width: 17px; height: 17px; }
 .kv-ic svg { width: 16px; height: 16px; vertical-align: -3px; }
 .dv-book.on .e { color: inherit; }
 .dv-book small, .dv-sub small { font-size: 11.5px; color: var(--text2); font-variant-numeric: tabular-nums; }
@@ -283,7 +282,6 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 .de-cat .e svg { width: 22px; height: 22px; }
 .de-cat.on { background: var(--surface); box-shadow: inset 0 0 0 1.8px var(--accent); }
 .de-subs .qchip { display: inline-flex; align-items: center; gap: 5px; }
-.de-subs .qchip.on .qi { color: inherit; }
 .de-card { padding: 10px 14px 6px; }
 .de-card input { width: 100%; border: 0; background: none; outline: none; font-size: 19px; font-weight: 620; padding: 4px 0 6px; }
 .de-card input::placeholder { color: var(--text3); }
@@ -298,8 +296,6 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 .de-seg { max-width: 300px; }
 .de-icons { background: var(--surface); border-radius: var(--r-l); box-shadow: inset 0 0 0 .5px var(--group-line); padding: 12px; }
 .de-ic-row { display: flex; align-items: center; gap: 10px; }
-.de-emo { flex: 1; min-width: 0; border: 0; border-radius: 12px; background: var(--field); padding: 10px 12px; font-size: 15px; outline: none; }
-.de-emo:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .de-more { display: block; margin: 10px auto 0; padding: 6px 14px; border-radius: 14px; font-size: 13px; font-weight: 600; color: var(--accent-text); }
 .de-ic-g { margin: 14px 2px 6px; font-size: 12px; font-weight: 600; color: var(--text2); }
 .de-ic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; }
@@ -387,7 +383,6 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 @keyframes camTip { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 .cam-panel { position: absolute; z-index: 2; left: 16px; right: 16px; bottom: calc(var(--safe-b) + 14px); display: flex; flex-direction: column; gap: 10px; }
 .cam-row { display: flex; align-items: center; gap: 12px; }
-.cam-lab { flex: none; width: 30px; font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, .78); text-shadow: 0 1px 6px rgba(0, 0, 0, .4); }
 .cam-row .cam-chips { flex: 1; }
 .cam-bottom { display: flex; align-items: center; justify-content: space-between; padding: 8px 18px 0; }
 .cam-shutter { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 4px #fff; }

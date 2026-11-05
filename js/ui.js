@@ -682,7 +682,8 @@
   // App 调用 MC.LG.start(post) 后：每一帧找出屏幕上看得见的玻璃控件（按钮、胶囊、优先级的水滴、纪念日历照片上的按钮和牌子），
   // 把位置、圆角、裁剪范围发给原生；网页自己的毛玻璃底去掉（字和图标还是网页画，原生的透明玻璃盖在上面）。
   // 只给「控件」用液态玻璃（和 Apple 的规则一样）；面板、卡片、提示条还是毛玻璃。
-  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .cam-btn, .cam-chips, .lgn, .dv-cover.photo .cv-tile, .cam-pill:not(.solid), .cam-card.st-glass';
+  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .cam-btn, .cam-chips, .lgn, .dv-cover.photo .cv-tile, .cam-pill:not(.solid), .cam-card.st-glass'
+    + ', .pod-today .face, .fan:not(.fan-add) .face, .set-back .face, #page-cal .topbar .title'; // 日历页的悬浮控件（时钟胶囊、扇形按钮、设置页返回、月份胶囊）；logo 和分页点里是图片 / 圆点，原生画不了，留给网页
   const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips, .lgn-dark, .cv-plate, .cv-tile, .dp-plate, .cam-pill'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
   const LAYERS = '.sheet.show, .dp.show, .cam.show, .cam-res, .confirm.show, .popover.show';
   // 自定义 SVG 图标转成 PNG（data URL）：把 CSS 里的线宽、颜色写进图标本身，按 3 倍大小画到画布上；同样的图标只转一次
@@ -752,8 +753,7 @@
           // 里面的浅色底块（比如相机分段里选中的那段）。原生照着位置一模一样画在玻璃上面，网页这边只把字和这些图标藏起来
           const runs = [], icons = [], pads = [];
           if (!thumb) {
-            if (el.id === 'btnToday') { const q = ($('#todayNum') || el).getBoundingClientRect(); icons.push([n(q.left), n(q.top), n(q.width), n(q.height), `${($('#todayNum') || {}).textContent || ''}.square`, el.lgInk || cs.color, 2.2]); } // 只按里面那个小日期框的大小画
-            else {
+            {
               const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), rg = document.createRange();
               for (let tn = tw.nextNode(); tn; tn = tw.nextNode()) {
                 const txt = tn.nodeValue.replace(/\s+/g, ' ').trim(); if (!txt) continue;

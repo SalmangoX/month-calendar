@@ -443,9 +443,6 @@
     el.innerHTML = h;
   }
   function render() {
-    const vl = $('#viewLabel'), tn = $('#todayNum');
-    if (vl) vl.textContent = { year: '年', month: '月', week: '周' }[view];
-    if (tn) tn.textContent = new Date().getDate();
     body.classList.toggle('previewing', previewOpen && view !== 'year');
     renderWeekdays();
     measure();
@@ -584,20 +581,6 @@
     setView(LEVELS[i], target);
   }
 
-  { // 视图切换按钮已移除；保留菜单构造函数，供手势/键盘调用
-    const bv = $('#btnView');
-    if (bv) bv.onclick = () => UI.menu(bv, [
-      { label: '年视图', value: 'year', on: view === 'year' },
-      { label: '月视图', value: 'month', on: view === 'month' },
-      { label: '周视图', value: 'week', on: view === 'week' },
-    ], v => setView(v));
-  }
-
-  { // 月份左右切换按钮已移除；键盘和手势仍然能翻
-    const prev = $('#btnPrev'), next = $('#btnNext');
-    if (prev) prev.onclick = () => { if (!animating) { if (view === 'month') jumpToMonth(focus.y, focus.m - 1); else page(-1); } };
-    if (next) next.onclick = () => { if (!animating) { if (view === 'month') jumpToMonth(focus.y, focus.m + 1); else page(1); } };
-  }
   function goToday() {
     const n = new Date(), from = view;
     selected = MC.todayStr();
@@ -611,7 +594,6 @@
     if (from !== 'month') playZoom(LEVELS.indexOf('month') > LEVELS.indexOf(from) ? 'in' : 'out');
   }
   Cal.goToday = goToday;
-  { const bt = $('#btnToday'); if (bt) bt.onclick = goToday; }
 
   // ---------- 手势 ----------
   let sx = 0, sy = 0, dx = 0, dy = 0, tracking = false, dragging = false, suppress = false, base = 0, caught = false;
