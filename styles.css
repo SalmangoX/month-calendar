@@ -3,11 +3,11 @@
   --glass-rim: inset 0 1px 0 var(--rim-hi), inset 1px 0 0 color-mix(in srgb, var(--rim-hi) 55%, transparent), inset 0 -1px 0 var(--rim-lo), inset -1px 0 0 var(--rim-lo), inset 0 0 0 .5px var(--frost-edge), inset 0 0 22px var(--rim-glow);
   /* 优先级色（按色彩心理设计）：高 = 朱红（紧迫、最醒目）、中 = 琥珀（提醒注意）、低 = 静蓝（平静）、无 = 中性灰（退后）。
      越重要越鲜艳；高和中靠明暗也能区分，红绿色弱也看得出来。深色模式另有一套专门的深色调（见 store.js MC.PAL） */
-  /* 优先级色取自 logo：低 = 雾紫，越重要越往暖沙走（中间经过一点玫瑰色），无 = 带一丝紫的中性灰。
+  /* 优先级色（黄 → 蓝）：低 = 金黄，中 = 天蓝，高 = 深靛蓝。色相和明暗都拉开，一眼分得清；无 = 中性灰。
      白字都看得清；深色模式的深色调由 store.js 按同一规则算出 */
-  --p3: #C98B4A;   /* 高：暖沙 */
-  --p2: #A97A9F;   /* 中：玫瑰紫 */
-  --p1: #726FB8;   /* 低：雾紫 */
+  --p3: #3B409E;   /* 高：深靛蓝 */
+  --p2: #4C87CF;   /* 中：天蓝 */
+  --p1: #C8892A;   /* 低：金黄 */
   --p0: #A3A1AD;   /* 无 */
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -33,20 +33,20 @@
   --text: #171B20;
   --text2: #6E757E;
   --text3: #C2C8CD;
-  --sel: rgba(110, 106, 174, .05);
+  --sel: rgba(79, 128, 196, .05);
   --field: rgba(118, 118, 128, .09);
   --group-line: rgba(0, 0, 0, .07);
-  --accent: #6E6AAE;          /* 主色：logo 的雾紫加深一点，白字和细线都清楚 */
-  --accent-base: #6E6AAE;
+  --accent: #4F80C4;          /* 主色：和优先级中段同一种蓝，白字和细线都清楚 */
+  --accent-base: #4F80C4;
   --drawer-frost: rgba(247, 250, 252, .58);
-  --accent-deep: #48448A;
-  --accent-text: #55519A;
+  --accent-deep: #345C9C;
+  --accent-text: #3C69AE;
   --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .7), 0 8px 20px rgba(30, 45, 70, .14), 0 1px 3px rgba(30, 45, 70, .08);
-  --accent-soft: rgba(110, 106, 174, .12);
-  --sel-line: rgba(110, 106, 174, .5);
-  --today-dim: rgba(110, 106, 174, .2);
-  --sel-bg: rgba(110, 106, 174, .065);
-  --sel-veil: rgba(110, 106, 174, .10);
+  --accent-soft: rgba(79, 128, 196, .12);
+  --sel-line: rgba(79, 128, 196, .5);
+  --today-dim: rgba(79, 128, 196, .2);
+  --sel-bg: rgba(79, 128, 196, .065);
+  --sel-veil: rgba(79, 128, 196, .10);
   --sel-veil-top: rgba(255, 255, 255, .0);
   --sel-tint: color-mix(in srgb, var(--accent) 12%, transparent);
   /* 玻璃：更通透（低不透明度 + 强模糊 + 提饱和 + 略提亮），再用边缘高光做出厚度，接近 Liquid Glass 的感觉 */
@@ -78,21 +78,21 @@
   --text: #F5F5F7;
   --text2: #98989D;
   --text3: #58585D;
-  --sel: rgba(171, 168, 224, .055);
+  --sel: rgba(141, 176, 234, .055);
   --field: rgba(255, 255, 255, .075);
   --group-line: rgba(255, 255, 255, .06);
-  --accent: #ABA8E0;
-  --accent-base: #ABA8E0;
+  --accent: #8DB0EA;
+  --accent-base: #8DB0EA;
   --drawer-frost: rgba(34, 34, 37, .6);
-  --accent-deep: #7C78BC;
-  --accent-text: #C9C6F0;
+  --accent-deep: #5F84C6;
+  --accent-text: #BCD2F5;
   --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .10), 0 8px 22px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .35);
-  --accent-soft: rgba(171, 168, 224, .17);
-  --sel-line: rgba(171, 168, 224, .62);
-  --today-dim: rgba(171, 168, 224, .28);
-  --sel-bg: rgba(171, 168, 224, .14);
-  --sel-veil: rgba(171, 168, 224, .16);
-  --sel-veil-top: rgba(171, 168, 224, .04);
+  --accent-soft: rgba(141, 176, 234, .17);
+  --sel-line: rgba(141, 176, 234, .62);
+  --today-dim: rgba(141, 176, 234, .28);
+  --sel-bg: rgba(141, 176, 234, .14);
+  --sel-veil: rgba(141, 176, 234, .16);
+  --sel-veil-top: rgba(141, 176, 234, .04);
   --sel-tint: color-mix(in srgb, var(--accent) 20%, transparent);
   --sel-tint-pct: 20%;
   /* 深色的玻璃：不铺灰，铺一层更深、更透的底，靠上沿的细高光显出玻璃感（灰底像雾蒙蒙的塑料） */
@@ -109,7 +109,7 @@
   --frost-hi: rgba(255, 255, 255, .05);
   --frost-shadow: 0 12px 36px rgba(0, 0, 0, .6);
   --bar-frost: rgba(18, 18, 22, .42);
-  --fab-fill: #8480C2;
+  --fab-fill: #5A93D6;
   --backdrop: rgba(3, 3, 6, .54);
   --done-mix: 28%;
 }
@@ -235,7 +235,7 @@ body .weekdays { display: none; }
   box-shadow: inset 0 0 0 1.6px var(--accent);
 }
 .cell.today:not(.sel) .num, .wcol.today:not(.sel) .wnum {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-a) 26%, transparent), color-mix(in srgb, var(--brand-b) 34%, transparent));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-a) 34%, transparent), color-mix(in srgb, var(--brand-mid) 30%, transparent));
   color: var(--accent-text); font-weight: 650;
   transform: scale(.86);
 }
@@ -1348,6 +1348,7 @@ body[data-kind="days"] .dock2, body[data-kind="days"] .dock-scrim { display: non
   --d2-b: max(24px, calc(var(--safe-b) + 10px));   /* 热区底边；视觉圆面再往里收 6px，离屏幕底边约 30px，拇指好按 */
   --d2-side: 10px;
   --d2-hit: 64px;
+  --d2-lift: 18px;   /* 时钟胶囊和 logo 比分页点再高这么多，拇指更好按 */
   --spring-out: cubic-bezier(.3, 1.45, .45, 1);   /* 松手回弹：一点点过冲 */
   --spring-soft: cubic-bezier(.32, .72, 0, 1);    /* 系统面板曲线：快起、长尾 */
   --press-in: cubic-bezier(.2, 0, 0, 1);
@@ -1384,16 +1385,20 @@ body[data-kind="days"] .dock2, body[data-kind="days"] .dock-scrim { display: non
   --lg-ink-halo: 0 0 6px rgba(255, 255, 255, .7), 0 0 1px rgba(255, 255, 255, .9);   /* 透明玻璃上的字：一圈淡淡的光，压在任何日期上都看得清 */
 }
 :root[data-theme="dark"] {
-  --lg-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 1px rgba(255, 255, 255, .06), inset 0 0 0 .5px rgba(255, 255, 255, .12),
-    inset 0 -10px 18px -12px rgba(0, 0, 0, .4), 0 8px 22px rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .3);
+  --lg-shadow: inset 0 1px 0 rgba(255, 255, 255, .09), inset 0 0 0 .5px rgba(255, 255, 255, .05),
+    inset 0 -10px 18px -12px rgba(0, 0, 0, .45), 0 8px 22px rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .3);   /* 深色不要白边：只留一道极淡的上沿 */
   --lg-ink-halo: 0 0 6px rgba(0, 0, 0, .75), 0 0 1px rgba(0, 0, 0, .9);
 }
 :root[data-theme="dark"] .face { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
-:root[data-theme="dark"] .face::after { opacity: .32; }
+:root[data-theme="dark"] .face::after { opacity: .07; }
 /* 真折射：把背景按噪声位移，边缘像液体一样扭曲（Chromium / 安卓 WebView 支持；不支持的就用上面的普通玻璃） */
 .lg-refract .face, .lg-refract #page-cal .topbar .title {
   -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract);
   backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract);
+}
+:root[data-theme="dark"].lg-refract .face, :root[data-theme="dark"].lg-refract #page-cal .topbar .title {
+  -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract);
+  backdrop-filter: blur(2px) saturate(170%) url(#lg-refract);
 }
 :root[data-theme="dark"] .face::before { background: rgba(255, 255, 255, .12); }
 
@@ -1413,7 +1418,7 @@ body[data-kind="days"] .dock2, body[data-kind="days"] .dock-scrim { display: non
 .dock2 > * { pointer-events: auto; }
 
 /* 时钟气泡：热区 64 高，圆面 52 高；宽度由 js 按内容平滑过渡 */
-.pod-today { height: var(--d2-hit); padding: 6px; display: flex; align-items: center; transition: opacity .3s, transform .45s var(--spring-soft); }
+.pod-today { position: relative; top: calc(-1 * var(--d2-lift)); height: var(--d2-hit); padding: 6px; display: flex; align-items: center; transition: opacity .3s, transform .45s var(--spring-soft); }
 .pod-today .face { height: 52px; min-width: 52px; padding: 0; transition: transform .55s var(--spring-out), width .5s var(--spring-soft), background .25s; }
 .pod-today.pressed .face { transition: transform .14s var(--press-in), width .5s var(--spring-soft), background .25s; }
 .pt-lbl {
@@ -1446,7 +1451,7 @@ body[data-page="set"] .pod-today { opacity: 0; transform: translateY(10px) scale
 .pager.hide, .pager.hide.idle { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .2s ease, visibility 0s .2s; }
 
 /* logo 按钮 + 扇形 */
-.pod-menu { position: relative; width: var(--d2-hit); height: var(--d2-hit); }
+.pod-menu { position: relative; top: calc(-1 * var(--d2-lift)); width: var(--d2-hit); height: var(--d2-hit); }
 .pod-logo { width: 100%; height: 100%; display: grid; place-items: center; }
 .pod-logo .face { width: 54px; height: 54px; }
 .pod-logo img, .pod-logo .x {
@@ -1480,16 +1485,16 @@ body[data-page="set"] .pod-today { opacity: 0; transform: translateY(10px) scale
 /* 菜单打开时：一层很淡的暗角接住点击，不会点穿到日历 */
 .dock-scrim {
   position: absolute; inset: 0; z-index: 15; pointer-events: none; opacity: 0;
-  background: radial-gradient(circle at calc(100% - 44px) calc(100% - 44px), rgba(10, 16, 28, .16), rgba(10, 16, 28, .04) 55%, transparent 75%);
+  background: radial-gradient(circle at calc(100% - 44px) calc(100% - 62px), rgba(10, 16, 28, .16), rgba(10, 16, 28, .04) 55%, transparent 75%);
   transition: opacity .3s ease;
 }
-:root[data-theme="dark"] .dock-scrim { background: radial-gradient(circle at calc(100% - 44px) calc(100% - 44px), rgba(0, 0, 0, .5), rgba(0, 0, 0, .18) 55%, transparent 80%); }
+:root[data-theme="dark"] .dock-scrim { background: radial-gradient(circle at calc(100% - 44px) calc(100% - 62px), rgba(0, 0, 0, .5), rgba(0, 0, 0, .18) 55%, transparent 80%); }
 .dock-scrim.show { opacity: 1; pointer-events: auto; }
 
 /* 回到今天 / 回到本周：和 logo 同一竖线，放在扇形能展开到的范围之上 */
 .back-today {
   right: calc(var(--d2-side) + var(--d2-hit) / 2 - 23px);
-  bottom: calc(var(--d2-b) + var(--d2-hit) / 2 + 128px);
+  bottom: calc(var(--d2-b) + var(--d2-lift) + var(--d2-hit) / 2 + 128px);
   width: 46px; height: 46px; opacity: .9; color: var(--text2);
 }
 .back-today::before { content: ""; position: absolute; inset: -9px; border-radius: 50%; }
@@ -1584,14 +1589,15 @@ body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { disp
 }
 .help::before { inset: -10px; }
 
-/* ---------- 品牌渐变：取自 logo 的雾紫（左）→ 暖沙（右），略加深一点，白色加号和日期数字才看得清 ---------- */
+/* ---------- 品牌渐变：取自 logo 的暖沙（左）→ 蓝（中）→ 深靛蓝（右），略加深一点，白色加号和日期数字才看得清 ---------- */
 :root {
-  --brand-a: #8E8BB8;  /* logo 左半 #9F9DBA */
-  --brand-b: #D8B48F;  /* logo 右半 #E6CDB8 */
-  --brand-grad: linear-gradient(135deg, var(--brand-a) 8%, color-mix(in srgb, var(--brand-a) 50%, var(--brand-b)) 52%, var(--brand-b) 96%);
+  --brand-a: #D6A757;    /* 左 / 低：金黄 */
+  --brand-mid: #5A93D6;  /* 中间：天蓝 */
+  --brand-b: #3F45A2;    /* 右 / 高：深靛蓝 */
+  --brand-grad: linear-gradient(135deg, var(--brand-a) 6%, var(--brand-mid) 52%, var(--brand-b) 96%);
   --brand-glow: 0 8px 22px color-mix(in srgb, var(--brand-a) 38%, transparent), 0 2px 6px color-mix(in srgb, var(--brand-b) 30%, transparent);
 }
-:root[data-theme="dark"] { --brand-a: #9794C6; --brand-b: #D6B28C; }
+:root[data-theme="dark"] { --brand-a: #DDB16A; --brand-mid: #70A5E6; --brand-b: #6E74D2; }
 /* 加号（扇形里的、纪念日历的） */
 .fan-add .face, :root[data-theme="dark"] .fan-add .face { background: var(--brand-grad); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 0 0 .5px rgba(255, 255, 255, .18), var(--brand-glow); }
 .fan-add .face { text-shadow: none; }
@@ -1604,24 +1610,24 @@ body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { disp
   box-shadow: 0 3px 10px color-mix(in srgb, var(--brand-a) 35%, transparent);
 }
 .cell.today.sel::before, .wcol.today.sel::before {
-  background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 16%, transparent), color-mix(in srgb, var(--brand-b) 14%, transparent));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 16%, transparent), color-mix(in srgb, var(--brand-mid) 14%, transparent));
 }
 :root[data-theme="dark"] .cell.today.sel::before, :root[data-theme="dark"] .wcol.today.sel::before {
-  background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 22%, transparent), color-mix(in srgb, var(--brand-b) 16%, transparent));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 22%, transparent), color-mix(in srgb, var(--brand-mid) 18%, transparent));
 }
 
-/* ---------- 优先级拖动条：无 → 低 → 中 → 高，渐变填到哪露到哪 ---------- */
+/* ---------- 优先级拖动条：无 → 低 → 中 → 高，暖沙 → 蓝 → 深蓝的渐变填到哪露到哪，越重要越蓝 ---------- */
 .pbar { --th: 28px; --pad: 3px; position: relative; padding: 2px 0 0; touch-action: pan-y; -webkit-user-select: none; user-select: none; outline: none; }
 .pbar.compact { --th: 24px; }
 .pb-track {
   position: relative; height: calc(var(--th) + var(--pad) * 2); border-radius: 999px; cursor: pointer;
-  background: color-mix(in srgb, var(--brand-a) 9%, var(--field));
+  background: color-mix(in srgb, var(--brand-b) 9%, var(--field));
   box-shadow: inset 0 1px 2px rgba(20, 30, 50, .06);
 }
-/* 渐变铺满整条，用裁切露出到滑块中心：位置固定，所以填得越多，暖沙色露得越多 */
+/* 渐变铺满整条，用裁切露出到滑块中心：位置固定，所以填得越多，蓝色露得越多 */
 .pb-fill {
   position: absolute; inset: var(--pad); border-radius: 999px;
-  background: linear-gradient(90deg, var(--brand-a), color-mix(in srgb, var(--brand-a) 50%, var(--brand-b)) 50%, var(--brand-b));
+  background: linear-gradient(90deg, var(--brand-a), var(--brand-mid) 50%, var(--brand-b));
   clip-path: inset(0 calc((1 - var(--f)) * (100% - var(--th)) + var(--th) / 2) 0 0 round 999px);
   transition: clip-path .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1));
 }
@@ -1634,15 +1640,25 @@ body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { disp
 .pb-thumb {
   position: absolute; top: var(--pad); width: var(--th); height: var(--th); border-radius: 50%; pointer-events: none;
   left: calc(var(--pad) + var(--f) * (100% - var(--pad) * 2 - var(--th)));
-  background: #fff;
-  box-shadow: 0 0 0 .5px rgba(20, 30, 50, .08), 0 3px 8px rgba(20, 30, 50, .16), 0 1px 2px rgba(20, 30, 50, .1);
-  transition: left .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1)), transform .3s var(--spring-out, ease);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(255, 255, 255, .42));
+  -webkit-backdrop-filter: blur(2px) saturate(190%) brightness(1.08); backdrop-filter: blur(2px) saturate(190%) brightness(1.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 .5px rgba(255, 255, 255, .6), inset 0 -3px 6px -2px rgba(20, 30, 50, .10),
+    0 3px 9px rgba(20, 30, 50, .18), 0 1px 2px rgba(20, 30, 50, .1);
+  transition: left .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1)), transform .45s var(--spring-out, ease), background .3s;
 }
-.pbar.dragging .pb-fill, .pbar.dragging .pb-thumb { transition: transform .3s var(--spring-out, ease); }
-.pbar.dragging .pb-thumb { transform: scale(1.12); }
+/* 拖动时：滑块放大成一颗比整根条还粗的透明透镜，下面的渐变透过来 */
+.pbar.dragging .pb-fill { transition: none; }
+.pbar.dragging .pb-thumb {
+  transition: transform .45s var(--spring-out, ease), background .3s;
+  transform: scale(1.55);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .08));
+}
+.lg-refract .pb-thumb { -webkit-backdrop-filter: blur(1px) saturate(200%) brightness(1.08) url(#lg-refract); backdrop-filter: blur(1px) saturate(200%) brightness(1.08) url(#lg-refract); }
 .pbar:focus-visible .pb-track { box-shadow: 0 0 0 2px var(--accent); }
-:root[data-theme="dark"] .pb-track { background: color-mix(in srgb, var(--brand-a) 12%, var(--field)); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .3); }
-:root[data-theme="dark"] .pb-thumb { background: #F2F2F5; box-shadow: 0 3px 10px rgba(0, 0, 0, .45); }
+:root[data-theme="dark"] .pb-track { background: color-mix(in srgb, var(--brand-b) 12%, var(--field)); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .3); }
+:root[data-theme="dark"] .pb-thumb { background: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .22));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 -3px 6px -2px rgba(0, 0, 0, .3), 0 3px 10px rgba(0, 0, 0, .45); }
+:root[data-theme="dark"] .pbar.dragging .pb-thumb { background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .04)); }
 .pb-ticks { position: relative; height: 20px; margin-top: 5px; }
 .pb-tick {
   position: absolute; top: 0; transform: translateX(-50%); padding: 2px 10px; cursor: pointer; white-space: nowrap;
@@ -1659,7 +1675,7 @@ body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { disp
 .flag.pmini { width: 18px; height: 6px; border-radius: 3px; position: relative; overflow: hidden; align-self: center;
   background: color-mix(in srgb, var(--text) 12%, transparent); }
 .flag.pmini i { position: absolute; inset: 0; border-radius: inherit;
-  background: linear-gradient(90deg, var(--brand-a), var(--brand-b));
+  background: linear-gradient(90deg, var(--brand-a), var(--brand-mid) 50%, var(--brand-b));
   clip-path: inset(0 calc((1 - var(--f)) * 100%) 0 0 round 3px); }
 .popover .flag.pmini { width: 22px; height: 7px; }
 

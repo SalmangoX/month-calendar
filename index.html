@@ -783,6 +783,7 @@
   let pendingFinish = null, dg = null;
   const blockedBy = t => !!(t && t.closest && t.closest('.drawer, .sheet, .drawer-scrim, .dock2, .dock-scrim, .tabbar, .preview, .wkpick, .set-back'));
 
+  const EASE = 'cubic-bezier(.32,.72,0,1)';   // 系统面板曲线：快起、长尾
   // 收尾：dx 是松手时的位移，go 表示切过去还是弹回
   function slide(from, to, dx, go) {
     const cur = pages[from], nxt = pages[to];

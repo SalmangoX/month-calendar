@@ -389,7 +389,7 @@
     document.addEventListener('pointercancel', end, true);
   }
   // ---------- 优先级拖动条：从左到右 = 无 → 低 → 中 → 高 ----------
-  // 条上铺 logo 的雾紫 → 暖沙渐变，填到哪里就露出多少：越重要，露出的暖色越多，一眼看出轻重。
+  // 条上铺金黄 → 天蓝 → 深靛蓝的渐变，填到哪里就露出多少：越重要越蓝，一眼看出轻重。
   // 按住拖动连续跟手，松手吸到最近的一档；点下面的字或条上任意位置直接跳过去。和 lgBar 一样发 lgchange
   const PB_N = 4, PB_NAMES = () => MC.PRI_ASC.map(p => p.name), PB_FULL = () => MC.PRI_ASC.map(p => p.full);
   UI.priBar = (cur, opts = {}) => {
@@ -683,7 +683,7 @@
   // 把位置、圆角、裁剪范围发给原生；网页自己的毛玻璃底去掉（字和图标还是网页画，原生的透明玻璃盖在上面）。
   // 只给「控件」用液态玻璃（和 Apple 的规则一样）；面板、卡片、提示条还是毛玻璃。
   const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .dp-setcover, .cam-btn, .cam-chips, .lgn, .dv-cover.photo .cv-tile, .cam-pill:not(.solid), .cam-card.st-glass'
-    + ', .pod-today .face, .fan:not(.fan-add) .face, .set-back .face, #page-cal .topbar .title'; // 日历页的悬浮控件（时钟胶囊、扇形按钮、设置页返回、月份胶囊）；logo 和分页点里是图片 / 圆点，原生画不了，留给网页
+    + ', .pod-today .face, .fan:not(.fan-add) .face, .set-back .face, #page-cal .topbar .title, .pb-thumb'; // 日历页的悬浮控件（时钟胶囊、扇形按钮、设置页返回、月份胶囊）；logo 和分页点里是图片 / 圆点，原生画不了，留给网页
   const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips, .lgn-dark, .cv-plate, .cv-tile, .dp-plate, .cam-pill'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
   const LAYERS = '.sheet.show, .dp.show, .cam.show, .cam-res, .confirm.show, .popover.show';
   // 自定义 SVG 图标转成 PNG（data URL）：把 CSS 里的线宽、颜色写进图标本身，按 3 倍大小画到画布上；同样的图标只转一次

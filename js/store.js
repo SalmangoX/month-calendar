@@ -28,7 +28,7 @@
   // ---------- 颜色：浅色用 styles.css 里的 --p*；深色调用下面的 darkTone 按 OKLCH 统一算（和记录日历的自定义颜色同一规则） ----------
   // 不是把浅色压暗（那样会发灰发棕，像氧化了），而是保持彩度、暖色适当提亮
   MC.PAL = {
-    light: { 3: '#C98B4A', 2: '#A97A9F', 1: '#726FB8', 0: '#A3A1AD' },   // 和 styles.css 的 --p3…--p0 一致（取自 logo：雾紫 → 暖沙）
+    light: { 3: '#3B409E', 2: '#4C87CF', 1: '#C8892A', 0: '#A3A1AD' },   // 和 styles.css 的 --p3…--p0 一致（低 金黄 → 中 天蓝 → 高 深靛蓝）
   };
   // 任意颜色（记录日历自定义的颜色）按同一规则生成深色调：OKLCH 明度 0.45（橙黄一带提到约 0.6），彩度最多 0.15，文字是带同色的柔白
   const lin = v => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4), gam = v => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
@@ -60,7 +60,7 @@
   MC.suggestCalColor = (used = []) => {
     const lab = h => { const [L, C, H] = toOklch(h); return [L, C * Math.cos(H * Math.PI / 180), C * Math.sin(H * Math.PI / 180)]; };
     const dist = (a, b) => { const p = lab(a), q = lab(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) * 100; };
-    const main = [...Object.values(MC.PAL.light), '#6E6AAE'];      // 四个优先级色 + 主色（固定值，不随深浅色变）
+    const main = [...Object.values(MC.PAL.light), '#4F80C4'];      // 四个优先级色 + 主色（固定值，不随深浅色变）
     const free = MC.CAL_COLORS.filter(c => !used.includes(c));
     const pool = free.length ? free : MC.CAL_COLORS;
     // 先排除离主日历颜色太近的（ΔE < 11），再在剩下的里挑离主日历和已有记录日历都最远的
