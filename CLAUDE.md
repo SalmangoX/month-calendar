@@ -28,8 +28,8 @@
 
 ## 设计规范（用户逐条确认过的，别改回去）
 
-- 侧拉菜单选中的那一行是中性的白色高亮、对勾用正文色（网页 `.dr-row.on` / `.dr-tick`、原生 `GlassDrawer.row`），面板底色和遮罩是中性白 / 黑，都不带蓝。
-- **不要自作主张把界面做成蓝色**（用户多次说过）：新做的东西用中性色或这个界面原有的配色；只改用户点名要改的地方，别顺手改别的（比如侧拉菜单、效果图）。
+- 侧拉菜单选中的那一行是中性的白色高亮、对勾用正文色（网页 `.dr-row.on` / `.dr-tick`、原生 `GlassDrawer.row`），面板底色和遮罩是中性白 / 黑。
+- **新做的东西不要用蓝色**（用户多次说过：常被莫名其妙改成蓝色）：用中性色或这个界面原有的配色；只改用户点名要改的地方，别顺手改别的。
 - **交互动画要干脆**（用户多次说过太慢）：展开、收起、开关、扇形这类动画大约 0.2–0.4 秒做完，内容紧跟着出来，不要拖长、不要等。
 - 苹果式的简洁美学；**点击区域要比看到的按钮大**（悬浮按钮热区 64，圆面 50–54）。
 - 日历**整页显示**：顶部没有标题栏，月份胶囊（`#page-cal .topbar .title`）和星期条（`#weekdays`）悬浮在日历上面，在安全区下面（不压灵动岛）。日历内容不要再加顶部留白（`--cal-top: 0`）。
@@ -77,7 +77,6 @@
 - **优先级色条是渐变**（用户定的）：低在右端带一点中级，中两端带低级 / 高级，高在左端带一点中级；用户在效果图里定的「提亮过渡」：端点往相邻那档走 65%、纯色占 75%、过渡处提亮 9、保持鲜艳 90%（不要直接混，蓝和琥珀直接混会发灰发闷）；算好的固定色标，几处同一组：`js/store.js` 的 `GRAD`、`macos/Shared/Colors.swift` 的 `Pal.GRAD_L/_D`、安卓 `chip_p*.xml`（底色 + 每侧两层透明叠层）+ `colors.xml` 的 `chip_p*_l1/l2/r1/r2`、`widget.html` / `widget-ios-scriptable.js` 的 `PGRAD`。已完成、别的月份、记录日历颜色不渐变。
 - **优先级从左到右 = 低 → 高**。颜色按色彩心理学：无 `#A3A1AD` 灰 · 低 `#5B8FD0` 天蓝 · 中 `#C98A1E` 琥珀 · 高 `#D4472C` 朱红（深色调由 `MC.darkTone` / `CourseColors.darkTone` 按 OKLCH 算）。优先级用拖动条选（`UI.priBar`），渐变的每档颜色要正好落在刻度上。
 - 品牌渐变（加号、选中的今天）：明亮的金黄 → 天蓝 → 亮蓝（`--brand-a/-mid/-b`），不要深色，不然发闷。
-- 主色天蓝 `#4F80C4`（深色 `#8DB0EA`）。
 - **红色 `--red` 只用于**「现在时间」的线、删除、出错、逾期，和优先级无关。
 - **记录日历的等级从左到右 = 默认（无）→ 最低 → 最高**（`MC.RATE_ORDER = [4, 3, 2, 1]`）：等级条、分段评价、等级菜单、日历设置里的名称、统计图例都按这个顺序。数据里 1 级 = 红 = 最高（比如「超忙」），4 级 = 绿 = 最低（比如「轻松」），颜色跟着名字走。热力图配色不动。
 - **记录日历的统计页**：上面一张大圆角时段卡片（`#rsCard`），里面 周 / 月 / 年 / 全部 四页左右滑动切换（scroll-snap），顶上的胶囊滑块跟着手指走，每页自己的 ‹ › 翻时段（`rs.offs` 各记各的），页里是大数字、一句话、等级分布条（从左到右低 → 高）和几个小数字；卡片外面一排胶囊换看法 概览 / 时段 / 事件 / 备注，下面内容跟着卡片当前那一页（`app.js` 的 `renderRsCard` / `renderRsBody`）。
@@ -106,7 +105,7 @@
 | 优先级颜色 | 无 · 低 · 中 · 高 四个基础色和它们的深色调 | `styles.css` `--p0…--p3`、`js/store.js` `MC.PAL`、`Colors.swift` `Pal.P`、安卓 `colors.xml` `p0…p3` / `chip_p*` / `p*_soft`、`widget.html` `COLORS` + CSS 变量、`widget-ios-scriptable.js` `PHEX` / `PDARK` |
 | 优先级色条 | 渐变色标；月 / 周视图色条、跨天横条、已完成和淡色条 | `js/store.js` `GRAD` / `priGrad` / `toneVars`（`--cg` `--cgd` `--cgo`）、`styles.css` `.chip` `.chip.done`、`Colors.swift` `GRAD_L/_D` + `chipFill`、`MonthView.swift` `chip()` / `bar()`、安卓 `chip_p*.xml` `chip_p*_soft.xml` + `colors.xml`、`Widgets.java` `CHIP` / `SOFT`、`widget.html` `PGRAD`、`widget-ios-scriptable.js` `PGRAD` / `chipGrad` |
 | 品牌渐变 | 加号、选中的今天、小组件今天的格子 | `styles.css` `--brand-*`、`Colors.swift` `todayTint` / `todayStyle`、`GlassNav.swift` `Brand`、安卓 `Theme.kt` `brandA…`、`Palette.kt`、`colors.xml` `brand_*`、`today_bg.xml` `more_today.xml`、`widget-ios-scriptable.js` `brandGrad` |
-| 主色和红色 | 主色天蓝；红色只给现在时间线 / 删除 / 出错 / 逾期 | `styles.css` `--accent*` `--red`、`Colors.swift` `accentV` `RED`、安卓 `Theme.kt`、`colors.xml` `red` |
+| 主色和红色 | 主色（`--accent`，代码里现有的值，别拿它当新东西的配色）；红色只给现在时间线 / 删除 / 出错 / 逾期 | `styles.css` `--accent*` `--red`、`Colors.swift` `accentV` `RED`、安卓 `Theme.kt`、`colors.xml` `red` |
 | 深色调 | 任意颜色的深色版（OKLCH 规则） | `js/store.js` `MC.darkTone`、`Colors.swift` `CourseColors.darkTone`、`CourseColors.java` `darkTone`、`widget.html` `darkTone`、`widget-ios-scriptable.js` `PDARK`、`widget-days-scriptable.js` `darkTone` |
 | 课程颜色 | 按科目配色 | `js/sched.js` `toneOf`、`Colors.swift` `CourseColors`、`CourseColors.java`、`widget-sched-scriptable.js` `toneOf` |
 | 底部悬浮控件 | 时钟胶囊 · 分页点 · logo 扇形 · 回到今天；状态字段 `t ap today back pager n p set st lit pv`；中轴、高度、扇形角度 | `index.html` dock2 + 扇形脚本、`styles.css`「悬浮控件」、`GlassNav.swift` `NavModel.Dock` / `GlassDock` / `DockSize`、`ios/App/WebShell.swift` `navJS`、`macos/App/MainWindow.swift` `navJS`、安卓 `Dock.kt` `DockModel` + `NAV_JS` |
