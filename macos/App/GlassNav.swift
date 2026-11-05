@@ -43,7 +43,7 @@ final class NavModel: ObservableObject {
     }
     @Published var lg: [LGItem] = []
     /// 新底栏（网页 0.23 起：左时钟胶囊 · 中分页点 · 右 logo 扇形菜单）。网页发来时就画新底栏，旧网页或纪念日历是 nil，仍用旧的菜单栏和加号
-    struct Dock: Decodable, Equatable { let t: String; let ap: String; let today: Bool; let back: String; let pager: Bool; let p: Double; let set: Bool }
+    struct Dock: Decodable, Equatable { let t: String; let ap: String; let today: Bool; let back: String; let pager: Bool; let p: Double; let set: Bool; let lit: Bool?; let pv: Double? }
     @Published var dock: Dock?
     @Published var fanOpen = false
     /// Mac：底栏里各个按钮的位置（窗口坐标），只有点在这些地方才接住，别处的点击漏给后面的网页
@@ -105,8 +105,7 @@ final class NavModel: ObservableObject {
         setFan(false)
         switch id {
         case "add": add()
-        case "set": eval("document.getElementById('fanSet').click()", nil)
-        default: eval("document.getElementById('fanCal').click()", nil)
+        default: eval("document.getElementById('fanSet').click()", nil)   // 设置页里它是「返回」，由网页决定回到哪一页
         }
     }
     func updateLG(_ json: String) {
@@ -810,8 +809,10 @@ struct GlassDock: View {
                     Spacer(minLength: 0)
                     logoCluster(d, dark: dark)
                 }
-                .padding(.horizontal, DockSize.side)
-                .padding(.bottom, b + DockSize.lift)
+                // 日历里点开某一天的卡片时（pv ≥ 0）：往上、往里挪，整个落在卡片底部里面（和网页一样）
+                .padding(.horizontal, (d.pv ?? -1) >= 0 ? 16 : DockSize.side)
+                .padding(.bottom, b + DockSize.lift + CGFloat(max(0, d.pv ?? 0)))
+                .animation(.spring(response: 0.45, dampingFraction: 0.85), value: d.pv)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .offset(y: m.cover ? 160 : 0)
@@ -866,9 +867,11 @@ struct GlassDock: View {
             }
             .padding(.horizontal, 9).frame(height: 22)
             .glassEffect(NavGlass.chrome(scheme), in: .capsule)
+            .opacity(d.lit == false ? 0.3 : 1)   // 左右切换时亮起，停下后淡下去（和网页一样）
             .padding(.vertical, 21).padding(.horizontal, 12)
             .contentShape(Rectangle())
             .animation(.spring(response: 0.45, dampingFraction: 0.8), value: d.p)
+            .animation(.easeInOut(duration: 0.35), value: d.lit)
         }
         .buttonStyle(.plain)
         .modifier(DockRect(m: m, key: "pager"))
@@ -879,8 +882,8 @@ struct GlassDock: View {
 
     // logo + 扇形菜单 + 回到今天
     @ViewBuilder private func logoCluster(_ d: NavModel.Dock, dark: Bool) -> some View {
-        let items: [FanItem] = (d.set ? [FanItem(id: "cal", icon: "calendar", label: "回到日历")] : [])
-            + [FanItem(id: "add", icon: "plus", label: "添加事件"), FanItem(id: "set", icon: "gearshape", label: "设置")]
+        let items: [FanItem] = [FanItem(id: "add", icon: "plus", label: "添加事件"),
+                                d.set ? FanItem(id: "set", icon: "chevron.left", label: "返回") : FanItem(id: "set", icon: "gearshape", label: "设置")]
         let pos = DockSize.fan(items.count)
         ZStack {
             if m.back {   // 回到今天 / 本周：平时贴在 logo 正上方；扇形弹出时被顶到扇形上方，收起时落回来

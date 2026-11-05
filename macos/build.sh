@@ -53,6 +53,9 @@ if ! xcodebuild -project Cadence.xcodeproj -target Cadence -configuration Releas
   exit 1
 fi
 
+# xcodegen 生成的 Info.plist / entitlements 编完就删：iOS 工程也引用 macos/ 里的源码，留着会让 iOS 编译报「Multiple commands produce」
+rm -f App/Info.plist App/Cadence.entitlements Widgets/Info.plist Widgets/CadenceWidgets.entitlements
+
 APP="build/Release/Cadence.app"
 [ -d "$APP" ] || { echo "❌ 没找到 $APP"; exit 1; }
 osascript -e 'tell application id "io.github.salmangox.cadence" to quit' >/dev/null 2>&1

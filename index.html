@@ -504,9 +504,8 @@
   </button>
   <button class="pager tap" id="pager" aria-label="切换日历 / 日程"><span class="face"><i></i><i></i></span></button>
   <div class="pod-menu" id="podMenu">
-    <button class="fan fan-cal tap" id="fanCal" aria-label="回到日历" tabindex="-1" hidden><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.2h17M8 2.8v3.4M16 2.8v3.4"/><text id="fanCalNum" x="12" y="18" text-anchor="middle" font-size="8.4" font-weight="700" fill="currentColor" stroke="none">1</text></svg></span></button>
     <button class="fan fan-add tap" id="fanAdd" aria-label="添加事件" tabindex="-1"><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:2.4"><path d="M12 5v14M5 12h14"/></svg></span></button>
-    <button class="fan fan-set tap" id="fanSet" aria-label="设置" tabindex="-1"><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:1.7"><path d="M10.40 5.08L10.75 2.48 L13.25 2.48 L13.60 5.08A7.1 7.1 0 0 1 15.76 5.98L17.84 4.38 L19.62 6.16 L18.02 8.24A7.1 7.1 0 0 1 18.92 10.40L21.52 10.75 L21.52 13.25 L18.92 13.60A7.1 7.1 0 0 1 18.02 15.76L19.62 17.84 L17.84 19.62 L15.76 18.02A7.1 7.1 0 0 1 13.60 18.92L13.25 21.52 L10.75 21.52 L10.40 18.92A7.1 7.1 0 0 1 8.24 18.02L6.16 19.62 L4.38 17.84 L5.98 15.76A7.1 7.1 0 0 1 5.08 13.60L2.48 13.25 L2.48 10.75 L5.08 10.40A7.1 7.1 0 0 1 5.98 8.24L4.38 6.16 L6.16 4.38 L8.24 5.98A7.1 7.1 0 0 1 10.40 5.08Z"/><circle cx="12" cy="12" r="3"/></svg></span></button>
+    <button class="fan fan-set tap" id="fanSet" aria-label="设置" tabindex="-1"><span class="face"><svg class="ic-back" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:2.4"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><svg class="ic-gear" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:1.7"><path d="M10.40 5.08L10.75 2.48 L13.25 2.48 L13.60 5.08A7.1 7.1 0 0 1 15.76 5.98L17.84 4.38 L19.62 6.16 L18.02 8.24A7.1 7.1 0 0 1 18.92 10.40L21.52 10.75 L21.52 13.25 L18.92 13.60A7.1 7.1 0 0 1 18.02 15.76L19.62 17.84 L17.84 19.62 L15.76 18.02A7.1 7.1 0 0 1 13.60 18.92L13.25 21.52 L10.75 21.52 L10.40 18.92A7.1 7.1 0 0 1 8.24 18.02L6.16 19.62 L4.38 17.84 L5.98 15.76A7.1 7.1 0 0 1 5.08 13.60L2.48 13.25 L2.48 10.75 L5.08 10.40A7.1 7.1 0 0 1 5.98 8.24L4.38 6.16 L6.16 4.38 L8.24 5.98A7.1 7.1 0 0 1 10.40 5.08Z"/><circle cx="12" cy="12" r="3"/></svg></span></button>
     <button class="pod-logo tap" id="bubbleLogo" aria-label="更多" aria-expanded="false"><span class="face"><img src="icons/logo.png" alt=""><svg class="x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span></button>
   </div>
 </div>
@@ -519,7 +518,7 @@
   const menu = $id('podMenu'), logo = $id('bubbleLogo'), scrim = $id('dockScrim');
   const pill = $id('bubbleToday'), face = $id('ptFace'), lTime = $id('ptTime'), lBack = $id('ptBack'), lBackTxt = $id('ptBackTxt');
   const pager = $id('pager');
-  const fans = { cal: $id('fanCal'), add: $id('fanAdd'), set: $id('fanSet') };
+  const fans = { add: $id('fanAdd'), set: $id('fanSet') };
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   const page = () => body.dataset.page || 'cal';
   const pages = { cal: $id('page-cal'), sched: $id('page-sched') };
@@ -556,21 +555,20 @@
   }, { passive: true });
 
   // ---------- logo 扇形菜单 ----------
-  // 按钮沿四分之一圆弧均匀排开：两个按钮时彼此的间距和到 logo 的间距一样；设置页多一个最上面的「回到日历」
-  let open = false;
+  // 两个按钮沿四分之一圆弧排开，彼此的间距和到 logo 的间距一样；在设置页里「设置」换成「返回」
+  let open = false, lastMain = 'cal';
   function layoutFans() {
     const inSet = page() === 'set';
-    fans.cal.hidden = !inSet;
-    const order = inSet ? [fans.cal, fans.add, fans.set] : [fans.add, fans.set];   // 从上到下
-    const n = order.length, R = n === 3 ? 88 : 84;
-    const angles = n === 3 ? [90, 135, 180] : [105, 165];
+    fans.set.classList.toggle('as-back', inSet);
+    fans.set.setAttribute('aria-label', inSet ? '返回' : '设置');
+    const order = [fans.add, fans.set];   // 从上到下
+    const R = 84, angles = [105, 165];
     order.forEach((b, k) => {
       const a = angles[k] * Math.PI / 180;
       b.style.setProperty('--fx', (Math.cos(a) * R).toFixed(1) + 'px');
       b.style.setProperty('--fy', (-Math.sin(a) * R).toFixed(1) + 'px');
-      b.style.setProperty('--i', n - 1 - k);           // 从下往上依次弹出
+      b.style.setProperty('--i', order.length - 1 - k);   // 从下往上依次弹出
     });
-    const num = $id('fanCalNum'); if (num) num.textContent = new Date().getDate();
   }
   function setOpen(v) {
     if (v === open) return;
@@ -595,10 +593,9 @@
   fans.add.addEventListener('click', () => { closeMenu(); const f = $id('fab'); if (f) f.click(); });
   fans.set.addEventListener('click', () => {
     closeMenu();
-    if (page() === 'set') { const sb = $id('setBody'); if (sb) sb.scrollTo({ top: 0, behavior: reduce.matches ? 'auto' : 'smooth' }); }
+    if (page() === 'set') MC.App.showPage(lastMain);   // 设置页里这个键是「返回」：回到进设置之前的那一页
     else MC.App.showPage('set');
   });
-  fans.cal.addEventListener('click', () => { closeMenu(); MC.App.showPage('cal'); });
   const backBtn = $id('backToCal');
   if (backBtn) backBtn.addEventListener('click', () => MC.App.showPage('cal'));
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && open) { e.stopPropagation(); closeMenu(); } }, true);
@@ -717,21 +714,21 @@
     return prevBack ? prevBack() : false;
   };
 
-  // ---------- 分页点：只在日历、日程页；静止时淡一点（但隐藏时始终隐藏） ----------
+  // ---------- 分页点：只在日历、日程页；左右滑动时亮起，停下后淡下去（隐藏时始终隐藏） ----------
   function syncPager() {
     const pg = page();
     pager.classList.toggle('hide', !(pg === 'cal' || pg === 'sched'));
     if (!pager.classList.contains('dragging')) pager.style.setProperty('--p', pg === 'sched' ? 1 : 0);
   }
   let idleTimer = 0;
-  const wake = () => { pager.classList.remove('idle'); clearTimeout(idleTimer); idleTimer = setTimeout(() => pager.classList.add('idle'), 1600); };
-  ['touchstart', 'pointerdown'].forEach(ev => document.addEventListener(ev, wake, { passive: true }));
-  wake();
+  const wake = () => { pager.classList.remove('idle'); clearTimeout(idleTimer); idleTimer = setTimeout(() => pager.classList.add('idle'), 1200); };
+  pager.classList.add('idle');
   pager.addEventListener('click', () => { const pg = page(); if (pg === 'cal') slide('cal', 'sched', 0, true); else if (pg === 'sched') slide('sched', 'cal', 0, true); });
 
   // ---------- 页面变化时同步 ----------
   function sync() {
     const days = body.dataset.kind === 'days';
+    if (page() !== 'set') lastMain = page();
     dock2.classList.toggle('hide', days);
     if (days || open) closeMenu();
     syncPager(); syncPill();
@@ -739,6 +736,23 @@
   new MutationObserver(sync).observe(body, { attributes: true, attributeFilter: ['data-page', 'data-kind'] });
   sync();
   addEventListener('resize', () => requestAnimationFrame(sizePill));
+
+  // ---------- 日历里点开某一天的卡片：时钟和 logo 挪进卡片底部，不压在卡片边上 ----------
+  const calBody = $id('calBody'), pvCard = $id('preview');
+  function fitPreview() {
+    const on = !!calBody && calBody.classList.contains('previewing') && page() === 'cal' && body.dataset.kind !== 'days';
+    if (!on) { body.classList.remove('dock-pv'); body.style.removeProperty('--d2-pv'); return; }
+    // 用不受动画影响的布局位置算：卡片弹出有位移动画，按钮挪动也有过渡
+    const op = pvCard.offsetParent; if (!op || !pvCard.offsetHeight) return;
+    const cardBottom = op.getBoundingClientRect().top + pvCard.offsetTop + pvCard.offsetHeight;
+    const faceBottom = dock2.getBoundingClientRect().bottom - 40 - 6;          // 没挪的时候圆面的底边（热区 64，圆面 52，抬高 40）
+    const lift = Math.max(0, Math.round(faceBottom - (cardBottom - 12)));      // 圆面底边离卡片底边 12px
+    body.style.setProperty('--d2-pv', lift + 'px');
+    body.classList.add('dock-pv');
+  }
+  if (calBody) new MutationObserver(fitPreview).observe(calBody, { attributes: true, attributeFilter: ['class'] });
+  new MutationObserver(fitPreview).observe(body, { attributes: true, attributeFilter: ['data-page', 'data-kind'] });
+  addEventListener('resize', () => setTimeout(fitPreview, 50));
 
   // 状态栏跟着当前页的底色走（只在原生壳里有效）
   const hex2 = v => {
@@ -786,6 +800,7 @@
   const EASE = 'cubic-bezier(.32,.72,0,1)';   // 系统面板曲线：快起、长尾
   // 收尾：dx 是松手时的位移，go 表示切过去还是弹回
   function slide(from, to, dx, go) {
+    wake();
     const cur = pages[from], nxt = pages[to];
     if (!cur || !nxt) return;
     if (pendingFinish) pendingFinish();

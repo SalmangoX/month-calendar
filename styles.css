@@ -1423,7 +1423,7 @@ body[data-kind="days"] .dock2, body[data-kind="days"] .dock-scrim { display: non
 .dock2 > * { pointer-events: auto; }
 
 /* 时钟气泡：热区 64 高，圆面 52 高；宽度由 js 按内容平滑过渡 */
-.pod-today { position: relative; top: calc(-1 * var(--d2-lift)); height: var(--d2-hit); padding: 6px; display: flex; align-items: center; transition: opacity .3s, transform .45s var(--spring-soft); }
+.pod-today { position: relative; top: calc(-1 * var(--d2-lift)); height: var(--d2-hit); padding: 6px; display: flex; align-items: center; transition: opacity .3s, transform .45s var(--spring-soft), top .45s var(--spring-soft); }
 .pod-today .face { height: 52px; min-width: 52px; padding: 0; transition: transform .55s var(--spring-out), width .5s var(--spring-soft), background .25s; }
 .pod-today.pressed .face { transition: transform .14s var(--press-in), width .5s var(--spring-soft), background .25s; }
 .pt-lbl {
@@ -1452,11 +1452,14 @@ body[data-page="set"] .pod-today { opacity: 0; transform: translateY(10px) scale
 .pager i:last-child { --w: calc(6px + 12px * var(--p, 0)); opacity: calc(.38 + .62 * var(--p, 0)); }
 .pager i { background: var(--accent); }
 .pager.dragging i { transition: none; }
-.pager.idle { opacity: .5; }
+.pager.idle { opacity: .3; }
 .pager.hide, .pager.hide.idle { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .2s ease, visibility 0s .2s; }
 
 /* logo 按钮 + 扇形 */
-.pod-menu { position: relative; top: calc(-1 * var(--d2-lift)); width: var(--d2-hit); height: var(--d2-hit); }
+.pod-menu { position: relative; top: calc(-1 * var(--d2-lift)); width: var(--d2-hit); height: var(--d2-hit); transition: top .45s var(--spring-soft); }
+.dock2 { transition: padding .45s var(--spring-soft); }
+/* 日历里点开某一天的卡片时：时钟和 logo 往上、往里挪，整个落在卡片底部里面（--d2-pv 由 js 按卡片位置算） */
+body.dock-pv { --d2-lift: calc(40px + var(--d2-pv, 0px)); --d2-side: 16px; }
 .pod-logo { width: 100%; height: 100%; display: grid; place-items: center; }
 .pod-logo .face { width: 54px; height: 54px; }
 .pod-logo img, .pod-logo .x {
@@ -1478,6 +1481,8 @@ body[data-page="set"] .pod-today { opacity: 0; transform: translateY(10px) scale
 .fan .face { width: 50px; height: 50px; }
 .fan svg { position: relative; z-index: 1; width: 22px; height: 22px; }
 .fan[hidden] { display: none !important; }
+.fan-set .ic-back, .fan-set.as-back .ic-gear { display: none; }
+.fan-set.as-back .ic-back { display: block; }
 .pod-menu.open .fan {
   opacity: 1; pointer-events: auto;
   transform: translate(var(--fx, 0px), var(--fy, 0px)) scale(1);
