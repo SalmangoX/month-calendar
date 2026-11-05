@@ -1559,11 +1559,14 @@ body #page-cal .weekdays {
   display: grid; position: absolute; left: 8px; right: 8px; top: calc(var(--safe-t) + 50px); z-index: 6;
   height: 24px; padding: 0 0; align-items: center; pointer-events: none; border-radius: 12px;
   font-size: 11px; font-weight: 650; letter-spacing: .04em; color: var(--text);
-  background: color-mix(in srgb, var(--surface) 46%, transparent);
-  -webkit-backdrop-filter: blur(14px) saturate(170%); backdrop-filter: blur(14px) saturate(170%);
-  box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .5), inset 0 0 0 .5px color-mix(in srgb, var(--text) 10%, transparent), 0 4px 14px -6px rgba(0, 0, 0, .25);
+  /* 完全透明的液态玻璃：中间不模糊、不着色，只有一圈高光边（左上亮、右下淡）和很轻的斜向光泽；字带一点阴影保证看得清 */
+  background: linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, .06));
+  -webkit-backdrop-filter: saturate(120%); backdrop-filter: saturate(120%);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .55), inset -1px -1px 0 rgba(255, 255, 255, .2), inset 0 0 12px rgba(255, 255, 255, .08);
+  text-shadow: 0 0 6px var(--bg), 0 0 2px var(--bg);
 }
-:root[data-theme="dark"] body #page-cal .weekdays { background: color-mix(in srgb, #1c1c20 50%, transparent); box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .14), 0 4px 14px -6px rgba(0, 0, 0, .5); }
+.lg-refract body #page-cal .weekdays { -webkit-backdrop-filter: url(#lg-refract) saturate(120%); backdrop-filter: url(#lg-refract) saturate(120%); }
+:root[data-theme="dark"] body #page-cal .weekdays { box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .3), inset -1px -1px 0 rgba(255, 255, 255, .1), inset 0 0 12px rgba(255, 255, 255, .05); }
 body #page-cal .weekdays span { opacity: .78; }
 body #page-cal .weekdays.hide { display: none; }
 

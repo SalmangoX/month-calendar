@@ -604,6 +604,7 @@ struct GlassLayer: View {
         case "p":                                                       // 照片上带字的牌子：透亮的 clear 玻璃（背后的照片清清楚楚地折射过来），着一层网页原来底色的淡色，字看得清
             return .clear // 底色由 content 里铺的那层半透明色负责（clear 玻璃的 tint 太淡，字会看不清）
         case "d": return .clear.tint(Color.black.opacity(0.12))         // 照片、相机画面上的按钮：和系统相机一样的透亮玻璃
+        case "c": return .clear                                         // 日历顶上的星期条：完全透明的液态玻璃，下面的日历清清楚楚透上来
         default:  return NavGlass.chrome(scheme)                        // 和底部菜单栏同一种玻璃
         }
     }

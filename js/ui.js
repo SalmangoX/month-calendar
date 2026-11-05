@@ -747,7 +747,7 @@
           const cs = getComputedStyle(el), rad = Math.min(parseFloat(cs.borderTopLeftRadius) || 0, r.height / 2);
           const thumb = el.classList.contains('lg-thumb');
           if (thumb && !el.parentElement.classList.contains('dragging')) return; // 水滴停着时是网页画的白色底板（和系统的分段控件一样），按住拖动时才变成原生的玻璃透镜
-          const k = thumb ? 'l' : el.matches('.cv-plate, .dp-plate, .cam-card') ? 'p' : el.matches(LG_DARK) ? 'd' : 'g'; // p：照片上带字的牌子；d：照片 / 相机上的按钮
+          const k = thumb ? 'l' : el.matches('#page-cal .weekdays') ? 'c' : el.matches('.cv-plate, .dp-plate, .cam-card') ? 'p' : el.matches(LG_DARK) ? 'd' : 'g'; // c：星期条，完全透明的液态玻璃 // p：照片上带字的牌子；d：照片 / 相机上的按钮
           const sc = el.offsetWidth ? r.width / el.offsetWidth : 1; // 被缩放过（相机里双指缩放的卡片）：字号跟着缩放
           const n = v => Math.round(v * 10) / 10;
           // 原生要画在玻璃上面的内容：网页排好的每一段字（位置、字号、粗细、颜色、字距、等宽数字、圆体）、每个图标（系统符号）、
