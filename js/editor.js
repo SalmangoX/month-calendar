@@ -145,7 +145,7 @@
       return `<button class="seg-b${i === segSel ? ' sel' : ''}${v ? ' lv' + v : ''}${own ? ' own' : ' inh'}" data-i="${i}" style="--c:${color}" aria-label="${b.k}–${b.end}"><i></i><span>${b.k}</span><em data-uc>${v ? esc(labels[v - 1]) : '–'}</em></button>`; }).join('');
     const cur = draft.segs[blocks[segSel].k] || 0, n = Object.keys(MC.pruneSegs(draft.segs, draft.time, draft.endTime)).length;
     $('#cmpSegLv').innerHTML = `<span class="cmp-hint">${blocks[segSel].k}–${blocks[segSel].end}：</span>`
-      + [0, 1, 2, 3, 4].map(v => `<button class="qchip pri rate${v === cur ? ' on' : ''}" data-v="${v}" style="--c:${v ? `var(--lv${v})` : 'var(--p0)'}"><span class="dot"></span><span data-uc>${esc(v ? labels[v - 1] : base ? `跟随整体（${labels[base - 1]}）` : '跟随整体')}</span></button>`).join('')
+      + [0, ...MC.RATE_ORDER].map(v => `<button class="qchip pri rate${v === cur ? ' on' : ''}" data-v="${v}" style="--c:${v ? `var(--lv${v})` : 'var(--p0)'}"><span class="dot"></span><span data-uc>${esc(v ? labels[v - 1] : base ? `跟随整体（${labels[base - 1]}）` : '跟随整体')}</span></button>`).join('')
       + (n ? `<button class="qchip" data-act="clear">全部恢复跟随（${n} 段）</button>` : '');
   }
   $('#cmpSegStrip').addEventListener('click', e => { const b = e.target.closest('.seg-b'); if (!b) return; segSel = Number(b.dataset.i); paintSegs(); });
@@ -170,7 +170,7 @@
     $('#cmpPriLabel').textContent = rated ? '等级' : '优先级';
     // 正在拖的时候不重画（不然水滴会跳回去）
     if (!$('#cmpPri .lgbar.dragging, #cmpPri .pbar.dragging')) $('#cmpPri').innerHTML = rated
-      ? UI.lgBar([{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n, color: `var(--lv${i + 1})` }))], draft.rate || 0)
+      ? UI.lgBar([{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.RATE_ORDER.map(v => ({ v, name: MC.rateLabels(rc)[v - 1], color: `var(--lv${v})` }))], draft.rate || 0)
       : UI.priBar(draft.priority);
     $('#cmpSave').classList.toggle('disabled', !$('#cmpTitle').value.trim());
     $('#cmpDone').setAttribute('aria-pressed', String(!!draft.done));
@@ -876,7 +876,7 @@
   function priChips(r) {
     const rc = MC.rateOn(newCal) && MC.cal(newCal);
     if (!rc) return UI.priBar(r.priority, { compact: true });
-    const list = [{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n, color: `var(--lv${i + 1})` }))];
+    const list = [{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.RATE_ORDER.map(v => ({ v, name: MC.rateLabels(rc)[v - 1], color: `var(--lv${v})` }))];
     return UI.lgBar(list, r.rate || 0);
   }
   function renderBatch() {

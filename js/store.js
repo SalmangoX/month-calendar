@@ -243,7 +243,8 @@
   // 和整套配色同一个体系；浅色时白字都清楚，深色时用 MC.darkTone 生成同色的深色调
   MC.CAL_COLORS = ['#B76271', '#B86652', '#B06F35', '#539156', '#269573', '#009390', '#138DB1', '#4086BD', '#607EC2', '#8074BD', '#9B6AAB', '#AE648F', '#656970', '#627887'];
   MC.MAIN_CAL = { id: '', name: '主日历', color: 'var(--accent)' };
-  MC.RATE_DEFAULT = ['低', '中', '高', '超高'];
+  MC.RATE_DEFAULT = ['超高', '高', '中', '低'];   // 第 1–4 级的默认名称。1 级 = 红 = 等级最高（比如「超忙」），4 级 = 绿 = 等级最低（比如「轻松」）
+  MC.RATE_ORDER = [4, 3, 2, 1];   // 界面上从左到右的顺序：默认（无）和最低在左，最高在右
   MC.normRateLabels = a => MC.RATE_DEFAULT.map((d, i) => (Array.isArray(a) && typeof a[i] === 'string' && a[i].trim() ? a[i].trim().slice(0, 8) : d));
   const HM = /^\d{2}:\d{2}$/;
   function normPresets(a) {

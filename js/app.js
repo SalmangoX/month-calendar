@@ -346,7 +346,7 @@
   const MIN_N = 3; // 少于 3 段 / 条的不参与「最好 / 最差」，避免一两条记录说了算
   const lvOf = v => Math.max(1, Math.min(4, Math.round(v)));
   const short = (labels, v) => MC.esc(labels[lvOf(v) - 1].slice(0, 3));
-  const legend = labels => `<div class="rs-legend"><span><i class="lv0"></i>没记录</span>${[1, 2, 3, 4].map(v => `<span><i class="lv${v}"></i><b data-uc>${MC.esc(labels[v - 1])}</b></span>`).join('')}</div>`;   // 从左到右 = 从低到高（没记录最低，放最左）
+  const legend = labels => `<div class="rs-legend"><span><i class="lv0"></i>没记录</span>${MC.RATE_ORDER.map(v => `<span><i class="lv${v}"></i><b data-uc>${MC.esc(labels[v - 1])}</b></span>`).join('')}</div>`;   // 从左到右 = 从低到高（没记录放最左），和选等级的条一样
   const pickList = l => `<ul class="rs-list">${[...l].reverse().map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul>`;
   // ---- 时段热力图：列 = 日期 / 星期几 / 月份，行 = 半小时；格子颜色越深 = 等级越高 ----
   function heatmap(id, cols, pts, labels, minN) {

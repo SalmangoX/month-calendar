@@ -42,9 +42,9 @@
 
   const DICTS = {
     ja: {
-    "等级名称：从左到右 = 最差 → 最好（整个日历通用）": "レベル名：左から右へ 最悪 → 最高（このカレンダー共通）",
-    "红 = 最差": "赤 = 最悪",
-    "绿 = 最好": "緑 = 最高",
+    "等级名称：从左到右 = 最低 → 最高（整个日历通用）": "レベル名：左から右へ 最低 → 最高（このカレンダー共通）",
+    "红 = 最高": "赤 = 最高",
+    "绿 = 最低": "緑 = 最低",
     "顺序填反了？一键反转（已有的评级会跟着换，意思不变）": "順番が逆？反転する（既存の評価も入れ替わります）",
     "已反转等级顺序": "レベルの順番を反転しました",
     "反转": "反転",
@@ -970,9 +970,9 @@
     "周{0}": a=>L.wd(a)+'曜日',
     },
     en: {
-    "等级名称：从左到右 = 最差 → 最好（整个日历通用）": "Level names, left to right = worst → best (shared by this calendar)",
-    "红 = 最差": "Red = worst",
-    "绿 = 最好": "Green = best",
+    "等级名称：从左到右 = 最低 → 最高（整个日历通用）": "Level names, left to right = lowest → highest (shared by this calendar)",
+    "红 = 最高": "Red = highest",
+    "绿 = 最低": "Green = lowest",
     "顺序填反了？一键反转（已有的评级会跟着换，意思不变）": "Order backwards? Reverse it (existing ratings are flipped too, meaning kept)",
     "已反转等级顺序": "Level order reversed",
     "反转": "Reverse",
@@ -1898,9 +1898,9 @@
     "想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。": "To change banners, sounds or how reminders appear in Notification Center, click “Notification style”.",
     },
     fr: {
-    "等级名称：从左到右 = 最差 → 最好（整个日历通用）": "Noms des niveaux, de gauche à droite = pire → meilleur (communs au calendrier)",
-    "红 = 最差": "Rouge = pire",
-    "绿 = 最好": "Vert = meilleur",
+    "等级名称：从左到右 = 最低 → 最高（整个日历通用）": "Noms des niveaux, de gauche à droite = le plus bas → le plus haut (communs au calendrier)",
+    "红 = 最高": "Rouge = le plus haut",
+    "绿 = 最低": "Vert = le plus bas",
     "顺序填反了？一键反转（已有的评级会跟着换，意思不变）": "Ordre inversé ? Inverser (les notes existantes suivent)",
     "已反转等级顺序": "Ordre des niveaux inversé",
     "反转": "Inverser",
@@ -2826,9 +2826,9 @@
     "想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。": "Pour régler les bannières, les sons ou l’affichage dans le centre de notifications, cliquez sur « Style des notifications ».",
     },
     'zh-Hant': {
-    "等级名称：从左到右 = 最差 → 最好（整个日历通用）": "等級名稱：從左到右 = 最差 → 最好（整個日曆通用）",
-    "红 = 最差": "紅 = 最差",
-    "绿 = 最好": "綠 = 最好",
+    "等级名称：从左到右 = 最低 → 最高（整个日历通用）": "等級名稱：從左到右 = 最低 → 最高（整個日曆通用）",
+    "红 = 最高": "紅 = 最高",
+    "绿 = 最低": "綠 = 最低",
     "顺序填反了？一键反转（已有的评级会跟着换，意思不变）": "順序填反了？一鍵反轉（已有的評級會跟著換，意思不變）",
     "已反转等级顺序": "已反轉等級順序",
     "反转": "反轉",

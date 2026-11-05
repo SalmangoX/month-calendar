@@ -186,9 +186,9 @@
         <label class="pk-row"><span>通知<small>事件设了提醒时到点通知</small></span><input type="checkbox" class="switch" id="calNotify"${c && c.notify ? ' checked' : ''}></label>
         <label class="pk-row"><span>等级评分<small>不按优先级排列，改用 4 个等级给事件评级，并在「统计」里汇总</small></span><input type="checkbox" class="switch" id="calRate"${c && c.rateOn ? ' checked' : ''}></label>
       </div>
-      <div class="field rate-fields" id="calRateF"${c && c.rateOn ? '' : ' hidden'}><span>等级名称：从左到右 = 最差 → 最好（整个日历通用）</span>
-        <div class="rate-inputs">${MC.normRateLabels(c && c.rateLabels).map((n, i) => `<label class="rate-in lv${i + 1}"><i class="rate-swatch"></i><input type="text" id="calRL${i}" maxlength="8" value="${MC.esc(n)}" placeholder="${MC.RATE_DEFAULT[i]}" aria-label="等级 ${i + 1}"></label>`).join('')}</div>
-        <p class="rate-cap"><span>红 = 最差</span><span>绿 = 最好</span></p>
+      <div class="field rate-fields" id="calRateF"${c && c.rateOn ? '' : ' hidden'}><span>等级名称：从左到右 = 最低 → 最高（整个日历通用）</span>
+        <div class="rate-inputs">${MC.RATE_ORDER.map(v => [MC.normRateLabels(c && c.rateLabels)[v - 1], v - 1]).map(([n, i]) => `<label class="rate-in lv${i + 1}"><i class="rate-swatch"></i><input type="text" id="calRL${i}" maxlength="8" value="${MC.esc(n)}" placeholder="${MC.RATE_DEFAULT[i]}" aria-label="等级 ${i + 1}"></label>`).join('')}</div>
+        <p class="rate-cap"><span>绿 = 最低</span><span>红 = 最高</span></p>
         ${c && MC.data.events.some(e => e.cal === c.id && e.rate) ? '<button type="button" class="text-btn" id="calRateRev">顺序填反了？一键反转（已有的评级会跟着换，意思不变）</button>' : ''}
       </div>`),
       onSubmit: async v => {
