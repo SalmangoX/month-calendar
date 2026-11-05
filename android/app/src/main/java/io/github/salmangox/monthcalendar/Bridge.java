@@ -19,13 +19,13 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update", "shell", "getData", "syncRun", "privacy"
     };
 
-    private final MainActivity a;
+    private final WebActivity a;
     private final Context c;
 
-    Bridge(MainActivity a) {
+    Bridge(WebActivity a) {
         this.a = a;
         this.c = a.getApplicationContext();
     }
@@ -62,10 +62,41 @@ final class Bridge {
     @JavascriptInterface
     public void setData(String json, boolean replace) {
         Engine.BG.execute(() -> {
-            Store.put(c, json, replace);
+            if (Store.put(c, json, replace)) {
+                // 原生负责同步：网页里的改动记为待上传
+                Repo.markDirty(c);
+                SyncEngine.schedule(c);
+            }
             Engine.refresh(c);
         });
     }
+
+    /** 用户在原生界面同意隐私政策的时间（0 = 还没同意）：网页过渡页面不再重复弹出 */
+    @JavascriptInterface
+    public long privacyAt() { return Store.prefs(c).getLong("privacyAt", 0L); }
+
+    /** 原生的数据（正本）：网页打开、回到前台、原生数据变化时取来合并 */
+    @JavascriptInterface
+    public String getData() { return Store.json(c); }
+
+    /** 网页里点「立即同步」等：交给原生同步，完成后回调 {ok, error, gistId} */
+    @JavascriptInterface
+    public void syncRun(String cb) {
+        SyncEngine.now(c, r -> {
+            JSONObject o = new JSONObject();
+            try {
+                o.put("ok", r.getOk());
+                o.put("error", r.getError());
+                o.put("gistId", Store.prefs(c).getString("gistId", ""));
+            } catch (Exception ignored) { }
+            a.callback(cb, o);
+            return kotlin.Unit.INSTANCE;
+        });
+    }
+
+    /** 网页里回到了日历 / 今日：回原生页面 */
+    @JavascriptInterface
+    public void closeWeb(String page) { a.runOnUiThread(() -> a.closeWeb(page)); }
 
     /** 每周第一天、深浅色、提醒开关、Gist 等设置 */
     @JavascriptInterface

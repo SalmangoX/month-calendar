@@ -43,11 +43,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * App 的界面就是你 GitHub Pages 上的网页：每次打开都加载最新版本，改网页不用重新打包 APK。
- * 这里只负责把网页装进全屏窗口，并通过 Bridge 提供原生能力（通知、精确闹钟、小组件、选文件、存文件）。
+ * 过渡期的网页页面（设置、日程、纪念日历、日历列表）：原生界面还没做完的页面先用 GitHub Pages 上的网页。
+ * 主日历、今日、新建 / 编辑事件已经是原生的（MainActivity）；网页里回到日历或今日时关掉这里，回到原生。
+ * 数据以原生为准：网页打开时从 Bridge.getData 取原生数据合并，改动通过 setData 交回原生，云端同步由原生负责。
  */
-public class MainActivity extends Activity {
-    static final String EXTRA_HASH = "hash";
+public class WebActivity extends Activity {
+    static final String EXTRA_HASH = MainActivity.EXTRA_HASH;
     private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_PERM = 13, REQ_CAM = 14;
     private android.webkit.PermissionRequest camReq;
 
@@ -64,8 +65,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         appUri = Uri.parse(BuildConfig.APP_URL);
-        Engine.ensureChannels(this);
-        SyncJob.ensure(this);
 
         getWindow().setDecorFitsSystemWindows(false);
         getWindow().setNavigationBarContrastEnforced(false);
@@ -87,6 +86,22 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::goBack);
         }
+        // 原生那边数据变了（后台同步、原生里改了事件）：让网页重新取一次
+        Repo.addListener(pull);
+    }
+
+    private final Runnable pull = () -> ui.post(() -> {
+        if (web != null) web.evaluateJavascript("window.MC&&MC.Native&&MC.Native.pull&&MC.Native.pull()", null);
+    });
+
+    /** 网页里回到了日历或今日：关掉网页，回原生（page = "today" 时打开原生的今日页） */
+    void closeWeb(String page) {
+        if (isFinishing()) return;
+        if ("today".equals(page)) {
+            startActivity(new Intent(this, MainActivity.class).putExtra(EXTRA_HASH, "#today").addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+        }
+        finish();
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 
     private void setupWeb() {
@@ -185,7 +200,7 @@ public class MainActivity extends Activity {
     }
 
     private boolean isApp(Uri u) {
-        if (!"https".equals(u.getScheme()) || u.getHost() == null || !u.getHost().equalsIgnoreCase(appUri.getHost())) return false;
+        if (!("https".equals(u.getScheme()) || BuildConfig.DEBUG && "http".equals(u.getScheme())) || u.getHost() == null || !u.getHost().equalsIgnoreCase(appUri.getHost())) return false;
         String base = appUri.getPath() == null ? "/" : appUri.getPath();
         String path = u.getPath() == null ? "/" : u.getPath();
         return path.startsWith(base) || (path + "/").equals(base);
@@ -277,10 +292,10 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---------- 返回键：先关网页里的面板，回到月历页，最后才退到后台 ----------
+    // ---------- 返回键：先关网页里的面板，都关了就回到原生 ----------
     private void goBack() {
         web.evaluateJavascript("(function(){try{return !!(window.MC&&MC.back&&MC.back())}catch(e){return false}})()",
-                v -> { if (!"true".equals(v)) moveTaskToBack(true); });
+                v -> { if (!"true".equals(v)) closeWeb("cal"); });
     }
 
     @SuppressWarnings("deprecation")
@@ -293,7 +308,7 @@ public class MainActivity extends Activity {
     private static String hash(Intent i) {
         String h = i == null ? null : i.getStringExtra(EXTRA_HASH);
         if (h != null && h.matches("#days(-[A-Za-z0-9]{1,40})?")) return h; // 纪念日小组件：打开纪念日历（或某个日子）
-        return "#today".equals(h) || "#sched".equals(h) ? h : "";
+        return "#set".equals(h) || "#sched".equals(h) || "#drawer".equals(h) ? h : "";
     }
 
     @Override
@@ -325,6 +340,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        Repo.removeListener(pull);
         if (web != null) {
             root.removeView(web);
             web.destroy();

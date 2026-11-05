@@ -2,6 +2,8 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 val ver = Properties().apply { rootProject.file("version.properties").inputStream().use { load(it) } }
@@ -29,6 +31,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
     signingConfigs {
@@ -43,6 +46,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // 本机调试网页过渡页面：APP_URL_DEBUG=http://10.0.2.2:8765/ ./gradlew assembleDebug（模拟器里 10.0.2.2 就是这台电脑）
+            System.getenv("APP_URL_DEBUG")?.let { buildConfigField("String", "APP_URL", "\"$it\"") }
+        }
         release {
             isMinifyEnabled = false
             signingConfig = if (keystoreFile != null) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
@@ -52,6 +59,14 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 
     lint {
@@ -65,4 +80,18 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     // 分享到微信（好友 / 朋友圈，微信里显示「来自 节律」）
     implementation("com.tencent.mm.opensdk:wechat-sdk-android:6.8.0")
+
+    // 原生界面：Jetpack Compose（Material 3 打底，视觉按 logo 配色和苹果式的简洁来）
+    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+    implementation(composeBom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.animation:animation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+
+    // 合并规则的对照测试（JVM 上没有安卓自带的 org.json）
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }
