@@ -71,8 +71,8 @@
   D.paint = () => {
     const id = MC.activeCal(), c = MC.cal(id);
     const body = document.body;
-    if (id) { body.dataset.cal = id; body.style.setProperty('--cc', c.color); $('#calSub').dataset.cal = c.name; }
-    else { delete body.dataset.cal; body.style.removeProperty('--cc'); delete $('#calSub').dataset.cal; }
+    if (id) { body.dataset.cal = id; body.style.setProperty('--cc', c.color); const ch = $('#calChip'); if (ch) { ch.textContent = c.name; ch.hidden = false; } }
+    else { delete body.dataset.cal; body.style.removeProperty('--cc'); const ch = $('#calChip'); if (ch) { ch.textContent = ''; ch.hidden = true; } }
     if (MC.onCalChange) setTimeout(MC.onCalChange, 0);
     if (id && c.kind === 'days') body.dataset.kind = 'days'; else delete body.dataset.kind; // 纪念日历：日历页换成倒数日 / 纪念日的样子（days.js）
     if (MC.Days) MC.Days.paint();

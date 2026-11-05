@@ -43,7 +43,7 @@
   <section class="page active" id="page-cal">
     <header class="topbar">
       <div class="title-wrap">
-        <div class="title" role="button" aria-label="选择日历"><h1 id="calTitle"></h1><p id="calSub"></p><svg class="title-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></div>
+        <div class="title" role="button" aria-label="选择日历"><h1 id="calTitle"></h1><span class="cal-chip" id="calChip" data-uc hidden></span><p id="calSub"></p><svg class="title-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></div>
       </div>
     </header>
     <div class="weekdays" id="weekdays"></div>
@@ -857,6 +857,7 @@
     const pg = page();
     if (!pages[pg] || open || pv) return;
     if (blockedBy(e.target)) return;
+    if (body.dataset.kind === 'days') return;        // 纪念日历没有「日历 ↔ 日程」两页，左右滑不切页
     if (e.touches[0].clientX < 26) return;          // 左边缘留给抽屉
     dg = { pg, x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: performance.now(), active: false };
   }, { capture: true, passive: true });

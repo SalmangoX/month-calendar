@@ -16,9 +16,9 @@ const CONFIG = {
 };
 
 const FILE = "mcal-calendar.json";
-const PHEX = { 3: "#D9453E", 2: "#D88018", 1: "#3C7DC2", 0: "#979CA2" };
+const PHEX = { 3: "#D4472C", 2: "#C98A1E", 1: "#5B8FD0", 0: "#A3A1AD" }; // 无 灰 · 低 天蓝 · 中 琥珀 · 高 朱红（和 App 一致）
 // 深色模式专门设计的深色调 [底色, 文字]，和应用 MC.PAL.dark 一致
-const PDARK = { 3: ["#AC312C", "#FFE2DE"], 2: ["#BB6800", "#FCE5D3"], 1: ["#255593", "#DDEBFD"], 0: ["#383B3F", "#E8E9EB"] };
+const PDARK = { 3: ["#A3351F", "#FDE3DD"], 2: ["#AC7305", "#F7E7D1"], 1: ["#235692", "#DDEBFD"], 0: ["#3D3C41", "#E9E9ED"] };
 const RANK = p => (p >= 0 && p <= 3 ? p : 0); // 只认 0–3
 const WD = ["日", "一", "二", "三", "四", "五", "六"];
 // ---------- 语言（和应用一致：同步数据里的 profile.lang；auto = 跟随设备语言） ----------
@@ -40,7 +40,7 @@ const wkName = i => (isZh() ? "周" + "日一二三四五六"[i] : wdShort(i));
 const monName = m => (LANG === "en" ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m] : LANG === "fr" ? ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."][m] : `${m + 1}月`);
 const mdName = (m, d) => (LANG === "en" ? `${monName(m)} ${d}` : LANG === "fr" ? `${d} ${monName(m)}` : `${m + 1}月${d}日`);
 
-const ACCENT_HEX = ["#4C6EAC", "#8BA8DE"]; // 浅色 / 深色
+const ACCENT_HEX = ["#4F80C4", "#8DB0EA"]; // 浅色 / 深色
 
 // ---------- 参数 ----------
 let gistId = CONFIG.GIST_ID;

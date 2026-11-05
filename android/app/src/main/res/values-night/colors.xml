@@ -1,24 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="accent">#8BA8DE</color>
+    <color name="accent">#8DB0EA</color>
     <color name="app_bg">#141416</color>
     <color name="w_bg">#1B1C21</color>
     <color name="w_line">#292A2F</color>
     <color name="w_text">#EEEEF1</color>
     <color name="w_text2">#8C8E97</color>
-    <color name="w_live">#3D8BA8DE</color>
-    <color name="p3_soft">#4DD9453E</color>
-    <color name="p2_soft">#4DD88018</color>
-    <color name="p1_soft">#4D3C7DC2</color>
-    <color name="p0_soft">#4D979CA2</color>
+    <color name="w_live">#3D8DB0EA</color>
+    <color name="red">#F0625A</color>
+    <color name="p3_soft">#4DD4472C</color>
+    <color name="p2_soft">#4DC98A1E</color>
+    <color name="p1_soft">#4D5B8FD0</color>
+    <color name="p0_soft">#4DA3A1AD</color>
     <color name="p4_soft">#4D41B08F</color>
 
-    <!-- 深色：专门设计的深色调（不是把浅色压暗，那样会发灰发棕），和应用 MC.PAL.dark 一致 -->
-    <color name="chip_p3">#AC312C</color>
-    <color name="chip_p2">#BB6800</color>
-    <color name="chip_p1">#255593</color>
-    <color name="chip_p0">#383B3F</color>
+    <!-- 深色：按 OKLCH 算出的深色调（和网页 MC.darkTone 同一规则，不是把浅色压暗） -->
+    <color name="chip_p3">#A3351F</color>
+    <color name="chip_p2">#AC7305</color>
+    <color name="chip_p1">#235692</color>
+    <color name="chip_p0">#3D3C41</color>
 
     <!-- 今天格子的淡主色底（浅色 12%、深色 20%，和应用里选中日期一致） -->
-    <color name="w_today">#338BA8DE</color>
+    <color name="w_today">#338DB0EA</color>
+
+    <!-- 品牌渐变（今天的日期、今天放不下的小标签）：明亮的金黄 → 天蓝 → 亮蓝，和网页 brand 变量一致 -->
+    <color name="brand_a">#E4B96B</color>
+    <color name="brand_mid">#80B1EC</color>
+    <color name="brand_b">#6A99E2</color>
 </resources>

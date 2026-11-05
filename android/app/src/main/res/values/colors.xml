@@ -1,32 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 与网页 styles.css / widget.html 相同的配色 -->
-    <color name="accent">#4C6EAC</color>
+    <color name="accent">#4F80C4</color>
     <color name="app_bg">#F7FAFC</color>
     <color name="w_bg">#ECF2F5</color>
     <color name="w_line">#DAE1E5</color>
     <color name="w_text">#171B20</color>
     <color name="w_text2">#747B83</color>
-    <color name="w_live">#294C6EAC</color>
-    <color name="p3">#D9453E</color>
-    <color name="p2">#D88018</color>
-    <color name="p1">#3C7DC2</color>
-    <color name="p0">#979CA2</color>
+    <color name="w_live">#294F80C4</color>
+    <!-- 优先级（色彩心理学）：无 灰 · 低 天蓝 · 中 琥珀 · 高 朱红，和网页 styles.css 的优先级色一致 -->
+    <color name="p3">#D4472C</color>
+    <color name="p2">#C98A1E</color>
+    <color name="p1">#5B8FD0</color>
+    <color name="p0">#A3A1AD</color>
+    <!-- 红色只用于逾期、现在时间的线（和优先级无关），和网页 styles.css 的红色一致 -->
+    <color name="red">#D9453E</color>
     <!-- p4 / p4_soft：已取消的绿色优先级。仓库里如果还有 drawable/*_p4.xml，这两行要留着，否则 APK 编译失败 -->
     <color name="p4">#41B08F</color>
     <!-- 已完成或不在本月的事件：同色的淡底 -->
-    <color name="p3_soft">#40D9453E</color>
-    <color name="p2_soft">#40D88018</color>
-    <color name="p1_soft">#403C7DC2</color>
-    <color name="p0_soft">#40979CA2</color>
+    <color name="p3_soft">#40D4472C</color>
+    <color name="p2_soft">#40C98A1E</color>
+    <color name="p1_soft">#405B8FD0</color>
+    <color name="p0_soft">#40A3A1AD</color>
     <color name="p4_soft">#4041B08F</color>
 
     <!-- 月历小组件的色条底色：浅色是实色；深色在 values-night 里是专门设计的深色调，和应用一致 -->
-    <color name="chip_p3">#D9453E</color>
-    <color name="chip_p2">#D88018</color>
-    <color name="chip_p1">#3C7DC2</color>
-    <color name="chip_p0">#979CA2</color>
+    <color name="chip_p3">#D4472C</color>
+    <color name="chip_p2">#C98A1E</color>
+    <color name="chip_p1">#5B8FD0</color>
+    <color name="chip_p0">#A3A1AD</color>
 
     <!-- 今天格子的淡主色底（浅色 12%、深色 20%，和应用里选中日期一致） -->
-    <color name="w_today">#1F4C6EAC</color>
+    <color name="w_today">#1F4F80C4</color>
+
+    <!-- 品牌渐变（今天的日期、今天放不下的小标签）：明亮的金黄 → 天蓝 → 亮蓝，和网页 brand 变量一致 -->
+    <color name="brand_a">#E2B562</color>
+    <color name="brand_mid">#74A8E6</color>
+    <color name="brand_b">#5A8DDA</color>
 </resources>

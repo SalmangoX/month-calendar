@@ -1,3 +1,3 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 今天还有放不下的事件：主色小标签 -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="@color/accent" /><corners android:radius="5dp" /></shape>
+<!-- 今天还有放不下的事件：品牌渐变小标签 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><gradient android:angle="315" android:startColor="@color/brand_a" android:centerColor="@color/brand_mid" android:endColor="@color/brand_b" /><corners android:radius="5dp" /></shape>

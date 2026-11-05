@@ -87,7 +87,7 @@ String(args.widgetParameter || "").split(/[\s,;，]+/).forEach(p => { if (/^(lig
 const dyn = (l, d, a = 1) => forced === "light" ? new Color(l, a) : forced === "dark" ? new Color(d, a) : Color.dynamic(new Color(l, a), new Color(d, a));
 const C = {
   bg: dyn("#ECF2F5", "#1B1C21"), card: dyn("#FFFFFF", "#2A2B30"),
-  text: dyn("#171B20", "#EEEEF1"), text2: dyn("#6E757E", "#8C8E97"), accent: dyn("#4C6EAC", "#9AB5E5"),
+  text: dyn("#171B20", "#EEEEF1"), text2: dyn("#6E757E", "#8C8E97"), accent: dyn("#4F80C4", "#8DB0EA"),
 };
 const toneOf = code => { const h = HUES.has(code) ? HUES.get(code) : 240; if (!TONE_CACHE.has(h)) TONE_CACHE.set(h, courseTone(h)); return TONE_CACHE.get(h); };
 const colorOf = code => toneOf(code).base;
@@ -264,8 +264,8 @@ function gridLayout(w, courses, now, offline) {
   const key = Object.keys(LARGE).map(Number).sort((a, b) => b - a).find(x => x <= sw) || 320;
   const [W, H] = LARGE[key];
   const dark = forced ? forced === "dark" : Device.isUsingDarkAppearance();
-  const P = dark ? { bg: "#1B1C21", text: "#EEEEF1", text2: "#8C8E97", line: "#2F3035", accent: "#9AB5E5", today: "#1E2735" }
-                 : { bg: "#ECF2F5", text: "#171B20", text2: "#6E757E", line: "#DAE1E5", accent: "#4C6EAC", today: "#E1E8F6" };
+  const P = dark ? { bg: "#1B1C21", text: "#EEEEF1", text2: "#8C8E97", line: "#2F3035", accent: "#8DB0EA", today: "#1E2735" }
+                 : { bg: "#ECF2F5", text: "#171B20", text2: "#6E757E", line: "#DAE1E5", accent: "#4F80C4", today: "#E1E8F6" };
   const mon = mondayOf(now), todayS = ymdL(now);
   const days = [];
   let minH = 8, maxH = 18;

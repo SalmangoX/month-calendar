@@ -184,7 +184,7 @@
   // 面板的几档高度（占屏幕高度的比例）：默认那档由 CSS 的 --sh-def 给，另外加上更矮、更高和最高三档
   UI.detents = sh => {
     const def = parseFloat(getComputedStyle(sh).getPropertyValue('--sh-def')) || .56;
-    return [...new Set([.4, def, .74, .9].map(f => Math.round(f * 100) / 100))].sort((a, b) => a - b);
+    return [...new Set([.4, .56, def, .74, .9].map(f => Math.round(f * 100) / 100))].sort((a, b) => a - b);
   };
   UI.setDetent = (sh, f) => { if (f == null) sh.style.removeProperty('--sh'); else sh.style.setProperty('--sh', f * 100 + '%'); };
   UI.getDetent = sh => sh.style.getPropertyValue('--sh');

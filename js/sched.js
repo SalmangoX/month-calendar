@@ -620,6 +620,7 @@
     $('#schedPhotoBtn').onclick = () => $('#schedPhoto').click();
     $('#schedManual').onclick = () => openEdit(null);
     preview();
+    { const sh = $('#schedSheet'); sh.classList.remove('mid'); UI.setDetent(sh, null); }   // 导入课表：还是整张高面板
     UI.open('schedSheet');
   }
   // 没写日期的课程：用选择的月份（默认整月），勾了「精确」就用具体日期
@@ -800,6 +801,8 @@
     $('#scEvery').onclick = e => { const b = e.target.closest('button'); if (!b) return; editEvery = Number(b.dataset.e); $('#scEvery').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
     $('#scDay').onclick = e => { const b = e.target.closest('button'); if (!b) return; editDay = Number(b.dataset.d); $('#scDay').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
     if (c) $('#scDel').onclick = () => { MC.setCourses(MC.data.courses.filter(x => x.id !== c.id)); UI.close('schedSheet'); UI.toast('已删除'); };
+    // 添加 / 编辑课程：手机上不再一下子铺满整屏，先停在约四分之三高；往下拉能停在更矮的几档，拉过最矮一档才收起
+    { const sh = $('#schedSheet'); sh.classList.toggle('mid', matchMedia('(pointer: coarse)').matches); UI.setDetent(sh, null); }
     UI.open('schedSheet');
   }
   $('#schedOk').onclick = () => {

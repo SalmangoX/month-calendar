@@ -542,6 +542,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 /* 往上拉 / 往下拉可以停在几档高度（ui.js 的 UI.detents）：--sh 是现在停的那档，--sh-def 是打开时的默认那档 */
 .composer { --sh-def: .56; }
 #batchSheet { --sh-def: .56; } /* 和单个一样高：切换时大小不变 */
+#schedSheet { --sh-def: .74; } /* 添加 / 编辑课程：先停在四分之三高，往下还能停在 .56、.4 两档 */
 .composer.mid, .sheet.tall.mid { height: var(--sh, calc(var(--sh-def) * 100%)); max-height: none; }
 /* 新建事件里的日历紧凑一点 */
 .cmp-pk .pk-grid { grid-template-rows: repeat(6, 32px); }
@@ -1101,8 +1102,10 @@ html.locked .lock { display: grid; }
 .dr-sw.on { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--cc); transform: scale(1.06); }
 
 /* ---------- 正在看记录日历：日历页整体换成这个日历的颜色 ---------- */
-#calSub[data-cal]::before {
-  content: attr(data-cal); display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 6px;
+/* 月份胶囊里的日历名：用真的文字（不用 ::before），iPhone / Mac 的原生液态玻璃才能把字画出来 */
+.cal-chip[hidden] { display: none; }
+.cal-chip {
+  display: inline-block; margin: 0 6px 0 4px; padding: 0 6px; border-radius: 6px; white-space: nowrap;
   font-size: 10.5px; line-height: 16px; font-weight: 650; color: #fff; background: var(--cc); vertical-align: 1px;
 }
 body[data-cal][data-page="cal"] {
@@ -1520,8 +1523,9 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 /* ---------- 顶部月份气泡：在安全区下面，不压灵动岛 / 状态栏 ---------- */
 #page-cal::before {
   content: ""; position: absolute; left: 0; right: 0; top: 0; z-index: 5; pointer-events: none;
-  height: var(--safe-t);   /* 只盖住状态栏 / 灵动岛那一条，日历其余部分整页显示 */
-  background: var(--bg);
+  /* 状态栏那一条实心盖住；往下到星期条为止渐渐变透明：日历还是整页铺满、滚到上面去，但不会和月份胶囊、星期条的字叠在一起显得乱 */
+  height: calc(var(--safe-t) + 96px);
+  background: linear-gradient(to bottom, var(--bg) 0, var(--bg) calc(var(--safe-t) + 58px), color-mix(in srgb, var(--bg) 82%, transparent) calc(var(--safe-t) + 74px), transparent);
 }
 /* 月视图顶部留白（calendar.js 读这个值）；0 = 日历整页铺满，月份气泡悬浮在上面 */
 #calViewport { --cal-top: 0px; }

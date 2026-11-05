@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>节律小组件</title>
 <style>
-  :root { --accent:#4C6EAC; --p3:#D9453E; --p2:#D88018; --p1:#3C7DC2; --p0:#979CA2;
-    --p3f:#AC312C; --p3i:#FFE2DE; --p2f:#BB6800; --p2i:#FCE5D3; --p1f:#255593; --p1i:#DDEBFD; --p0f:#383B3F; --p0i:#E8E9EB; }
-  :root[data-theme="dark"] { --accent:#8BA8DE; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#8BA8DE; } }
+  /* 和 App 一致：优先级 无 灰 · 低 天蓝 · 中 琥珀 · 高 朱红；深色调按 OKLCH 算（MC.darkTone）；红色只给逾期 / 现在时间 */
+  :root { --accent:#4F80C4; --red:#D9453E; --p3:#D4472C; --p2:#C98A1E; --p1:#5B8FD0; --p0:#A3A1AD;
+    --p3f:#A3351F; --p3i:#FDE3DD; --p2f:#AC7305; --p2i:#F7E7D1; --p1f:#235692; --p1i:#DDEBFD; --p0f:#3D3C41; --p0i:#E9E9ED; }
+  :root[data-theme="dark"] { --accent:#8DB0EA; --red:#F0625A; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#8DB0EA; --red:#F0625A; } }
   :root, :root[data-theme="light"] { color-scheme:light; --bg:#ECF2F5; --line:#DAE1E5; --text:#171B20; --text2:#747B83; --text3:#B9BFC3; --mix:20%;
     --chip-weight:600; }
   .chip { --chip-bg:var(--c); --chip-fg:#fff; }
@@ -34,7 +35,7 @@
   .c.last { border-bottom:0; } /* 最后一行（格子后面还跟着横条，不能用 nth-last-child） */
   .n { min-width:18px; height:18px; padding:0 3px; margin:2px 0 2px 3px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; }
   .out .n { color:var(--text3); } .out .chip { opacity:.55; }
-  .today .n { background:var(--accent); color:#fff; font-weight:700; }
+  .today .n { background:linear-gradient(135deg, #E2B562 6%, #74A8E6 52%, #5A8DDA 96%); color:#fff; font-weight:700; }
   /* 事件色条，和应用一致：浅色实色底白字；深色用专门的深色调 + 带同色的柔白字、中等字重 */
   .chip { height:14px; line-height:14px; font-size:9.5px; font-weight:var(--chip-weight); margin:0 1px 1px; padding:0 1.5px; border-radius:3.5px; letter-spacing:-.02em;
     white-space:nowrap; overflow:hidden;
@@ -56,7 +57,7 @@
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .c.today::before { background:color-mix(in srgb, var(--accent) 20%, transparent); } }
   .c > * { position:relative; }
   .nr { display:flex; align-items:center; justify-content:space-between; padding-right:2px; }
-  .c.today .more { display:inline-block; color:#fff; background:var(--accent); border-radius:4px; padding:0 3px; font-weight:700; margin-left:2px; }
+  .c.today .more { display:inline-block; color:#fff; background:linear-gradient(135deg, #E2B562 6%, #74A8E6 52%, #5A8DDA 96%); border-radius:4px; padding:0 3px; font-weight:700; margin-left:2px; }
   /* 跨天的全天事件：作为网格里横跨几列的一项，叠在格子上面连成一条 */
   .bar { z-index:1; align-self:start; pointer-events:none; margin:calc(24px + var(--s) * 15px) 2px 0; }
   .bar.ol { margin-left:0; border-top-left-radius:0; border-bottom-left-radius:0; }

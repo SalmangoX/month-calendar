@@ -68,6 +68,7 @@
       away = rowTop < coverTop - 4 ||   // 本周那一行被顶上的月份胶囊 / 星期条挡住（滑到了最上面一行）也算看不到
          rowTop + rowH > H - (body.classList.contains('previewing') ? 0 : barSpace()) + 2 || focus.y !== n.getFullYear() || focus.m !== n.getMonth(); // 看的是别的月份也算
     }
+    if (selected !== MC.todayStr()) away = true;   // 选中的不是今天（今天就在屏幕上也算）：也给「回到今天」
     if (away === backShown) return;
     backShown = away; $('#calBack').hidden = !away;
   }
@@ -530,6 +531,7 @@
     track.querySelectorAll(`[data-date="${ds}"]`).forEach(c => c.classList.add('sel'));
     popGlass();
     renderPreview();
+    try { updateBack(); } catch (e) {}
   }
   Cal.select = ds => { selected = ds; };
 
@@ -797,6 +799,7 @@
     track.querySelectorAll('.sel').forEach(c => c.classList.remove('sel', 'pop'));
     track.querySelectorAll(`[data-date="${ds}"]`).forEach(c => c.classList.add('sel'));
     if (previewOpen) renderPreview();
+    try { updateBack(); } catch (e) {}
     MC.Editor.openNew(ds, MC.activeCal(), true);
   });
 

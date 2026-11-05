@@ -406,7 +406,7 @@ final class Widgets {
         }
         over.sort((x, y) -> y.date.compareTo(x.date));
         if (!over.isEmpty()) {
-            b.addItem(key++, header(c, I18n.t("已逾期"), c.getColor(R.color.p3)));
+            b.addItem(key++, header(c, I18n.t("已逾期"), c.getColor(R.color.red)));
             for (Data.Event e : over) {
                 if (n++ >= 10) break;
                 b.addItem(key++, eventRow(c, e, rel(e.date, today)));
@@ -708,7 +708,7 @@ final class Widgets {
         int nowMin = nowT.getHour() * 60 + nowT.getMinute(), nowCol = -1;
         for (int ci = 0; ci < days.size(); ci++) if (mon.plusDays(days.get(ci)).equals(today)) nowCol = ci;
         if (nowMin < minH * 60 || nowMin > maxH * 60) nowCol = -1;
-        final int red = c.getColor(R.color.p3);
+        final int red = c.getColor(R.color.red);
         final float ny = gy + (nowMin / 60f - minH) * hourH;
 
         // 课程色块（同一时间有几节课就并排）
