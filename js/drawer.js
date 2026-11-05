@@ -217,23 +217,25 @@
     if (reduceMo.matches || !document.body.animate) { btn.classList.toggle('empty', opening); done && done(); return; }
     const p = pillRect(), c = KS.getBoundingClientRect();
     const box = (x, y, w, h, r) => ({ left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', borderRadius: r + 'px' });
-    const cx = c.left + c.width / 2, cy = c.top + c.height / 2;
+    const cx = c.left + c.width / 2, cy = c.top + c.height / 2, pcx = p.left + p.width / 2;
+    // 一步到位：中途不停。先被拉长（底还粘在胶囊上，像水滴被拉出去），然后一口气弹开成卡片，略微冲过一点再回来
+    const top1 = p.top - (p.top - cy) * .5, bw = 104;
     const frames = [
       box(p.left, p.top, p.width, p.height, p.height / 2),                                                   // 胶囊
-      box(p.left + p.width * .2, p.top - 16, p.width * .6, p.height + 16, (p.height + 16) / 2),            // 往上鼓起来
-      box((p.left + p.width / 2 + cx) / 2 - 46, (p.top + cy) / 2 - 40, 92, 80, 40),                         // 分离出来的一滴，飞到半路
+      box(pcx + (cx - pcx) * .25 - bw / 2, top1, bw, p.bottom - 8 - top1, bw / 2),                          // 被拉长的一滴，底还连着胶囊
+      box(c.left - c.width * .012, c.top - c.height * .012, c.width * 1.024, c.height * 1.024, 34),          // 弹开，冲过一点点
       box(c.left, c.top, c.width, c.height, 34),                                                             // 卡片
     ];
-    const offs = [0, .2, .55, 1];
+    const offs = [0, .3, .78, 1];
     const blob = document.createElement('div'); blob.className = 'ks-blob'; document.body.appendChild(blob);
     btn.classList.add('empty');
     KS.classList.add('morph'); KS.style.opacity = '0';
-    // 每一段各用自己的缓动（整段只用一条曲线的话，开头太快，看不出鼓起和分离）：鼓起缓出 → 分离缓入缓出 → 放大成卡片带一点回弹
-    const ease = opening ? ['cubic-bezier(.2,.7,.3,1)', 'cubic-bezier(.45,0,.35,1)', 'cubic-bezier(.3,1.25,.4,1)']
-      : ['cubic-bezier(.5,0,.6,1)', 'cubic-bezier(.45,0,.35,1)', 'cubic-bezier(.3,.9,.4,1)'];
-    const kf = (opening ? frames : [...frames].reverse()).map((f, k) => ({ ...f, offset: opening ? offs[k] : 1 - offs[3 - k], ...(k < 3 ? { easing: ease[k] } : {}) }));
-    const a = blob.animate(kf, { duration: opening ? 680 : 520, easing: 'linear', fill: 'forwards' });
+    const kf = opening ? frames.map((f, k) => ({ ...f, offset: offs[k] }))
+      : [frames[3], frames[1], frames[0]].map((f, k) => ({ ...f, offset: [0, .6, 1][k] }));   // 收起：直接缩回去，不再冲过
+    const a = blob.animate(kf, { duration: opening ? 560 : 440, easing: opening ? 'cubic-bezier(.3,.75,.35,1)' : 'cubic-bezier(.45,0,.4,1)', fill: 'forwards' });
+    let fin = false;
     const finish = () => {
+      if (fin) return; fin = true;
       if (opening) {
         KS.style.opacity = '';
         [...KS.children].forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' }));
@@ -242,7 +244,7 @@
       KS.classList.remove('morph');
       done && done();
     };
-    a.onfinish = finish;
+    a.onfinish = finish; setTimeout(finish, (opening ? 560 : 440) + 120);   // 动画事件没来（后台标签页）也照样收尾
   }
   function openKinds() {
     let picked = false;

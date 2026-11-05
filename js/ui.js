@@ -240,6 +240,7 @@
       // sw：开关类的选项（比如子日历的「在主日历显示」「通知」）画成开关，点了原地切换、菜单不关
       it.sw ? `<button role="menuitemcheckbox" aria-checked="${!!it.on}" data-i="${i}" class="sw">${it.icon || ''}<span>${esc(it.label)}</span><span class="mi-sw${it.on ? ' on' : ''}" aria-hidden="true"><i class="mi-ck"><svg viewBox="0 0 24 24"><path d="M6.5 12.5l3.8 3.8 7.2-8.3"/></svg></i></span></button>`
         : `<button role="menuitem" data-i="${i}" class="${it.on ? 'on' : ''}${it.danger ? ' danger' : ''}">${it.icon || ''}<span>${esc(it.label)}</span>${it.on ? '<span class="tick">✓</span>' : ''}</button>`).join('');
+    if (dropA) { dropA.cancel(); dropA = null; }
     pop.classList.toggle('grow', !!opts.center);   // 以按钮为中心时：从那一点长出来（更明显的缩放 + 回弹）
     pop.classList.add('show');
     pop.style.setProperty('--cc', getComputedStyle(anchor).getPropertyValue('--cc').trim() || 'var(--accent)');   // 开关填充用那一行日历的颜色
@@ -256,6 +257,7 @@
     pop.style.left = left + 'px'; pop.style.top = top + 'px';
     pop.style.setProperty('--ox', (r.left + r.width / 2 - left) + 'px');
     pop.style.setProperty('--oy', opts.center ? (r.top + r.height / 2 - top) + 'px' : above ? '100%' : '0%');
+    if (opts.center) dropPop(true, r.left + r.width / 2 - left, r.top + r.height / 2 - top);
     pop.querySelectorAll('button').forEach(b => b.onclick = ev => {
       ev.stopPropagation();
       const it = items[Number(b.dataset.i)];
@@ -264,7 +266,28 @@
       if (popCb) popCb(it.value, it);
     });
   };
-  UI.closeMenu = () => pop.classList.remove('show');
+  // 以三个点为中心的小窗口：玻璃是一颗水滴，从三个点上 30px 的小圆一口气拉伸成窗口（带一点果冻回弹），收起时缩回小圆
+  let dropA = null, dropO = null;
+  function dropPop(opening, ox, oy) {
+    if (!pop.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (!opening) pop.classList.remove('show', 'grow'); return; }
+    if (opening) dropO = [ox, oy]; else if (!dropO) { pop.classList.remove('show', 'grow'); return; }
+    const [x, y] = dropO, w = pop.offsetWidth, h = pop.offsetHeight, R = 15;
+    const dot = `inset(${y - R}px ${w - x - R}px ${h - y - R}px ${x - R}px round ${R}px)`, full = 'inset(0px 0px 0px 0px round 22px)';
+    if (dropA) dropA.cancel();
+    const kids = [...pop.children];
+    if (opening) {
+      dropA = pop.animate([{ clipPath: dot, transform: 'scale(1)' }, { clipPath: full, transform: 'scale(1.025)', offset: .7 }, { clipPath: full, transform: 'scale(1)' }],
+        { duration: 460, easing: 'cubic-bezier(.3,.9,.35,1)' });
+      kids.forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 120, easing: 'ease-out', fill: 'backwards' }));
+    } else {
+      kids.forEach(k => k.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 90, fill: 'forwards' }));
+      dropA = pop.animate([{ clipPath: full }, { clipPath: dot, opacity: 1, offset: .85 }, { clipPath: dot, opacity: 0 }], { duration: 300, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' });
+      const a = dropA;
+      const end = () => { if (dropA !== a) return; pop.classList.remove('show', 'grow'); a.cancel(); kids.forEach(k => k.getAnimations().forEach(x => x.cancel())); dropO = null; dropA = null; };
+      a.onfinish = end; setTimeout(end, 380);   // 后台标签页里动画事件可能不来：到点也一定收干净，不留一个看不见的菜单
+    }
+  }
+  UI.closeMenu = () => { if (pop.classList.contains('grow') && pop.classList.contains('show')) dropPop(false); else pop.classList.remove('show'); };
   let swallow = false;
   document.addEventListener('pointerdown', e => {
     if (UI.menuOpen() && !pop.contains(e.target)) { UI.closeMenu(); swallow = true; setTimeout(() => (swallow = false), 400); }
@@ -735,6 +758,8 @@
         }
         return out;
       };
+      // #rrggbb / #rgb → rgb(r, g, b)（原生只认 rgb()）
+      const cssRGB = v => { const h = (v || '').trim().replace('#', ''); if (!/^[0-9a-f]{3}([0-9a-f]{3})?$/i.test(h)) return ''; const f = h.length === 3 ? h.split('').map(c => c + c).join('') : h; return `rgb(${parseInt(f.slice(0, 2), 16)}, ${parseInt(f.slice(2, 4), 16)}, ${parseInt(f.slice(4, 6), 16)})`; };
       const clips = new WeakMap();
       const frame = () => {
         requestAnimationFrame(frame);
@@ -797,7 +822,8 @@
               });
               el.querySelectorAll('.on').forEach(o => { const q = o.getBoundingClientRect(); if (q.width) pads.push([n(q.left), n(q.top), n(q.width), n(q.height), n(Math.min(parseFloat(getComputedStyle(o).borderTopLeftRadius) || 0, q.height / 2))]); });
               // 带颜色的小色块（月份胶囊里记录日历的名字）：第 6 项带上颜色，原生画在玻璃上面、字的下面，不然色块被压在玻璃底下发糊
-              el.querySelectorAll('.cal-chip:not([hidden])').forEach(o => { const q = o.getBoundingClientRect(), oc = getComputedStyle(o); if (q.width) pads.push([n(q.left), n(q.top), n(q.width), n(q.height), n(Math.min(parseFloat(oc.borderTopLeftRadius) || 0, q.height / 2)), oc.backgroundColor]); });
+              // 在 .lgx 里网页这份底色被设成透明了，读 backgroundColor 只会拿到透明：改读日历色 --cc，转成原生认得的 rgb()
+              el.querySelectorAll('.cal-chip:not([hidden])').forEach(o => { const q = o.getBoundingClientRect(), oc = getComputedStyle(o); if (q.width) pads.push([n(q.left), n(q.top), n(q.width), n(q.height), n(Math.min(parseFloat(oc.borderTopLeftRadius) || 0, q.height / 2)), cssRGB(oc.getPropertyValue('--cc')) || oc.backgroundColor]); });
             }
           }
           const tint = el.classList.contains('lgx') ? (el.lgBg || '') : (el.lgBg = cs.backgroundColor); // 网页原来的底色：拿来给玻璃着一点色

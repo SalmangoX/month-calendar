@@ -480,7 +480,8 @@ struct GlassLayer: View {
                         .macGlassFinish(shape)
                         .position(x: it.rect.midX, y: it.rect.midY)
                 }
-                .opacity(it.alpha)
+                .opacity(it.alpha * (m.drawerOpen && it.rect.maxX < NavModel.panelW + 20 ? 0 : 1))   // 侧拉菜单是透明玻璃：整个被它盖住的原生玻璃（月份胶囊）先收起来，菜单整个盖住胶囊、不透出字
+                .animation(.easeOut(duration: 0.22), value: m.drawerOpen)
                 .offset(x: it.vx * dt, y: it.vy * dt)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .mask { Rectangle().frame(width: it.clip.width, height: it.clip.height).position(x: it.clip.midX, y: it.clip.midY) }
@@ -629,7 +630,20 @@ struct FanArc: ViewModifier, Animatable {
     var animatableData: CGFloat { get { t } set { t = newValue } }
     func body(content: Content) -> some View {
         let ang = (a0 + (a - a0) * t) * .pi / 180
-        return content.scaleEffect(0.35 + 0.65 * t).opacity(Double(min(1, max(0, t * 2.5)))).offset(x: cos(ang) * r * t, y: -sin(ang) * r * t)
+        // 只用位移，不缩放：玻璃容器里的玻璃不跟着 scaleEffect 走，一缩放玻璃就会和图标错开（以前按钮旁边多出一圈小玻璃就是这个）
+        return content.opacity(Double(min(1, max(0, t * 3)))).offset(x: cos(ang) * r * t, y: -sin(ang) * r * t)
+    }
+}
+
+/// 扇形收起：按钮已经在自己的位置上（FanArc 的 identity 一直生效），这里只做「相对」的位移，t = 1 时什么都不加，t = 0 时退回 logo。
+/// 注意：asymmetric 转场的插入、移除两个 identity 会同时生效，所以移除这一半绝不能再加一遍位置，不然按钮会跑到两倍半径的地方
+struct FanBack: ViewModifier, Animatable {
+    var t: CGFloat
+    let a: CGFloat, r: CGFloat
+    var animatableData: CGFloat { get { t } set { t = newValue } }
+    func body(content: Content) -> some View {
+        let ang = a * .pi / 180
+        return content.opacity(Double(min(1, max(0, t * 3)))).offset(x: -cos(ang) * r * (1 - t), y: sin(ang) * r * (1 - t))
     }
 }
 
@@ -774,7 +788,7 @@ struct GlassDock: View {
                             .transition(.asymmetric(
                                 insertion: .modifier(active: FanArc(t: 0, a: arc.a[k], a0: arc.a[0], r: arc.r), identity: FanArc(t: 1, a: arc.a[k], a0: arc.a[0], r: arc.r))
                                     .animation(.spring(response: 0.5, dampingFraction: 0.66).delay(Double(k) * 0.055)),
-                                removal: .modifier(active: FanArc(t: 0, a: arc.a[k], a0: arc.a[0], r: arc.r), identity: FanArc(t: 1, a: arc.a[k], a0: arc.a[0], r: arc.r))
+                                removal: .modifier(active: FanBack(t: 0, a: arc.a[k], r: arc.r), identity: FanBack(t: 1, a: arc.a[k], r: arc.r))
                                     .animation(.easeIn(duration: 0.24))))
                             .accessibilityLabel(Text(it.label))
                         }
@@ -898,6 +912,8 @@ struct GlassDrawer: View {
     @State private var kPhase = 0                       // 介绍卡片：0 藏在胶囊里 · 1 小水滴 · 2 卡片
     @State private var kindsH: CGFloat = 400
     @State private var kTask: Task<Void, Never>? = nil
+    @State private var moreShown: String? = nil         // 「⋯」小窗口正在画的那一行（收起动画放完才清掉）
+    @State private var moreUp = false                   // 小窗口：false 是三个点上的一颗小水滴，true 是展开的窗口
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -917,11 +933,24 @@ struct GlassDrawer: View {
                     .scaleEffect(x: 1 + stretch / 300, y: 1 - stretch / 1600, anchor: .leading)
                     .offset(x: min(0, m.drawerPull)) // 往回推：整块跟着移动
                     .transition(.move(edge: .leading).combined(with: .opacity))
-                if let key = m.moreRow, let r = ([d.main] + d.recs + d.days).first(where: { $0.key == key }), let a = dots[key] { moreCard(r, at: a) }
+                if let key = moreShown, let r = ([d.main] + d.recs + d.days).first(where: { $0.key == key }), let a = dots[key] { moreCard(r, at: a) }
                 if let pf = pill { pillAndKinds(d, pf).offset(x: min(0, m.drawerPull)).transition(.move(edge: .leading).combined(with: .opacity)) }
             }
         }
         .coordinateSpace(name: "drawer")
+        .onChange(of: m.kindsOpen) { _, o in morphKinds(o) }   // 放在一直都在的这一层：卡片那一层被拿掉时也能收到
+        .onChange(of: m.drawerOpen) { _, o in if !o, !m.kindsOpen { kTask?.cancel(); kPhase = 0 } }
+        .onChange(of: m.moreRow) { _, k in
+            // 「⋯」：先在三个点上放一颗小水滴，下一帧一口气拉伸成窗口；收起时缩回水滴，放完再拿掉
+            if let k {
+                var t = Transaction(); t.disablesAnimations = true
+                withTransaction(t) { moreShown = k; moreUp = false }
+                DispatchQueue.main.async { withAnimation(.spring(response: 0.42, dampingFraction: 0.7)) { moreUp = true } }
+            } else if moreShown != nil {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { moreUp = false }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) { if m.moreRow == nil { moreShown = nil } }
+            }
+        }
         .onPreferenceChange(DotsKey.self) { dots = $0 }
         .onPreferenceChange(PillKey.self) { pill = $0.width > 0 ? $0 : nil }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -970,7 +999,8 @@ struct GlassDrawer: View {
         }
         .frame(width: width)
         .frame(maxHeight: .infinity)
-        .modifier(ChromeGlass(shape: RoundedRectangle(cornerRadius: 26, style: .continuous)))
+        // 透明的液态玻璃（靠边缘高光和折射，压一层半透明的底色：字看得清，后面的月份胶囊、日期也盖得住）。.regular 在这么大一块上会糊成一整块灰
+        .glassEffect(.clear.tint(scheme == .dark ? Color.black.opacity(0.56) : Color.white.opacity(0.66)), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         .padding(10)
         #if os(macOS)
         .padding(.top, 26) // 让开窗口左上角的红黄绿按钮
@@ -985,7 +1015,8 @@ struct GlassDrawer: View {
             let y = min(max(a.midY, h / 2 + 50), g.size.height - h / 2 - 30)
             ZStack {
                 Color.black.opacity(0.001).contentShape(Rectangle())
-                    .onTapGesture { withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { m.moreRow = nil } }
+                    .onTapGesture { m.moreRow = nil }
+                    .allowsHitTesting(moreUp)
                 VStack(spacing: 0) {
                     ForEach(Array(r.menu.enumerated()), id: \.element.id) { i, it in
                         if i > 0 { Divider().padding(.leading, 16).opacity(0.5) }
@@ -997,7 +1028,7 @@ struct GlassDrawer: View {
                             .padding(.horizontal, 16).frame(height: rowH)
                         } else {
                             Button {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) { m.moreRow = nil }
+                                m.moreRow = nil
                                 m.act(r.id, it.value)
                             } label: {
                                 HStack {
@@ -1011,19 +1042,22 @@ struct GlassDrawer: View {
                     }
                 }
                 .padding(.vertical, 6)
-                .frame(width: w)
-                .glassEffect(NavGlass.chrome(scheme), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .shadow(color: .black.opacity(scheme == .dark ? 0.4 : 0.14), radius: 24, y: 10)
-                .position(x: x, y: y)
-                // 从三个点那里向四周长出来：缩放的中心就是三个点的位置
-                .transition(.scale(scale: 0.15, anchor: UnitPoint(x: (a.midX - (x - w / 2)) / w, y: (a.midY - (y - h / 2)) / h)).combined(with: .opacity))
+                .frame(width: w, height: h)
+                .opacity(moreUp ? 1 : 0)
+                .animation(moreUp ? .easeOut(duration: 0.2).delay(0.1) : .easeIn(duration: 0.08), value: moreUp)   // 字等玻璃拉开再出来，收起时先收字
+                // 玻璃本身是一颗水滴：合着时是三个点上 30pt 的小圆，弹簧一口气拉伸成窗口（带一点果冻回弹），收起时缩回小圆
+                .frame(width: moreUp ? w : 30, height: moreUp ? h : 30, alignment: .center)
+                .clipShape(RoundedRectangle(cornerRadius: moreUp ? 22 : 15, style: .continuous))
+                .glassEffect(NavGlass.chrome(scheme), in: RoundedRectangle(cornerRadius: moreUp ? 22 : 15, style: .continuous))
+                .shadow(color: .black.opacity(moreUp ? (scheme == .dark ? 0.4 : 0.14) : 0), radius: 24, y: 10)
+                .position(x: moreUp ? x : a.midX, y: moreUp ? y : a.midY)
+                .allowsHitTesting(moreUp)
             }
         }
     }
 
     // ---------- 新建子日历：胶囊和介绍卡片在同一个液态玻璃容器里 ----------
-    // 卡片的玻璃一直在：合着时就是藏在胶囊里的同一颗水滴。打开时分三段（kPhase 0 → 1 → 2）：
-    // 先从胶囊顶上鼓出一颗小水滴（两块玻璃在同一个容器里，系统画出拉丝、分离），再弹开放大成卡片；收起时倒过来，缩回水滴再融进胶囊。
+    // 卡片的玻璃一直在：合着时就是藏在胶囊里的同一颗水滴（kPhase 0），打开时一个弹簧直接拉伸成卡片（kPhase 2），收起倒过来。
     // 展开后胶囊留在原位，只剩一颗空的液态玻璃。卡片在屏幕中间稍微偏下
     @ViewBuilder private func pillAndKinds(_ d: NavModel.Drawer, _ pf: CGRect) -> some View {
         GeometryReader { g in
@@ -1047,7 +1081,7 @@ struct GlassDrawer: View {
                         .background(GeometryReader { q in Color.clear.preference(key: KindsHKey.self, value: q.size.height) })
                         .offset(x: -2000)
                 }
-                GlassEffectContainer(spacing: 26) {
+                GlassEffectContainer(spacing: 44) {   // 间距大一点：离开胶囊时拉丝拉得更长
                     ZStack(alignment: .topLeading) {
                         // 那一滴 / 卡片
                         ZStack(alignment: .top) {
@@ -1078,6 +1112,11 @@ struct GlassDrawer: View {
                             .contentShape(Capsule())
                             .glassEffect(NavGlass.chrome(scheme, interactive: true), in: .capsule)
                             .glassEffectID("pill", in: ns)
+                            // 展开后：留下一颗空的玻璃胶囊，内侧压一层淡淡的凹陷 + 细亮边 + 投影，一眼看得出是「空了」
+                            .overlay(Capsule().fill(Color.black.opacity(scheme == .dark ? 0.22 : 0.06)).padding(1.5).opacity(open ? 1 : 0))
+                            .overlay(Capsule().strokeBorder(Color.white.opacity(scheme == .dark ? 0.22 : 0.7), lineWidth: 1).opacity(open ? 1 : 0))
+                            .shadow(color: .black.opacity(open ? (scheme == .dark ? 0.45 : 0.16) : 0), radius: 14, y: 6)
+                            .animation(.easeOut(duration: 0.3), value: open)
                         }
                         .buttonStyle(.plain)
                         .position(x: pf.midX, y: pf.midY)
@@ -1088,28 +1127,17 @@ struct GlassDrawer: View {
             .frame(width: g.size.width, height: g.size.height, alignment: .topLeading)
             .animation(.easeOut(duration: 0.25), value: open)
             .onPreferenceChange(KindsHKey.self) { if $0 > 0 { kindsH = $0 } }
-            .onChange(of: open) { _, o in morphKinds(o) }
+            // 选了日历类型后侧拉菜单会收起、这一层被拿掉；再出现时按真实状态对齐，别把上次的卡片留在屏幕上
+            .onAppear { if !m.kindsOpen && kPhase != 0 { kTask?.cancel(); var t = Transaction(); t.disablesAnimations = true; withTransaction(t) { kPhase = 0 } } }
         }
     }
 
-    // 分段：鼓出水滴 → 放大成卡片；收起倒过来。中途再点会接着当前位置反向
+    // 一步到位：一个弹簧从胶囊直接拉到卡片（中途不停）。玻璃离开胶囊时两块在同一个容器里，系统自己画出拉丝、断开，像水滴被拉出去；
+    // 收起倒过来，卡片一口气缩回胶囊、融进去。中途再点会接着当前位置反向
     private func morphKinds(_ o: Bool) {
         kTask?.cancel()
-        if o {
-            withAnimation(.spring(response: 0.26, dampingFraction: 0.62)) { kPhase = 1 }
-            kTask = Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 170_000_000)
-                if Task.isCancelled { return }
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { kPhase = 2 }
-            }
-        } else {
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) { kPhase = 1 }
-            kTask = Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 220_000_000)
-                if Task.isCancelled { return }
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { kPhase = 0 }
-            }
-        }
+        if o { withAnimation(.spring(response: 0.62, dampingFraction: 0.74)) { kPhase = 2 } }
+        else { withAnimation(.spring(response: 0.46, dampingFraction: 0.86)) { kPhase = 0 } }
     }
 
     private func kindsContent(_ k: NavModel.Kinds, close: @escaping () -> Void) -> some View {

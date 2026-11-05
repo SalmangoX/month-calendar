@@ -15,6 +15,7 @@
   let selected = MC.todayStr();
   let previewOpen = false;
   let W = 0, H = 0, rowH = 0, maxChips = 2, withMore = 1, animating = false;
+  let mvT = 0, mvY = null, moving = false;   // 月视图在动：星期条和虚线月框一起变淡（markMoving / endMoving）
   let focus = { y: now0.getFullYear(), m: now0.getMonth() };
 
   Cal.selected = () => selected;
@@ -225,7 +226,7 @@
     }
 
     track.style.cssText = '';
-    track.innerHTML = h + `<svg class="mframe" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
+    track.innerHTML = h + `<svg class="mframe${moving ? ' moving' : ''}" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
     setT(0, TOP - (BUF * rowH + scrollY));
     monthTitle();
     drawFrame();
@@ -308,12 +309,20 @@
     setT(0, TOP - (BUF * rowH + scrollY));
     refreshFocus();
   }
-  // 月视图在动（拖动、滚轮、惯性）：星期条挂 moving，变浅、更透明、往外扩一点；停下 260ms 后收回（用户定的）
-  let mvT = 0, mvY = null;
+  // 月视图在动（拖动、滚轮、惯性）：星期条和虚线月框一起挂 moving（星期条变浅、轻轻扩一点，月框淡下去）；
+  // 停下的那一刻（弹簧结束 settle，或者手指 / 滚轮停住 140ms）两个一起收回，同一条曲线，月框和星期条同步出现（用户定的）
+  // mvT / mvY / moving 在文件开头声明（renderMonth 一开始就要读 moving）
   function markMoving() {
     if (mvY === null || mvY === scrollY) { mvY = scrollY; return; } mvY = scrollY;   // 第一次只记下位置，不算在动
     const wd = $('#weekdays'); if (!wd || view !== 'month') return;
-    wd.classList.add('moving'); clearTimeout(mvT); mvT = setTimeout(() => wd.classList.remove('moving'), 260);
+    if (!moving) { moving = true; wd.classList.add('moving'); document.querySelector('.mframe')?.classList.add('moving'); }
+    clearTimeout(mvT); mvT = setTimeout(function idle() { if (animating) { mvT = setTimeout(idle, 80); return; } endMoving(); }, 140);
+  }
+  function endMoving() {
+    clearTimeout(mvT); if (!moving) return; moving = false;
+    requestAnimationFrame(() => {                       // 新画的月框先以淡的样子上屏，下一帧再和星期条一起收回
+      $('#weekdays')?.classList.remove('moving'); document.querySelector('.mframe')?.classList.remove('moving');
+    });
   }
   function refreshFocus() {
     markMoving();
@@ -336,6 +345,7 @@
     anchor = MC.addDays(anchor, 7 * k);
     scrollY = scrollY - k * rowH;      // 保留不足一行的余量（半行吸附靠它）
     renderMonth();
+    endMoving();                       // 停稳了：星期条和月框一起收回
   }
   function snapMonth(v) { // v：滚动速度（px/ms）
     recenter(1);
