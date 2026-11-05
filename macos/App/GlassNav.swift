@@ -1202,15 +1202,15 @@ struct GlassDrawer: View {
         let icon = r.kind == "days" ? (r.sf ?? "heart.fill") : r.kind == "rec" ? "bookmark.fill" : "calendar"
         return HStack(spacing: 6) {
             Button { m.pick(r.id) } label: {
-                HStack(spacing: 11) {
+                HStack(spacing: 18) {   // 用户在预览里定的：行高 60、图标底块 36、图形 24（网页 svg 尺寸）、间距 18，和网页 .dr-pick 一样
                     // 和网页同一套：中性的灰底块 + 实心、饱和的彩色图形（系统的 calendar 只有空心的，主日历自己画一个实心日历）
                     let tile = Color(argb: scheme == .dark ? 0xFF2A_2A2E : 0xFFEF_F1F4)
                     Group {
-                        if r.kind == "main" { SolidCalendarGlyph(color: color, tile: tile).frame(width: 18, height: 18) }
-                        else { Image(systemName: icon).font(.system(size: 16, weight: .bold)).symbolRenderingMode(.monochrome).foregroundStyle(color) }
+                        if r.kind == "main" { SolidCalendarGlyph(color: color, tile: tile).frame(width: 22, height: 22) }
+                        else { Image(systemName: icon).font(.system(size: 19, weight: .bold)).symbolRenderingMode(.monochrome).foregroundStyle(color) }
                     }
-                    .frame(width: 34, height: 34)
-                    .background(tile, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .frame(width: 36, height: 36)
+                    .background(tile, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(r.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
                         HStack(spacing: 5) {
@@ -1236,7 +1236,7 @@ struct GlassDrawer: View {
                 .background(GeometryReader { g in Color.clear.preference(key: DotsKey.self, value: [r.key: g.frame(in: .named("drawer"))]) })
             }
         }
-        .padding(.horizontal, 10).padding(.vertical, 8)
+        .padding(.horizontal, 10).padding(.vertical, 12)
         .background {
             if r.on { RoundedRectangle(cornerRadius: 15, style: .continuous).fill(Color.white.opacity(scheme == .dark ? 0.1 : 0.62)).shadow(color: .black.opacity(scheme == .dark ? 0 : 0.06), radius: 2, y: 1) }   // 选中：中性的白色高亮，不染日历色
         }
