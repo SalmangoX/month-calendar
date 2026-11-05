@@ -1580,13 +1580,20 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
   content: ""; position: absolute; left: 0; right: 0; top: 0; z-index: 5; pointer-events: none;
   /* 状态栏 / 灵动岛那一条不再是实底：日历和情绪光谱一直铺到屏幕最顶上（App 本来就是全屏画的），
      这里只做 iOS 26 那种「软边」——轻轻模糊 + 往下渐隐，让时间、电量还看得清 */
-  height: calc(var(--safe-t) + 8px);
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 62%, transparent), color-mix(in srgb, var(--bg) 30%, transparent) 70%, transparent);
-  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
-  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent); mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  /* 用户在效果图里调的：虚化的下沿在灵动岛从上往下 15% 处（iPhone 17 上约 16.5pt，安全区高度的 .27），
+     强度 4px、底色 55%、渐隐 65%；下沿以下的日历照常清楚显示，灵动岛两边也看得到日期和事件 */
+  height: calc(var(--safe-t) * .27);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 55%, transparent), transparent);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent); mask-image: linear-gradient(to bottom, #000 35%, transparent);
 }
 /* 月视图顶部留白（calendar.js 读这个值）；0 = 日历整页铺满，月份气泡悬浮在上面 */
 #calViewport { --cal-top: 0px; }
+/* 月份胶囊、星期条往下让开侧拉菜单的那一点距离；月视图的日历行也整体往下挪同样多（calendar.js 读它），
+   三者的相对位置和以前一样，最上面一行的日期不会被星期条压住；行高不变 */
+:root { --cal-drop: 6px; }
+/* 月视图的日历行再整体往上挪一点（用户在效果图里调的 -20pt）：灵动岛那一段也露出日期和事件；行高不变 */
+:root { --cal-shift: -20px; }
 /* 月视图：日历区从屏幕最顶上开始（灵动岛后面也有日历），calendar.js 把行往下让开安全区 */
 body.cal-m #page-cal { padding-top: 0; }
 /* 周视图：每列顶上先让开悬浮的月份胶囊（胶囊底在安全区下 50px），再写星期、日期；只影响周视图 */
@@ -1595,7 +1602,7 @@ body.cal-w .wcol { padding-top: 56px; }
 .wcol.today .wwd { color: var(--accent-text); font-weight: 650; }
 body.cal-w .wbar { top: calc(107px + var(--s) * 23px); }   /* 56 + 星期 13 + 日期 38 */
 #page-cal .topbar {
-  position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 12px); z-index: 6;   /* 比侧拉菜单的顶（安全区下 10px）再低一点：菜单拉出来能整个盖住胶囊 */
+  position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 6px + var(--cal-drop)); z-index: 6;   /* 比侧拉菜单的顶（安全区下 10px）再低一点：菜单拉出来能整个盖住胶囊 */
   padding: 0; display: flex; justify-content: center; pointer-events: none;
 }
 #page-cal .topbar .title-wrap { pointer-events: none; }
@@ -1626,7 +1633,7 @@ body.cal-w .wbar { top: calc(107px + var(--s) * 23px); }   /* 56 + 星期 13 + �
 /* 左右边距和下面日历的每一行（.wrow 左右各 2px）完全一样：七个字正好对准七列，不会越往两边越歪。
    玻璃和月份胶囊、底部按钮是同一种（iPhone / Mac 上同一种原生液态玻璃，深色模式不发白） */
 body #page-cal .weekdays {
-  display: grid; position: absolute; left: 2px; right: 2px; top: calc(var(--safe-t) + 56px); z-index: 6;
+  display: grid; position: absolute; left: 2px; right: 2px; top: calc(var(--safe-t) + 50px + var(--cal-drop)); z-index: 6;
   height: 24px; padding: 0; align-items: center; pointer-events: none; border-radius: 12px;
   font-size: 11px; font-weight: 650; letter-spacing: .04em; color: var(--text);
   background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .05) 60%, rgba(255, 255, 255, .12));

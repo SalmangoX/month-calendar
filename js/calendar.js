@@ -38,9 +38,13 @@
     const pv = body.classList.contains('previewing');
     if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
     // 月视图的日历区一直铺到屏幕最顶上（灵动岛、状态栏后面也画日历），行的位置往下让开安全区那一段，和以前一样
-    TOP = (parseFloat(getComputedStyle(vp).getPropertyValue('--cal-top')) || 0) + (view === 'month' ? safeTop() : 0);
+    const base = (parseFloat(getComputedStyle(vp).getPropertyValue('--cal-top')) || 0) + (view === 'month' ? safeTop() : 0);
+    // 月份胶囊、星期条往下让了 --cal-drop：月视图的行也整体往下挪同样多，行高还按原来的算（格子大小不变）
+    // 再加 --cal-shift（用户在效果图里调的整体上移，灵动岛那一段也露出日期）
+    const rs = getComputedStyle(document.documentElement), px = k => parseFloat(rs.getPropertyValue(k)) || 0;
+    TOP = base + (view === 'month' ? px('--cal-drop') + px('--cal-shift') : 0);
     { const wd = $('#weekdays'), r = wd && wd.getBoundingClientRect(); coverTop = r && r.height ? Math.max(TOP, r.bottom - vp.getBoundingClientRect().top) : TOP; }
-    rowH = Math.max(0, (pv ? fullH : H) - TOP) / 6.5;
+    rowH = Math.max(0, (pv ? fullH : H) - base) / 6.5;
     const head = 39 + 3; // 数字区 + 底部留白
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
     withMore = Math.floor((rowH - head - 12 + 2) / 17);
