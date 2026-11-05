@@ -445,7 +445,36 @@
     let h = '';
     for (let i = 0; i < 7; i++) h += `<div>${MC.WD[(i + MC.settings.weekStart) % 7]}</div>`;
     el.innerHTML = h;
+    paintMood();
   }
+  // 星期颜色「情绪光谱」（设置里选，默认关）：每一天一团自己颜色的柔光，从星期条往上下两边散开（正好对着那一列），
+  // 今天那一列最亮、照得更远，其他几天收淡；星期条上的字用同色系，今天的字更亮、下面一个小光点
+  function paintMood() {
+    const el = $('#weekdays'), g = $('#wkGlow');
+    const B = document.body;   // 这个文件里的 body 是日历区（#calBody），开关的类要加在页面的 <body> 上
+    const on = MC.settings.weekTint === 'mood' && view === 'month' && B.dataset.kind !== 'days';
+    B.classList.toggle('wk-mood', on);
+    if (!g) return;
+    if (!on) { g.innerHTML = ''; [...el.children].forEach(d => { d.style.color = ''; d.classList.remove('now'); }); return; }
+    const dark = document.documentElement.dataset.theme === 'dark', today = new Date().getDay(), H = MC.WEEK_MOOD_HUE;
+    const br = el.getBoundingClientRect(), gr = $('#page-cal').getBoundingClientRect();
+    const up = Math.max(40, br.top + br.height / 2 - gr.top);   // 光心在星期条上，往上一直照到屏幕最顶上
+    // 用户定的参数（和效果图一样）：今天的光 74%、其他几天 32%、往下照的范围是屏幕高度的 33%（今天再远 30%）
+    const K_TODAY = .74, K_OTHER = .32, DOWN = .33 * (window.innerHeight || 800);
+    let h = '';
+    [...el.children].forEach((d, i) => {
+      const wd = (i + MC.settings.weekStart) % 7, now = wd === today, k = now ? K_TODAY : K_OTHER;
+      const col = dark ? MC.oklch(.7, .12, H[wd], .62 * k) : MC.oklch(.78, .14, H[wd], k);
+      const w = (now ? 2.1 : 1.7) / 7 * 100, cx = (i + .5) / 7 * 100;
+      const dn = now ? DOWN * 1.3 : DOWN, tot = up + dn;   // 往下照多远：今天更远
+      h += `<i class="${now ? 'now' : ''}" style="left:${(cx - w / 2).toFixed(2)}%;width:${w.toFixed(2)}%;top:0;height:${tot}px;--cy:${(up / tot * 100).toFixed(1)}%;--c:${col}"></i>`;
+      d.style.color = dark ? MC.oklch(now ? .9 : .78, now ? .12 : .07, H[wd], now ? 1 : .8) : MC.oklch(now ? .48 : .58, now ? .15 : .08, H[wd], now ? 1 : .85);
+      d.classList.toggle('now', now);
+    });
+    g.innerHTML = h;
+  }
+  // 换深浅色时光的颜色、叠加方式也要换
+  new MutationObserver(() => { try { paintMood(); } catch (e) {} }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   function render() {
     body.classList.toggle('previewing', previewOpen && view !== 'year');
     renderWeekdays();

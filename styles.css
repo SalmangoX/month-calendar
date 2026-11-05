@@ -1568,6 +1568,16 @@ body #page-cal .weekdays {
 .lg-refract body #page-cal .weekdays { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); }
 :root[data-theme="dark"] body #page-cal .weekdays { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
 :root[data-theme="dark"].lg-refract body #page-cal .weekdays { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }
+/* 情绪光谱：一层柔光铺在日历上面、星期条下面。每一天一团椭圆的光，中心在星期条上，往上照到状态栏、往下照进前几周；
+   高度模糊让相邻的光融在一起。深色用「滤色」像暗处透出的光，浅色用「正片叠底」像水彩染在纸上（白天也看得清） */
+#page-cal .wk-glow { display: none; position: absolute; left: 2px; right: 2px; top: 0; z-index: 5; pointer-events: none;
+  height: 100%; filter: blur(20px); mix-blend-mode: multiply; }
+:root[data-theme="dark"] #page-cal .wk-glow { mix-blend-mode: screen; }
+body.wk-mood #page-cal .wk-glow { display: block; }
+/* 每一团光的位置、高度和光心（--cy：星期条在这团光里的高度）由 calendar.js 按星期条的实际位置算 */
+#page-cal .wk-glow i { position: absolute; border-radius: 50%; background: radial-gradient(50% 50% at 50% var(--cy), var(--c), transparent 100%); }
+body.wk-mood #page-cal .weekdays .now { position: relative; font-weight: 750; font-size: 12px; }
+body.wk-mood #page-cal .weekdays .now::after { content: ""; position: absolute; left: 50%; bottom: -1px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
 body #page-cal .weekdays span { opacity: .78; }
 body #page-cal .weekdays.hide { display: none; }
 

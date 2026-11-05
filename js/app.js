@@ -737,6 +737,7 @@
     const gDisplay = group('显示与时间', [
       srow({ act: 'theme', icon: 'theme', tone: 'periwinkle', label: '外观', val: { auto: '跟随系统', light: '浅色', dark: '深色' }[S.theme] }),
       srow({ act: 'week', icon: 'week', tone: 'rose', label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
+      srow({ act: 'wktint', icon: 'sun', tone: 'orchid', label: '星期颜色', sub: S.weekTint === 'mood' ? '每一天一种颜色的柔光从星期条散开，今天那一列最亮' : '', val: S.weekTint === 'mood' ? '情绪光谱' : '默认' }),
       srow({ act: 'lang', icon: 'globe', tone: 'lavender', label: '语言', val: MC.langPref() === 'auto' ? '跟随系统语言' : (MC.LANGS.find(l => l.v === MC.langPref()) || {}).label }),
       srow({ act: 'clock', icon: 'clock', tone: 'teal', label: '时间格式', val: MC.clockPref() === '12' ? '12 小时制' : MC.clockPref() === '24' ? '24 小时制' : `跟随地区（${MC.region12() ? 12 : 24} 小时）` }),
     ]);
@@ -880,6 +881,10 @@
       { label: '周日', value: 0, on: MC.settings.weekStart === 0 },
       { label: '周一', value: 1, on: MC.settings.weekStart === 1 },
     ], v => { MC.settings.weekStart = v; MC.saveSettings(); MC.Cal.realign(); renderSettings(); });
+    else if (act === 'wktint') UI.menu(row.querySelector('.sval'), [
+      { label: '默认', value: '', on: MC.settings.weekTint !== 'mood' },
+      { label: '情绪光谱', value: 'mood', on: MC.settings.weekTint === 'mood' },
+    ], v => { MC.settings.weekTint = v; MC.saveSettings(); MC.Cal.realign(); renderSettings(); });
     else if (act === 'lang') UI.menu(row.querySelector('.sval'), [{ v: 'auto', label: '跟随系统语言' }, ...MC.LANGS].map(l => ({ label: l.label, value: l.v, on: MC.langPref() === l.v })),
       v => { if (v !== MC.langPref()) MC.setLang(v); });   // 收起的一行，点开是小菜单
     else if (act === 'clock') UI.menu(row.querySelector('.sval'), [
