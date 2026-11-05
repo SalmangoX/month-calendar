@@ -2,6 +2,7 @@ import Foundation
 
 /// 小组件、菜单栏和原生通知的多语言（和网页一致：同步数据 profile.lang；auto = 跟随系统语言）。
 /// 原文用简体中文作键，{0} 是占位。
+// 【联动:翻译】见 CLAUDE.md「联动分组」
 enum I18n {
     private(set) static var lang = "zh-Hans"
     static var zh: Bool { lang.hasPrefix("zh") }

@@ -20,6 +20,7 @@ data class Tokens(
     val bg: Color, val bgGrouped: Color, val surface: Color, val line: Color,
     val text: Color, val text2: Color, val text3: Color, val field: Color,
     val accent: Color, val accentText: Color, val selTint: Color,
+    // 【联动:品牌渐变】见 CLAUDE.md「联动分组」
     val brandA: Color, val brandMid: Color, val brandB: Color,
     val frostStrong: Color, val backdrop: Color, val danger: Color,
 ) {

@@ -27,6 +27,7 @@
 
   // ---------- 颜色：浅色用 styles.css 里的 --p*；深色调用下面的 darkTone 按 OKLCH 统一算（和记录日历的自定义颜色同一规则） ----------
   // 不是把浅色压暗（那样会发灰发棕，像氧化了），而是保持彩度、暖色适当提亮
+  // 【联动:优先级颜色】见 CLAUDE.md「联动分组」
   MC.PAL = {
     light: { 3: '#D4472C', 2: '#C98A1E', 1: '#5B8FD0', 0: '#A3A1AD' },   // 和 styles.css 的 --p3…--p0 一致（色彩心理学：低 天蓝 → 中 琥珀 → 高 朱红）
   };
@@ -48,6 +49,7 @@
     return '#808080';
   }
   const toneCache = new Map();
+  // 【联动:深色调】见 CLAUDE.md「联动分组」
   MC.darkTone = hex => {
     if (toneCache.has(hex)) return toneCache.get(hex);
     const [, c, h] = toOklch(hex), warm = c < 0.03 ? 0 : Math.max(0, Math.min(1, (1 - Math.abs(h - 75) / 50) * 1.6));
@@ -75,15 +77,17 @@
   // 色条上要写的颜色变量：--c 浅色用；--cf / --ci 深色用
   // 优先级色条的渐变（用户定的）：低在右端带一点中级的颜色，中在两端分别带低级、高级，高在左端带一点中级；无优先级、日历颜色不渐变。
   // 色标（[位置 %, 颜色]）是用户在效果图里定的「提亮过渡」：端点往相邻那档走 65%、纯色占 75%、过渡处提亮 9、保持鲜艳 90%（OKLab 里算好的固定值），iPhone / Mac 小组件（Colors.swift 的 Pal.GRAD）、安卓（chip_p*.xml）、网页小组件都用同一组
+  // 【联动:优先级色条】见 CLAUDE.md「联动分组」
   const GRAD = {
     light: { 1: [[0, '#5B8FD0'], [75, '#5B8FD0'], [81.25, '#6A9FE0'], [87.5, '#77ABED'], [93.75, '#DAA258'], [100, '#DAA14F']], 2: [[0, '#79ACEF'], [3.12, '#DAA357'], [6.25, '#D9A04D'], [9.38, '#D3973A'], [12.5, '#C98A1E'], [87.5, '#C98A1E'], [90.62, '#DC8D2C'], [93.75, '#EB8D38'], [96.88, '#F3863E'], [100, '#F1783E']], 3: [[0, '#ED8C39'], [6.25, '#F3843E'], [12.5, '#F0753D'], [18.75, '#E46036'], [25, '#D4472C'], [100, '#D4472C']] },
     dark: { 1: [[0, '#235692'], [75, '#235692'], [81.25, '#386AA7'], [87.5, '#4A7BB8'], [93.75, '#AD7833'], [100, '#B17D2E']], 2: [[0, '#4D7DBA'], [3.12, '#AD7A31'], [6.25, '#B17D2D'], [9.38, '#B07A20'], [12.5, '#AC7305'], [87.5, '#AC7305'], [90.62, '#BB761C'], [93.75, '#C6762A'], [96.88, '#CA7030'], [100, '#C56330']], 3: [[0, '#C7752B'], [6.25, '#C96E31'], [12.5, '#C36030'], [18.75, '#B54D29'], [25, '#A3351F'], [100, '#A3351F']] },
   };
-  MC.priGrad = (v, dark) => { const g = GRAD[dark ? 'dark' : 'light'][v]; return g ? 'linear-gradient(90deg,' + g.map(([p, c]) => c + ' ' + p + '%').join(',') + ')' : ''; };
+  // soft：已完成 / 淡色的色条，每个色标按 --done-mix 变透明（和原来的淡色同样深浅，只是带上同一组渐变）
+  MC.priGrad = (v, dark, soft) => { const g = GRAD[dark ? 'dark' : 'light'][v]; return g ? 'linear-gradient(90deg,' + g.map(([p, c]) => (soft ? `color-mix(in srgb,${c} var(--done-mix),transparent)` : c) + ' ' + p + '%').join(',') + ')' : ''; };
   MC.toneVars = e => {
     const c = MC.evColor(e), m = /^var\(--p(\d)\)$/.exec(c);
     const [f, i] = MC.darkTone(m ? MC.PAL.light[m[1]] : c);
-    const g = m && GRAD.light[m[1]] ? `;--cg:${MC.priGrad(+m[1], false)};--cgd:${MC.priGrad(+m[1], true)}` : '';
+    const g = m && GRAD.light[m[1]] ? `;--cg:${MC.priGrad(+m[1], false)};--cgd:${MC.priGrad(+m[1], true)};--cgo:${MC.priGrad(+m[1], false, true)}` : '';
     return `--c:${c};--cf:${f};--ci:${i}${g}`;
   };
 
@@ -269,6 +273,7 @@
   MC.CAL_COLORS = ['#B76271', '#B86652', '#B06F35', '#539156', '#269573', '#009390', '#138DB1', '#4086BD', '#607EC2', '#8074BD', '#9B6AAB', '#AE648F', '#656970', '#627887'];
   MC.MAIN_CAL = { id: '', name: '主日历', color: 'var(--accent)' };
   MC.RATE_DEFAULT = ['超高', '高', '中', '低'];   // 第 1–4 级的默认名称。1 级 = 红 = 等级最高（比如「超忙」），4 级 = 绿 = 等级最低（比如「轻松」）
+  // 【联动:记录等级】见 CLAUDE.md「联动分组」
   MC.RATE_ORDER = [4, 3, 2, 1];   // 界面上从左到右的顺序：默认（无）和最低在左，最高在右
   MC.normRateLabels = a => MC.RATE_DEFAULT.map((d, i) => (Array.isArray(a) && typeof a[i] === 'string' && a[i].trim() ? a[i].trim().slice(0, 8) : d));
   const HM = /^\d{2}:\d{2}$/;
@@ -281,7 +286,7 @@
   function normCal(c) {
     const t = Date.now();
     return { id: String(c.id).slice(0, 40), name: String(c.name || '记录').slice(0, 24), color: /^#[0-9a-fA-F]{6}$/.test(c.color || '') ? c.color : MC.CAL_COLORS[0],
-      showInMain: !!c.showInMain, // 事件也显示在主日历里
+      showInMain: !!c.showInMain, // 事件也显示在主日历里（纪念日历：每个日子出现的那天显示在主日历）
       notify: !!c.notify,         // 这个日历的事件到点提醒
       rateOn: c.kind !== 'days' && !!c.rateOn, // 记录日历：不按优先级，改用 4 个等级给事件评级并统计
       rateLabels: MC.normRateLabels(c.rateLabels), // 4 个等级的名称（可自定义，整个日历通用），从低到高
@@ -396,12 +401,32 @@
     for (const arr of m.values()) arr.sort(cmp);
     return m;
   }
+  // 纪念日历设为「在主日历显示」：每个日子在前后一段时间里每次出现的那天，当成一条只读的事件放进主日历（id 以 dayv: 开头，dv 是日子的 id）
+  // 出现日期的规则和 days.js 的 occurrence 一样：不重复 / 每周 / 每月 / 每年，月底按当月天数截【联动:在主日历显示】
+  const DV_BACK = 400, DV_AHEAD = 800;
+  function dayEvents(cals) {
+    const out = [], t = new Date(), lo = MC.addDays(t, -DV_BACK), hi = MC.addDays(t, DV_AHEAD);
+    const clampD = (y, m, d) => new Date(y, m, Math.min(d, new Date(y, m + 1, 0).getDate()));
+    for (const x of MC.data.days) {
+      if (!cals.has(x.cal)) continue;
+      const b = parse(x.date), add = d => { if (d >= lo && d <= hi && d >= b) out.push({ id: `dayv:${x.id}:${ymd(d)}`, dv: x.id, cal: x.cal, date: ymd(d), title: x.title || '（无标题）', time: x.time || '', endTime: '', days: 1, priority: 0, done: false, note: '', createdAt: x.createdAt || 0 }); };
+      if (!x.rep) { add(b); continue; }
+      if (x.rep === 'week') { let d = b < lo ? MC.addDays(b, Math.ceil((lo - b) / 6048e5) * 7) : b; for (; d <= hi; d = MC.addDays(d, 7)) add(d); continue; }
+      for (let k = 0; ; k++) {
+        const d = x.rep === 'month' ? clampD(b.getFullYear(), b.getMonth() + k, b.getDate()) : clampD(b.getFullYear() + k, b.getMonth(), b.getDate());
+        if (d > hi) break; add(d);
+      }
+    }
+    return out;
+  }
   MC.reindex = () => {
     const act = MC.activeCal();
-    const shown = new Set(MC.data.cals.filter(c => c.showInMain).map(c => c.id));
-    MC.inMainView = e => !e.cal || shown.has(e.cal);   // 主日历看到的：主日历自己的 + 设为「在主日历显示」的记录日历
+    const shown = new Set(MC.data.cals.filter(c => c.showInMain && c.kind !== 'days').map(c => c.id));
+    const shownDays = new Set(MC.data.cals.filter(c => c.showInMain && c.kind === 'days').map(c => c.id));
+    MC.inMainView = e => !e.cal || shown.has(e.cal) || shownDays.has(e.cal);   // 主日历看到的：主日历自己的 + 设为「在主日历显示」的记录日历和纪念日历
     MC.mainByDate = indexOf(MC.data.events.filter(e => !e.cal));
-    MC.mainViewByDate = shown.size ? indexOf(MC.data.events.filter(MC.inMainView)) : MC.mainByDate;
+    const dv = shownDays.size ? dayEvents(shownDays) : [];
+    MC.mainViewByDate = shown.size || dv.length ? indexOf(MC.data.events.filter(MC.inMainView).concat(dv)) : MC.mainByDate;
     MC.byDate = act ? indexOf(MC.data.events.filter(e => e.cal === act)) : MC.mainViewByDate;
   };
   MC.reindex();
@@ -493,6 +518,7 @@
   MC.currentTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; } };
 
   // ---------- 合并 ----------
+  // 【联动:同步数据】见 CLAUDE.md「联动分组」
   MC.merge = (a, b) => {
     const deleted = { ...(a.deleted || {}) };
     for (const [k, t] of Object.entries(b.deleted || {})) deleted[k] = Math.max(deleted[k] || 0, t);

@@ -9,26 +9,29 @@
     <color name="w_text2">#747B83</color>
     <color name="w_live">#294F80C4</color>
     <!-- 优先级（色彩心理学）：无 灰 · 低 天蓝 · 中 琥珀 · 高 朱红，和网页 styles.css 的优先级色一致 -->
+    <!-- 【联动:优先级颜色】见 CLAUDE.md「联动分组」 -->
     <color name="p3">#D4472C</color>
     <color name="p2">#C98A1E</color>
     <color name="p1">#5B8FD0</color>
     <color name="p0">#A3A1AD</color>
     <!-- 红色只用于逾期、现在时间的线（和优先级无关），和网页 styles.css 的红色一致 -->
     <color name="red">#D9453E</color>
-    <!-- p4 / p4_soft：已取消的绿色优先级。仓库里如果还有 drawable/*_p4.xml，这两行要留着，否则 APK 编译失败 -->
-    <color name="p4">#41B08F</color>
     <!-- 已完成或不在本月的事件：同色的淡底 -->
     <color name="p3_soft">#40D4472C</color>
     <color name="p2_soft">#40C98A1E</color>
     <color name="p1_soft">#405B8FD0</color>
+    <!-- 已完成 / 别的月份的淡色条（chip_p*_soft）：同一组色标的两端，透明度和 p*_soft 一样【联动:优先级色条】 -->
+    <color name="chip_p1_se">#40DAA14F</color>
+    <color name="chip_p2_sa">#4079ACEF</color>
+    <color name="chip_p2_se">#40F1783E</color>
+    <color name="chip_p3_sa">#40ED8C39</color>
     <color name="p0_soft">#40A3A1AD</color>
-    <color name="p4_soft">#4041B08F</color>
 
     <!-- 月历小组件的色条底色：浅色是实色；深色在 values-night 里是专门设计的深色调，和应用一致 -->
     <color name="chip_p3">#D4472C</color>
     <color name="chip_p2">#C98A1E</color>
     <color name="chip_p1">#5B8FD0</color>
-    <!-- 优先级色条的渐变（和网页 store.js 的 GRAD 同一组色标）：底色 + 每侧两层「透明 → 色标」的叠层（安卓的渐变只能三个色，用叠层近似） -->
+    <!-- 优先级色条的渐变（和网页 store.js 的 GRAD 同一组色标）：底色 + 每侧两层「透明 → 色标」的叠层（安卓的渐变只能三个色，用叠层近似）【联动:优先级色条】 -->
     <color name="chip_p1_r1">#FF77ABED</color>
     <color name="chip_p1_r1_0">#0077ABED</color>
     <color name="chip_p1_r2">#FFDAA14F</color>

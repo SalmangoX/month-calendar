@@ -53,6 +53,7 @@
   let hueKey = '', hues = new Map();
   const toneCache = new Map();
   const toneByHue = h => { if (!toneCache.has(h)) toneCache.set(h, courseTone(h)); return toneCache.get(h); };
+  // 【联动:课程颜色】见 CLAUDE.md「联动分组」
   const toneOf = code => {
     const codes = (MC.data.courses || []).map(c => c.code), key = [...new Set(codes)].sort().join('|');
     if (key !== hueKey) { hueKey = key; hues = courseHues(codes); }

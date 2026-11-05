@@ -174,6 +174,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
     }
 
     /// 网页里：隐藏网页自己的菜单栏、加号和日历栏（换成原生玻璃）；切页、面板开关时把状态发给原生；弹出菜单换成原生玻璃菜单
+    // 【联动:底部悬浮控件】见 CLAUDE.md「联动分组」
     static let navJS = """
     (function(){
       var H = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.mc;

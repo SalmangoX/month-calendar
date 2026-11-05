@@ -92,7 +92,7 @@
   function row(c, i) {
     const on = c.id === MC.activeCal(), n = MC.countIn(c.id);
     const days = c.kind === 'days';
-    const flags = c.id && !days ? `${c.showInMain ? `<span title="显示在主日历">${LAYERS}</span>` : ''}${c.notify ? `<span title="通知已开">${BELL}</span>` : ''}` : '';
+    const flags = c.id ? `${c.showInMain ? `<span title="显示在主日历">${LAYERS}</span>` : ''}${c.notify && !days ? `<span title="通知已开">${BELL}</span>` : ''}` : '';
     const sub = (days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日页') + (flags ? `<span class="dr-flags">${flags}</span>` : '');
     return `<div class="dr-row${on ? ' on' : ''}" style="--cc:${c.id ? c.color : 'var(--accent-base)'};--i:${i}" data-id="${esc(c.id)}">
       <button class="dr-pick" data-act="pick" aria-pressed="${on}">
@@ -129,12 +129,12 @@
   };
   // 「更多」菜单：记录日历和纪念日历的选项不同
   const menuOf = c => (c.kind === 'days'
-    ? [{ label: T('名称和颜色'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }]
+    ? [{ label: '在主日历显示', value: 'main', on: c.showInMain }, { label: T('名称和颜色'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }]
     : [{ label: '在主日历显示', value: 'main', on: c.showInMain }, { label: '通知', value: 'notify', on: c.notify },
       { label: '名称、颜色和等级', value: 'edit' }, { label: '删除这个日历', value: 'del', danger: true }]);
   D.act = async (id, v) => {
     const c = MC.cal(id); if (!c) return;
-    if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? `「${c.name}」的事件会显示在主日历` : `「${c.name}」不再显示在主日历`); }
+    if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? (c.kind === 'days' ? `「${c.name}」的日子会显示在主日历` : `「${c.name}」的事件会显示在主日历`) : `「${c.name}」不再显示在主日历`); }
     else if (v === 'notify') { MC.updateCal(c, { notify: !c.notify }); render(); UI.toast(c.notify ? `已打开「${c.name}」的通知` : `已关闭「${c.name}」的通知`); }
     else if (v === 'edit') calForm(c);
     else if (v === 'del') {
@@ -147,27 +147,31 @@
     }
   };
   // 给原生侧边栏的数据：和网页侧边栏同样的分组、文字（已翻译成当前语言）和菜单
+  // 【联动:侧拉菜单】见 CLAUDE.md「联动分组」
   D.model = () => {
     const tr = x => (MC.t ? MC.t(x) : x);
     const item = c => {
       const n = MC.countIn(c.id), days = c.kind === 'days';
       return { id: c.id, name: c.name, color: c.id ? c.color : '', kind: days ? 'days' : c.id ? 'rec' : 'main', on: c.id === MC.activeCal(),
         sub: tr(days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日页'),
-        inMain: !!c.showInMain && !days, notify: !!c.notify && !days,
+        inMain: !!c.showInMain, notify: !!c.notify && !days,
         menu: c.id ? menuOf(c).map(m => ({ ...m, label: tr(m.label) })) : [] };
     };
     const cals = MC.data.cals;
     return { title: tr('日历'), sub: tr('每个日历的内容分开显示'), main: item(MC.MAIN_CAL),
       recTitle: tr('记录日历'), recs: cals.filter(c => c.kind !== 'days').map(item), recEmpty: tr('记录日历和待办分开显示，可以分别设置是否显示在主日历、是否通知。'),
       daysTitle: tr(T('纪念日历')), days: cals.filter(c => c.kind === 'days').map(item),
-      add: [{ label: tr(T('新建记录日历')), value: 'rec' }, { label: tr(T('新建纪念日历')), value: 'days' }], addLabel: tr('新建记录日历') };
+      add: [{ label: tr(T('新建记录日历')), value: 'rec' }, { label: tr(T('新建纪念日历')), value: 'days' }], addLabel: tr('新建子日历') };
   };
-  D.add = kind => calForm(null, kind === 'days' ? 'days' : '');
-  // 新建：记录日历（和待办一样的事件）或纪念日历（倒数日 / 纪念日）
-  $('#drawerAdd').onclick = e => UI.menu(e.currentTarget, [
-    { label: T('新建记录日历'), value: 'rec', icon: ICON_REC.replace('<svg ', '<svg class="mi" ') },
-    { label: T('新建纪念日历'), value: 'days', icon: ICON_DAYS.replace('<svg ', '<svg class="mi" ') },
-  ], v => calForm(null, v === 'days' ? 'days' : ''));
+  // 新建子日历：先弹出两种日历的介绍卡片（左：记录日历，右：纪念日历），点哪张就新建哪种；原生的侧拉菜单调 MC.Drawer.add('') 也走这里
+  D.add = kind => (kind === 'days' || kind === 'rec' ? calForm(null, kind === 'days' ? 'days' : '') : openKinds());
+  function openKinds() {
+    const pick = k => { UI.close('calKindSheet'); setTimeout(() => calForm(null, k), 280); };
+    $('#calKindSheet [data-k="rec"]').onclick = () => pick('');
+    $('#calKindSheet [data-k="days"]').onclick = () => pick('days');
+    UI.open('calKindSheet');
+  }
+  $('#drawerAdd').onclick = () => openKinds();
 
   // 新建 / 编辑：名称 + 颜色
   function calForm(c, kind = c ? c.kind : '') {
@@ -183,7 +187,9 @@
       hero: `<div class="cf-hero" id="cfHero" style="--cc:${color}"><div class="cf-tile">${days ? ICON_DAYS : ICON_REC}</div><div class="cf-name${c ? '' : ' ph'}" id="cfName">${MC.esc(c ? c.name : (days ? T('纪念日历') : '记录日历'))}</div></div>`,
       fields: [{ id: 'calName', label: '名称', ph: days ? T('比如：我们、生日、考试') : '日历名称', val: c ? c.name : '', max: 24 }],
       note: days && !c ? T('纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。') : '',
-      extra: sw() + (days ? '' : `<div class="group dr-switches">
+      extra: sw() + (days ? `<div class="group dr-switches">
+        <label class="pk-row"><span>在主日历显示<small>${T('每个日子到了那一天，也出现在主日历里')}</small></span><input type="checkbox" class="switch" id="calMain"${c && c.showInMain ? ' checked' : ''}></label>
+      </div>` : `<div class="group dr-switches">
         <label class="pk-row"><span>在主日历显示<small>这个日历的事件也出现在主日历里</small></span><input type="checkbox" class="switch" id="calMain"${c && c.showInMain ? ' checked' : ''}></label>
         <label class="pk-row"><span>通知<small>事件设了提醒时到点通知</small></span><input type="checkbox" class="switch" id="calNotify"${c && c.notify ? ' checked' : ''}></label>
         <label class="pk-row"><span>等级评分<small>不按优先级排列，改用 4 个等级给事件评级，并在「统计」里汇总</small></span><input type="checkbox" class="switch" id="calRate"${c && c.rateOn ? ' checked' : ''}></label>
@@ -196,7 +202,7 @@
       onSubmit: async v => {
         const name = v.calName.trim();
         if (!name) throw new Error('请填写名称');
-        const showInMain = !days && $('#calMain').checked, notify = !days && $('#calNotify').checked;
+        const showInMain = $('#calMain').checked, notify = !days && $('#calNotify').checked;   // 纪念日历也能在主日历显示
         const rateOn = !days && $('#calRate').checked, rateLabels = days ? undefined : MC.normRateLabels([0, 1, 2, 3].map(i => $('#calRL' + i).value));
         if (c) { MC.updateCal(c, days ? { name, color, showInMain, notify } : { name, color, showInMain, notify, rateOn, rateLabels }); MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast('已保存'); return; }
         const nc = MC.addCal(name, color, { showInMain, notify, rateOn, rateLabels, kind: days ? 'days' : '' });

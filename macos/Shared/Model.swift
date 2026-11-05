@@ -194,6 +194,7 @@ extension Dictionary where Key == String, Value == Any {
 
 /// 日历数据：读取网页 App 的 mcal-calendar.json（格式与 js/store.js 一致）
 /// 约定：网页以后只新增字段、不改名不删除；不认识的字段直接忽略，合并时原样保留。
+// 【联动:同步数据】见 CLAUDE.md「联动分组」
 final class CalData {
     static let knownVersion = 3
 
@@ -294,6 +295,16 @@ final class CalData {
         // 小组件 = 主日历（加上设为在主日历显示的记录日历）；多天的全天事件出现在跨越的每一天
         for e in d.events where d.visible(e) {
             for k in 0..<e.days { d.byDate[e.date.adding(k), default: []].append(e) }
+        }
+        // 纪念日历设为「在主日历显示」：每个日子出现的那一天，当成一条只读的事件放进主日历（和网页 store.js 的 dayEvents 一样）【联动:在主日历显示】
+        let today = YMD.today
+        for y in d.days where d.shownCals.contains(y.cal) {
+            for k in -62...400 {
+                let day = today.adding(k)
+                guard !(day < y.date), y.occ(day) == day else { continue }
+                var e = CEvent(); e.id = "dayv:" + y.id; e.cal = y.cal; e.date = day; e.title = y.title; e.time = y.time
+                d.byDate[day, default: []].append(e)
+            }
         }
         for k in d.byDate.keys { d.byDate[k]?.sort(by: order) }
         return d

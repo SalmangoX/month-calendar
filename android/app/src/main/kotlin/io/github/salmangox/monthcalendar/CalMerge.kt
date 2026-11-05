@@ -8,6 +8,7 @@ import org.json.JSONObject
  * 和网页、iPhone、Mac 用同一份 Gist / WebDAV 数据，合并结果必须完全一样。
  * 和网页唯一的不同：网页不认识的顶层字段（以后新版网页加的）从较新的一份原样带上，不丢。
  */
+// 【联动:同步数据】见 CLAUDE.md「联动分组」
 object CalMerge {
     private val PROFILE_KEYS = listOf("name", "avatar", "clock", "lang")
     private const val KEEP_DELETED_MS = 180L * 86_400_000L

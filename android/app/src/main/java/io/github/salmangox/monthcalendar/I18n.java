@@ -8,6 +8,7 @@ import java.util.Map;
  * 小组件和原生通知的多语言（和网页一致：同步数据 profile.lang；auto = 跟随系统语言）。
  * 原文用简体中文作键，{0} 是占位；繁体由 OpenCC（台湾用语）生成。
  */
+// 【联动:翻译】见 CLAUDE.md「联动分组」
 final class I18n {
     static volatile String lang = "zh-Hans";
     private static final Map<String, String[]> T = new HashMap<>(); // 原文 → {繁體, English, Français}

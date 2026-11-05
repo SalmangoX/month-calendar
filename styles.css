@@ -5,11 +5,13 @@
      越重要越鲜艳；高和中靠明暗也能区分，红绿色弱也看得出来。深色模式另有一套专门的深色调（见 store.js MC.PAL） */
   /* 优先级色（色彩心理学）：低 = 冷静、往后退的天蓝；中 = 提醒注意的琥珀金；高 = 紧迫的朱红；无 = 中性灰。
      冷 → 暖、亮 → 浓，色相和明暗都拉开，色弱也分得清。白字都看得清；深色调由 store.js 按同一规则算出 */
+  /* 【联动:优先级颜色】见 CLAUDE.md「联动分组」 */
   --p3: #D4472C;   /* 高：朱红 */
   --p2: #C98A1E;   /* 中：琥珀金 */
   --p1: #5B8FD0;   /* 低：天蓝 */
   --p0: #A3A1AD;   /* 无 */
   /* 红色只用于「现在时间」的线、删除、出错、逾期（和优先级无关）*/
+  /* 【联动:主色和红色】见 CLAUDE.md「联动分组」 */
   --red: #D9453E;
   /* 优先级渐变：每一档的颜色正好落在它的刻度上（无 0 · 低 1/3 · 中 2/3 · 高 1），选「低」时滑块下面就是低的天蓝 */
   --pri-grad: linear-gradient(90deg, var(--p0), var(--p1) 33.3%, var(--p2) 66.7%, var(--p3));
@@ -40,6 +42,7 @@
   --sel: rgba(79, 128, 196, .05);
   --field: rgba(118, 118, 128, .09);
   --group-line: rgba(0, 0, 0, .07);
+  /* 【联动:主色和红色】见 CLAUDE.md「联动分组」 */
   --accent: #4F80C4;          /* 主色：和优先级中段同一种蓝，白字和细线都清楚 */
   --accent-base: #4F80C4;
   --drawer-frost: rgba(247, 250, 252, .58);
@@ -256,9 +259,10 @@ body .weekdays { display: none; }
 }
 /* 深色：每个颜色专门设计的深色调（--cf，宝石色，不发灰不发棕）+ 带一点同色的柔白字（--ci），由 store.js 算好写在每个色条上 */
 :root[data-theme="dark"] .chip:not(.done) { background: var(--cgd, var(--cf, var(--c))); color: var(--ci, #F0F0F0); font-weight: 500; }
+/* 【联动:优先级色条】见 CLAUDE.md「联动分组」 */
 .chip.done { opacity: .42; text-decoration: line-through; }
 @supports (background: color-mix(in srgb, red 50%, blue)) {
-  .chip.done { opacity: 1; background: color-mix(in srgb, var(--c) var(--done-mix), transparent); color: color-mix(in srgb, var(--c) 70%, var(--text2)); }
+  .chip.done { opacity: 1; background: var(--cgo, color-mix(in srgb, var(--c) var(--done-mix), transparent));   /* --cgo：已完成也带同一组渐变（淡） */ color: color-mix(in srgb, var(--c) 70%, var(--text2)); }
 }
 .more { font-size: 10px; color: var(--text2); padding-left: 4px; line-height: 12px; }
 .ctime { font-size: 9px; line-height: 11px; color: var(--text2); padding-left: 2px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -.02em;
@@ -311,6 +315,8 @@ body .weekdays { display: none; }
 .check:active { transform: scale(.85); }
 .check svg { width: 13px; height: 13px; stroke: #fff; stroke-width: 3; opacity: 0; }
 .item.done .check { background: var(--c); }
+.check.dv-mark { border: 0; color: var(--c); }   /* 主日历里显示的纪念日：一颗同色的心，不能勾选 */
+.check.dv-mark svg { width: 17px; height: 17px; fill: currentColor; stroke: none; opacity: 1; }
 .item.done .check svg { opacity: 1; }
 .item-main { flex: 1; min-width: 0; cursor: pointer; }
 .item-title { font-size: 15.5px; line-height: 1.35; word-break: break-word; }
@@ -552,6 +558,34 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .sh-btn.pressed, .sh-ok.pressed { transform: scale(.94); transition: transform .14s var(--press-in); }
 .sheet.fl .form { padding: 0 16px 6px; gap: 14px; }
 .sheet.fl .field input { background: var(--field); border-radius: 18px; padding: 14px 16px; }
+/* 新建子日历：两种日历的介绍卡片，左右并排，各带一个简单的效果图 */
+#calKindSheet { z-index: 42; }
+.ck-lead { margin: -4px 20px 12px; font-size: 13px; line-height: 1.5; color: var(--text2); text-align: center; }
+.ck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 4px; }
+.ck-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 14px; border-radius: 24px; text-align: left; background: var(--surface);
+  box-shadow: inset 0 0 0 .5px var(--group-line), 0 6px 18px color-mix(in srgb, var(--cc) 12%, transparent); transition: transform .45s var(--spring-out); }
+.ck-card.pressed { transform: scale(.96); transition: transform .14s var(--press-in); }
+.ck-art { position: relative; display: block; height: 104px; border-radius: 16px; overflow: hidden; margin-bottom: 4px; }
+.ck-name { font-size: 16px; font-weight: 700; letter-spacing: -.01em; color: var(--text); padding: 0 4px; }
+.ck-desc { font-size: 12px; line-height: 1.45; color: var(--text2); padding: 0 4px; }
+.ck-eg { font-size: 11.5px; font-weight: 600; color: color-mix(in srgb, var(--cc) 75%, var(--text)); padding: 2px 4px 0; }
+/* 记录日历的效果图：一小块月历（星期点 + 几条渐变色条）+ 右下角等级统计柱 */
+.ck-rec { background: var(--field); padding: 10px; }
+.ck-wk { display: flex; gap: 5px; margin-bottom: 8px; }
+.ck-wk i { width: 14px; height: 4px; border-radius: 2px; background: var(--text3); opacity: .6; }
+.ck-rows { display: flex; flex-direction: column; gap: 5px; }
+.ck-rows b { display: block; width: var(--w); height: 9px; border-radius: 3px; }
+.ck-bars { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 3px; align-items: flex-end; height: 34px; }
+.ck-bars i { width: 7px; height: var(--h); border-radius: 2px; background: var(--c); }
+/* 纪念日历的效果图：一张带光的倒数卡（心形图标、大数字、重复标签） */
+.ck-days { background: linear-gradient(140deg, #F4B3C2, #D46A8C 55%, #A66BBE); color: #fff; padding: 10px 12px; }
+.ck-heart { position: absolute; right: 10px; top: 10px; width: 26px; height: 26px; border-radius: 9px; display: grid; place-items: center; background: rgba(255, 255, 255, .28); }
+.ck-heart svg { width: 15px; height: 15px; fill: #fff; stroke: none; }
+.ck-big { position: absolute; left: 12px; bottom: 22px; font-size: 34px; font-weight: 800; letter-spacing: -.03em; line-height: 1; text-shadow: 0 2px 10px rgba(120, 40, 80, .3); }
+.ck-big small { font-size: 11px; font-weight: 600; margin: 0 3px; letter-spacing: 0; }
+.ck-pill { position: absolute; left: 12px; bottom: 8px; font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: rgba(255, 255, 255, .25); }
+:root[data-theme="dark"] .ck-days { background: linear-gradient(140deg, #8E4A63, #7A3556 55%, #5C3A78); }
+
 /* 新建 / 编辑日历：顶上一个跟着名字、颜色实时变的预览 */
 .cf-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 2px 0 6px; }
 .cf-tile { position: relative; width: 72px; height: 72px; border-radius: 24px; display: grid; place-items: center; color: var(--cc);
@@ -1093,6 +1127,7 @@ html.locked .lock { display: grid; }
 :root[data-theme="dark"] .drawer-scrim { background: rgba(0, 0, 0, .5); }
 .drawer-scrim.vis { visibility: visible; }
 .drawer-scrim.live { pointer-events: auto; }
+/* 【联动:顶部悬浮】见 CLAUDE.md「联动分组」 */
 .drawer {
   --pr: 0;
   position: absolute; z-index: 26; left: 10px;
@@ -1390,6 +1425,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 
 /* ---------- iPhone / Mac App：玻璃控件和照片上的牌子由原生画（整块系统液态玻璃 + 照着网页位置画上去的字和图标，见 ui.js 的 MC.LG） ----------
    原生正在画的（.lgx）：网页这边的底变透明，字（text-fill）和系统符号图标藏起来；其他图标、图片照常（只负责接收点按） */
+/* 【联动:原生玻璃】见 CLAUDE.md「联动分组」 */
 .lg-native .lgx { background: transparent !important; background-image: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
   box-shadow: none !important; border-color: transparent !important; }
 .lg-native .lgx, .lg-native .lgx * { -webkit-text-fill-color: transparent !important; }
@@ -1397,6 +1433,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .lg-native .lgx .on, .lg-native .lgx .cal-chip { background: transparent !important; box-shadow: none !important; }
 .lg-native .lgbar.dragging .lg-thumb { opacity: 0 !important; } /* 拖动时整颗水滴换成原生的透明玻璃透镜 */
 
+/* 【联动:底部悬浮控件】见 CLAUDE.md「联动分组」 */
 /* =====================================================================
    悬浮控件（日历 / 日程 / 今日 / 设置）
    左：时钟气泡（今日 ↔ 来源页）· 中：分页点 · 右：logo 扇形菜单
@@ -1602,6 +1639,7 @@ body.cal-w .wcol { padding-top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) +
 .wwd { font-size: 11px; color: var(--text2); text-align: center; line-height: 1; margin-bottom: 2px; }
 .wcol.today .wwd { color: var(--accent-text); font-weight: 650; }
 body.cal-w .wbar { top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 93px - var(--safe-t) + var(--s) * 23px); }   /* 列顶留白 + 星期 13 + 日期 38 */
+/* 【联动:顶部悬浮】见 CLAUDE.md「联动分组」 */
 #page-cal .topbar {
   position: absolute; left: 0; right: 0; top: var(--pill-y, calc(var(--safe-t) + 6px + var(--cal-drop))); z-index: 6;   /* --pill-y：calendar.js 按吸附线算 */   /* 比侧拉菜单的顶（安全区下 10px）再低一点：菜单拉出来能整个盖住胶囊 */
   padding: 0; display: flex; justify-content: center; pointer-events: none;
@@ -1634,6 +1672,7 @@ body.cal-w .wbar { top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 93px - 
 /* 星期条：一条细长的悬浮玻璃（和月份胶囊同一种玻璃），只占这一条的高度；下面的日历不加任何遮挡，透过玻璃还看得见 */
 /* 左右边距和下面日历的每一行（.wrow 左右各 2px）完全一样：七个字正好对准七列，不会越往两边越歪。
    玻璃和月份胶囊、底部按钮是同一种（iPhone / Mac 上同一种原生液态玻璃，深色模式不发白） */
+/* 【联动:顶部悬浮】见 CLAUDE.md「联动分组」 */
 body #page-cal .weekdays {
   display: grid; position: absolute; left: 2px; right: 2px; top: var(--wk-y, calc(var(--safe-t) + 50px + var(--cal-drop))); z-index: 6;   /* --wk-y：底边在吸附线（默认本周那一行的顶边）上方 4px */
   height: 24px; padding: 0; align-items: center; pointer-events: none; border-radius: 12px;
@@ -1713,6 +1752,7 @@ body #page-cal .weekdays.hide { display: none; }
 
 /* ---------- 品牌渐变：取自 logo 的暖沙（左）→ 蓝（中）→ 深靛蓝（右），略加深一点，白色加号和日期数字才看得清 ---------- */
 :root {
+  /* 【联动:品牌渐变】见 CLAUDE.md「联动分组」 */
   --brand-a: #E2B562;    /* 左：明亮的金黄 */
   --brand-mid: #74A8E6;  /* 中间：天蓝 */
   --brand-b: #5A8DDA;    /* 右：亮一点的蓝（不用深色：选中的今天、加号要明快，不能发闷） */

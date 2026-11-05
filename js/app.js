@@ -210,7 +210,7 @@
     const ws = MC.weekStartOf(new Date());
     let strip = '<div class="td-week">';
     for (let k = 0; k < 7; k++) {
-      const d = MC.addDays(ws, k), ds = MC.ymd(d), has = MC.mainViewOn(ds).some(e => !e.done);
+      const d = MC.addDays(ws, k), ds = MC.ymd(d), has = MC.mainViewOn(ds).some(e => !e.done && !e.dv);
       strip += `<button class="td-day${ds === tdDay ? ' on' : ''}${ds === t ? ' today' : ''}" data-day="${ds}"><small>${MC.WD[d.getDay()]}</small><b>${d.getDate()}</b><i${has ? '' : ' hidden'}></i></button>`;
     }
     strip += '</div>';
@@ -241,9 +241,9 @@
     for (const x of span) {
       const top = (x.a / 60 - sH) * TL_H, ht = Math.max(22, (x.b - x.a) / 60 * TL_H - 2), w = 100 / x.lanes;
       const e = x.e, tiny = ht < 38;
-      tl += `<li class="item td-ev${e.done ? ' done' : ''}${tiny ? ' tiny' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)};top:${top}px;height:${ht}px;left:calc(${x.lane * w}% + 1px);width:calc(${w}% - 3px)">
+      tl += `<li class="item td-ev${e.done ? ' done' : ''}${tiny ? ' tiny' : ''}${e.dv ? ' dvi' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)};top:${top}px;height:${ht}px;left:calc(${x.lane * w}% + 1px);width:calc(${w}% - 3px)">
         <button class="td-ev-main" data-act="open"><b>${esc(e.title)}</b>${tiny ? '' : `<small>${esc(MC.fmtRange(e.time, e.endTime))}${e.note ? ' · ' + esc(e.note) : ''}</small>`}</button>
-        <button class="td-ck" data-act="toggle" aria-label="${e.done ? '标为未完成' : '完成'}"></button></li>`;
+        ${e.dv ? '' : `<button class="td-ck" data-act="toggle" aria-label="${e.done ? '标为未完成' : '完成'}"></button>`}</li>`;   // 纪念日只读，没有完成按钮
     }
     tl += '</ul>';
     if (isToday && nowMin >= sH * 60 && nowMin <= eH * 60) tl += `<div class="td-now" style="top:${(nowMin / 60 - sH) * TL_H}px"><span>${MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`, true)}</span></div>`;

@@ -47,6 +47,8 @@
 - 课程提醒：`data.courseRemind = { on, lead, tz }`（同步），四端各自排：`js/push.js`、`scripts/send-reminders.mjs`、安卓 `Engine.java`、iOS / Mac `Engine.swift`。
 - 小组件里「今天」那一格 / 那一列用品牌渐变淡底（`Pal.todayTint`，和 App 里选中的今天同样的比例），日期圆用 `todayStyle`，都不要再用蓝色或灰色。
 - 纪念日历的图标是实心的（`js/days.js` 的 `FILL`：f 填满、k / d 用 mask 镂空），放在灰底块（`--tile`）里。
+- 侧拉菜单底部是「新建子日历」，点开是两种日历的介绍卡片（左记录日历、右纪念日历，各带一个简单的效果图），不要再改回系统菜单。
+- 纪念日历也能「在主日历显示」：日子到了那一天显示在主日历和小组件里（只读，点开是详情页）。
 - **纪念日的颜色只由自己选的图标决定**（`iconColor`），类别只用来分组，选类别、按名称猜都不换图标。新建面板顺序：名称 → 日期 → 图标 → 类别 → 重复 → 更多选项。
 - 纪念日提醒：`reminds`（提前几天，在 `remindAt` 钟点）+ `remindH`（提前 1 / 12 小时，按精确时间、没有就按 0 点）+ `remindTz`，四端各自排（同课程提醒那四处）。
 - 主题背景：`g:<名字>` 是内置背景（`SCENES`，画成图片当照片用），不要再加纯色；旧的 `c:#颜色` 只保留显示。
@@ -78,6 +80,31 @@
 4. 网页版小组件和 Scriptable 脚本：`widget.html`、`widget-*-scriptable.js`。
 
 安卓小组件的红色是 `res/values*/colors.xml` 里单独的 `red`（逾期、课表现在时间线），不要用 `p3`。XML 注释里不能出现两个连续的减号。
+
+## 联动分组（改一处，同组的都要看一遍）
+
+**规则（用户定的）**：写代码时先判断这次改动属于哪一组，按组增删；改完对照同组每一处，确认都改到了（比如改了色条，已完成、别的月份、跨天横条、小组件都要跟着改）。新增同类的东西时，加进对应的组，并在代码里打上同样的标记。
+
+每组在各处的定义点都有注释标记 `【联动:组名】`，改之前先搜：`grep -rn "联动:组名" js styles.css index.html widget* scripts macos ios android/app/src/main`。
+
+| 组 | 包括哪些（每一种状态都要算：没完成 / 已完成 / 别的月份 / 跨天横条 / 浅色 / 深色） | 位置 |
+| --- | --- | --- |
+| 优先级颜色 | 无 · 低 · 中 · 高 四个基础色和它们的深色调 | `styles.css` `--p0…--p3`、`js/store.js` `MC.PAL`、`Colors.swift` `Pal.P`、安卓 `colors.xml` `p0…p3` / `chip_p*` / `p*_soft`、`widget.html` `COLORS` + CSS 变量、`widget-ios-scriptable.js` `PHEX` / `PDARK` |
+| 优先级色条 | 渐变色标；月 / 周视图色条、跨天横条、已完成和淡色条 | `js/store.js` `GRAD` / `priGrad` / `toneVars`（`--cg` `--cgd` `--cgo`）、`styles.css` `.chip` `.chip.done`、`Colors.swift` `GRAD_L/_D` + `chipFill`、`MonthView.swift` `chip()` / `bar()`、安卓 `chip_p*.xml` `chip_p*_soft.xml` + `colors.xml`、`Widgets.java` `CHIP` / `SOFT`、`widget.html` `PGRAD`、`widget-ios-scriptable.js` `PGRAD` / `chipGrad` |
+| 品牌渐变 | 加号、选中的今天、小组件今天的格子 | `styles.css` `--brand-*`、`Colors.swift` `todayTint` / `todayStyle`、`GlassNav.swift` `Brand`、安卓 `Theme.kt` `brandA…`、`Palette.kt`、`colors.xml` `brand_*`、`today_bg.xml` `more_today.xml`、`widget-ios-scriptable.js` `brandGrad` |
+| 主色和红色 | 主色天蓝；红色只给现在时间线 / 删除 / 出错 / 逾期 | `styles.css` `--accent*` `--red`、`Colors.swift` `accentV` `RED`、安卓 `Theme.kt`、`colors.xml` `red` |
+| 深色调 | 任意颜色的深色版（OKLCH 规则） | `js/store.js` `MC.darkTone`、`Colors.swift` `CourseColors.darkTone`、`CourseColors.java` `darkTone`、`widget.html` `darkTone`、`widget-ios-scriptable.js` `PDARK`、`widget-days-scriptable.js` `darkTone` |
+| 课程颜色 | 按科目配色 | `js/sched.js` `toneOf`、`Colors.swift` `CourseColors`、`CourseColors.java`、`widget-sched-scriptable.js` `toneOf` |
+| 底部悬浮控件 | 时钟胶囊 · 分页点 · logo 扇形 · 回到今天；状态字段 `t ap today back pager n p set st lit pv`；中轴、高度、扇形角度 | `index.html` dock2 + 扇形脚本、`styles.css`「悬浮控件」、`GlassNav.swift` `NavModel.Dock` / `GlassDock` / `DockSize`、`ios/App/WebShell.swift` `navJS`、`macos/App/MainWindow.swift` `navJS`、安卓 `Dock.kt` `DockModel` + `NAV_JS` |
+| 顶部悬浮 | 月份胶囊、星期条、吸附线、周视图列顶留白、侧拉菜单的顶 | `js/calendar.js` `measure()`（`--wk-y` `--pill-y`）、`styles.css` `.topbar` `.weekdays` `.cal-w` `.drawer`、原生 `GlassDrawer` 的上边距 |
+| 原生玻璃 | 网页控件由原生画液态玻璃：哪些控件、遮挡、坐标 | `js/ui.js` `LG_SEL` / `LAYERS` / 今日页 `td`、`styles.css` `.lg-native .lgx`、`GlassNav.swift` `GlassLayer`、Mac `MainWindow.swift` `lgLayer`（要 `ignoresSafeArea`）、iOS `CadenceApp.swift` |
+| 提醒 | 事件 / 每日 / 课程 / 纪念日提醒（四端各自排） | `js/push.js`、`scripts/send-reminders.mjs`、安卓 `Engine.java`、`macos/App/Engine.swift` |
+| 同步数据 | 数据格式和合并（字段只增不删） | `js/store.js` `MC.merge`、安卓 `CalMerge.kt` / `Data.java` / `Store.java`、`Model.swift` `CalData` / `SharedStore.swift` |
+| 翻译 | 新文字要补四种语言 + 繁体转换表 | `js/i18n.js`（字典 + `CMAP`）、`macos/Shared/I18n.swift`、安卓 `I18n.java` + `res/values-*/strings.xml` |
+| 侧拉菜单 | 日历列表、「更多」菜单（原生直接用网页给的 `menu`）、新建子日历（先弹两种日历的介绍卡片 `#calKindSheet`） | 网页 `js/drawer.js`（`D.model` 给原生用、`D.add('')` 打开介绍卡片）、iOS / Mac `GlassNav.swift` `GlassDrawer`、安卓用网页的（拉出时 `NAV_JS` 的 `cover` 让原生控件让开） |
+| 在主日历显示 | 记录日历的事件、纪念日历的日子（每次出现的那天当成只读事件，id `dayv:`，网页里带 `dv`）出现在主日历和小组件里；计数、完成统计、每日提醒不算纪念日 | 网页 `js/store.js` `MC.reindex` / `dayEvents`、`js/ui.js` `itemHTML`（心形、点开详情）、`js/calendar.js` 预览计数和 `tally`、`js/app.js` 今日页、`js/push.js` 每日提醒；`Model.swift` 建索引处；安卓 `Data.java` `index()` |
+| 记录等级 | 等级顺序 `RATE_ORDER`、名称、颜色、统计 | `js/store.js` `RATE_ORDER`、`js/editor.js` 等级条、`js/app.js` 统计、`js/drawer.js` 等级名称 |
+| 版本号 | 改原生代码就加 build | `version.json`、`ios/version.json`、`macos/version.json` |
 
 ## 版本号和发布
 

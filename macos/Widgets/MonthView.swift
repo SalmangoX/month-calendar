@@ -280,6 +280,7 @@ struct MonthView: View {
     }
 
     /// tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致）
+    // 【联动:优先级色条】见 CLAUDE.md「联动分组」
     private func chip(_ e: CEvent, soft: Bool, out: Bool = false, width: CGFloat, pal: Pal, tm: Bool = false) -> some View {
         let ink = pal.chip(e, entry.data, soft: soft, out: out).1
         return Text(e.displayTitle)

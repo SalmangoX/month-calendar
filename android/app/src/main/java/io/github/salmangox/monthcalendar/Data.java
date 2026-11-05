@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
  * 日历数据：读取网页 App 的 mcal-calendar.json（格式与 js/store.js 一致），以及多设备合并。
  * 约定：网页以后只新增字段、不改名不删除；这里遇到不认识的字段直接忽略，合并时原样保留。
  */
+// 【联动:同步数据】见 CLAUDE.md「联动分组」
 final class Data {
     /** 这一版 App 认识的数据格式版本（store.js 里的 version）。更高版本照样读取。 */
     static final int KNOWN_VERSION = 3;
@@ -324,6 +325,17 @@ final class Data {
             if (!e.cal.isEmpty() && !shownCals.contains(e.cal)) continue; // 小组件 = 主日历（加上设为在主日历显示的记录日历）
             for (int k = 0; k < e.days; k++) { // 多天的全天事件出现在跨越的每一天
                 byDate.computeIfAbsent(e.date.plusDays(k), x -> new ArrayList<>()).add(e);
+            }
+        }
+        // 纪念日历设为「在主日历显示」：每个日子出现的那一天，当成一条只读的事件放进主日历（和网页 store.js 的 dayEvents 一样）【联动:在主日历显示】
+        LocalDate today = LocalDate.now();
+        for (Day y : days) {
+            if (!shownCals.contains(y.cal) || y.date == null) continue;
+            for (int k = -62; k <= 400; k++) {
+                LocalDate day = today.plusDays(k);
+                if (day.isBefore(y.date) || !y.occ(day).equals(day)) continue;
+                Event e = new Event(); e.id = "dayv:" + y.id; e.cal = y.cal; e.date = day; e.title = y.title; e.time = y.time;
+                byDate.computeIfAbsent(day, x -> new ArrayList<>()).add(e);
             }
         }
         for (List<Event> l : byDate.values()) l.sort(ORDER);

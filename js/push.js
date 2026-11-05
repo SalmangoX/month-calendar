@@ -223,7 +223,7 @@
   const LKEY = 'mcal.localSent';
   // 每日未完成提醒的内容
   Push.digest = ds => {
-    const n = MC.mainViewOn(ds).filter(e => !e.done).length; // 今日任务：主日历 + 设为在主日历显示的记录日历
+    const n = MC.mainViewOn(ds).filter(e => !e.done && !e.dv).length; // 今日任务：主日历 + 设为在主日历显示的记录日历
     return n ? { title: MC.t('查看今日未完成事件'), body: MC.t(`今天还有 ${n} 件事未完成，点开查看。`) }
              : { title: MC.t('今日事件已完成'), body: MC.t('今天的事件都完成了。') };
   };
@@ -257,6 +257,7 @@
       if (ft <= now && ft > now - 3 * 60000 && !sent[key]) { sent[key] = now; daily = key; }
     }
     // 课程提醒：今天要上的课，开始前 lead 分钟
+    // 【联动:提醒】见 CLAUDE.md「联动分组」
     const cr = MC.data.courseRemind, classes = [];
     if (cr && cr.on && MC.Sched && MC.Sched.on) {
       const d = new Date(), ds = MC.todayStr();

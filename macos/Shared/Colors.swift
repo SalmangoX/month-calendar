@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// 课程配色（与网页 sched.js、安卓 CourseColors 逐行一致）：科目定锚点色相，再把整学期的课程在色环上推开。
+// 【联动:课程颜色】见 CLAUDE.md「联动分组」
 enum CourseColors {
     private static let FAM: [(Double, [String])] = [
         (240, ["MAT", "STA"]),
@@ -105,6 +106,7 @@ enum CourseColors {
     }
 
     /// 深色模式下一个颜色的深色调（底色, 文字）（与网页 MC.darkTone 相同的规则）
+    // 【联动:深色调】见 CLAUDE.md「联动分组」
     static func darkTone(_ rgb: UInt32) -> (UInt32, UInt32) {
         let (_, c, h) = toOklch(rgb)
         if c < 0.03 { return (oklch(0.36, c * 0.5, h), oklch(0.935, c * 0.3, h)) }
@@ -181,6 +183,7 @@ struct Pal {
     var todayCell: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(accentV, dark ? 0x33 : 0x1F)) }
     #endif
     /// 今天那一格 / 那一列的淡底：和 App 里选中的今天一样，一层很淡的品牌渐变（金黄 → 天蓝），不再是蓝色或灰色的块
+    // 【联动:品牌渐变】见 CLAUDE.md「联动分组」
     var todayTint: AnyShapeStyle {
         if glass { return AnyShapeStyle(Color.white.opacity(0.16)) }
         let a: UInt32 = dark ? 0xFFE4_B96B : 0xFFE2_B562, m: UInt32 = dark ? 0xFF80_B1EC : 0xFF74_A8E6
@@ -199,10 +202,12 @@ struct Pal {
     }
 
     /// 优先级色（和网页 --p0…--p3 一致）：无 灰 · 低 天蓝 · 中 琥珀金 · 高 朱红（色彩心理学：冷 → 暖）；深色调按同一个 OKLCH 规则算（和网页 MC.darkTone 一样）
+    // 【联动:优先级颜色】见 CLAUDE.md「联动分组」
     static let P: [UInt32] = [0xFFA3_A1AD, 0xFF5B_8FD0, 0xFFC9_8A1E, 0xFFD4_472C]
     static let DARK_FILL: [UInt32] = P.map { CourseColors.darkTone($0).0 }
     static let DARK_INK: [UInt32] = P.map { CourseColors.darkTone($0).1 }
     /// 优先级色条的渐变（和网页 store.js 的 GRAD 同一组色标）：低在右端带一点中级，中两端带低级 / 高级，高在左端带一点中级
+    // 【联动:优先级色条】见 CLAUDE.md「联动分组」
     static let GRAD_L: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF5B_8FD0), (0.75, 0xFF5B_8FD0), (0.8125, 0xFF6A_9FE0), (0.875, 0xFF77_ABED), (0.9375, 0xFFDA_A258), (1, 0xFFDA_A14F)], 2: [(0, 0xFF79_ACEF), (0.0312, 0xFFDA_A357), (0.0625, 0xFFD9_A04D), (0.0938, 0xFFD3_973A), (0.125, 0xFFC9_8A1E), (0.875, 0xFFC9_8A1E), (0.9062, 0xFFDC_8D2C), (0.9375, 0xFFEB_8D38), (0.9688, 0xFFF3_863E), (1, 0xFFF1_783E)], 3: [(0, 0xFFED_8C39), (0.0625, 0xFFF3_843E), (0.125, 0xFFF0_753D), (0.1875, 0xFFE4_6036), (0.25, 0xFFD4_472C), (1, 0xFFD4_472C)]]
     static let GRAD_D: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF23_5692), (0.75, 0xFF23_5692), (0.8125, 0xFF38_6AA7), (0.875, 0xFF4A_7BB8), (0.9375, 0xFFAD_7833), (1, 0xFFB1_7D2E)], 2: [(0, 0xFF4D_7DBA), (0.0312, 0xFFAD_7A31), (0.0625, 0xFFB1_7D2D), (0.0938, 0xFFB0_7A20), (0.125, 0xFFAC_7305), (0.875, 0xFFAC_7305), (0.9062, 0xFFBB_761C), (0.9375, 0xFFC6_762A), (0.9688, 0xFFCA_7030), (1, 0xFFC5_6330)], 3: [(0, 0xFFC7_752B), (0.0625, 0xFFC9_6E31), (0.125, 0xFFC3_6030), (0.1875, 0xFFB5_4D29), (0.25, 0xFFA3_351F), (1, 0xFFA3_351F)]]
     /// 红色只用于逾期、现在时间的线（和优先级无关）
@@ -233,11 +238,22 @@ struct Pal {
         return (Color(argb: Pal.DARK_FILL[e.priority]), Color(argb: Pal.DARK_INK[e.priority]))
     }
 
-    /// 色条的底：优先级事件（没完成、本月、不是记录日历颜色）画成渐变，其余照旧是实色
+    /// 色条的底：优先级事件画成渐变（没完成、已完成、别的月份、淡色都用同一组色标，透明度和 chip() 里同一种情况一样），
+    /// 记录日历颜色、玻璃样式还是实色。【联动:优先级色条】
     func chipFill(_ e: CEvent, _ d: CalData, soft: Bool, out: Bool = false) -> AnyShapeStyle {
         let fill = chip(e, d, soft: soft, out: out).0
-        guard !glass, !soft, !out, !e.done, d.calColorOf(e) == nil, let g = (dark ? Pal.GRAD_D : Pal.GRAD_L)[e.priority] else { return AnyShapeStyle(fill) }
-        return AnyShapeStyle(LinearGradient(stops: g.map { .init(color: Color(argb: $0.1), location: $0.0) }, startPoint: .leading, endPoint: .trailing))
+        guard !glass, d.calColorOf(e) == nil, Pal.GRAD_L[e.priority] != nil else { return AnyShapeStyle(fill) }
+        // (用哪组色标, 透明度)：和 chip() 的分支一一对应
+        var useDark = dark, a: UInt32 = 0xFF
+        #if os(iOS)
+        if e.done { useDark = false; a = dark ? 0x42 : 0x29 }
+        else if out { a = dark ? 0x73 : 0x80 }
+        else if soft { useDark = false; a = dark ? 0x4D : 0x40 }
+        #else
+        if soft { useDark = false; a = dark ? 0x4D : 0x40 }
+        #endif
+        let g = (useDark ? Pal.GRAD_D : Pal.GRAD_L)[e.priority]!
+        return AnyShapeStyle(LinearGradient(stops: g.map { .init(color: Color(argb: withAlpha($0.1, a)), location: $0.0) }, startPoint: .leading, endPoint: .trailing))
     }
 
     /// 课程小色块：(底色, 字色)

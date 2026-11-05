@@ -8,17 +8,22 @@
     <color name="w_text2">#8C8E97</color>
     <color name="w_live">#3D8DB0EA</color>
     <color name="red">#F0625A</color>
+    <!-- 【联动:优先级颜色】见 CLAUDE.md「联动分组」 -->
     <color name="p3_soft">#4DD4472C</color>
     <color name="p2_soft">#4DC98A1E</color>
     <color name="p1_soft">#4D5B8FD0</color>
+    <!-- 已完成 / 别的月份的淡色条（chip_p*_soft）：同一组色标的两端，透明度和 p*_soft 一样【联动:优先级色条】 -->
+    <color name="chip_p1_se">#4DDAA14F</color>
+    <color name="chip_p2_sa">#4D79ACEF</color>
+    <color name="chip_p2_se">#4DF1783E</color>
+    <color name="chip_p3_sa">#4DED8C39</color>
     <color name="p0_soft">#4DA3A1AD</color>
-    <color name="p4_soft">#4D41B08F</color>
 
     <!-- 深色：按 OKLCH 算出的深色调（和网页 MC.darkTone 同一规则，不是把浅色压暗） -->
     <color name="chip_p3">#A3351F</color>
     <color name="chip_p2">#AC7305</color>
     <color name="chip_p1">#235692</color>
-    <!-- 优先级色条的渐变（和网页 store.js 的 GRAD 同一组色标）：底色 + 每侧两层「透明 → 色标」的叠层（安卓的渐变只能三个色，用叠层近似） -->
+    <!-- 优先级色条的渐变（和网页 store.js 的 GRAD 同一组色标）：底色 + 每侧两层「透明 → 色标」的叠层（安卓的渐变只能三个色，用叠层近似）【联动:优先级色条】 -->
     <color name="chip_p1_r1">#FF4A7BB8</color>
     <color name="chip_p1_r1_0">#004A7BB8</color>
     <color name="chip_p1_r2">#FFB17D2E</color>

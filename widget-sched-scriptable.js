@@ -89,6 +89,7 @@ const C = {
   bg: dyn("#ECF2F5", "#1B1C21"), card: dyn("#FFFFFF", "#2A2B30"),
   text: dyn("#171B20", "#EEEEF1"), text2: dyn("#6E757E", "#8C8E97"), accent: dyn("#4F80C4", "#8DB0EA"),
 };
+// 【联动:课程颜色】见 CLAUDE.md「联动分组」
 const toneOf = code => { const h = HUES.has(code) ? HUES.get(code) : 240; if (!TONE_CACHE.has(h)) TONE_CACHE.set(h, courseTone(h)); return TONE_CACHE.get(h); };
 const colorOf = code => toneOf(code).base;
 // 小色块：浅色实色 + 白字；深色深色调 + 柔白字（和应用里的事件 / 课程色块一致）

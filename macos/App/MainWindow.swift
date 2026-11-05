@@ -154,6 +154,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
 
     // ---------- 液态玻璃导航层（macOS 26 起）----------
     /// 网页里：隐藏网页自己的菜单栏和加号；切页、菜单栏有变化时把状态发给原生
+    // 【联动:底部悬浮控件】见 CLAUDE.md「联动分组」
     static let navJS = """
     (function(){
       var H = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.mc;
@@ -253,6 +254,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         let menu = SolidHostingView(rootView: GlassMenu(m: nav))
         let addMore = SolidHostingView(rootView: GlassAddButton(m: nav).padding(18))
         // 网页玻璃控件的液态玻璃层：铺满网页、紧贴在网页上面（在菜单栏、加号下面），不接收鼠标
+        // 【联动:原生玻璃】见 CLAUDE.md「联动分组」
         let lgLayer = PassThroughHostingView(rootView: GlassLayer(m: nav).ignoresSafeArea())   // 和网页同一个坐标：不让开标题栏的安全区（不然整层玻璃比网页里的控件低一截）
         lgLayer.frame = web.frame; lgLayer.autoresizingMask = [.width, .height]
         root.addSubview(lgLayer, positioned: .above, relativeTo: web)

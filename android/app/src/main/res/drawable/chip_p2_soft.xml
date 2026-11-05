@@ -1,2 +1,3 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="@color/p2_soft" /><corners android:radius="3.5dp" /></shape>
+<!-- 已完成 / 别的月份的淡色条：和 chip_p2.xml 同一组渐变的两端（安卓的渐变只能三个色）【联动:优先级色条】 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><gradient android:angle="0" android:type="linear" android:startColor="@color/chip_p2_sa" android:centerColor="@color/p2_soft" android:centerX="0.5" android:endColor="@color/chip_p2_se" /><corners android:radius="3.5dp" /></shape>

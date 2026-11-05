@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
  * 科目定「锚点色相」，再把这学期的所有课程在色环上推开——有含义（同科目颜色相近）、又整体均匀；
  * 跳过黄绿一带（深色下会发橄榄色）。每门课明度、彩度相同，只有色相不同。不依赖 Android，方便单独测试。
  */
+// 【联动:课程颜色】见 CLAUDE.md「联动分组」
 final class CourseColors {
     private static final Object[][] FAM = {
         {240.0, new String[]{"MAT", "STA"}},
@@ -116,6 +117,7 @@ final class CourseColors {
     }
 
     /** 深色模式下一个颜色的深色调 {底色, 文字}（与网页 MC.darkTone 相同的规则：保持彩度，橙黄一带提亮，不发灰发棕） */
+    // 【联动:深色调】见 CLAUDE.md「联动分组」
     static int[] darkTone(int rgb) {
         double[] o = toOklch(rgb);
         double c = o[1], h = o[2];

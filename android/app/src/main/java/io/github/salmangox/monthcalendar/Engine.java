@@ -25,6 +25,7 @@ import java.util.concurrent.Executors;
  * （下一个提醒、每日提醒、午夜换日、课表的上下课时间），最后刷新所有桌面小组件。
  * 闹钟、开机、改时间、数据变化、后台同步都会调用 refresh()。
  */
+// 【联动:提醒】见 CLAUDE.md「联动分组」
 final class Engine {
     static final String CH_EVENT = "event", CH_DAILY = "daily", CH_TEST = "test";
     /** 手机关机、省电延迟等原因错过的提醒，2 小时内的仍然补发 */

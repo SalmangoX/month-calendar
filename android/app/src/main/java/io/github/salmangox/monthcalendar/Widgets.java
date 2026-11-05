@@ -39,6 +39,7 @@ final class Widgets {
     private static final int WHITE = 0xFFFFFFFF;
     /** 不在本月的日期：半透明灰，浅色和深色背景上都合适 */
     private static final int DIM = 0x80888890;
+    // 【联动:优先级色条】见 CLAUDE.md「联动分组」
     private static final int[] CHIP = {R.drawable.chip_p0, R.drawable.chip_p1, R.drawable.chip_p2, R.drawable.chip_p3};
     private static final int[] SOFT = {R.drawable.chip_p0_soft, R.drawable.chip_p1_soft, R.drawable.chip_p2_soft, R.drawable.chip_p3_soft};
     private static final int[] DOT = {R.drawable.dot_p0, R.drawable.dot_p1, R.drawable.dot_p2, R.drawable.dot_p3};

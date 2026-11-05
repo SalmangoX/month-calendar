@@ -996,6 +996,15 @@
     "{0}月{1}日–{2}月{3}日": (a,b,c,d)=>L.md(a,b)+'–'+L.md(c,d),
     "周{0}": a=>L.wd(a)+'曜日',
     // 2026-11-05 补的翻译
+    "新建子日历": "新しいサブカレンダー",
+    "子日历和主日历分开记，也可以显示在主日历里。": "サブカレンダーはメインとは別に記録します。メインに表示することもできます。",
+    "像主日历一样记一件件事：时间、提醒、完成。可以用 4 个等级评分，看统计。": "メインと同じように予定を記録：時間、通知、完了。4 段階で評価して統計も見られます。",
+    "适合：运动、学习、日志": "おすすめ：運動、勉強、仕事の記録",
+    "记重要的日子：未来的倒数，过去的累计。可以写小纸条、建相册、生成分享图片。": "大切な日を記録：未来はカウントダウン、過去は経過日数。メモ、アルバム、共有画像も作れます。",
+    "适合：生日、纪念日、考试": "おすすめ：誕生日、記念日、試験",
+    "每年 · 生日": "毎年 · 誕生日",
+    "每个日子到了那一天，也出现在主日历里": "その日が来ると、メインカレンダーにも表示されます",
+    "「{0}」的日子会显示在主日历": "「{0}」の日をメインカレンダーに表示します",
     "日程": "時間割",
     "还没有日程": "時間割はまだありません",
     "点右上角「导入」，粘贴日程表文字即可": "右上の「インポート」をタップして、時間割のテキストを貼り付けてください",
@@ -1993,6 +2002,15 @@
     "点「10 秒后测试」后可以退出节律，10 秒左右收到「后台提醒测试」，就说明退出后也能准时提醒。": "Click “Test in 10 s”, then quit Cadence. If “Background reminder test” arrives about 10 seconds later, reminders work even when the app is closed.",
     "想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。": "To change banners, sounds or how reminders appear in Notification Center, click “Notification style”.",
     // 2026-11-05 补的翻译
+    "新建子日历": "New sub-calendar",
+    "子日历和主日历分开记，也可以显示在主日历里。": "Sub-calendars are kept apart from the main calendar, and can also be shown in it.",
+    "像主日历一样记一件件事：时间、提醒、完成。可以用 4 个等级评分，看统计。": "Log things like in the main calendar: times, reminders, done. Rate them on 4 levels and see stats.",
+    "适合：运动、学习、日志": "Good for: workouts, study, work logs",
+    "记重要的日子：未来的倒数，过去的累计。可以写小纸条、建相册、生成分享图片。": "Keep important days: count down to future ones, count up from past ones. Add notes, albums and share images.",
+    "适合：生日、纪念日、考试": "Good for: birthdays, anniversaries, exams",
+    "每年 · 生日": "Yearly · Birthday",
+    "每个日子到了那一天，也出现在主日历里": "Each day also appears in the main calendar on its date",
+    "「{0}」的日子会显示在主日历": "Days from “{0}” will appear in the main calendar",
     "日程": "Schedule",
     "还没有日程": "No schedule yet",
     "点右上角「导入」，粘贴日程表文字即可": "Tap “Import” at the top right and paste your timetable text",
@@ -2990,6 +3008,15 @@
     "点「10 秒后测试」后可以退出节律，10 秒左右收到「后台提醒测试」，就说明退出后也能准时提醒。": "Cliquez sur « Tester dans 10 s », puis quittez Cadence. Si « Test de rappel en arrière-plan » arrive environ 10 secondes plus tard, les rappels fonctionnent app fermée.",
     "想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。": "Pour régler les bannières, les sons ou l’affichage dans le centre de notifications, cliquez sur « Style des notifications ».",
     // 2026-11-05 补的翻译
+    "新建子日历": "Nouveau sous-calendrier",
+    "子日历和主日历分开记，也可以显示在主日历里。": "Les sous-calendriers sont séparés du calendrier principal et peuvent aussi y apparaître.",
+    "像主日历一样记一件件事：时间、提醒、完成。可以用 4 个等级评分，看统计。": "Notez des choses comme dans le calendrier principal : heures, rappels, terminé. Évaluez-les sur 4 niveaux et voyez les statistiques.",
+    "适合：运动、学习、日志": "Idéal pour : sport, études, journal de travail",
+    "记重要的日子：未来的倒数，过去的累计。可以写小纸条、建相册、生成分享图片。": "Gardez les jours importants : compte à rebours ou jours écoulés. Ajoutez des notes, des albums et des images à partager.",
+    "适合：生日、纪念日、考试": "Idéal pour : anniversaires, fêtes, examens",
+    "每年 · 生日": "Chaque année · Anniversaire",
+    "每个日子到了那一天，也出现在主日历里": "Chaque jour apparaît aussi dans le calendrier principal à sa date",
+    "「{0}」的日子会显示在主日历": "Les jours de « {0} » apparaîtront dans le calendrier principal",
     "日程": "Emploi du temps",
     "还没有日程": "Aucun emploi du temps",
     "点右上角「导入」，粘贴日程表文字即可": "Touchez « Importer » en haut à droite et collez le texte de votre emploi du temps",
@@ -3500,6 +3527,15 @@
     "名称和颜色": "名稱和顏色",
     "删除这个日历": "刪除這個日曆",
     "「{0}」的事件会显示在主日历": "「{0}」的事件會顯示在主日曆",
+    "新建子日历": "新建子日曆",
+    "子日历和主日历分开记，也可以显示在主日历里。": "子日曆和主日曆分開記，也可以顯示在主日曆裡。",
+    "像主日历一样记一件件事：时间、提醒、完成。可以用 4 个等级评分，看统计。": "像主日曆一樣記一件件事：時間、提醒、完成。可以用 4 個等級評分，看統計。",
+    "适合：运动、学习、日志": "適合：運動、學習、日誌",
+    "记重要的日子：未来的倒数，过去的累计。可以写小纸条、建相册、生成分享图片。": "記重要的日子：未來的倒數，過去的累計。可以寫小紙條、建相冊、生成分享圖片。",
+    "适合：生日、纪念日、考试": "適合：生日、紀念日、考試",
+    "每年 · 生日": "每年 · 生日",
+    "每个日子到了那一天，也出现在主日历里": "每個日子到了那一天，也出現在主日曆裡",
+    "「{0}」的日子会显示在主日历": "「{0}」的日子會顯示在主日曆",
     "「{0}」不再显示在主日历": "「{0}」不再顯示在主日曆",
     "已打开「{0}」的通知": "已開啟「{0}」的通知",
     "已关闭「{0}」的通知": "已關閉「{0}」的通知",
@@ -3867,6 +3903,7 @@
   };
   const D = DICTS[LANG] || {};
   // 繁体逐字兜底（字典里没有的界面文字）
+  // 【联动:翻译】见 CLAUDE.md「联动分组」
   const CMAP = new Map();
   if (LANG === 'zh-Hant') { const s = '与與两兩个個临臨为爲么麼于於云雲仅僅从從仓倉们們优優会會传傳体體关關内內册冊写寫决決况況准準几幾击擊则則刚剛创創删刪别別办辦务務动動区區单單历歷参參发發叠疊台臺号號后後启啓响響图圖圆圓处處备備复復够夠头頭学學实實对對导導属屬峰峯带帶帮幫并並库庫应應开開张張弹彈当當录錄户戶择擇换換据據数數断斷无無旧舊时時昵暱显顯暂暫机機权權条條来來标標栏欄样樣检檢横橫没沒浅淺测測浏瀏滚滾点點现現电電码碼确確礼禮离離种種称稱类類紧緊约約级級线線组組经經结結给給络絡绝絕统統继繼绪緒续續编編网網联聯脑腦脚腳节節获獲装裝观觀视視览覽触觸订訂认認讨討让讓议議记記讲講许許论論设設识識诉訴试試话話询詢该該语語误誤说說请請读讀课課调調败敗账賬贴貼费費跃躍轮輪载載较較辅輔辑輯输輸过過运運还還这這进進连連迟遲适適选選邮郵里裡周週钟鍾钥鑰钮鈕铃鈴链鏈锁鎖错錯键鍵长長闭閉问問间間闹鬧阅閱际際随隨隐隱页頁顶頂项項预預频頻题題颜顏马馬验驗骤驟纪紀画畫纸紙边邊盘盤块塊细細缩縮双雙评評计計变變态態松鬆压壓总總轻輕夹夾独獨状狀铺鋪侧側镜鏡满滿挡擋宽寬盖蓋圣聖义義签簽档檔爱愛顺順纯純层層见見转轉详詳宝寶余餘诞誕毕畢业業渐漸势勢规規国國宠寵蓝藍绿綠万萬销銷价價坚堅赛賽竖豎声聲围圍冲衝词詞译譯远遠习習恋戀游遊猫貓极極雾霧补補范範轴軸门門将將摄攝职職戏戲驾駕营營红紅衬襯养養烬燼悬懸缘緣饱飽帧幀胶膠楼樓忆憶颗顆险險拦攔静靜划劃东東邻鄰储儲谱譜证證苹蘋气氣镂鏤车車馈饋齐齊专專阶階黄黃晖暉扫掃虚虛终終惯慣吗嗎残殘岛島乐樂丢丟泽澤强強场場筛篩乱亂积積构構缓緩榄欖资資负負墙牆热熱觉覺凑湊壳殼简簡径徑归歸质質净淨妈媽竞競乡鄉飞飛儿兒扬揚桥橋报報减減陆陸欧歐迁遷额額访訪责責宁寧冻凍汇匯尽盡灵靈轨軌迹跡团團飘飄阈閾驱驅趋趨汉漢风風释釋荐薦须須扰擾锚錨济濟环環馆館扑撲撑撐广廣滤濾摆擺着著'; for (let i = 0; i < s.length; i += 2) CMAP.set(s[i], s[i + 1]); }
   const HAN = /[\u4e00-\u9fff]/;

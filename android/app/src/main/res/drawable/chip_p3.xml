@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 优先级色条：底色 + 两端的渐变叠层（低：右端带一点中级；中：两端带低级 / 高级；高：左端带一点中级），色标见 colors.xml -->
+<!-- 优先级色条：底色 + 两端的渐变叠层（低：右端带一点中级；中：两端带低级 / 高级；高：左端带一点中级），色标见 colors.xml【联动:优先级色条】 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item><shape android:shape="rectangle"><solid android:color="@color/chip_p3" /><corners android:radius="3.5dp" /></shape></item>
     <item><shape android:shape="rectangle"><gradient android:angle="0" android:type="linear" android:startColor="@color/chip_p3_l1" android:centerColor="@color/chip_p3_l1_0" android:centerX="0.25" android:endColor="@color/chip_p3_l1_0" /><corners android:radius="3.5dp" /></shape></item>

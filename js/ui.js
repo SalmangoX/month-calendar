@@ -286,6 +286,11 @@
       if (bl.length) bits.push(`<span class="seg-mini" title="分段评价">${bl.map(b => `<i class="lv${MC.segVal(e, b.k)}"></i>`).join('')}</span>`);
     }
     if (e.note) bits.push(`<span class="note">${esc(e.note)}</span>`); // 备注是用户写的，不翻译
+    // 纪念日（纪念日历设为在主日历显示）：只读，前面是一颗同色的心，点开是这个日子的详情页
+    if (e.dv) return `<li class="item dvi" data-id="${e.id}" style="--c:${MC.evColor(e)}">
+      <span class="check dv-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.8-4.6-7.8-10.6a4.3 4.3 0 0 1 7.8-2.6 4.3 4.3 0 0 1 7.8 2.6c0 6-7.8 10.6-7.8 10.6z"/></svg></span>
+      <div class="item-main" data-act="open"><div class="item-title"><span class="ttxt">${esc(e.title)}</span></div>${bits.length ? `<div class="item-sub">${bits.join(' · ')}</div>` : ''}</div>
+    </li>`;
     return `<li class="item${e.done ? ' done' : ''}${e.done && UI.justDone === e.id ? ' just-done' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)}">
       <button class="check" data-act="toggle" aria-label="${e.done ? '标为未完成' : '标为完成'}">${checkSVG}</button>
       <div class="item-main" data-act="open">
@@ -558,6 +563,7 @@
     el.addEventListener('click', ev => {
       if (el._swUntil && Date.now() < el._swUntil) { ev.stopPropagation(); ev.preventDefault(); return; }
       const li = ev.target.closest('.item'); if (!li) return;
+      if (li.classList.contains('dvi')) { const dv = li.dataset.id.split(':')[1]; if (MC.Days && MC.Days.openDetail) MC.Days.openDetail(dv); return; }   // 纪念日：打开详情页
       const e = MC.data.events.find(x => x.id === li.dataset.id); if (!e) return;
       // 整条都能点开编辑：只有完成框、滑出来的按钮有自己的动作
       const act = ev.target.closest('[data-act]')?.dataset.act || (ev.target.closest('.swipe-acts') ? null : 'open');
@@ -684,6 +690,7 @@
   // 把位置、圆角、裁剪范围发给原生；网页自己的毛玻璃底去掉（字和图标还是网页画，原生的透明玻璃盖在上面）。
   // 只给「控件」用液态玻璃（和 Apple 的规则一样）；面板、卡片、提示条还是毛玻璃。
   // 透明相机里的按钮、分段、卡片不交给原生画：压在实时相机画面上，原生玻璃常常画不出来，网页又把字藏了，结果整个相机界面什么都看不见
+  // 【联动:原生玻璃】见 CLAUDE.md「联动分组」
   const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .lgn, .dv-cover.photo .cv-tile'
     + ', .pod-today .face, .fan:not(.fan-add) .face, .set-back .face, #page-cal .topbar .title, #page-cal .weekdays, .pb-thumb';   // 星期条也是一条原生液态玻璃 // 日历页的悬浮控件（时钟胶囊、扇形按钮、设置页返回、月份胶囊）；logo 和分页点里是图片 / 圆点，原生画不了，留给网页
   const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips, .lgn-dark, .cv-plate, .cv-tile, .dp-plate, .cam-pill'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清

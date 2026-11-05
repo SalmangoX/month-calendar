@@ -16,8 +16,10 @@ const CONFIG = {
 };
 
 const FILE = "mcal-calendar.json";
+// 【联动:优先级颜色】见 CLAUDE.md「联动分组」
 const PHEX = { 3: "#D4472C", 2: "#C98A1E", 1: "#5B8FD0", 0: "#A3A1AD" }; // 无 灰 · 低 天蓝 · 中 琥珀 · 高 朱红（和 App 一致）
 // 深色模式专门设计的深色调 [底色, 文字]，和应用 MC.PAL.dark 一致
+// 【联动:深色调】见 CLAUDE.md「联动分组」
 const PDARK = { 3: ["#A3351F", "#FDE3DD"], 2: ["#AC7305", "#F7E7D1"], 1: ["#235692", "#DDEBFD"], 0: ["#3D3C41", "#E9E9ED"] };
 const RANK = p => (p >= 0 && p <= 3 ? p : 0); // 只认 0–3
 const WD = ["日", "一", "二", "三", "四", "五", "六"];
@@ -59,6 +61,7 @@ function dyn(light, dark) {
 const hex = (h, a) => (a == null ? new Color(h) : new Color(h, a));
 const ACCENT = dyn(hex(ACCENT_HEX[0]), hex(ACCENT_HEX[1]));
 // 今天的日期、「还有几项」小标签：品牌渐变 金黄 → 天蓝 → 亮蓝（和 App 里选中的今天一样）
+// 【联动:品牌渐变】见 CLAUDE.md「联动分组」
 function brandGrad() {
   const g = new LinearGradient();
   g.colors = [dyn(hex("#E2B562"), hex("#E4B96B")), dyn(hex("#74A8E6"), hex("#80B1EC")), dyn(hex("#5A8DDA"), hex("#6A99E2"))];
@@ -115,13 +118,17 @@ function barColors(p, done, out, ch) {
   return { bg: dyn(hex(bgL), hex(bgD)), fg: c.fg };
 }
 // 优先级色条的渐变（和应用 store.js 的 GRAD 同一组色标）：低在右端带一点中级，中两端带低级 / 高级，高在左端带一点中级
+// 【联动:优先级色条】见 CLAUDE.md「联动分组」
 const PGRAD = { light: { 1: [[0, '#5B8FD0'], [75, '#5B8FD0'], [81.25, '#6A9FE0'], [87.5, '#77ABED'], [93.75, '#DAA258'], [100, '#DAA14F']], 2: [[0, '#79ACEF'], [3.12, '#DAA357'], [6.25, '#D9A04D'], [9.38, '#D3973A'], [12.5, '#C98A1E'], [87.5, '#C98A1E'], [90.62, '#DC8D2C'], [93.75, '#EB8D38'], [96.88, '#F3863E'], [100, '#F1783E']], 3: [[0, '#ED8C39'], [6.25, '#F3843E'], [12.5, '#F0753D'], [18.75, '#E46036'], [25, '#D4472C'], [100, '#D4472C']] }, dark: { 1: [[0, '#235692'], [75, '#235692'], [81.25, '#386AA7'], [87.5, '#4A7BB8'], [93.75, '#AD7833'], [100, '#B17D2E']], 2: [[0, '#4D7DBA'], [3.12, '#AD7A31'], [6.25, '#B17D2D'], [9.38, '#B07A20'], [12.5, '#AC7305'], [87.5, '#AC7305'], [90.62, '#BB761C'], [93.75, '#C6762A'], [96.88, '#CA7030'], [100, '#C56330']], 3: [[0, '#C7752B'], [6.25, '#C96E31'], [12.5, '#C36030'], [18.75, '#B54D29'], [25, '#A3351F'], [100, '#A3351F']] } };
-// 没完成、本月、不是记录日历颜色的优先级事件：返回渐变（深浅色各一套），否则 null
-function chipGrad(p, done, out, ch) {
+// 优先级事件的渐变（深浅色各一套）；已完成、别的月份用同一组色标，透明度和 chipColors 一样。记录日历颜色返回 null【联动:优先级色条】
+// solid：跨天横条要不透明（底下的格子线不透出来），每个色标先叠在背景色上（和 barColors 一样）
+function chipGrad(p, done, out, ch, solid) {
   const L = PGRAD.light[p], D = PGRAD.dark[p];
-  if (done || out || ch || !L) return null;
+  if (ch || !L) return null;
   const g = new LinearGradient();
-  g.colors = L.map((s, i) => dyn(hex(s[1]), hex(D[i][1])));
+  const aL = done ? 0.16 : out ? 0.5 : 1, aD = done ? 0.26 : out ? 0.45 : 1;
+  g.colors = L.map((s, i) => { const l = s[1], d = done ? s[1] : D[i][1];
+    return solid ? dyn(hex(over(l, aL, BG_L)), hex(over(d, aD, BG_D))) : dyn(hex(l, aL), hex(d, aD)); });
   g.locations = L.map(s => s[0] / 100);
   g.startPoint = new Point(0, 0.5); g.endPoint = new Point(1, 0.5);
   return g;
@@ -435,7 +442,7 @@ function addBar(parent, g, width) {
   const body = bar.addStack();
   body.size = new Size(0, h);
   body.backgroundColor = bg;
-  { const gr = chipGrad(e.priority, e.done, g.out, calHex(e)); if (gr) body.backgroundGradient = gr; }
+  { const gr = chipGrad(e.priority, e.done, g.out, calHex(e), true); if (gr) body.backgroundGradient = gr; }
   body.cornerRadius = g.ol && g.or ? 0 : R;
   body.setPadding(0, g.ol && !g.or ? 0.5 : 1.5, 0, 0.5);
   body.centerAlignContent();

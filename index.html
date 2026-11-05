@@ -176,7 +176,7 @@
   <div class="dr-list" id="drawerList"></div>
   <button class="dr-add lgbtn tap" id="drawerAdd">
     <i class="dr-add-ic"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke-width="2.6"/></svg></i>
-    <span>新建记录日历</span>
+    <span>新建子日历</span>
   </button>
 </aside>
 
@@ -397,6 +397,38 @@
   </div>
   <div class="help-body ncard" id="notifyBody"></div>
 </section>
+<!-- 新建子日历：两种日历的介绍卡片（左：记录日历，右：纪念日历），各带一个简单的效果图 -->
+<section class="sheet fl" id="calKindSheet" aria-label="新建子日历">
+  <div class="handle"></div>
+  <div class="sheet-head">
+    <button class="sh-btn lgbtn lgn tap" data-close>取消</button>
+    <h2>新建子日历</h2>
+    <span></span>
+  </div>
+  <p class="ck-lead">子日历和主日历分开记，也可以显示在主日历里。</p>
+  <div class="ck-grid">
+    <button class="ck-card tap" data-k="rec" style="--cc:#5B8FD0">
+      <span class="ck-art ck-rec" aria-hidden="true">
+        <span class="ck-wk"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="ck-rows"><b style="--w:62%;background:linear-gradient(90deg,#5B8FD0 75%,#77ABED 88%,#DAA14F)"></b><b style="--w:44%;background:linear-gradient(90deg,#C98A1E 70%,#F1783E)"></b><b style="--w:80%;background:linear-gradient(90deg,#ED8C39,#D4472C 25%)"></b><b style="--w:36%;background:#5BA86B"></b></span>
+        <span class="ck-bars"><i style="--h:40%;--c:#5BA86B"></i><i style="--h:70%;--c:#C98A1E"></i><i style="--h:55%;--c:#E07A3C"></i><i style="--h:85%;--c:#D4472C"></i></span>
+      </span>
+      <b class="ck-name">记录日历</b>
+      <span class="ck-desc">像主日历一样记一件件事：时间、提醒、完成。可以用 4 个等级评分，看统计。</span>
+      <span class="ck-eg">适合：运动、学习、日志</span>
+    </button>
+    <button class="ck-card tap" data-k="days" style="--cc:#D46A8C">
+      <span class="ck-art ck-days" aria-hidden="true">
+        <span class="ck-heart"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.8-4.6-7.8-10.6a4.3 4.3 0 0 1 7.8-2.6 4.3 4.3 0 0 1 7.8 2.6c0 6-7.8 10.6-7.8 10.6z"/></svg></span>
+        <span class="ck-big"><small>还有</small>12<small>天</small></span>
+        <span class="ck-pill">每年 · 生日</span>
+      </span>
+      <b class="ck-name">纪念日历</b>
+      <span class="ck-desc">记重要的日子：未来的倒数，过去的累计。可以写小纸条、建相册、生成分享图片。</span>
+      <span class="ck-eg">适合：生日、纪念日、考试</span>
+    </button>
+  </div>
+</section>
 <section class="sheet tall fl" id="helpSheet" aria-label="帮助">
   <div class="handle"></div>
   <div class="sheet-head">
@@ -520,6 +552,7 @@
   <feDisplacementMap in="SourceGraphic" in2="nb" scale="7" xChannelSelector="R" yChannelSelector="G"/>
 </filter></svg>
 <div class="dock-scrim" id="dockScrim"></div>
+<!-- 【联动:底部悬浮控件】见 CLAUDE.md「联动分组」 -->
 <div class="dock2" id="dock2">
   <button class="pod-today tap" id="bubbleToday" aria-label="今日">
     <span class="face" id="ptFace">
@@ -584,6 +617,7 @@
     if (e.clientX < r.left - m || e.clientX > r.right + m || e.clientY < r.top - m || e.clientY > r.bottom + m) unpress();
   }, { passive: true });
 
+  // 【联动:底部悬浮控件】见 CLAUDE.md「联动分组」
   // ---------- logo 扇形菜单 ----------
   // 按钮沿四分之一圆弧排开，彼此的间距和到 logo 的间距一样；在设置页里「设置」换成「返回」
   // 开了等级评分的记录日历：加号和设置中间多一个「统计」（三个时半径 88，100° / 145° / 190°，和原生 DockSize.fan 一样）；在统计页里它换成「返回」

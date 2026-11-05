@@ -18,7 +18,7 @@ final class NavModel: ObservableObject {
         let id: String, name: String, color: String, kind: String, on: Bool, sub: String, inMain: Bool, notify: Bool, menu: [Item]
         var key: String { id.isEmpty ? "_main" : id }
     }
-    struct Drawer: Decodable { let title, sub, recTitle, recEmpty, daysTitle: String; let main: Row; let recs, days: [Row]; let add: [Item] }
+    struct Drawer: Decodable { let title, sub, recTitle, recEmpty, daysTitle: String; let main: Row; let recs, days: [Row]; let add: [Item]; let addLabel: String? }
 
     @Published var tabs: [Tab] = []
     @Published var page = "cal"
@@ -43,6 +43,7 @@ final class NavModel: ObservableObject {
     }
     @Published var lg: [LGItem] = []
     /// 新底栏（网页 0.23 起：左时钟胶囊 · 中分页点 · 右 logo 扇形菜单）。网页发来时就画新底栏，旧网页或纪念日历是 nil，仍用旧的菜单栏和加号
+    // 【联动:底部悬浮控件】见 CLAUDE.md「联动分组」
     struct Dock: Decodable, Equatable { let t: String; let ap: String; let today: Bool; let back: String; let pager: Bool; let n: Int?; let p: Double; let set: Bool; let st: Bool?; let lit: Bool?; let pv: Double? }   // st：扇形里有「统计」（开了等级评分的记录日历）
     @Published var dock: Dock?
     @Published var fanOpen = false
@@ -406,6 +407,7 @@ struct GlassAddButton: View {
 /// （网页那边这时把自己的底、字、图标都藏起来，只负责接收点按）。每一帧跟着网页的位置走（滚动、拖动、面板弹出），
 /// 被滚动区裁掉的部分也一样裁掉。优先级的水滴只在按住拖动时由这里画成透明的玻璃透镜（停着时是网页画的白色底板）
 @available(macOS 26.0, iOS 26.0, *)
+// 【联动:原生玻璃】见 CLAUDE.md「联动分组」
 struct GlassLayer: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
@@ -560,6 +562,7 @@ final class PassThroughHostingView<Content: View>: NSHostingView<Content> {
 // MARK: - 新底栏
 
 /// 新底栏的尺寸，和网页 styles.css 末尾一致（网页的今日页从这个胶囊的位置展开，两边对得上动画才自然）
+// 【联动:底部悬浮控件】见 CLAUDE.md「联动分组」
 enum DockSize {
     static let hit: CGFloat = 64, lift: CGFloat = 40, side: CGFloat = 10
     static let pill: CGFloat = 52, logo: CGFloat = 54, fan: CGFloat = 50, back: CGFloat = 46
@@ -575,6 +578,7 @@ enum DockSize {
 }
 
 /// 品牌色（和网页一致）：金黄 → 天蓝 → 亮蓝
+// 【联动:品牌渐变】见 CLAUDE.md「联动分组」
 enum Brand {
     static func a(_ dark: Bool) -> Color { Color(argb: dark ? 0xFFE4_B96B : 0xFFE2_B562) }
     static func mid(_ dark: Bool) -> Color { Color(argb: dark ? 0xFF80_B1EC : 0xFF74_A8E6) }
@@ -853,6 +857,7 @@ struct GlassMenu: View {
 /// 左侧日历栏：浮在日历上的一张玻璃卡片，和网页的日历栏同样的分组和操作。
 /// 弹出时带一点回弹；往右拉会像果冻一样被拉长，往左推可以收起（和网页原来的手感一样）
 @available(macOS 26.0, iOS 26.0, *)
+// 【联动:侧拉菜单】见 CLAUDE.md「联动分组」
 struct GlassDrawer: View {
     @ObservedObject var m: NavModel
     @Environment(\.colorScheme) private var scheme
@@ -917,16 +922,14 @@ struct GlassDrawer: View {
                 }
                 .padding(.horizontal, 10).padding(.bottom, 8)
             }
-            // 新建日历：一颗液态玻璃胶囊（和网页同一个样子），左边是品牌渐变的加号圆
-            Menu {
-                ForEach(d.add) { a in Button(a.label) { m.addCal(a.value) } }
-            } label: {
+            // 新建子日历：一颗液态玻璃胶囊（和网页同一个样子），左边是品牌渐变的加号圆；点了打开网页里两种日历的介绍卡片
+            Button { m.addCal("") } label: {
                 HStack(spacing: 11) {
                     Image(systemName: "plus").font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
                         .frame(width: 36, height: 36)
                         .background(Circle().fill(Brand.grad(scheme == .dark)))
                         .shadow(color: Brand.a(scheme == .dark).opacity(0.35), radius: 8, y: 4)
-                    Text(d.add.first?.label ?? "").font(.system(size: 15.5, weight: .semibold)).foregroundStyle(Color.primary)
+                    Text(d.addLabel ?? d.add.first?.label ?? "").font(.system(size: 15.5, weight: .semibold)).foregroundStyle(Color.primary)
                     Spacer(minLength: 0)
                 }
                 .padding(.leading, 8).padding(.trailing, 18)
@@ -934,7 +937,6 @@ struct GlassDrawer: View {
                 .contentShape(Capsule())
                 .glassEffect(NavGlass.chrome(scheme, interactive: true), in: .capsule)
             }
-            .menuIndicator(.hidden)
             .buttonStyle(.plain)
             .padding(.horizontal, 12).padding(.bottom, 12).padding(.top, 4)
         }

@@ -174,6 +174,7 @@ if (daily.on) {
 }
 
 // 课程提醒：日程里每节课开始前 lead 分钟（按用户当前所在时区算；晚了 20 分钟以上就不补发，上课提醒过时没用）
+// 【联动:提醒】见 CLAUDE.md「联动分组」
 const cr = data.courseRemind || {};
 if (cr.on && Array.isArray(data.courses) && data.courses.length) {
   const tz = cr.tz || daily.tz || 'UTC', lead = Number(cr.lead) || 0;

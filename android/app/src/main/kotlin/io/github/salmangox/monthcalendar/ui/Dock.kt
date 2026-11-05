@@ -73,6 +73,7 @@ import kotlin.math.sin
  * 纪念日历也用这层（分页点是 日历 · 纪念日 · 总览 三页）。
  */
 @Stable
+// 【联动:底部悬浮控件】见 CLAUDE.md「联动分组」
 class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit) {
     class Dock(val t: String, val ap: String, val today: Boolean, val back: String, val pager: Boolean, val n: Int, val p: Float, val set: Boolean,
                /** 扇形里有「统计」（开了等级评分的记录日历） */ val st: Boolean,
@@ -122,6 +123,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
         const val PILL = 52; const val LOGO = 54; const val FAN = 50; const val BACK = 46
 
         /** 网页加载完后注入：藏起网页自己的悬浮控件，状态变化时发给原生（和 iOS navJS 的 dockState / backShown 一样） */
+        // 【联动:底部悬浮控件】见 CLAUDE.md「联动分组」
         const val NAV_JS = """
 (function(){
   var N = window.MCNative; if (!N || !N.nav || window.__mcNav) return; window.__mcNav = 1;

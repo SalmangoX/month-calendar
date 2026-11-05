@@ -48,6 +48,7 @@
     const rs = getComputedStyle(document.documentElement), px = k => parseFloat(rs.getPropertyValue(k)) || 0;
     TOP = base + (view === 'month' ? px('--cal-drop') + px('--cal-shift') : 0);
     rowH = Math.max(0, (pv ? fullH : H) - base) / 6.5;
+    // 【联动:顶部悬浮】见 CLAUDE.md「联动分组」
     // 吸附线 = 默认状态下本周那一行的顶边（月视图打开时当月第一行停在第二行的位置：TOP + rowH）。
     // 星期条的底边在吸附线上方 4px；月份胶囊的中线在最上面那行第一、第二条事件中间（格子大小、行的位置都不变）
     if (view === 'month' && !pv) {
@@ -249,7 +250,7 @@
   // 统计某段日期里的事件：跨好几天的事件只算一个
   function tally(prefix) {
     const seen = new Set(); let total = 0, done = 0;
-    for (const [k, arr] of MC.byDate) if (k.startsWith(prefix)) for (const e of arr) if (!seen.has(e.id)) { seen.add(e.id); total++; if (e.done) done++; }
+    for (const [k, arr] of MC.byDate) if (k.startsWith(prefix)) for (const e of arr) if (!e.dv && !seen.has(e.id)) { seen.add(e.id); total++; if (e.done) done++; }
     return { total, done };
   }
   function monthTitle() {
@@ -518,12 +519,12 @@
   // ---------- 当日预览 ----------
   function renderPreview() {
     const d = MC.parse(selected);
-    const evs = MC.eventsOn(selected);
-    const done = evs.filter(e => e.done).length;
+    const evs = MC.eventsOn(selected), tasks = evs.filter(e => !e.dv);   // 纪念日不算「项」，也不算完成
+    const done = tasks.filter(e => e.done).length;
     preview.innerHTML = `
       <div class="pv-head">
         <div><h3>${d.getMonth() + 1}月${d.getDate()}日 周${MC.WD[d.getDay()]}</h3>
-        <p>${MC.relLabel(selected)}${evs.length ? ` · ${evs.length} 项，已完成 ${done}` : ''}</p></div>
+        <p>${MC.relLabel(selected)}${tasks.length ? ` · ${tasks.length} 项，已完成 ${done}` : ''}</p></div>
         <button class="round glass" id="pvClose" aria-label="收起">
           <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6" stroke-width="2.4"/></svg>
         </button>

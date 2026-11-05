@@ -12,6 +12,7 @@ import WidgetKit
 /// 提醒与刷新的核心（对应安卓 Engine）：数据变化、同步、换日、唤醒时，
 /// 重新预约系统通知（App 退出后也照样准时弹出），并刷新桌面小组件。Mac 版和 iPhone 版共用这一份。
 @MainActor
+// 【联动:提醒】见 CLAUDE.md「联动分组」
 final class Engine: ObservableObject {
     static let shared = Engine()
 
