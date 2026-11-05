@@ -198,7 +198,9 @@
   // 上面一条本周的日期（点一下看那一天），下面先列没有具体时间的事件（全天、待办），再是一整天的时间线：
   // 有时间段的事件按开始、结束时间画成色块，时间重叠的并排；今天有一条红色的「现在」线
   let tdDay = '', tdScrolled = '';
-  const TL_H = 52; // 一小时的高度
+  // 一小时的高度：可以两指捏合缩放（手机两指、Mac 触控板捏合），记在本机
+  const TL_MIN = 26, TL_MAX = 160;
+  let tlH = 52; try { tlH = Math.max(TL_MIN, Math.min(TL_MAX, Number(localStorage.getItem('mcal.tlH')) || 52)); } catch (e) {}
   function renderToday() {
     const t = MC.todayStr();
     if (!tdDay || (tdDay < MC.ymd(MC.weekStartOf(new Date())) || tdDay > MC.ymd(MC.addDays(MC.weekStartOf(new Date()), 6)))) tdDay = t;
@@ -235,18 +237,18 @@
     const groups = []; let g = null, gEnd = -1;
     for (const x of span) { if (!g || x.a >= gEnd) { g = []; groups.push(g); gEnd = -1; } g.push(x); gEnd = Math.max(gEnd, x.b); }
     for (const grp of groups) { const ends = []; for (const x of grp) { let k = ends.findIndex(v => v <= x.a); if (k < 0) { k = ends.length; ends.push(0); } ends[k] = x.b; x.lane = k; } grp.forEach(x => (x.lanes = ends.length)); }
-    let tl = `<div class="td-tl" style="height:${(eH - sH) * TL_H}px">`;
-    for (let hr = sH; hr <= eH; hr++) tl += `<div class="td-hr" style="top:${(hr - sH) * TL_H}px"><span>${hr === 12 && !MC.use12() ? '12:00' : MC.use12() ? MC.hourLabel(hr % 24, true) : `${hr}:00`}</span></div>`;
+    let tl = `<div class="td-tl" data-sh="${sH}" data-eh="${eH}" style="height:${(eH - sH) * tlH}px">`;   // data-*：捏合缩放时原地重新排（tlLayout）
+    for (let hr = sH; hr <= eH; hr++) tl += `<div class="td-hr" data-h="${hr}" style="top:${(hr - sH) * tlH}px"><span>${hr === 12 && !MC.use12() ? '12:00' : MC.use12() ? MC.hourLabel(hr % 24, true) : `${hr}:00`}</span></div>`;
     tl += '<ul class="td-evs">';
     for (const x of span) {
-      const top = (x.a / 60 - sH) * TL_H, ht = Math.max(22, (x.b - x.a) / 60 * TL_H - 2), w = 100 / x.lanes;
+      const top = (x.a / 60 - sH) * tlH, ht = Math.max(22, (x.b - x.a) / 60 * tlH - 2), w = 100 / x.lanes;
       const e = x.e, tiny = ht < 38;
-      tl += `<li class="item td-ev${e.done ? ' done' : ''}${tiny ? ' tiny' : ''}${e.dv ? ' dvi' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)};top:${top}px;height:${ht}px;left:calc(${x.lane * w}% + 1px);width:calc(${w}% - 3px)">
+      tl += `<li class="item td-ev${e.done ? ' done' : ''}${tiny ? ' tiny' : ''}${e.dv ? ' dvi' : ''}" data-id="${e.id}" data-a="${x.a}" data-b="${x.b}" style="--c:${MC.evColor(e)};top:${top}px;height:${ht}px;left:calc(${x.lane * w}% + 1px);width:calc(${w}% - 3px)">
         <button class="td-ev-main" data-act="open"><b>${esc(e.title)}</b>${tiny ? '' : `<small>${esc(MC.fmtRange(e.time, e.endTime))}${e.note ? ' · ' + esc(e.note) : ''}</small>`}</button>
         ${e.dv ? '' : `<button class="td-ck" data-act="toggle" aria-label="${e.done ? '标为未完成' : '完成'}"></button>`}</li>`;   // 纪念日只读，没有完成按钮
     }
     tl += '</ul>';
-    if (isToday && nowMin >= sH * 60 && nowMin <= eH * 60) tl += `<div class="td-now" style="top:${(nowMin / 60 - sH) * TL_H}px"><span>${MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`, true)}</span></div>`;
+    if (isToday && nowMin >= sH * 60 && nowMin <= eH * 60) tl += `<div class="td-now" data-m="${nowMin}" style="top:${(nowMin / 60 - sH) * tlH}px"><span>${MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`, true)}</span></div>`;
     tl += '</div>';
     if (!list.length && !overdue.length) h += `<p class="td-empty">${isToday ? '今天没有安排，点右下角 ＋ 添加' : '这一天没有安排'}</p>`;
     const old = $('#todayBody .td-scroll'), keep = old ? old.scrollTop : 0;
@@ -257,7 +259,7 @@
       tdScrolled = t;
       const tlEl = $('#todayBody .td-tl'), box = $('#todayBody .td-scroll');
       requestAnimationFrame(() => {
-        const y = tlEl.offsetTop - box.offsetTop + (nowMin / 60 - sH) * TL_H, vh = box.clientHeight;
+        const y = tlEl.offsetTop - box.offsetTop + (nowMin / 60 - sH) * tlH, vh = box.clientHeight;
         if (y > vh * 0.72) box.scrollTop = y - vh * 0.6;
       });
     }
@@ -270,6 +272,74 @@
     const list = MC.data.events.filter(x => MC.inMainView(x) && !x.done && MC.endDate(x) < t);
     if (list.length) UI.moveEvents(list, t, `已把 ${list.length} 个事件移到今天`);
   });
+  // ---------- 今日时间线：两指捏合缩放（以两指中间那个钟点为中心，缩放时它不跑）----------
+  {
+    let pz = null, raf = 0;
+    const box = () => $('#todayBody .td-scroll');
+    // 开始：记下两指中间对着时间线上的第几个小时（从时间线顶上算）
+    const begin = midY => {
+      const b = box(), tl = b && b.querySelector('.td-tl'); if (!b || !tl) return null;
+      const top = b.getBoundingClientRect().top, off = tl.offsetTop;
+      return { h0: tlH, my: midY - top, hr: (b.scrollTop + midY - top - off) / tlH };
+    };
+    const apply = k => {
+      if (!pz) return;
+      const nh = Math.max(TL_MIN, Math.min(TL_MAX, pz.h0 * k));
+      if (Math.abs(nh - tlH) < .5) return;
+      tlH = nh;
+      cancelAnimationFrame(raf);
+      const z = pz;
+      raf = requestAnimationFrame(() => {
+        // 捏合中只原地改位置和高度，不重画：重画会把手指按着的元素换掉，之后的触摸事件就收不到了（松手后再完整重画一次）
+        const b = box(), tl = b && b.querySelector('.td-tl'); if (!b || !tl) return;
+        tlLayout(tl);
+        b.scrollTop = z.hr * tlH + tl.offsetTop - z.my;   // 两指中间的那个钟点留在原处
+      });
+    };
+    const tlLayout = tl => {
+      const sH = +tl.dataset.sh, eH = +tl.dataset.eh;
+      tl.style.height = (eH - sH) * tlH + 'px';
+      tl.querySelectorAll('.td-hr').forEach(h => (h.style.top = (+h.dataset.h - sH) * tlH + 'px'));
+      tl.querySelectorAll('.td-ev').forEach(ev => { const a = +ev.dataset.a, bb = +ev.dataset.b, ht = Math.max(22, (bb - a) / 60 * tlH - 2);
+        ev.style.top = (a / 60 - sH) * tlH + 'px'; ev.style.height = ht + 'px'; ev.classList.toggle('tiny', ht < 38); });
+      const nw = tl.querySelector('.td-now'); if (nw) nw.style.top = (+nw.dataset.m / 60 - sH) * tlH + 'px';
+    };
+    const done = () => {
+      if (!pz) return; pz = null;
+      try { localStorage.setItem('mcal.tlH', String(Math.round(tlH))); } catch (e) {}
+      cancelAnimationFrame(raf);
+      requestAnimationFrame(() => { const b = box(), keep = b ? b.scrollTop : 0; renderToday(); const b2 = box(); if (b2) b2.scrollTop = keep; });   // 松手后完整重画（事件里的时间文字按新高度决定显示不显示）
+    };
+    const tb = $('#todayBody');
+    const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    tb.addEventListener('touchstart', e => {
+      if (e.touches.length !== 2 || !e.target.closest('.td-scroll')) return;
+      pz = begin((e.touches[0].clientY + e.touches[1].clientY) / 2); if (pz) pz.d0 = dist(e.touches);
+    }, { passive: true });
+    // 缩放时时间线会重画，按下去的那个元素被换掉后事件就不再冒泡到 #todayBody：移动 / 松手 / 捏合变化都在 document 上接
+    document.addEventListener('touchmove', e => {
+      if (!pz || e.touches.length !== 2 || !pz.d0) return;
+      if (e.cancelable) e.preventDefault();
+      apply(dist(e.touches) / pz.d0);
+    }, { capture: true, passive: false });
+    document.addEventListener('touchend', e => { if (pz && e.touches.length < 2) done(); }, true);
+    document.addEventListener('touchcancel', done, true);
+    // Mac 上的节律 App / Safari：触控板捏合是 gesture 事件
+    // （iPhone 上两指捏合也会发 gesture 事件：那时已经按 touch 在缩放了，gesture 这边只拦住系统缩放，不重复算）
+    tb.addEventListener('gesturestart', e => { if (!e.target.closest || !e.target.closest('.td-scroll')) return; e.preventDefault(); if (!pz) pz = begin(e.clientY); }, { passive: false });
+    document.addEventListener('gesturechange', e => { if (!pz) return; e.preventDefault(); if (!pz.d0) apply(e.scale); }, { passive: false });
+    document.addEventListener('gestureend', e => { if (!pz) return; e.preventDefault(); done(); }, { passive: false });
+    // Chrome 等：触控板捏合是带 ctrl 的 wheel
+    let wT = 0;
+    tb.addEventListener('wheel', e => {
+      if (!e.ctrlKey || !e.target.closest('.td-scroll')) return;
+      e.preventDefault();
+      if (!pz) pz = begin(e.clientY);
+      if (!pz) return;
+      pz.k = (pz.k || 1) * Math.exp(-e.deltaY / 120); apply(pz.k);
+      clearTimeout(wT); wT = setTimeout(done, 200);
+    }, { passive: false });
+  }
   // 时间线上的「现在」每分钟走一格
   setInterval(() => { if (page === 'today' && tdDay === MC.todayStr() && !UI.anyOpen()) renderToday(); }, 60000);
   UI.bindList($('#todayBody'));
@@ -539,17 +609,28 @@
     </div>`;
   }
   // 上面的卡片：周 / 月 / 年 / 全部 四页，左右滑动切换（scroll-snap），顶上的胶囊跟着走
-  let rsSilent = false;
+  let rsSilent = false, rsAuto = null;
   function renderRsCard(c, labels) {
+    if (!rsBar()) $('#rsSeg').innerHTML = UI.lgBar(RANGES.map(r => ({ v: r, name: MC.t({ week: '周', month: '月', year: '年', all: '全部' }[r]) })), rs.range);
     $('#rsPages').innerHTML = RANGES.map(r => rsPage(c, r, labels)).join('');
     rsScrollTo(rs.range, false);
   }
   function rsScrollTo(range, smooth) {
     const pg = $('#rsPages'), i = RANGES.indexOf(range);
-    const go = () => { if (!pg.clientWidth) return; rsSilent = !smooth; pg.scrollTo({ left: i * pg.clientWidth, behavior: smooth ? 'smooth' : 'instant' }); rsInd(i); if (!smooth) requestAnimationFrame(() => (rsSilent = false)); };
+    // smooth：点 / 拖了玻璃分段——水滴已经在目标格上，卡片滑过去的途中不再让水滴跟着倒回来（rsAuto）
+    const go = () => { if (!pg.clientWidth) return; rsSilent = !smooth; rsAuto = smooth ? i : null; pg.scrollTo({ left: i * pg.clientWidth, behavior: smooth ? 'smooth' : 'instant' }); rsInd(i); if (!smooth) requestAnimationFrame(() => (rsSilent = false)); };
     if (pg.clientWidth) go(); else requestAnimationFrame(go);   // 页面刚显示出来、还没排版时等一帧
   }
-  const rsInd = p => { $('#rsCard').style.setProperty('--p', p); $('#rsSeg').querySelectorAll('button').forEach((b, k) => b.classList.toggle('on', k === Math.round(p))); };
+  // 卡片左右滑时：玻璃水滴跟着手指走（不走它自己的弹跳过渡），停下后再恢复
+  const rsBar = () => $('#rsSeg .lgbar');
+  let rsFollowT = 0;
+  const rsInd = (p, follow) => {
+    const bar = rsBar(); if (!bar || bar.classList.contains('dragging')) return;
+    if (follow) { bar.classList.add('follow'); clearTimeout(rsFollowT); rsFollowT = setTimeout(() => bar.classList.remove('follow'), 160); }
+    bar.style.setProperty('--p', p);
+    const k = Math.round(p); bar.dataset.i = k;
+    bar.querySelectorAll('.lg-opt').forEach((o, j) => { o.classList.toggle('on', j === k); o.setAttribute('aria-checked', String(j === k)); });
+  };
   // 下面的内容：跟着卡片当前那一页的时段
   function renderRsBody(c, labels) {
     const { span, evs, rated } = rsSum(c, rs.range);
@@ -584,8 +665,8 @@
   });
   // 卡片外面：概览 / 时段 / 事件 / 备注
   $('#rsTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.dataset.v === rs.tab) return; rs.tab = b.dataset.v; rs.pick = null; rsBodyOnly(); });
-  // 卡片顶上的胶囊：点了滑到那一页
-  $('#rsSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rsScrollTo(b.dataset.v, true); if (b.dataset.v !== rs.range) { rs.range = b.dataset.v; rs.pick = null; rs.openEv = null; rsBodyOnly(); } });   // 下面的内容马上跟着换，不等滑完
+  // 卡片顶上的玻璃分段：点或者拖到哪一格，卡片就滑到那一页，下面的内容马上跟着换
+  $('#rsSeg').addEventListener('lgchange', e => { const v = e.detail.v; rsScrollTo(v, true); if (v !== rs.range) { rs.range = v; rs.pick = null; rs.openEv = null; rsBodyOnly(); } });
   // 卡片里每一页的 ‹ ›：只翻这一页自己的时段
   $('#rsPages').addEventListener('click', e => {
     const b = e.target.closest('[data-step]'); if (!b || b.disabled) return;
@@ -599,8 +680,9 @@
   { let stT = 0;
     $('#rsPages').addEventListener('scroll', () => {
       const pg = $('#rsPages'); if (!pg.clientWidth) return;
-      const p = pg.scrollLeft / pg.clientWidth; rsInd(p);
+      const p = pg.scrollLeft / pg.clientWidth;
       if (rsSilent) return;
+      if (rsAuto !== null) { if (Math.abs(p - rsAuto) < .02) rsAuto = null; } else rsInd(p, true);
       clearTimeout(stT); stT = setTimeout(() => {
         const r = RANGES[Math.max(0, Math.min(3, Math.round(pg.scrollLeft / pg.clientWidth)))];
         if (r !== rs.range) { rs.range = r; rs.pick = null; rs.openEv = null; rsBodyOnly(); }

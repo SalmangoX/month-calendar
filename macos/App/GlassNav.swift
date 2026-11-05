@@ -474,10 +474,14 @@ struct GlassLayer: View {
                             .mask(shape.strokeBorder(Color.black, lineWidth: 7))
                             .position(x: it.rect.midX, y: it.rect.midY)
                     }
+                    // 按着浮起来的水滴（分段控件）：透镜本身透明，下面那几格字由网页交过来、放大后清楚地画在透镜上面（content 里的 runs），外面一圈细边
                     content(it)
                         .frame(width: it.rect.width, height: it.rect.height)
                         .glassEffect(it.k == "p" ? Glass.identity : glass(it), in: shape)
                         .macGlassFinish(shape)
+                        .clipShape(it.k == "l" ? AnyShape(shape) : AnyShape(Rectangle().inset(by: -400)))   // 透镜里放大的字不出透镜
+                        .overlay { if it.k == "l" { shape.strokeBorder(Color.primary.opacity(scheme == .dark ? 0.16 : 0.08), lineWidth: 0.6) } }
+                        .shadow(color: .black.opacity(it.k == "l" ? (scheme == .dark ? 0.45 : 0.14) : 0), radius: 9, y: 4)
                         .position(x: it.rect.midX, y: it.rect.midY)
                 }
                 .opacity(it.alpha * (m.drawerOpen && it.rect.maxX < NavModel.panelW + 20 ? 0 : 1))   // 侧拉菜单是透明玻璃：整个被它盖住的原生玻璃（月份胶囊）先收起来，菜单整个盖住胶囊、不透出字
@@ -945,7 +949,7 @@ struct GlassDrawer: View {
             if let k {
                 var t = Transaction(); t.disablesAnimations = true
                 withTransaction(t) { moreShown = k; moreUp = false }
-                DispatchQueue.main.async { withAnimation(.spring(response: 0.26, dampingFraction: 0.78)) { moreUp = true } }   // 干脆，别拖
+                DispatchQueue.main.async { withAnimation(.spring(response: 0.26, dampingFraction: 0.92)) { moreUp = true } }   // 干脆、不晃
             } else if moreShown != nil {
                 withAnimation(.spring(response: 0.2, dampingFraction: 0.9)) { moreUp = false }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { if m.moreRow == nil { moreShown = nil } }
@@ -965,7 +969,7 @@ struct GlassDrawer: View {
                 defer { hLock = nil }
                 if hLock == true { m.releaseDrawer(predicted: v.predictedEndTranslation.width) }
             })
-        .animation(reduceMotion ? nil : .spring(response: 0.46, dampingFraction: 0.72), value: m.drawerOpen) // 弹出带一点回弹
+        .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 1), value: m.drawerOpen) // 顺滑吸到位置上，不过冲、不弹回（用户定的）
         .onEscape { m.closeDrawer() }
     }
 
@@ -1228,7 +1232,7 @@ struct GlassDrawer: View {
             .buttonStyle(.plain)
             if !r.menu.isEmpty {
                 // 「⋯」：以这三个点为中心展开一个带开关的小窗口（GlassDrawer 的 moreCard）
-                Button { navTick(); withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) { m.moreRow = m.moreRow == r.key ? nil : r.key } } label: {
+                Button { navTick(); m.moreRow = m.moreRow == r.key ? nil : r.key } label: {   // 动画由 onChange 里的水滴统一负责，这里不再套一层（会卡一下）
                     Image(systemName: "ellipsis").font(.system(size: 15, weight: .semibold)).foregroundStyle(.secondary)
                         .frame(width: 36, height: 36).contentShape(Circle())
                 }

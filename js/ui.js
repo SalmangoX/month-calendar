@@ -277,8 +277,7 @@
     if (dropA) dropA.cancel();
     const kids = [...pop.children];
     if (opening) {
-      dropA = pop.animate([{ clipPath: dot, transform: 'scale(1)' }, { clipPath: full, transform: 'scale(1.025)', offset: .7 }, { clipPath: full, transform: 'scale(1)' }],
-        { duration: 280, easing: 'cubic-bezier(.3,.9,.35,1)' });   // 干脆，别拖
+      dropA = pop.animate([{ clipPath: dot }, { clipPath: full }], { duration: 260, easing: 'cubic-bezier(.2,.8,.25,1)' });   // 干脆、不晃（不再冲过再缩回）
       kids.forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, delay: 60, easing: 'ease-out', fill: 'backwards' }));
     } else {
       kids.forEach(k => k.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 60, fill: 'forwards' }));
@@ -400,14 +399,16 @@
       const bar = e.target.closest('.lgbar'); if (!bar || e.button > 0) return;
       const r = bar.getBoundingClientRect(), n = opts(bar).length;
       g = { bar, id: e.pointerId, x0: e.clientX, y0: e.clientY, r, n, seg: (r.width - 6) / n, moved: false, p: Number(bar.dataset.i), lx: e.clientX, lt: performance.now() };
+      // 像系统的分段控件：一按下水滴就浮起变大（iPhone / Mac 上换成原生的透明玻璃透镜），按着就能拖
+      bar.classList.add('dragging');
     }, true);
     document.addEventListener('pointermove', e => {
       if (!g || e.pointerId !== g.id) return;
       const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
       if (!g.moved) {
-        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { g = null; return; } // 竖着划：交给页面滚动
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { g.bar.classList.remove('dragging'); g = null; return; } // 竖着划：交给页面滚动，水滴落回去
         if (Math.abs(dx) < 6) return;
-        g.moved = true; g.bar.classList.add('dragging');
+        g.moved = true;
         try { g.bar.setPointerCapture(e.pointerId); } catch (_) {}
         UI.cancelPresses && UI.cancelPresses();
       }
@@ -423,7 +424,7 @@
       if (!g || e.pointerId !== g.id) return;
       const s = g; g = null;
       if (s.moved) { s.bar._swallow = Date.now(); pick(s.bar, Math.round(Math.max(0, Math.min(s.n - 1, s.p)))); return; }
-      if (e.type === 'pointercancel') return;
+      if (e.type === 'pointercancel') { s.bar.classList.remove('dragging'); return; }
       const o = e.target.closest && e.target.closest('.lg-opt');
       pick(s.bar, o && s.bar.contains(o) ? Number(o.dataset.i) : Math.max(0, Math.min(s.n - 1, Math.floor((e.clientX - s.r.left - 3) / s.seg))));
     };
@@ -774,6 +775,7 @@
         document.querySelectorAll(LG_SEL).forEach(el => {
           if (top && !top.contains(el)) return;
           if (td && !td.contains(el) && el.closest('.page')) return;
+          if (el.closest('.page.pv-hold:not(.active)')) return;   // 垫在下面的那一页（整页滑动返回、今日页收放时露出来的）：它的玻璃不画，不然原生玻璃会浮到上面那页之上
           if (!top && el.closest('.sheet, .dp, .cam, .popover')) return;
           if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) {
             if (!el.classList.contains('lg-thumb')) return; // 水滴在网页里是透明的（只给原生画），照样要发
@@ -803,6 +805,18 @@
           // 原生要画在玻璃上面的内容：网页排好的每一段字（位置、字号、粗细、颜色、字距、等宽数字、圆体）、每个图标（系统符号）、
           // 里面的浅色底块（比如相机分段里选中的那段）。原生照着位置一模一样画在玻璃上面，网页这边只把字和这些图标藏起来
           const runs = [], icons = [], pads = [];
+          // 按着拖的水滴（透镜）：把它盖住的那几格字交给原生，放大 1.12 倍、清清楚楚地画在透镜上面（像系统分段控件的放大镜）
+          if (thumb) {
+            const rg = document.createRange();
+            el.parentElement.querySelectorAll('.lg-opt span[data-uc]').forEach(sp => {
+              const tn = sp.firstChild; if (!tn || !tn.nodeValue.trim()) return;
+              rg.selectNodeContents(tn); const q = rg.getBoundingClientRect(); if (!q.width) return;
+              if (q.right < r.left || q.left > r.right) return;
+              const ps = getComputedStyle(sp), k = 1.12, cxq = q.left + q.width / 2, cyq = q.top + q.height / 2;
+              runs.push([n(cxq - q.width * k / 2), n(cyq - q.height * k / 2), n(q.width * k), n(q.height * k), tn.nodeValue.trim(), (parseFloat(ps.fontSize) || 14) / (parseFloat(getComputedStyle(sp.parentElement).scale) || 1) * k,
+                parseInt(ps.fontWeight) || 600, getComputedStyle(sp.parentElement).color, 0, 0]);
+            });
+          }
           if (!thumb) {
             {
               const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), rg = document.createRange();
@@ -830,7 +844,7 @@
           const tint = el.classList.contains('lgx') ? (el.lgBg || '') : (el.lgBg = cs.backgroundColor); // 网页原来的底色：拿来给玻璃着一点色
           out.push([ids.get(el), n(r.left), n(r.top), n(r.width), n(r.height), n(rad), n(cx), n(cy), n(cx2 - cx), n(cy2 - cy), k,
             runs, icons, pads, tint, Math.round(vx * 1000) / 1000, Math.round(vy * 1000) / 1000,
-            n(Number(cs.opacity) || 0)]);   // 第 18 项：网页里这个控件的透明度（比如滚动时变淡的星期条），原生按它画【联动:原生玻璃】
+            thumb ? 1 : n(Number(cs.opacity) || 0)]);   // 第 18 项：网页里这个控件的透明度（比如滚动时变淡的星期条），原生按它画【联动:原生玻璃】；水滴在网页里故意是透明的（只给原生画），永远按 1
           shown.add(el);
         });
         // 盖在玻璃上面的网页东西（提示条）：原生的玻璃在这里挖掉，不然会挡住它

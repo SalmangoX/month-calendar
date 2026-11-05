@@ -51,9 +51,9 @@
     el.setAttribute('aria-hidden', String(!opening));
     scrim.classList.toggle('live', opening);
     if (reduce.matches) { apply(target); anim = null; return; }
-    // 拉出：轻微过冲，面板被甩得「啵」一下拉长再缩回；收起：干脆利落不过冲
+    // 拉出：顺滑地吸到位置上，不过冲（用户定的）；只有用力甩出来时才带一点点回弹。收起：干脆利落不过冲
     anim = opening
-      ? spring(pos, target, v, 430, 29, apply, () => (anim = null))
+      ? spring(pos, target, v, 430, Math.abs(v) > 900 ? 34 : 44, apply, () => (anim = null))
       : spring(pos, target, v, 520, 48, (p, vv) => apply(Math.max(0, p), vv), () => (anim = null));
   }
   D.isOpen = () => isOpen;
