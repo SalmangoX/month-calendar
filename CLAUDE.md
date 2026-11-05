@@ -18,7 +18,7 @@
 
 - **只改网页**：浏览器、iPhone、Mac、安卓都立刻变（推送后 GitHub Pages 自动发布，App 打开就加载新网页，不用重新打包）。
 - **安卓（2026-11-05 定的）**：和 iPhone 一样是「网页壳 + 原生悬浮层」，页面全部用网页，原生只画底部悬浮控件，外加小组件、提醒、同步。
-- **改底部悬浮控件要改四处**：网页（`index.html` 末尾的 dock2 脚本 + `styles.css`「悬浮控件」一节）、iOS / Mac 的 `GlassNav.swift`、两份 `navJS`（`ios/App/WebShell.swift`、`macos/App/MainWindow.swift`）、安卓的 `Dock.kt`（含它自己的 `NAV_JS`）。状态字段四处要一致：`t ap today back pager n p set lit pv`（`n` 是页数，`p` 是停在第几页，拖动时是小数）。
+- **改底部悬浮控件要改四处**：网页（`index.html` 末尾的 dock2 脚本 + `styles.css`「悬浮控件」一节）、iOS / Mac 的 `GlassNav.swift`、两份 `navJS`（`ios/App/WebShell.swift`、`macos/App/MainWindow.swift`）、安卓的 `Dock.kt`（含它自己的 `NAV_JS`）。状态字段四处要一致：`t ap today back pager n p set st lit pv`（`n` 是页数，`p` 是停在第几页，拖动时是小数；`st` 是扇形里有没有「统计」）。
 - **iPhone / Mac 的底部悬浮控件**（时钟胶囊 · 分页点 · logo 扇形 · 回到今天）是 `GlassNav.swift` 里的 `GlassDock`，用系统 Liquid Glass 画；点按交给网页里同名的按钮（`#bubbleToday` `#pager` `#fanAdd` `#fanSet` `#calBack` `#schedBack`），网页那一份在 App 里只是 `visibility:hidden`（今日页展开动画还要用它的位置）。状态由注入脚本 `navJS`（`ios/App/WebShell.swift`、`macos/App/MainWindow.swift` 各一份，两份要一起改）发给原生。
 - **iPhone / Mac 上网页里的玻璃控件**：`js/ui.js` 的 `LG_SEL` 里列出的元素，由原生在同样位置画系统液态玻璃（`MC.LG`）。
 - **纪念日历**（`body[data-kind="days"]`）也用新底栏：分页点两页 纪念日 · 总览（`ORDER()`）。月历放在总览顶上的「本月」小窗里，点开是竖着滑的月历面板（`#dayMonths`）。列表每行是 透明底实心图标 · 名称日期 · 右边大数字（`.dv-row.v2`），不再铺渐变和水印。透明相机的控件由网页自己画（不进 `LG_SEL`），有倍率和前后镜头。旧的 `#dock` / `#tabbar` / `#fab` 都藏起来了，`#fab` 只留给扇形里的「添加」点。
@@ -30,7 +30,12 @@
 - 底部：左时钟胶囊、中分页点、右 logo。时钟和 logo 比分页点高（`--d2-lift: 40px`，原生 `DockSize.lift`），分页点只在日历 / 日程页出现。
 - 分页点平时是淡的（`.idle`，透明度 .3），只在左右切页时亮起，停下 1.2 秒后再淡下去（状态字段 `lit`）。
 - 日历里点开某一天的卡片时，时钟和 logo 往上、往里挪，整个落在卡片底部里面（`body.dock-pv` + `--d2-pv`，状态字段 `pv`），收起卡片回原位；分页点不动。
-- logo 扇形：两个按钮沿四分之一圆弧排开（105° / 165°、半径 84）：加号 + 设置。**在设置页里「设置」换成「返回」**（回到进设置之前那一页），没有「回到日历」键。
+- logo 扇形：两个按钮沿四分之一圆弧排开（105° / 165°、半径 84）：加号 + 设置。**在设置页里「设置」换成「返回」**（回到进设置之前那一页），没有「回到日历」键。开了等级评分的记录日历在加号和设置中间多一个「统计」（`#fanStat`，三个时 90° / 135° / 180°、半径 88），在统计页里它换成「返回」。
+- 年视图里返回键一直显示（点了回到今天所在的月）。周视图的列顶上让开月份胶囊（`body.cal-w`），日期上面写星期。
+- 月份胶囊在安全区下 12px、星期条下 56px：比侧拉菜单的顶（安全区下 10px，原生 `GlassDrawer` 同样）低一点，菜单拉出来能整个盖住胶囊。
+- 侧拉菜单底部「新建日历」是一颗液态玻璃胶囊 + 品牌渐变加号圆（网页 `.dr-add.lgbtn`，iOS / Mac 在 `GlassDrawer` 里用 `glassEffect`）。面板里的玻璃按钮用 `.lgbtn`（比页面上的玻璃亮一点，不然在毛玻璃面板上看不出来）。
+- 设置类弹出框（`#formSheet` `#notifySheet` `#helpSheet`，类名 `.sheet.fl`）是悬浮卡片：四角 34 圆角、离屏幕边 8px；左上取消是玻璃胶囊（`.sh-btn.lgbtn.lgn`，iPhone / Mac 由原生画），右上确认是品牌渐变胶囊（`.sh-ok`）。新建 / 编辑日历顶上有跟着名字和颜色实时变的预览（`openForm` 的 `hero`）。
+- 原生玻璃上的彩色小色块（月份胶囊里的记录日历名 `.cal-chip`）：`pads` 第 6 项带颜色，原生画在玻璃上面，网页那份在 `.lgx` 里变透明。
 - 返回键（回到今天 / 本周）：平时贴在 logo 正上方（中心高 62），扇形打开时被顶到上方（151），收起时落回。今天不在屏幕上、被顶上的胶囊挡住，或者**选中的不是今天**，都要出现。
 - 日历顶部**不要遮挡**：月视图一直铺到屏幕最顶上、灵动岛后面也画日历（`body.cal-m` 去掉页面顶部留白，`calendar.js` 的 `TOP` 加上安全区高度让行位置不变），状态栏那一条只是轻模糊 + 渐隐的软边（`#page-cal::before`），不是实底，星期条是一条细长的悬浮玻璃，和月份胶囊、底部按钮同一种玻璃（iPhone 上是同一种原生液态玻璃，深色不发白）；左右边距和日历每一行（`.wrow` 各 2px）一样，七个字对准七列。
 - 纪念日历里左右滑不切到日程。

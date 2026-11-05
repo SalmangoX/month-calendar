@@ -174,7 +174,7 @@
       if (a.tagName === 'TEXTAREA' && a.id !== 'cmpTitle') return;
       if (a.id === 'cmpTitle' || a.tagName === 'BUTTON' || a.closest('#batchList, #lockForm')) return;
       const top = topSheet(); if (!top) return;
-      const btn = top.querySelector('#cmpSave, .sheet-head .text-btn.strong, #pkOk');
+      const btn = top.querySelector('#cmpSave, .sheet-head .text-btn.strong, #formSubmit, #pkOk');
       if (btn && !btn.disabled && !btn.hidden && btn.offsetParent !== null) { e.preventDefault(); btn.click(); }
     }, true);
   }

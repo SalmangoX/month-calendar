@@ -179,6 +179,8 @@
     MC.openForm({
       title: c ? (days ? T('编辑纪念日历') : '编辑日历') : (days ? T('新建纪念日历') : '新建记录日历'),
       submit: c ? '保存' : '新建',
+      // 顶上的预览：图标块用选中的颜色，名字跟着输入实时变
+      hero: `<div class="cf-hero" id="cfHero" style="--cc:${color}"><div class="cf-tile">${days ? ICON_DAYS : ICON_REC}</div><div class="cf-name${c ? '' : ' ph'}" id="cfName">${MC.esc(c ? c.name : (days ? T('纪念日历') : '记录日历'))}</div></div>`,
       fields: [{ id: 'calName', label: '名称', ph: days ? T('比如：我们、生日、考试') : '日历名称', val: c ? c.name : '', max: 24 }],
       note: days && !c ? T('纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。') : '',
       extra: sw() + (days ? '' : `<div class="group dr-switches">
@@ -212,9 +214,10 @@
     };
     $('#calSw').addEventListener('click', e => {
       const b = e.target.closest('.dr-sw'); if (!b) return;
-      color = b.dataset.c;
+      color = b.dataset.c; $('#cfHero').style.setProperty('--cc', color);
       $('#calSw').querySelectorAll('.dr-sw').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
     });
+    $('#ff_calName').addEventListener('input', e => { const v = e.target.value.trim(), n = $('#cfName'); n.textContent = v || (days ? T('纪念日历') : '记录日历'); n.classList.toggle('ph', !v); });
     if (!c) setTimeout(() => UI.desktopFocus($('#ff_calName')), 360);
   }
 

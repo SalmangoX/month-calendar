@@ -280,6 +280,7 @@
   const rs = { range: 'month', off: 0, tab: 'all', openEv: null, allEv: false };
   const recCal = () => { const id = MC.activeCal(); return id && MC.rateOn(id) ? MC.cal(id) : null; };
   function syncRecTabs() {
+    const fs = $('#fanStat'); if (fs) fs.hidden = document.body.dataset.kind === 'days' || !recCal();   // logo 扇形里的「统计」
     const stat = tabbar.querySelector('button[data-page="rstat"]'), t3 = tabbar.querySelector('button[data-page="sched"]');
     if (!stat || !t3 || document.body.dataset.kind === 'days') return; // 纪念日历的菜单由 days.js 管
     const rc = !!recCal();
@@ -1042,10 +1043,10 @@
 
   // ---------- 表单 ----------
   let formHandler = null;
-  function openForm({ title, fields, note, extra, submit, onSubmit }) {
+  function openForm({ title, fields, note, extra, hero, submit, onSubmit }) {
     $('#formTitle').textContent = title;
     $('#formSubmit').textContent = submit || '确定';
-    $('#formBody').innerHTML = fields.map(f =>
+    $('#formBody').innerHTML = (hero || '') + fields.map(f =>
       `<label class="field"><span>${f.label}</span><input id="ff_${f.id}" type="${f.type || 'text'}" value="${esc(f.val || '')}" placeholder="${esc(f.ph || '')}" autocomplete="${f.ac || 'off'}" autocapitalize="off" spellcheck="false"${f.max ? ` maxlength="${f.max}"` : ''}></label>`).join('')
       + (extra || '') + (note ? `<p class="form-note">${note}</p>` : '') + '<p class="form-err" id="formErr"></p>';
     formHandler = { onSubmit, fields };

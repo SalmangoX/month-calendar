@@ -773,6 +773,8 @@
                 const img = rasterIcon(sv); if (img) { sv.classList.add('lgr'); icons.push([n(q.left), n(q.top), n(q.width), n(q.height), img, '', 0]); }
               });
               el.querySelectorAll('.on').forEach(o => { const q = o.getBoundingClientRect(); if (q.width) pads.push([n(q.left), n(q.top), n(q.width), n(q.height), n(Math.min(parseFloat(getComputedStyle(o).borderTopLeftRadius) || 0, q.height / 2))]); });
+              // 带颜色的小色块（月份胶囊里记录日历的名字）：第 6 项带上颜色，原生画在玻璃上面、字的下面，不然色块被压在玻璃底下发糊
+              el.querySelectorAll('.cal-chip:not([hidden])').forEach(o => { const q = o.getBoundingClientRect(), oc = getComputedStyle(o); if (q.width) pads.push([n(q.left), n(q.top), n(q.width), n(q.height), n(Math.min(parseFloat(oc.borderTopLeftRadius) || 0, q.height / 2)), oc.backgroundColor]); });
             }
           }
           const tint = el.classList.contains('lgx') ? (el.lgBg || '') : (el.lgBg = cs.backgroundColor); // 网页原来的底色：拿来给玻璃着一点色

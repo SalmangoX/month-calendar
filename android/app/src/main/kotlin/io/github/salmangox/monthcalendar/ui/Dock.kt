@@ -72,6 +72,7 @@ import kotlin.math.sin
 @Stable
 class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit) {
     class Dock(val t: String, val ap: String, val today: Boolean, val back: String, val pager: Boolean, val n: Int, val p: Float, val set: Boolean,
+               /** 扇形里有「统计」（开了等级评分的记录日历） */ val st: Boolean,
                /** 分页点亮着（正在左右切页）；false = 停下后淡下去 */ val lit: Boolean,
                /** 日历里点开某一天的卡片时，时钟和 logo 再抬高多少（dp）；-1 = 没打开 */ val pv: Float)
 
@@ -79,7 +80,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
     var cover by mutableStateOf(false); private set
     var back by mutableStateOf(false); private set
     var fanOpen by mutableStateOf(false); private set
-    private var page = ""
+    var page = ""; private set
 
     /** 网页发来的状态（MCNative.nav） */
     fun update(json: String) {
@@ -87,7 +88,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
         val d = o.optJSONObject("dock")?.let {
             Dock(it.optString("t"), it.optString("ap"), it.optBoolean("today"), it.optString("back").ifEmpty { "日历" },
                 it.optBoolean("pager"), it.optInt("n", 2).coerceIn(2, 5), it.optDouble("p", 0.0).toFloat(), it.optBoolean("set"),
-                it.optBoolean("lit", true), it.optDouble("pv", -1.0).toFloat())
+                it.optBoolean("st"), it.optBoolean("lit", true), it.optDouble("pv", -1.0).toFloat())
         }
         if (d == null || d.set != dock?.set) fanOpen = false
         val pg = o.optString("page")
@@ -103,7 +104,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
     fun setFan(open: Boolean) { if (open != fanOpen) { tick(); fanOpen = open } }
     fun fan(id: String) {
         fanOpen = false; tick()
-        if (id == "add") click("fab") else click("fanSet")   // 设置页里它是「返回」，由网页决定回到哪一页
+        if (id == "add") click("fab") else if (id == "stat") click("fanStat") else click("fanSet")   // 设置页里它是「返回」，由网页决定回到哪一页
     }
     fun goToday() {
         tick()
@@ -133,6 +134,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
     var ap = pt.querySelector('small'), apt = ap ? ap.textContent : ''; var pg = document.getElementById('pager');
     return { t: pt.textContent.replace(apt, '').trim(), ap: apt, today: page === 'today', back: ((document.getElementById('ptBackTxt') || {}).textContent || '').trim(),
              pager: !!pg && !pg.classList.contains('hide'), n: pg ? (+pg.dataset.n || 2) : 2, p: pg ? (+pg.dataset.p || 0) : 0, set: page === 'set',
+             st: !!document.getElementById('fanStat') && !document.getElementById('fanStat').hidden,
              lit: !(document.getElementById('pager') || { classList: { contains: function(){ return false; } } }).classList.contains('idle'),
              pv: document.body.classList.contains('dock-pv') ? (parseFloat(document.body.style.getPropertyValue('--d2-pv')) || 0) : -1 };
   }
@@ -248,8 +250,10 @@ private fun Pager(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
 private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
     val t = T
     val density = LocalDensity.current
-    val items = listOf("add", "set")   // 设置页里「设置」换成「返回」
-    val r = 84f; val angles = listOf(105.0, 165.0)
+    // 设置页里「设置」换成「返回」；开了等级评分的记录日历在中间多一个「统计」（统计页里换成「返回」）
+    val items = if (d.st) listOf("add", "stat", "set") else listOf("add", "set")
+    val r = if (items.size == 3) 88f else 84f; val angles = if (items.size == 3) listOf(90.0, 135.0, 180.0) else listOf(105.0, 165.0)
+    val inStat = m.page == "rstat"
     Box(modifier.size(DockModel.HIT.dp)) {
         // 回到今天 / 本周：平时贴在 logo 正上方；扇形弹出时被顶到扇形上方，收起时落回来
         val backY by animateDpAsState(if (m.fanOpen) (-151).dp else (-62).dp, spring(.68f, 300f), label = "by")
@@ -270,12 +274,12 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
                     Modifier.align(Alignment.Center)
                         .offset { IntOffset((cos(rad) * r * v * density.density).roundToInt(), (-sin(rad) * r * v * density.density).roundToInt()) }
                         .size((DockModel.FAN + 12).dp).graphicsLayer { alpha = v.coerceIn(0f, 1f); val s = .35f + .65f * v; scaleX = s; scaleY = s },
-                    label = if (id == "add") tr("添加事件") else if (d.set) tr("返回") else tr("设置"), haptic = false, onClick = { m.fan(id) },
+                    label = if (id == "add") tr("添加事件") else if (id == "stat") (if (inStat) tr("返回") else tr("统计")) else if (d.set) tr("返回") else tr("设置"), haptic = false, onClick = { m.fan(id) },
                 ) { mod ->
                     val face = if (id == "add") mod.size(DockModel.FAN.dp).clip(CircleShape).background(t.brand)
                     else mod.size(DockModel.FAN.dp).glass(CircleShape, t)
                     Box(face, contentAlignment = Alignment.Center) {
-                        if (id == "add") PlusIcon(Color.White) else if (d.set) ChevronIcon(t.text) else GearIcon(t.text)
+                        if (id == "add") PlusIcon(Color.White) else if (id == "stat") { if (inStat) ChevronIcon(t.text) else StatIcon(t.text) } else if (d.set) ChevronIcon(t.text) else GearIcon(t.text)
                     }
                 }
             }
@@ -313,6 +317,15 @@ private fun GearIcon(c: Color) = Canvas(Modifier.size(22.dp)) {
     }
     drawCircle(c, w * .3f, style = Stroke(st))
     drawCircle(c, w * .12f, style = Stroke(st))
+}
+
+/** 记录日历的「统计」：三根高低不一的竖条 */
+@Composable
+private fun StatIcon(c: Color) = Canvas(Modifier.size(20.dp)) {
+    val w = size.width; val st = 2.2.dp.toPx()
+    drawLine(c, Offset(w * .21f, w * .83f), Offset(w * .21f, w * .46f), st, StrokeCap.Round)
+    drawLine(c, Offset(w * .5f, w * .83f), Offset(w * .5f, w * .17f), st, StrokeCap.Round)
+    drawLine(c, Offset(w * .79f, w * .83f), Offset(w * .79f, w * .58f), st, StrokeCap.Round)
 }
 
 /** 设置页里的「返回」：往左的尖角 */

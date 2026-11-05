@@ -39,11 +39,11 @@ final class NavModel: ObservableObject {
         var runs: [Run] = [], icons: [Icon] = [], pads: [Pad] = [], tint = ""
         struct Run: Equatable { let rect: CGRect; let t: String; let fs: CGFloat; let fw: Int; let col: String; let ls: CGFloat; let tab: Bool; let round: Bool }
         struct Icon: Equatable { let rect: CGRect; let sf: String; let col: String; let sw: CGFloat }
-        struct Pad: Equatable { let rect: CGRect; let r: CGFloat }
+        struct Pad: Equatable { let rect: CGRect; let r: CGFloat; var col: String = "" }   // col：带颜色的色块（记录日历名字），空的是选中项的浅色底块
     }
     @Published var lg: [LGItem] = []
     /// 新底栏（网页 0.23 起：左时钟胶囊 · 中分页点 · 右 logo 扇形菜单）。网页发来时就画新底栏，旧网页或纪念日历是 nil，仍用旧的菜单栏和加号
-    struct Dock: Decodable, Equatable { let t: String; let ap: String; let today: Bool; let back: String; let pager: Bool; let n: Int?; let p: Double; let set: Bool; let lit: Bool?; let pv: Double? }
+    struct Dock: Decodable, Equatable { let t: String; let ap: String; let today: Bool; let back: String; let pager: Bool; let n: Int?; let p: Double; let set: Bool; let st: Bool?; let lit: Bool?; let pv: Double? }   // st：扇形里有「统计」（开了等级评分的记录日历）
     @Published var dock: Dock?
     @Published var fanOpen = false
     /// Mac：底栏里各个按钮的位置（窗口坐标），只有点在这些地方才接住，别处的点击漏给后面的网页
@@ -113,6 +113,7 @@ final class NavModel: ObservableObject {
         setFan(false)
         switch id {
         case "add": add()
+        case "stat": eval("document.getElementById('fanStat').click()", nil)   // 统计页里它是「返回」
         default: eval("document.getElementById('fanSet').click()", nil)   // 设置页里它是「返回」，由网页决定回到哪一页
         }
     }
@@ -131,7 +132,7 @@ final class NavModel: ObservableObject {
                 return .init(rect: rc(a), t: a[4] as? String ?? "", fs: max(6, f(a[5])), fw: (a[6] as? NSNumber)?.intValue ?? 400, col: a[7] as? String ?? "", ls: f(a[8]), tab: fl & 1 != 0, round: fl & 2 != 0)
             }
             it.icons = (x[12] as? [[Any]] ?? []).compactMap { a in a.count >= 7 ? .init(rect: rc(a), sf: a[4] as? String ?? "", col: a[5] as? String ?? "", sw: f(a[6])) : nil }
-            it.pads = (x[13] as? [[Any]] ?? []).compactMap { a in a.count >= 5 ? .init(rect: rc(a), r: f(a[4])) : nil }
+            it.pads = (x[13] as? [[Any]] ?? []).compactMap { a in a.count >= 5 ? .init(rect: rc(a), r: f(a[4]), col: a.count >= 6 ? (a[5] as? String ?? "") : "") : nil }
             it.tint = x[14] as? String ?? ""
             if x.count >= 17 { it.vx = f(x[15]); it.vy = f(x[16]) }
             return it
@@ -683,7 +684,7 @@ struct GlassLayer: View {
             // 照片上的牌子：玻璃上铺一层网页原来的底色（半透明），背后的照片还看得见折射，字有底衬着
             Color.clear
             ForEach(Array(it.pads.enumerated()), id: \.offset) { _, p in
-                RoundedRectangle(cornerRadius: p.r, style: .continuous).fill(Color.white.opacity(it.k == "d" ? 0.94 : scheme == .dark ? 0.16 : 0.5)) // 照片 / 相机上的选中项：白色，字是黑的
+                RoundedRectangle(cornerRadius: p.r, style: .continuous).fill(Color(css: p.col) ?? Color.white.opacity(it.k == "d" ? 0.94 : scheme == .dark ? 0.16 : 0.5)) // 有颜色的色块照原色画；照片 / 相机上的选中项：白色，字是黑的
                     .frame(width: p.rect.width, height: p.rect.height).position(x: p.rect.midX - o.x, y: p.rect.midY - o.y)
             }
             ForEach(Array(it.icons.enumerated()), id: \.offset) { _, c in
@@ -754,7 +755,7 @@ enum DockSize {
     static let pill: CGFloat = 52, logo: CGFloat = 54, fan: CGFloat = 50, back: CGFloat = 46
     /// 热区底边离屏幕底：至少 24，有 Home 条时再让 10
     static func bottom(_ safe: CGFloat) -> CGFloat { max(24, safe + 10) }
-    /// 扇形按钮沿四分之一圆弧均匀排开：两个时彼此的间距和到 logo 的间距一样；设置页多一个最上面的「回到日历」
+    /// 扇形按钮沿四分之一圆弧均匀排开：两个时彼此的间距和到 logo 的间距一样；记录日历多一个中间的「统计」
     static func fan(_ n: Int) -> [CGSize] {
         let (r, a): (CGFloat, [CGFloat]) = n == 3 ? (88, [90, 135, 180]) : (84, [105, 165])
         return a.map { d in CGSize(width: cos(d * .pi / 180) * r, height: -sin(d * .pi / 180) * r) }
@@ -890,8 +891,9 @@ struct GlassDock: View {
 
     // logo + 扇形菜单 + 回到今天
     @ViewBuilder private func logoCluster(_ d: NavModel.Dock, dark: Bool) -> some View {
-        let items: [FanItem] = [FanItem(id: "add", icon: "plus", label: "添加事件"),
-                                d.set ? FanItem(id: "set", icon: "chevron.left", label: "返回") : FanItem(id: "set", icon: "gearshape", label: "设置")]
+        let items: [FanItem] = [FanItem(id: "add", icon: "plus", label: "添加事件")]
+            + (d.st == true ? [m.page == "rstat" ? FanItem(id: "stat", icon: "chevron.left", label: "返回") : FanItem(id: "stat", icon: "chart.bar", label: "统计")] : [])
+            + [d.set ? FanItem(id: "set", icon: "chevron.left", label: "返回") : FanItem(id: "set", icon: "gearshape", label: "设置")]
         let pos = DockSize.fan(items.count)
         ZStack {
             if m.back {   // 回到今天 / 本周：平时贴在 logo 正上方；扇形弹出时被顶到扇形上方，收起时落回来
@@ -1149,16 +1151,26 @@ struct GlassDrawer: View {
                 }
                 .padding(.horizontal, 10).padding(.bottom, 8)
             }
+            // 新建日历：一颗液态玻璃胶囊（和网页同一个样子），左边是品牌渐变的加号圆
             Menu {
                 ForEach(d.add) { a in Button(a.label) { m.addCal(a.value) } }
             } label: {
-                Label(d.add.first?.label ?? "", systemImage: "plus")
+                HStack(spacing: 11) {
+                    Image(systemName: "plus").font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Brand.grad(scheme == .dark)))
+                        .shadow(color: Brand.a(scheme == .dark).opacity(0.35), radius: 8, y: 4)
+                    Text(d.add.first?.label ?? "").font(.system(size: 15.5, weight: .semibold)).foregroundStyle(Color.primary)
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, 8).padding(.trailing, 18)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .contentShape(Capsule())
+                .glassEffect(NavGlass.chrome(scheme, interactive: true), in: .capsule)
             }
             .menuIndicator(.hidden)
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .fixedSize()
-            .padding(16)
+            .buttonStyle(.plain)
+            .padding(.horizontal, 12).padding(.bottom, 12).padding(.top, 4)
         }
         .frame(width: width)
         .frame(maxHeight: .infinity)

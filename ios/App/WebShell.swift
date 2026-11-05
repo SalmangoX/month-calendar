@@ -200,7 +200,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         if (!d2 || !pt) return null;
         var ap = pt.querySelector('small'), apt = ap ? ap.textContent : ''; var pg = document.getElementById('pager');
         return { t: pt.textContent.replace(apt, '').trim(), ap: apt, today: page === 'today', back: ((document.getElementById('ptBackTxt') || {}).textContent || '').trim() || '日历',
-                 pager: !!pg && !pg.classList.contains('hide'), n: pg ? (+pg.dataset.n || 2) : 2, p: pg ? (+pg.dataset.p || 0) : 0, set: page === 'set', lit: !(document.getElementById('pager') || {classList: {contains: function(){ return false; }}}).classList.contains('idle'), pv: document.body.classList.contains('dock-pv') ? (parseFloat(document.body.style.getPropertyValue('--d2-pv')) || 0) : -1 };
+                 pager: !!pg && !pg.classList.contains('hide'), n: pg ? (+pg.dataset.n || 2) : 2, p: pg ? (+pg.dataset.p || 0) : 0, set: page === 'set', st: !!document.getElementById('fanStat') && !document.getElementById('fanStat').hidden, lit: !(document.getElementById('pager') || {classList: {contains: function(){ return false; }}}).classList.contains('idle'), pv: document.body.classList.contains('dock-pv') ? (parseFloat(document.body.style.getPropertyValue('--d2-pv')) || 0) : -1 };
       }
       function backShown(page){
         var id = page === 'cal' ? 'calBack' : page === 'sched' ? 'schedBack' : '', b = id && document.getElementById(id);

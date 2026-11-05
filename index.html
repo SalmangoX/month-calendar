@@ -174,9 +174,9 @@
 <aside class="drawer" id="calDrawer" aria-label="选择日历" aria-hidden="true">
   <header class="dr-head"><h2>日历</h2><p>每个日历的内容分开显示</p></header>
   <div class="dr-list" id="drawerList"></div>
-  <button class="dr-add" id="drawerAdd">
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke-width="2.2"/></svg>
-    新建记录日历
+  <button class="dr-add lgbtn tap" id="drawerAdd">
+    <i class="dr-add-ic"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke-width="2.6"/></svg></i>
+    <span>新建记录日历</span>
   </button>
 </aside>
 
@@ -358,12 +358,12 @@
 </section>
 
 <!-- 通用表单（连接 GitHub、修改密码等） -->
-<section class="sheet" id="formSheet" aria-label="表单">
+<section class="sheet fl" id="formSheet" aria-label="表单">
   <div class="handle"></div>
   <div class="sheet-head">
-    <button class="text-btn muted" data-close>取消</button>
+    <button class="sh-btn lgbtn lgn tap" data-close>取消</button>
     <h2 id="formTitle"></h2>
-    <button class="text-btn strong" id="formSubmit">确定</button>
+    <button class="sh-ok tap" id="formSubmit">确定</button>
   </div>
   <form class="form" id="formBody" autocomplete="off"></form>
 </section>
@@ -388,21 +388,21 @@
 <input type="file" id="schedPhoto" accept="image/*" hidden>
 
 <!-- 帮助 -->
-<section class="sheet" id="notifySheet" aria-label="提醒通知">
+<section class="sheet fl" id="notifySheet" aria-label="提醒通知">
   <div class="handle"></div>
   <div class="sheet-head">
     <span></span>
     <h2>提醒通知</h2>
-    <button class="text-btn" data-close>完成</button>
+    <button class="sh-ok tap" data-close>完成</button>
   </div>
   <div class="help-body ncard" id="notifyBody"></div>
 </section>
-<section class="sheet tall" id="helpSheet" aria-label="帮助">
+<section class="sheet tall fl" id="helpSheet" aria-label="帮助">
   <div class="handle"></div>
   <div class="sheet-head">
     <span></span>
     <h2 id="helpTitle"></h2>
-    <button class="text-btn" data-close>完成</button>
+    <button class="sh-ok tap" data-close>完成</button>
   </div>
   <div class="help-body" id="helpBody"></div>
 </section>
@@ -530,6 +530,7 @@
   <button class="pager tap" id="pager" aria-label="切换日历 / 日程"><span class="face"><i></i><i></i></span></button>
   <div class="pod-menu" id="podMenu">
     <button class="fan fan-add tap" id="fanAdd" aria-label="添加事件" tabindex="-1"><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:2.4"><path d="M12 5v14M5 12h14"/></svg></span></button>
+    <button class="fan fan-stat tap" id="fanStat" aria-label="统计" tabindex="-1" hidden><span class="face"><svg class="ic-back" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:2.4"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><svg class="ic-stat" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:2.2"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></span></button>
     <button class="fan fan-set tap" id="fanSet" aria-label="设置" tabindex="-1"><span class="face"><svg class="ic-back" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:2.4"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><svg class="ic-gear" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:1.7"><path d="M10.40 5.08L10.75 2.48 L13.25 2.48 L13.60 5.08A7.1 7.1 0 0 1 15.76 5.98L17.84 4.38 L19.62 6.16 L18.02 8.24A7.1 7.1 0 0 1 18.92 10.40L21.52 10.75 L21.52 13.25 L18.92 13.60A7.1 7.1 0 0 1 18.02 15.76L19.62 17.84 L17.84 19.62 L15.76 18.02A7.1 7.1 0 0 1 13.60 18.92L13.25 21.52 L10.75 21.52 L10.40 18.92A7.1 7.1 0 0 1 8.24 18.02L6.16 19.62 L4.38 17.84 L5.98 15.76A7.1 7.1 0 0 1 5.08 13.60L2.48 13.25 L2.48 10.75 L5.08 10.40A7.1 7.1 0 0 1 5.98 8.24L4.38 6.16 L6.16 4.38 L8.24 5.98A7.1 7.1 0 0 1 10.40 5.08Z"/><circle cx="12" cy="12" r="3"/></svg></span></button>
     <button class="pod-logo tap" id="bubbleLogo" aria-label="更多" aria-expanded="false"><span class="face"><img src="icons/logo.png" alt=""><svg class="x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span></button>
   </div>
@@ -543,7 +544,8 @@
   const menu = $id('podMenu'), logo = $id('bubbleLogo'), scrim = $id('dockScrim');
   const pill = $id('bubbleToday'), face = $id('ptFace'), lTime = $id('ptTime'), lBack = $id('ptBack'), lBackTxt = $id('ptBackTxt');
   const pager = $id('pager');
-  const fans = { add: $id('fanAdd'), set: $id('fanSet') };
+  const fans = { add: $id('fanAdd'), stat: $id('fanStat'), set: $id('fanSet') };
+  { const rb = document.querySelector('#tabbar button[data-page="rstat"]'); fans.stat.hidden = body.dataset.kind === 'days' || !rb || rb.hidden; }   // app.js 先跑时这个按钮还不在页面里：照着「统计」页签补一次
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   const page = () => body.dataset.page || 'cal';
   const pages = { cal: $id('page-cal'), sched: $id('page-sched'), days: $id('page-days'), dsum: $id('page-dsum') };
@@ -583,14 +585,17 @@
   }, { passive: true });
 
   // ---------- logo 扇形菜单 ----------
-  // 两个按钮沿四分之一圆弧排开，彼此的间距和到 logo 的间距一样；在设置页里「设置」换成「返回」
-  let open = false, lastMain = 'cal';
+  // 按钮沿四分之一圆弧排开，彼此的间距和到 logo 的间距一样；在设置页里「设置」换成「返回」
+  // 开了等级评分的记录日历：加号和设置中间多一个「统计」（三个时半径 88，90° / 135° / 180°，和原生 DockSize.fan 一样）；在统计页里它换成「返回」
+  let open = false, lastMain = 'cal', statFrom = 'cal';
   function layoutFans() {
-    const inSet = page() === 'set';
+    const inSet = page() === 'set', inStat = page() === 'rstat';
     fans.set.classList.toggle('as-back', inSet);
     fans.set.setAttribute('aria-label', inSet ? '返回' : '设置');
-    const order = [fans.add, fans.set];   // 从上到下
-    const R = 84, angles = [105, 165];
+    fans.stat.classList.toggle('as-back', inStat);
+    fans.stat.setAttribute('aria-label', inStat ? '返回' : '统计');
+    const order = [fans.add, fans.stat, fans.set].filter(b => !b.hidden);   // 从上到下
+    const R = order.length === 3 ? 88 : 84, angles = order.length === 3 ? [90, 135, 180] : [105, 165];
     order.forEach((b, k) => {
       const a = angles[k] * Math.PI / 180;
       b.style.setProperty('--fx', (Math.cos(a) * R).toFixed(1) + 'px');
@@ -623,6 +628,11 @@
     closeMenu();
     if (page() === 'set') MC.App.showPage(lastMain);   // 设置页里这个键是「返回」：回到进设置之前的那一页
     else MC.App.showPage('set');
+  });
+  fans.stat.addEventListener('click', () => {
+    closeMenu();
+    if (page() === 'rstat') MC.App.showPage(statFrom === 'rstat' || statFrom === 'set' ? 'cal' : statFrom);   // 统计页里是「返回」
+    else { statFrom = page(); MC.App.showPage('rstat'); }
   });
   const backBtn = $id('backToCal');
   if (backBtn) backBtn.addEventListener('click', () => MC.App.showPage('cal'));
