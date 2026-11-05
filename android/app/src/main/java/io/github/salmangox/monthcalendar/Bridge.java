@@ -19,13 +19,13 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update", "shell", "getData", "syncRun", "privacy"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update", "nativeDock", "getData"
     };
 
-    private final WebActivity a;
+    private final MainActivity a;
     private final Context c;
 
-    Bridge(WebActivity a) {
+    Bridge(MainActivity a) {
         this.a = a;
         this.c = a.getApplicationContext();
     }
@@ -37,6 +37,12 @@ final class Bridge {
         try { c = Color.parseColor(color); } catch (Exception e) { return; }
         double lum = (0.299 * Color.red(c) + 0.587 * Color.green(c) + 0.114 * Color.blue(c)) / 255.0;
         a.runOnUiThread(() -> a.applyChrome(c, lum < 0.5));
+    }
+
+    /** 底部悬浮控件的状态（页面、时钟、分页点、回到今天、有没有面板盖着），原生按它画悬浮控件 */
+    @JavascriptInterface
+    public void nav(String json) {
+        a.runOnUiThread(() -> { if (a.dock != null) a.dock.getModel().update(json); });
     }
 
     @JavascriptInterface
@@ -62,41 +68,14 @@ final class Bridge {
     @JavascriptInterface
     public void setData(String json, boolean replace) {
         Engine.BG.execute(() -> {
-            if (Store.put(c, json, replace)) {
-                // 原生负责同步：网页里的改动记为待上传
-                Repo.markDirty(c);
-                SyncEngine.schedule(c);
-            }
+            Store.put(c, json, replace);
             Engine.refresh(c);
         });
     }
 
-    /** 用户在原生界面同意隐私政策的时间（0 = 还没同意）：网页过渡页面不再重复弹出 */
+    /** 本机保存的数据：网页打开时合并进来（1.4.2-36 那一版原生界面里加的事件只存在这里，不能丢） */
     @JavascriptInterface
-    public long privacyAt() { return Store.prefs(c).getLong("privacyAt", 0L); }
-
-    /** 原生的数据（正本）：网页打开、回到前台、原生数据变化时取来合并 */
-    @JavascriptInterface
-    public String getData() { return Store.json(c); }
-
-    /** 网页里点「立即同步」等：交给原生同步，完成后回调 {ok, error, gistId} */
-    @JavascriptInterface
-    public void syncRun(String cb) {
-        SyncEngine.now(c, r -> {
-            JSONObject o = new JSONObject();
-            try {
-                o.put("ok", r.getOk());
-                o.put("error", r.getError());
-                o.put("gistId", Store.prefs(c).getString("gistId", ""));
-            } catch (Exception ignored) { }
-            a.callback(cb, o);
-            return kotlin.Unit.INSTANCE;
-        });
-    }
-
-    /** 网页里回到了日历 / 今日：回原生页面 */
-    @JavascriptInterface
-    public void closeWeb(String page) { a.runOnUiThread(() -> a.closeWeb(page)); }
+    public String getData() { Store.data(c); return Store.json(c); }
 
     /** 每周第一天、深浅色、提醒开关、Gist 等设置 */
     @JavascriptInterface

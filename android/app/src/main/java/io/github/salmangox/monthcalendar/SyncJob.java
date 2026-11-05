@@ -32,7 +32,7 @@ public class SyncJob extends JobService {
         Context c = getApplicationContext();
         new Thread(() -> {
             boolean ok = false;
-            try { ok = SyncEngine.runBlocking(c); } finally { jobFinished(params, !ok && params.getJobId() == NOW); }
+            try { ok = Gist.pull(c); } finally { jobFinished(params, !ok && params.getJobId() == NOW); }
         }, "mcal-sync").start();
         return true;
     }

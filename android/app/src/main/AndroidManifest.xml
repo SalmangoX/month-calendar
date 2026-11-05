@@ -40,7 +40,7 @@
             android:exported="false"
             android:grantUriPermissions="true" />
 
-        <!-- 原生主界面。折叠屏展开/合上、旋转时不重建页面（深浅色切换时会重建） -->
+        <!-- 折叠屏展开/合上、旋转时不重建页面（深浅色切换时会重建，以便网页跟着变） -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -53,14 +53,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- 过渡期的网页页面（设置、日程、纪念日历、日历列表） -->
-        <activity
-            android:name=".WebActivity"
-            android:exported="false"
-            android:resizeableActivity="true"
-            android:windowSoftInputMode="adjustResize"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|keyboard|keyboardHidden|navigation" />
 
         <!-- 分享到微信：微信回到 App 时打开的页面（必须是 包名.wxapi.WXEntryActivity），收下结果就关掉 -->
         <activity

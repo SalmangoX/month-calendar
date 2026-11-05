@@ -1,7 +1,6 @@
 package io.github.salmangox.monthcalendar;
 
 import android.Manifest;
-import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
@@ -31,7 +30,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.Toast;
-import android.window.OnBackInvokedDispatcher;
 
 import org.json.JSONObject;
 
@@ -43,17 +41,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 过渡期的网页页面（设置、日程、纪念日历、日历列表）：原生界面还没做完的页面先用 GitHub Pages 上的网页。
- * 主日历、今日、新建 / 编辑事件已经是原生的（MainActivity）；网页里回到日历或今日时关掉这里，回到原生。
- * 数据以原生为准：网页打开时从 Bridge.getData 取原生数据合并，改动通过 setData 交回原生，云端同步由原生负责。
+ * App 的界面就是你 GitHub Pages 上的网页：每次打开都加载最新版本，改网页不用重新打包 APK（和 iPhone 一样）。
+ * 这里把网页装进全屏窗口，叠上原生的底部悬浮控件（DockHost：时钟胶囊 · 分页点 · logo 扇形 · 回到今天），
+ * 并通过 Bridge 提供原生能力（通知、精确闹钟、小组件、选文件、存文件、触感）。
  */
-public class WebActivity extends Activity {
-    static final String EXTRA_HASH = MainActivity.EXTRA_HASH;
+public class MainActivity extends androidx.activity.ComponentActivity {
+    static final String EXTRA_HASH = "hash";
     private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_PERM = 13, REQ_CAM = 14;
     private android.webkit.PermissionRequest camReq;
 
     private WebView web;
     private FrameLayout root;
+    DockHost dock;
     private Uri appUri;
     private ValueCallback<Uri[]> fileCb;
     private String saveContent, saveCb, pendingCb;
@@ -65,6 +64,8 @@ public class WebActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         appUri = Uri.parse(BuildConfig.APP_URL);
+        Engine.ensureChannels(this);
+        SyncJob.ensure(this);
 
         getWindow().setDecorFitsSystemWindows(false);
         getWindow().setNavigationBarContrastEnforced(false);
@@ -79,29 +80,29 @@ public class WebActivity extends Activity {
             v.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, ime.bottom));
             return WindowInsets.CONSUMED;
         });
-        applyTheme(Store.prefs(this).getString("theme", "auto"));
+        String theme = Store.prefs(this).getString("theme", "auto");
+        dock = new DockHost(this, root, web, isDark(theme));
+        applyTheme(theme);
         setupWeb();
         loadApp(hash(getIntent()));
+        preferHighRefresh();
 
-        if (Build.VERSION.SDK_INT >= 33) {
-            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::goBack);
-        }
-        // 原生那边数据变了（后台同步、原生里改了事件）：让网页重新取一次
-        Repo.addListener(pull);
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() { goBack(); }
+        });
     }
 
-    private final Runnable pull = () -> ui.post(() -> {
-        if (web != null) web.evaluateJavascript("window.MC&&MC.Native&&MC.Native.pull&&MC.Native.pull()", null);
-    });
-
-    /** 网页里回到了日历或今日：关掉网页，回原生（page = "today" 时打开原生的今日页） */
-    void closeWeb(String page) {
-        if (isFinishing()) return;
-        if ("today".equals(page)) {
-            startActivity(new Intent(this, MainActivity.class).putExtra(EXTRA_HASH, "#today").addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+    /** 用屏幕支持的最高刷新率（90 / 120Hz），滚动、动画更顺 */
+    private void preferHighRefresh() {
+        android.view.Display d = getDisplay();
+        if (d == null) return;
+        android.view.Display.Mode cur = d.getMode(), best = cur;
+        for (android.view.Display.Mode m : d.getSupportedModes()) {
+            if (m.getPhysicalWidth() == cur.getPhysicalWidth() && m.getPhysicalHeight() == cur.getPhysicalHeight() && m.getRefreshRate() > best.getRefreshRate()) best = m;
         }
-        finish();
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        android.view.WindowManager.LayoutParams lp = getWindow().getAttributes();
+        lp.preferredDisplayModeId = best.getModeId();
+        getWindow().setAttributes(lp);
     }
 
     private void setupWeb() {
@@ -117,7 +118,17 @@ public class WebActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(true);
         s.setUserAgentString(s.getUserAgentString() + " MCalAndroid/" + BuildConfig.VERSION_NAME);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
-        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        web.setOverScrollMode(View.OVER_SCROLL_NEVER); // 没有安卓的拉伸 / 发光回弹
+        web.setVerticalScrollBarEnabled(false);
+        web.setHorizontalScrollBarEnabled(false);
+        if (Build.VERSION.SDK_INT >= 33) s.setAlgorithmicDarkeningAllowed(false); // 深浅色由网页自己处理，不让系统强行压暗
+        // 页面一开始就藏起网页自己的悬浮控件（换成原生的），不然加载时会先闪一下
+        if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            java.util.Set<String> rules = new java.util.HashSet<>();
+            rules.add(appUri.getScheme() + "://" + appUri.getAuthority());
+            rules.add("https://cdn.jsdelivr.net");
+            androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web, DockModel.HIDE_CSS_JS, rules);
+        }
         web.addJavascriptInterface(new Bridge(this), "MCNative");
 
         web.setWebViewClient(new WebViewClient() {
@@ -131,6 +142,12 @@ public class WebActivity extends Activity {
 
             @Override
             public void onPageCommitVisible(WebView v, String url) { committed = true; }
+
+            @Override
+            public void onPageFinished(WebView v, String url) {
+                // 底部悬浮控件换成原生：网页那一份藏起来（今日页展开动画还要用它的位置），状态发给原生
+                v.evaluateJavascript(DockModel.HIDE_CSS_JS + DockModel.NAV_JS, null);
+            }
 
             @Override
             public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
@@ -271,6 +288,7 @@ public class WebActivity extends Activity {
 
     /** 状态栏那条（root 的 padding 区域）和网页页面同色；深色页面配浅色图标 */
     void applyChrome(int color, boolean dark) {
+        if (dock != null) dock.setDark(dark);
         if (root != null) root.setBackgroundColor(color);
         if (web != null) web.setBackgroundColor(color);
         WindowInsetsController ic = getWindow().getInsetsController();
@@ -282,6 +300,7 @@ public class WebActivity extends Activity {
 
     void applyTheme(String pref) {
         boolean dark = isDark(pref);
+        if (dock != null) dock.setDark(dark);
         int bg = dark ? 0xFF141416 : 0xFFF7FAFC;
         root.setBackgroundColor(bg);
         if (web != null) web.setBackgroundColor(bg);
@@ -292,23 +311,18 @@ public class WebActivity extends Activity {
         }
     }
 
-    // ---------- 返回键：先关网页里的面板，都关了就回到原生 ----------
+    // ---------- 返回键：先收起原生的扇形菜单，再关网页里的面板，回到月历页，最后才退到后台 ----------
     private void goBack() {
+        if (dock != null && dock.getModel().back()) return;
         web.evaluateJavascript("(function(){try{return !!(window.MC&&MC.back&&MC.back())}catch(e){return false}})()",
-                v -> { if (!"true".equals(v)) closeWeb("cal"); });
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public void onBackPressed() { // Android 12 走这里，13 以上走上面注册的回调
-        goBack();
+                v -> { if (!"true".equals(v)) moveTaskToBack(true); });
     }
 
     // ---------- 从通知或小组件打开 ----------
     private static String hash(Intent i) {
         String h = i == null ? null : i.getStringExtra(EXTRA_HASH);
         if (h != null && h.matches("#days(-[A-Za-z0-9]{1,40})?")) return h; // 纪念日小组件：打开纪念日历（或某个日子）
-        return "#set".equals(h) || "#sched".equals(h) || "#drawer".equals(h) ? h : "";
+        return "#today".equals(h) || "#sched".equals(h) ? h : "";
     }
 
     @Override
@@ -340,7 +354,6 @@ public class WebActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        Repo.removeListener(pull);
         if (web != null) {
             root.removeView(web);
             web.destroy();

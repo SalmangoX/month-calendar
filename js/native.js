@@ -66,6 +66,18 @@
   Native.soundAllowed = () => (feats.has('feedback') ? !!call('soundAllowed') : false);
   Native.haptic = () => (feats.has('feedback') ? (call('haptic'), true) : false);
 
+  // ---------- 安卓：打开时把 App 本机保存的数据合并进来 ----------
+  // 1.4.2-36 那一版安卓 App 的日历、编辑是原生界面，那时加的事件只存在 App 本机；改回网页后要合并回来，不能丢
+  if (feats.has('getData')) {
+    try {
+      const raw = N.getData();
+      if (raw) {
+        const merged = MC.merge(MC.data, MC.normalize(JSON.parse(raw)));
+        if (!MC.sameData(merged, MC.data)) { MC.data = merged; MC.data.updatedAt = Date.now(); MC.dirty = true; MC.saveData(); MC.reindex(); }
+      }
+    } catch (e) {}
+  }
+
   // ---------- 数据：每次保存后（稍等一下合并多次改动）交给原生端 ----------
   let dataTimer = 0;
   const pushData = () => {
@@ -108,77 +120,6 @@
   pushPrefs();
   pushToken();
   pushData();
-
-  // ---------- 安卓原生 App（shell）：主日历、今日、新建编辑已是原生界面，这里只是过渡页面（设置、日程、纪念日历、日历列表） ----------
-  // 数据以原生为准：打开、回到前台、原生数据变化时把原生的合并进来；云端同步交给原生统一负责，网页不再自己读写 Gist / WebDAV
-  if (feats.has('shell')) {
-    Native.shell = true;
-    // 已经在原生界面同意过隐私政策：网页这边不再弹（index.html 的 #pvGate 读这个键）
-    try { const at = feats.has('privacy') ? Number(N.privacyAt()) : 0; if (at > 0 && !localStorage.getItem('mcal.privacy.v1')) localStorage.setItem('mcal.privacy.v1', String(at)); } catch (e) {}
-    // 进来要看的页面：第一次打开时 service worker 会刷新一次页面、丢掉 #hash，所以记在 sessionStorage 里
-    const fresh = !!location.hash;
-    let entry = location.hash || '';
-    try { if (entry) sessionStorage.setItem('mcal.shellEntry', entry); else entry = sessionStorage.getItem('mcal.shellEntry') || ''; } catch (e) {}
-    // 原生的日历只显示主日历：不是从日历列表、纪念日历进来的，就把网页这边也切回主日历，免得「回到日历」停在网页里
-    if (entry !== '#drawer' && !/^#days/.test(entry) && MC.settings.activeCal) { MC.settings.activeCal = ''; MC.saveSettings(); MC.reindex(); }
-    Native.pull = () => {
-      let raw = '';
-      try { raw = N.getData() || ''; } catch (e) {}
-      if (!raw) return false;
-      let nd;
-      try { nd = MC.normalize(JSON.parse(raw)); } catch (e) { return false; }
-      const merged = MC.merge(MC.data, nd);
-      if (MC.sameData(merged, MC.data)) return false;
-      MC.data = merged;
-      saveData(); // 只存本机，不再推回原生（原生已经有了）
-      MC.reindex();
-      try { MC.onChange(); } catch (e) {}
-      return true;
-    };
-    Native.pull();
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') Native.pull(); });
-    MC.scheduleSync = () => {}; // 改动经 setData 交给原生，原生稍后同步
-    MC.sync = async () => {
-      if (!MC.session.token) return false;
-      pushPrefs(); pushToken();
-      clearTimeout(dataTimer); call('setData', JSON.stringify(MC.data), false);
-      MC.syncState.busy = true; MC.onSyncStatus();
-      const r = await Native.ask('syncRun');
-      MC.syncState.busy = false;
-      MC.syncState.error = r && r.ok ? '' : (r && r.error) || '同步失败';
-      if (r && r.gistId && !MC.isDav() && r.gistId !== MC.settings.gistId) MC.settings.gistId = r.gistId;
-      if (r && r.ok) MC.settings.lastSync = Date.now();
-      MC.saveSettings();
-      Native.pull();
-      MC.dirty = false;
-      MC.onSyncStatus();
-      return !!(r && r.ok);
-    };
-    // 网页里回到主日历或今日：回原生页面（纪念日历、记录日历仍在网页里看）
-    const leaveTo = () => {
-      const b = document.body;
-      if (!b || !MC.App) return '';
-      const page = b.dataset.page;
-      if (page === 'today') return 'today';
-      const drawer = MC.Drawer && MC.Drawer.isOpen && MC.Drawer.isOpen();
-      if (page === 'cal' && b.dataset.kind !== 'days' && !MC.activeCal() && !drawer) return 'cal';
-      return '';
-    };
-    let armed = false, left = false;
-    const check = () => {
-      if (left) return;
-      const to = leaveTo();
-      if (!to) { armed = true; return; }
-      if (armed || to === 'today') { left = true; call('closeWeb', to); }
-    };
-    document.addEventListener('DOMContentLoaded', () => {
-      if ((entry === '#set' || entry === '#sched') && MC.App && document.body.dataset.page !== entry.slice(1)) MC.App.showPage(entry.slice(1));
-      else if (entry === '#drawer' && MC.Drawer) { MC.Drawer.open(); armed = true; }
-      else if (!fresh && /^#days/.test(entry) && MC.openHash) setTimeout(() => MC.openHash(entry), 80); // 刷新后 days.js 读不到 #hash 了
-      new MutationObserver(check).observe(document.body, { attributes: true, attributeFilter: ['data-page', 'data-kind'] });
-      setInterval(check, 400); // 侧栏拖动关闭、切换日历等没有改属性的情况
-    });
-  }
 
   // ---------- Mac App ----------
   if (Native.mac) {

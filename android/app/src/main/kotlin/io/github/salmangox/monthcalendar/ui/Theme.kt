@@ -20,11 +20,11 @@ data class Tokens(
     val bg: Color, val bgGrouped: Color, val surface: Color, val line: Color,
     val text: Color, val text2: Color, val text3: Color, val field: Color,
     val accent: Color, val accentText: Color, val selTint: Color,
-    val brandA: Color, val brandB: Color,
+    val brandA: Color, val brandMid: Color, val brandB: Color,
     val frostStrong: Color, val backdrop: Color, val danger: Color,
 ) {
-    val brand: Brush get() = Brush.linearGradient(listOf(brandA, lerp(brandA, brandB, .5f), brandB))
-    val brandH: Brush get() = Brush.horizontalGradient(listOf(brandA, lerp(brandA, brandB, .5f), brandB))
+    val brand: Brush get() = Brush.linearGradient(listOf(brandA, brandMid, brandB))
+    val brandH: Brush get() = Brush.horizontalGradient(listOf(brandA, brandMid, brandB))
 }
 
 fun lerp(a: Color, b: Color, t: Float) = Color(
@@ -35,8 +35,8 @@ val LightTokens = Tokens(
     dark = false,
     bg = Color(0xFFF8F8FA), bgGrouped = Color(0xFFF1F1F4), surface = Color.White, line = Color(0xFFE1E7EB),
     text = Color(0xFF171B20), text2 = Color(0xFF6E757E), text3 = Color(0xFFC2C8CD), field = Color(0x17767680),
-    accent = Color(0xFF6E6AAE), accentText = Color(0xFF55519A), selTint = Color(0x1F6E6AAE),
-    brandA = Color(Palette.BRAND_A), brandB = Color(Palette.BRAND_B),
+    accent = Color(0xFF4F80C4), accentText = Color(0xFF3C69AE), selTint = Color(0x1F4F80C4),
+    brandA = Color(Palette.BRAND_A), brandMid = Color(Palette.BRAND_MID), brandB = Color(Palette.BRAND_B),
     frostStrong = Color(0xF7FAFBFD), backdrop = Color(0x3D101824), danger = Color(0xFFD9453E),
 )
 
@@ -44,8 +44,8 @@ val DarkTokens = Tokens(
     dark = true,
     bg = Color(0xFF141416), bgGrouped = Color(0xFF0F0F11), surface = Color(0xFF1F1F22), line = Color(0xFF2A2A2D),
     text = Color(0xFFF5F5F7), text2 = Color(0xFF98989D), text3 = Color(0xFF58585D), field = Color(0x13FFFFFF),
-    accent = Color(0xFFABA8E0), accentText = Color(0xFFC9C6F0), selTint = Color(0x33ABA8E0),
-    brandA = Color(Palette.BRAND_A_DARK), brandB = Color(Palette.BRAND_B_DARK),
+    accent = Color(0xFF8DB0EA), accentText = Color(0xFFBCD2F5), selTint = Color(0x338DB0EA),
+    brandA = Color(Palette.BRAND_A_DARK), brandMid = Color(Palette.BRAND_MID_DARK), brandB = Color(Palette.BRAND_B_DARK),
     frostStrong = Color(0xF5202024), backdrop = Color(0x8A030306), danger = Color(0xFFFF6B60),
 )
 

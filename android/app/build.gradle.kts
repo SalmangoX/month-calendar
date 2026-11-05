@@ -47,7 +47,7 @@ android {
 
     buildTypes {
         debug {
-            // 本机调试网页过渡页面：APP_URL_DEBUG=http://10.0.2.2:8765/ ./gradlew assembleDebug（模拟器里 10.0.2.2 就是这台电脑）
+            // 本机调试网页：APP_URL_DEBUG=http://10.0.2.2:8765/ ./gradlew assembleDebug（模拟器里 10.0.2.2 就是这台电脑）
             System.getenv("APP_URL_DEBUG")?.let { buildConfigField("String", "APP_URL", "\"$it\"") }
         }
         release {
@@ -81,7 +81,7 @@ dependencies {
     // 分享到微信（好友 / 朋友圈，微信里显示「来自 节律」）
     implementation("com.tencent.mm.opensdk:wechat-sdk-android:6.8.0")
 
-    // 原生界面：Jetpack Compose（Material 3 打底，视觉按 logo 配色和苹果式的简洁来）
+    // 原生悬浮控件（叠在网页上面的时钟胶囊 · 分页点 · logo 扇形）：Jetpack Compose
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
@@ -89,6 +89,8 @@ dependencies {
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.9.3")
+    // 网页一开始就注入脚本（藏起网页自己的悬浮控件，换成原生的）
+    implementation("androidx.webkit:webkit:1.12.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // 合并规则的对照测试（JVM 上没有安卓自带的 org.json）

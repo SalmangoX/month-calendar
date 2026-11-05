@@ -26,8 +26,6 @@ final class Store {
     private static final String KEY_ALIAS = "mcal_token";
     private static Data cache;
     private static String cacheJson;
-    /** 数据有变化时通知原生界面（任意线程调用） */
-    static volatile Runnable onChange;
 
     private Store() { }
 
@@ -55,18 +53,16 @@ final class Store {
         if (incoming == null) return false;
         data(c);
         JSONObject cur = Data.obj(cacheJson);
-        JSONObject next = replace || cur == null ? incoming : CalMerge.merge(cur, incoming);
+        JSONObject next = replace || cur == null ? incoming : CalMerge.merge(cur, incoming); // 和网页 MC.merge 逐字段一致（见 CalMergeTest）
         String out = next.toString();
         if (out.equals(cacheJson)) return false;
         write(c, out);
         cacheJson = out;
         cache = Data.parse(out);
-        Runnable r = onChange;
-        if (r != null) r.run();
         return true;
     }
 
-    /** 本机数据原文（原生界面和同步用）；还没有数据时是空字符串 */
+    /** 本机数据原文；还没有数据时是空字符串 */
     static synchronized String json(Context c) {
         data(c);
         return cacheJson == null ? "" : cacheJson;
@@ -76,8 +72,6 @@ final class Store {
         new AtomicFile(new File(c.getFilesDir(), FILE)).delete();
         cacheJson = "";
         cache = new Data();
-        Runnable r = onChange;
-        if (r != null) r.run();
     }
 
     private static String read(Context c) {
