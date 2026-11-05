@@ -169,9 +169,9 @@
     const rc = mode === 'edit' && editing ? editing.cal : newCal, rated = MC.rateOn(rc);
     $('#cmpPriLabel').textContent = rated ? '等级' : '优先级';
     // 正在拖的时候不重画（不然水滴会跳回去）
-    if (!$('#cmpPri .lgbar.dragging')) $('#cmpPri').innerHTML = rated
+    if (!$('#cmpPri .lgbar.dragging, #cmpPri .pbar.dragging')) $('#cmpPri').innerHTML = rated
       ? UI.lgBar([{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n, color: `var(--lv${i + 1})` }))], draft.rate || 0)
-      : UI.lgBar(MC.PRI_ASC, draft.priority);
+      : UI.priBar(draft.priority);
     $('#cmpSave').classList.toggle('disabled', !$('#cmpTitle').value.trim());
     $('#cmpDone').setAttribute('aria-pressed', String(!!draft.done));
   }
@@ -875,9 +875,9 @@
   // 卡片往左滑露出「删除」，点了先确认再删
   function priChips(r) {
     const rc = MC.rateOn(newCal) && MC.cal(newCal);
-    const list = rc ? [{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n, color: `var(--lv${i + 1})` }))] : MC.PRI_ASC;
-    const cur = rc ? r.rate || 0 : r.priority;
-    return UI.lgBar(list, cur);
+    if (!rc) return UI.priBar(r.priority, { compact: true });
+    const list = [{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.rateLabels(rc).map((n, i) => ({ v: i + 1, name: n, color: `var(--lv${i + 1})` }))];
+    return UI.lgBar(list, r.rate || 0);
   }
   function renderBatch() {
     $('#batchList').innerHTML = rows.map((r, i) => `

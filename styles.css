@@ -1670,6 +1670,59 @@ body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { disp
   background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 22%, transparent), color-mix(in srgb, var(--brand-b) 16%, transparent));
 }
 
+/* ---------- 优先级拖动条：无 → 低 → 中 → 高，渐变填到哪露到哪 ---------- */
+.pbar { --th: 28px; --pad: 3px; position: relative; padding: 2px 0 0; touch-action: pan-y; -webkit-user-select: none; user-select: none; outline: none; }
+.pbar.compact { --th: 24px; }
+.pb-track {
+  position: relative; height: calc(var(--th) + var(--pad) * 2); border-radius: 999px; cursor: pointer;
+  background: color-mix(in srgb, var(--brand-a) 9%, var(--field));
+  box-shadow: inset 0 1px 2px rgba(20, 30, 50, .06);
+}
+/* 渐变铺满整条，用裁切露出到滑块中心：位置固定，所以填得越多，暖沙色露得越多 */
+.pb-fill {
+  position: absolute; inset: var(--pad); border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand-a), color-mix(in srgb, var(--brand-a) 50%, var(--brand-b)) 50%, var(--brand-b));
+  clip-path: inset(0 calc((1 - var(--f)) * (100% - var(--th)) + var(--th) / 2) 0 0 round 999px);
+  transition: clip-path .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1));
+}
+.pb-stop {
+  position: absolute; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; pointer-events: none;
+  left: calc(var(--pad) + var(--th) / 2 + var(--j) * (100% - var(--pad) * 2 - var(--th)));
+  background: color-mix(in srgb, var(--text) 22%, transparent);
+}
+.pb-stop:first-of-type { opacity: 0; }
+.pb-thumb {
+  position: absolute; top: var(--pad); width: var(--th); height: var(--th); border-radius: 50%; pointer-events: none;
+  left: calc(var(--pad) + var(--f) * (100% - var(--pad) * 2 - var(--th)));
+  background: #fff;
+  box-shadow: 0 0 0 .5px rgba(20, 30, 50, .08), 0 3px 8px rgba(20, 30, 50, .16), 0 1px 2px rgba(20, 30, 50, .1);
+  transition: left .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1)), transform .3s var(--spring-out, ease);
+}
+.pbar.dragging .pb-fill, .pbar.dragging .pb-thumb { transition: transform .3s var(--spring-out, ease); }
+.pbar.dragging .pb-thumb { transform: scale(1.12); }
+.pbar:focus-visible .pb-track { box-shadow: 0 0 0 2px var(--accent); }
+:root[data-theme="dark"] .pb-track { background: color-mix(in srgb, var(--brand-a) 12%, var(--field)); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .3); }
+:root[data-theme="dark"] .pb-thumb { background: #F2F2F5; box-shadow: 0 3px 10px rgba(0, 0, 0, .45); }
+.pb-ticks { position: relative; height: 20px; margin-top: 5px; }
+.pb-tick {
+  position: absolute; top: 0; transform: translateX(-50%); padding: 2px 10px; cursor: pointer; white-space: nowrap;
+  left: calc(var(--pad) + var(--th) / 2 + var(--j) * (100% - var(--pad) * 2 - var(--th)));
+  font-size: 12.5px; font-weight: 500; color: var(--text2); transition: color .2s, font-weight .2s;
+}
+.pb-tick:first-child { transform: translateX(-30%); }
+.pb-tick:last-child { transform: translateX(-70%); }
+.pb-tick.on { color: var(--text); font-weight: 650; }
+.pbar.compact .pb-ticks { height: 18px; margin-top: 3px; }
+.pbar.compact .pb-tick { font-size: 11.5px; }
+
+/* 列表、菜单里的优先级：一根迷你条 */
+.flag.pmini { width: 18px; height: 6px; border-radius: 3px; position: relative; overflow: hidden; align-self: center;
+  background: color-mix(in srgb, var(--text) 12%, transparent); }
+.flag.pmini i { position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(90deg, var(--brand-a), var(--brand-b));
+  clip-path: inset(0 calc((1 - var(--f)) * 100%) 0 0 round 3px); }
+.popover .flag.pmini { width: 22px; height: 7px; }
+
 /* ---------- iOS / Mac 原生壳：先只留底子（安全区已统一用 --safe-t / --safe-b），玻璃以后交给原生 ---------- */
 /* iOS / Mac 的 WebKit 做不了位移折射，用上面的普通透明玻璃；以后由原生画真正的液态玻璃 */
 

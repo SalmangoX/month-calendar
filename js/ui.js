@@ -261,7 +261,7 @@
   }, true);
 
   // ---------- 图标与事件行 ----------
-  UI.flagSVG = p => `<svg class="flag" viewBox="0 0 24 24" style="--c:${MC.priOf(p).color}"><path d="M6 21V4h11l-2.2 4.2L17 12.5H6"/></svg>`;
+  UI.flagSVG = p => UI.priMini(p);   // 优先级标记：迷你渐变条（原来是彩色小旗子）
   // 等级评分：名称是用户自定义的，所以用文字徽标（颜色深浅随等级）而不是旗子
   UI.rateTag = e => `<span class="rate-tag lv${e.rate}" data-uc>${esc(MC.rateName(e))}</span>`;
   UI.rateMenuItems = (calId, cur) => [{ label: '未评级', value: 0, on: !cur }, ...MC.rateLabels(calId).map((n, i) => ({ label: n, value: i + 1, on: cur === i + 1, icon: `<span class="lvdot lv${i + 1}"></span>` }))];
@@ -387,6 +387,66 @@
     };
     document.addEventListener('pointerup', end, true);
     document.addEventListener('pointercancel', end, true);
+  }
+  // ---------- 优先级拖动条：从左到右 = 无 → 低 → 中 → 高 ----------
+  // 条上铺 logo 的雾紫 → 暖沙渐变，填到哪里就露出多少：越重要，露出的暖色越多，一眼看出轻重。
+  // 按住拖动连续跟手，松手吸到最近的一档；点下面的字或条上任意位置直接跳过去。和 lgBar 一样发 lgchange
+  const PB_N = 4, PB_NAMES = () => MC.PRI_ASC.map(p => p.name), PB_FULL = () => MC.PRI_ASC.map(p => p.full);
+  UI.priBar = (cur, opts = {}) => {
+    const k = Math.max(0, Math.min(PB_N - 1, Number(cur) || 0)), names = PB_NAMES();
+    return `<div class="pbar${opts.compact ? ' compact' : ''}" role="slider" tabindex="0" aria-label="优先级" aria-valuemin="0" aria-valuemax="3" aria-valuenow="${k}" aria-valuetext="${esc(PB_FULL()[k])}" data-i="${k}" style="--f:${k / (PB_N - 1)}">`
+      + `<div class="pb-track"><div class="pb-fill"></div>${[0, 1, 2, 3].map(j => `<i class="pb-stop" style="--j:${j / (PB_N - 1)}"></i>`).join('')}<span class="pb-thumb"></span></div>`
+      + `<div class="pb-ticks">${names.map((n, j) => `<span class="pb-tick${j === k ? ' on' : ''}" data-i="${j}" style="--j:${j / (PB_N - 1)}" data-uc>${esc(n)}</span>`).join('')}</div></div>`;
+  };
+  // 优先级的小图标（列表、菜单）：一根迷你条，渐变填到对应位置
+  UI.priMini = p => `<span class="flag pmini" style="--f:${Math.max(0, Math.min(3, p || 0)) / 3}" aria-hidden="true"><i></i></span>`;
+  {
+    let g = null;
+    const setF = (bar, f) => bar.style.setProperty('--f', f);
+    const ticksOn = (bar, k) => bar.querySelectorAll('.pb-tick').forEach((t, j) => t.classList.toggle('on', j === k));
+    const pick = (bar, k) => {
+      const was = Number(bar.dataset.i);
+      bar.classList.remove('dragging');
+      setF(bar, k / (PB_N - 1)); bar.dataset.i = k; ticksOn(bar, k);
+      bar.setAttribute('aria-valuenow', k); bar.setAttribute('aria-valuetext', PB_FULL()[k]);
+      if (k !== was) { haptic(); bar.dispatchEvent(new CustomEvent('lgchange', { bubbles: true, detail: { v: MC.PRI_ASC[k].v, i: k } })); }
+    };
+    const fAt = (s, x) => Math.max(0, Math.min(1, (x - s.r.left - s.pad) / Math.max(1, s.r.width - s.pad * 2)));
+    document.addEventListener('pointerdown', e => {
+      const bar = e.target.closest && e.target.closest('.pbar'); if (!bar || e.button > 0) return;
+      const tr = bar.querySelector('.pb-track'), r = tr.getBoundingClientRect(), th = bar.querySelector('.pb-thumb').offsetWidth || 28;
+      g = { bar, id: e.pointerId, x0: e.clientX, y0: e.clientY, r, pad: 3 + th / 2, moved: false, last: Number(bar.dataset.i) };
+    }, true);
+    document.addEventListener('pointermove', e => {
+      if (!g || e.pointerId !== g.id) return;
+      const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+      if (!g.moved) {
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { g = null; return; }   // 竖着划：交给页面滚动
+        if (Math.abs(dx) < 5) return;
+        g.moved = true; g.bar.classList.add('dragging');
+        try { g.bar.setPointerCapture(e.pointerId); } catch (_) {}
+        UI.cancelPresses && UI.cancelPresses();
+      }
+      const f = fAt(g, e.clientX), k = Math.round(f * (PB_N - 1));
+      setF(g.bar, f); ticksOn(g.bar, k);
+      if (k !== g.last) { haptic(); g.last = k; }    // 经过每一档轻轻一下
+    }, true);
+    const end = e => {
+      if (!g || e.pointerId !== g.id) return;
+      const s = g; g = null;
+      if (e.type === 'pointercancel' && !s.moved) return;
+      const t = !s.moved && e.target.closest && e.target.closest('.pb-tick');
+      const k = t && s.bar.contains(t) ? Number(t.dataset.i) : Math.round(fAt(s, e.clientX) * (PB_N - 1));
+      if (s.moved) s.bar._swallow = Date.now();
+      pick(s.bar, k);
+    };
+    document.addEventListener('pointerup', end, true);
+    document.addEventListener('pointercancel', end, true);
+    document.addEventListener('keydown', e => {
+      const bar = e.target.closest && e.target.closest('.pbar'); if (!bar) return;
+      const k = Number(bar.dataset.i), d = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[e.key];
+      if (d) { e.preventDefault(); pick(bar, Math.max(0, Math.min(PB_N - 1, k + d))); }
+    });
   }
   UI.doneFeedback = () => { haptic(); chime(); };
 
