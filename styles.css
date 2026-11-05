@@ -1521,9 +1521,8 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 /* ---------- 顶部月份气泡：在安全区下面，不压灵动岛 / 状态栏 ---------- */
 #page-cal::before {
   content: ""; position: absolute; left: 0; right: 0; top: 0; z-index: 5; pointer-events: none;
-  /* 状态栏那一条实心盖住；往下到星期条为止渐渐变透明：日历还是整页铺满、滚到上面去，但不会和月份胶囊、星期条的字叠在一起显得乱 */
-  height: calc(var(--safe-t) + 96px);
-  background: linear-gradient(to bottom, var(--bg) 0, var(--bg) calc(var(--safe-t) + 58px), color-mix(in srgb, var(--bg) 82%, transparent) calc(var(--safe-t) + 74px), transparent);
+  height: var(--safe-t);   /* 只盖住状态栏 / 灵动岛那一条，日历其余部分整页显示、不加遮挡（星期那一条自己是一块玻璃，见下面） */
+  background: var(--bg);
 }
 /* 月视图顶部留白（calendar.js 读这个值）；0 = 日历整页铺满，月份气泡悬浮在上面 */
 #calViewport { --cal-top: 0px; }
@@ -1555,12 +1554,17 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 #page-cal .topbar .title .title-chev { width: 12px; height: 12px; stroke-width: 2.4; color: var(--text2); opacity: .7; margin-left: -1px; }
 
 /* 悬浮星期条：固定在月份气泡下面，透明，日历在下面整页滚动 */
+/* 星期条：一条细长的悬浮玻璃（和月份胶囊同一种玻璃），只占这一条的高度；下面的日历不加任何遮挡，透过玻璃还看得见 */
 body #page-cal .weekdays {
-  display: grid; position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 50px); z-index: 6;
-  height: 20px; padding: 0 2px; align-items: center; pointer-events: none;
-  font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--text2);
-  text-shadow: 0 0 5px var(--bg), 0 0 2px var(--bg), 0 0 1px var(--bg);
+  display: grid; position: absolute; left: 8px; right: 8px; top: calc(var(--safe-t) + 50px); z-index: 6;
+  height: 24px; padding: 0 0; align-items: center; pointer-events: none; border-radius: 12px;
+  font-size: 11px; font-weight: 650; letter-spacing: .04em; color: var(--text);
+  background: color-mix(in srgb, var(--surface) 46%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(170%); backdrop-filter: blur(14px) saturate(170%);
+  box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .5), inset 0 0 0 .5px color-mix(in srgb, var(--text) 10%, transparent), 0 4px 14px -6px rgba(0, 0, 0, .25);
 }
+:root[data-theme="dark"] body #page-cal .weekdays { background: color-mix(in srgb, #1c1c20 50%, transparent); box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .14), 0 4px 14px -6px rgba(0, 0, 0, .5); }
+body #page-cal .weekdays span { opacity: .78; }
 body #page-cal .weekdays.hide { display: none; }
 
 /* ---------- 设置页：左上角返回 ---------- */
