@@ -51,8 +51,8 @@
 - 纪念日历自己也能选图标（和日子同一套实心图标，`c.icon`），原生侧拉菜单用对应的系统符号（`drawer.js` 的 `SF_OF`）。
 - logo 扇形展开像扇子打开：从 logo 出发先朝第一个按钮的方向，沿圆弧转到各自位置，按顺序一个接一个（网页 rotate-translate-rotate，原生 `FanArc`，安卓角度插值）。
 - 切换日历有过渡：先淡出微缩下沉，再从略大淡入（`drawer.js` 的 `D.pick`），不用模糊。
-- 月视图滚动时星期条明显变淡（透明度 .42）、往外扩散（横 1.05 / 纵 1.32），停下回弹收回（`calendar.js` 的 `markMoving` + `.weekdays.moving`）；原生玻璃按网页发来的透明度画（`LG` 第 18 项 `alpha`）。
-- 侧拉菜单底部是「新建子日历」，点开是两种日历的介绍卡片（左记录日历、右纪念日历，各带一个简单的效果图），不要再改回系统菜单。卡片从「新建子日历」那颗胶囊长出来、收回时缩回胶囊（`js/drawer.js` 的 `morphKinds`，iPhone / Mac 按原生按钮的固定位置算）。网页 / 安卓里侧拉菜单留在卡片下面；iPhone / Mac 的原生侧拉菜单会先收起，没选就取消时再打开回来。纪念日历的示例不要写「考试」。iPhone / Mac 上介绍卡片是原生画的（`GlassDrawer.kindsCard`，文字来自 `D.model().kinds`），浮在原生侧拉菜单上面、靠屏幕上方，侧拉菜单不收起，从「新建子日历」胶囊长出来（`matchedGeometryEffect`）。网页 / 安卓的卡片浮在上方（离安全区 70），底栏不让路。
+- 月视图滚动时星期条柔和地变浅（透明度 .55，只轻轻扩 1% / 4%），停下后慢慢恢复、不回弹（用户觉得大幅扩散太突兀）（`calendar.js` 的 `markMoving` + `.weekdays.moving`）；原生玻璃按网页发来的透明度画（`LG` 第 18 项 `alpha`）。
+- 侧拉菜单底部是「新建子日历」，点开是两种日历的介绍卡片（左记录日历、右纪念日历，各带一个简单的效果图），不要再改回系统菜单。卡片从「新建子日历」那颗胶囊长出来、收回时缩回胶囊（`js/drawer.js` 的 `morphKinds`，iPhone / Mac 按原生按钮的固定位置算）。网页 / 安卓里侧拉菜单留在卡片下面；iPhone / Mac 的原生侧拉菜单会先收起，没选就取消时再打开回来。纪念日历的示例不要写「考试」。iPhone / Mac 上介绍卡片是原生画的（`GlassDrawer.kindsCard`，文字来自 `D.model().kinds`），浮在原生侧拉菜单上面，侧拉菜单不收起。展开 / 收起是真的液态玻璃水滴：先从「新建子日历」胶囊顶上鼓出一颗小水滴、分离出去，再弹开放大成卡片，收起倒过来融回胶囊（网页 `morphKinds` 的 `.ks-blob`，原生 `GlassDrawer.pillAndKinds` 的 `kPhase` 0 → 1 → 2，同一个 `GlassEffectContainer`）。卡片在屏幕中间稍微偏下（中心在高度 58%），展开后胶囊留在原位、只剩一颗空的液态玻璃。网页 / 安卓的卡片浮在上方（离安全区 70），底栏不让路。
 - 有面板开着时根元素挂 `ui-open`（`js/ui.js` 的 `syncBackdrop`），三端的注入脚本靠它把原生底栏控件（时钟、logo、回到今天、分页点）收起来，别再只看某一个面板。
 - 悬浮卡片（`.sheet.fl`）在宽、够高的窗口（≥700 × 520，Mac、iPad）里居中弹出，不贴在底部；手机上从底部弹出（要打字的表单，键盘不挡）。新建子日历的介绍卡片在所有设备上都居中。
 - 纪念日历也能「在主日历显示」：日子到了那一天显示在主日历和小组件里（只读，点开是详情页）。
@@ -124,6 +124,7 @@
 ## 本地开发和验证
 
 - 网页预览：`.claude/launch.json` 里的 `web`（`python3 -m http.server 8791`）。别的会话占着 8791 时用 `web-8792`（python 不认分配的端口，直接打开 `http://localhost:8792/`）。手机尺寸用浏览器面板的 mobile 预设。
+- 本地开发（localhost）现在不注册 Service Worker，打开时还会注销旧的、清掉缓存（`js/app.js`）；但第一次换成这一版之前注册过的，要先手动注销一次。
 - **Service Worker 会缓存旧文件**：改完看不到效果时，先在页面里注销 SW、清 caches，再用 `fetch(url, {cache:'reload'})` 刷一遍 CSS / JS，最后重新打开。
 - 第一次打开有隐私弹窗（`#pvYes`）。测试时加的事件记得删掉。
 - iOS：`bash ios/build.sh sim` 编译模拟器版；调试版用 `devURL` 指向本机网页：`xcrun simctl spawn booted defaults write io.github.salmangox.cadence devURL http://localhost:8791/`（用完改回原值）。

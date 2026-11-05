@@ -569,12 +569,19 @@ body:not([data-page="cal"]) .back-today { display: none; }
 /* 新建子日历：两种日历的介绍卡片，左右并排，各带一个简单的效果图 */
 #calKindSheet { z-index: 42; }
 /* 介绍卡片在手机上也居中（从胶囊长到屏幕中间），不贴在底部；要打字的设置表单还是从底部弹出，键盘不挡输入框 */
-/* 浮在屏幕上方（不是死板的正中间）：离顶部安全区 70，投影更深，像浮起来；底栏不给它让路 */
-#calKindSheet.fl { top: calc(var(--safe-t) + 70px); bottom: auto; translate: none; max-height: calc(100% - var(--safe-t) - var(--safe-b) - 90px); overflow-y: auto;
+/* 浮在屏幕中间稍微偏下（中心在 58% 高度处，不贴底），投影更深，像浮起来；底栏不给它让路 */
+#calKindSheet.fl { top: 58%; bottom: auto; translate: 0 -50%; max-height: calc(100% - var(--safe-t) - var(--safe-b) - 90px); overflow-y: auto;
   box-shadow: inset 0 1px 0 var(--rim-hi), inset 0 0 0 .5px var(--frost-edge), 0 30px 70px rgba(14, 24, 40, .28), 0 8px 20px rgba(14, 24, 40, .12); }
 #calKindSheet.fl:not(.show) { transform: translateY(28px) scale(.97); opacity: 0; }
 #calKindSheet .handle { visibility: hidden; }   /* 居中的卡片不往下拉收起，不显示把手 */
-#calKindSheet.morph { transition: none !important; }   /* 从胶囊长出来 / 缩回胶囊时：位置不再走面板自己的弹出过渡，形状由 drawer.js 的 morphKinds 画 */
+#calKindSheet.morph { transition: none !important; }
+/* 从胶囊分离出去的那一滴玻璃（drawer.js 的 morphKinds 用它画形状变化，结束后换成真正的卡片） */
+.ks-blob { position: fixed; z-index: 43; pointer-events: none; background: var(--frost-strong);
+  -webkit-backdrop-filter: var(--glass-fx-strong); backdrop-filter: var(--glass-fx-strong);
+  box-shadow: inset 0 1px 0 var(--rim-hi), inset 0 0 0 .5px var(--frost-edge), 0 24px 60px rgba(14, 24, 40, .22); }
+/* 展开后胶囊留在原位，只剩一颗空的玻璃 */
+.dr-add.empty > * { opacity: 0; transition: opacity .15s ease; }
+.dr-add > * { transition: opacity .25s ease .1s; }   /* 从胶囊长出来 / 缩回胶囊时：位置不再走面板自己的弹出过渡，形状由 drawer.js 的 morphKinds 画 */
 .ck-lead { margin: -4px 20px 12px; font-size: 13px; line-height: 1.5; color: var(--text2); text-align: center; }
 .ck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 4px; }
 .ck-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 14px; border-radius: 24px; text-align: left; background: var(--surface);
@@ -1726,10 +1733,10 @@ body #page-cal .weekdays {
   background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .05) 60%, rgba(255, 255, 255, .12));
   -webkit-backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05); backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05);
   box-shadow: var(--lg-shadow); text-shadow: var(--lg-ink-halo);
-  transition: transform .55s cubic-bezier(.3, 1.35, .45, 1), opacity .4s ease;
+  transition: transform .7s cubic-bezier(.25, .1, .25, 1), opacity .7s cubic-bezier(.25, .1, .25, 1);   /* 停下后慢慢恢复，不回弹 */
 }
-/* 滑动中：变浅、更透明，往外稍微扩散一点；停下后收回（calendar.js 的 markMoving）。iPhone / Mac 的原生玻璃按 opacity 跟着变淡 */
-body #page-cal .weekdays.moving { opacity: .42; transform: scale(1.05, 1.32); transition: transform .3s cubic-bezier(.2, .8, .3, 1), opacity .22s ease; }
+/* 滑动中：玻璃效果柔和地变浅、只轻轻扩一点点（不突兀），停下后慢慢恢复（calendar.js 的 markMoving）。iPhone / Mac 的原生玻璃按 opacity 跟着变淡 */
+body #page-cal .weekdays.moving { opacity: .55; transform: scale(1.01, 1.04); transition: transform .45s cubic-bezier(.25, .1, .25, 1), opacity .45s cubic-bezier(.25, .1, .25, 1); }
 .lg-refract body #page-cal .weekdays { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); }
 :root[data-theme="dark"] body #page-cal .weekdays { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
 :root[data-theme="dark"].lg-refract body #page-cal .weekdays { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }

@@ -210,31 +210,53 @@
     const h = 52, top = innerHeight - sb - 10 - 12 - h;
     return { left: 22, top, width: Math.min(300, innerWidth - 20) - 24, height: h, right: 22 + Math.min(300, innerWidth - 20) - 24, bottom: top + h };
   }
+  // 一滴玻璃：打开时胶囊先往上鼓起来，再分离出一滴、一边飞一边放大成卡片（带一点回弹），卡片内容再淡入；收起时反过来缩成一滴、融回胶囊。
+  // 胶囊一直留在原位，展开后只剩一颗空的玻璃（字和加号隐去，.empty）
   function morphKinds(opening, done) {
-    if (reduceMo.matches || !KS.animate) { done && done(); return; }
-    const p = pillRect(), r = KS.getBoundingClientRect();
-    const from = `inset(${(p.top - r.top).toFixed(1)}px ${(r.right - p.right).toFixed(1)}px ${(r.bottom - p.bottom).toFixed(1)}px ${(p.left - r.left).toFixed(1)}px round ${p.height / 2}px)`, to = 'inset(0px 0px 0px 0px round 34px)';
-    const btn = $('#drawerAdd'); btn.style.opacity = '0';
-    KS.classList.add('morph');
-    const kids = [...KS.children];
-    const a = KS.animate([{ clipPath: from }, { clipPath: to }].map((f, i, l) => (opening ? f : l[1 - i])),
-      { duration: opening ? 520 : 380, easing: opening ? 'cubic-bezier(.3,1.15,.4,1)' : 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
-    kids.forEach(k => k.animate(opening ? [{ opacity: 0 }, { opacity: 0, offset: .3 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0, offset: .55 }, { opacity: 0 }],
-      { duration: opening ? 520 : 380, fill: 'forwards' }));
-    a.onfinish = () => {
+    const btn = $('#drawerAdd');
+    if (reduceMo.matches || !document.body.animate) { btn.classList.toggle('empty', opening); done && done(); return; }
+    const p = pillRect(), c = KS.getBoundingClientRect();
+    const box = (x, y, w, h, r) => ({ left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', borderRadius: r + 'px' });
+    const cx = c.left + c.width / 2, cy = c.top + c.height / 2;
+    const frames = [
+      box(p.left, p.top, p.width, p.height, p.height / 2),                                                   // 胶囊
+      box(p.left + p.width * .2, p.top - 16, p.width * .6, p.height + 16, (p.height + 16) / 2),            // 往上鼓起来
+      box((p.left + p.width / 2 + cx) / 2 - 46, (p.top + cy) / 2 - 40, 92, 80, 40),                         // 分离出来的一滴，飞到半路
+      box(c.left, c.top, c.width, c.height, 34),                                                             // 卡片
+    ];
+    const offs = [0, .2, .55, 1];
+    const blob = document.createElement('div'); blob.className = 'ks-blob'; document.body.appendChild(blob);
+    btn.classList.add('empty');
+    KS.classList.add('morph'); KS.style.opacity = '0';
+    // 每一段各用自己的缓动（整段只用一条曲线的话，开头太快，看不出鼓起和分离）：鼓起缓出 → 分离缓入缓出 → 放大成卡片带一点回弹
+    const ease = opening ? ['cubic-bezier(.2,.7,.3,1)', 'cubic-bezier(.45,0,.35,1)', 'cubic-bezier(.3,1.25,.4,1)']
+      : ['cubic-bezier(.5,0,.6,1)', 'cubic-bezier(.45,0,.35,1)', 'cubic-bezier(.3,.9,.4,1)'];
+    const kf = (opening ? frames : [...frames].reverse()).map((f, k) => ({ ...f, offset: opening ? offs[k] : 1 - offs[3 - k], ...(k < 3 ? { easing: ease[k] } : {}) }));
+    const a = blob.animate(kf, { duration: opening ? 680 : 520, easing: 'linear', fill: 'forwards' });
+    const finish = () => {
+      if (opening) {
+        KS.style.opacity = '';
+        [...KS.children].forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' }));
+      } else { btn.classList.remove('empty'); KS.style.opacity = ''; }
+      blob.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160 }).onfinish = () => blob.remove();
+      KS.classList.remove('morph');
       done && done();
-      requestAnimationFrame(() => { a.cancel(); kids.forEach(k => k.getAnimations().forEach(x => x.cancel())); KS.classList.remove('morph'); if (!opening) btn.style.opacity = ''; });   // 卡片开着时胶囊一直藏着（卡片就是它变的），收回后再出现
     };
+    a.onfinish = finish;
   }
   function openKinds() {
     let picked = false;
-    const pick = k => { picked = true; UI.close('calKindSheet', true); setTimeout(() => calForm(null, k), 120); };
+    const pick = k => { picked = true; UI.close('calKindSheet', true); $('#drawerAdd').classList.remove('empty'); setTimeout(() => calForm(null, k), 120); };
     KS.querySelector('[data-k="rec"]').onclick = () => pick('');
     KS.querySelector('[data-k="days"]').onclick = () => pick('days');
     // 关闭前先缩回胶囊（往下拉着关的已经跟着手指走了，直接收起）
-    UI.guard('calKindSheet', proceed => { if (KS.style.transform) { proceed(); return; } morphKinds(false, proceed); });
-    UI.open('calKindSheet', () => { UI.guard('calKindSheet'); $('#drawerAdd').style.opacity = ''; if (!picked && nativeDrawer()) D.open(); });
-    KS.classList.add('morph'); void KS.offsetWidth;   // 先没有过渡地放到最终位置，再从胶囊长出来
+    UI.guard('calKindSheet', proceed => {
+      if (KS.style.transform) { proceed(); return; }
+      morphKinds(false);   // 收起：先量好卡片的位置，卡片换成一滴玻璃缩回胶囊
+      proceed();
+    });
+    UI.open('calKindSheet', () => { UI.guard('calKindSheet'); if (!picked && nativeDrawer()) D.open(); });
+    KS.classList.add('morph'); void KS.offsetWidth;   // 先没有过渡地放到最终位置（藏着），再由一滴玻璃从胶囊分离出去、长成卡片
     morphKinds(true);
   }
   $('#drawerAdd').onclick = () => openKinds();

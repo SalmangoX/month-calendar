@@ -1644,7 +1644,13 @@
     if ($('#tabCalNum').textContent !== String(d)) { $('#tabCalNum').textContent = d; renderPage(); }
   }, 60000);
 
-  if ('serviceWorker' in navigator) {
+  // 本地开发（localhost / 127.0.0.1）不用 Service Worker：它会把旧文件缓存住，改完代码看不到；已经注册的顺手注销、清掉缓存
+  const localDev = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  if (localDev && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+    if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k))).catch(() => {});
+  }
+  if ('serviceWorker' in navigator && !localDev) {
     const hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     // 新版本接管后自动刷新一次，立即显示最新界面
