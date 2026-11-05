@@ -74,6 +74,21 @@ final class Engine {
                     }
                 }
             }
+            for (Data.Day y : d.days) { // 纪念日提醒：今天是不是「提前 k 天」那一天
+                for (int k : y.reminds) {
+                    LocalDate occ = y.occ(today.plusDays(k));
+                    if (!occ.minusDays(k).equals(today)) continue;
+                    long ft = today.atStartOfDay(z).plusMinutes(y.remindMin).toInstant().toEpochMilli();
+                    String key = "day@" + y.id + "@" + occ + "@" + k;
+                    if (ft > from && ft <= now && !sent.has(key)) { showDay(c, y, k, occ, key, ft); put(sent, key, now); }
+                }
+                for (int hh : y.remindH) for (int dd = 0; dd < 2; dd++) { // 提前几小时：今天或明天那一次
+                    LocalDate occ = y.occ(today.plusDays(dd));
+                    long ft = occ.atStartOfDay(z).plusMinutes(y.startMin() - hh * 60L).toInstant().toEpochMilli();
+                    String key = "day@" + y.id + "@" + occ + "@h" + hh;
+                    if (ft > from && ft <= now && !sent.has(key)) { showDay(c, y, -hh, occ, key, ft); put(sent, key, now); }
+                }
+            }
             if (d.dailyOn) {
                 long ft = ZonedDateTime.of(today, d.dailyTime, z).toInstant().toEpochMilli();
                 String key = "daily@" + today;
@@ -103,6 +118,22 @@ final class Engine {
                 long ft = ZonedDateTime.of(today, d.dailyTime, z).toInstant().toEpochMilli();
                 if (ft <= now) ft = ZonedDateTime.of(today.plusDays(1), d.dailyTime, z).toInstant().toEpochMilli();
                 if (ft < next) next = ft;
+            }
+        }
+        if (notifyOn) { // 纪念日提醒：今天和明天要响的
+            for (int dd = 0; dd < 2; dd++) {
+                LocalDate day = today.plusDays(dd);
+                for (Data.Day y : d.days) {
+                    for (int k : y.reminds) {
+                        if (!y.occ(day.plusDays(k)).minusDays(k).equals(day)) continue;
+                        long ft = day.atStartOfDay(z).plusMinutes(y.remindMin).toInstant().toEpochMilli();
+                        if (ft > now && ft < next) next = ft;
+                    }
+                    for (int hh : y.remindH) {
+                        long ft = y.occ(day).atStartOfDay(z).plusMinutes(y.startMin() - hh * 60L).toInstant().toEpochMilli();
+                        if (ft > now && ft < next) next = ft;
+                    }
+                }
             }
         }
         if (notifyOn && d.courseOn) { // 课程提醒：今天和明天的下一节课
@@ -136,6 +167,8 @@ final class Engine {
 
         // 3. 刷新桌面小组件
         Widgets.updateAll(c);
+        // 4. 自动备份到手机文件夹：今天还没备份过就备份一份（午夜换日也会醒一次）
+        Backup.maybe(c);
     }
 
     private static void put(JSONObject o, String k, long v) {
@@ -222,6 +255,18 @@ final class Engine {
                 .setCategory(Notification.CATEGORY_REMINDER)
                 .setWhen(when)
                 .setContentIntent(openApp(c, "", key.hashCode()))
+                .build();
+        c.getSystemService(NotificationManager.class).notify(key.hashCode(), n);
+    }
+
+    private static void showDay(Context c, Data.Day y, int k, LocalDate occ, String key, long when) {
+        String body = (k < 0 ? I18n.t("还有 {0} 小时", -k) : k > 0 ? I18n.t("还有 {0} 天", k) : I18n.t("就是今天")) + " · " + I18n.md(occ.getMonthValue(), occ.getDayOfMonth()) + (y.time.isEmpty() ? "" : " " + y.time);
+        Notification n = builder(c, CH_EVENT)
+                .setContentTitle(y.title.isEmpty() ? I18n.t("（无标题）") : y.title)
+                .setContentText(body)
+                .setCategory(Notification.CATEGORY_REMINDER)
+                .setWhen(when)
+                .setContentIntent(openApp(c, "#days-" + y.id, key.hashCode()))
                 .build();
         c.getSystemService(NotificationManager.class).notify(key.hashCode(), n);
     }

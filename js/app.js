@@ -80,6 +80,7 @@
     kick();
   }
   function showPage(p) {
+    if (p === 'cal' && document.body.dataset.kind === 'days') p = 'days';   // 纪念日历没有日历页（月历在总览里）：任何「回到日历」都回到纪念日
     page = p;
     document.body.dataset.page = p;
     document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.id === 'page-' + p));
@@ -814,7 +815,11 @@
       srow({ act: 'androidSched', icon: 'android', tone: 'jade', label: '安卓课表小组件', sub: '复制课表小组件链接', chev: false }),
       srow({ act: 'iosDays', icon: 'heart', tone: 'rose', label: DT('iOS 纪念日小组件'), sub: DT('复制 Scriptable 脚本'), help: 'iosDays', chev: false }),
     ]);
+    const bi = MC.Native.backupInfo ? MC.Native.backupInfo() : null;   // 只有安卓 App 有
+    const biWhen = bi && bi.at ? (() => { const d = new Date(bi.at); return `${d.getMonth() + 1}月${d.getDate()}日 ${MC.fmtTime(MC.pad(d.getHours()) + ':' + MC.pad(d.getMinutes()))}`; })() : '';
     const gData = group('数据', [
+      ...(bi ? [srow({ act: 'abackup', icon: 'export', tone: 'teal', label: '自动备份到手机', val: bi.on ? '已开启' : '未设置',
+        sub: bi.on ? `${bi.folder || '已选的文件夹'} · 每天一份，留最近 7 份${biWhen ? ' · 上次 ' + biWhen : ''}` : '选一个手机文件夹，每天自动备份一份' })] : []),
       srow({ act: 'export', icon: 'export', tone: 'jade', label: '导出备份', chev: false }),
       srow({ act: 'import', icon: 'import', tone: 'sky', label: '导入备份', sub: '与现有数据合并', chev: false }),
       srow({ act: 'update', icon: 'refresh', tone: 'lavender', label: '检查更新', sub: `当前版本 ${MC.versionText()}`, chev: false }),
@@ -947,6 +952,16 @@
     else if (act === 'androidSched') { if (!MC.settings.gistId) { UI.toast('请先连接 GitHub 并完成一次同步'); return; } copy(androidLink() + '&mode=sched', '已复制课表小组件链接'); }
     else if (act === 'icfile') icloudFileSync();
     else if (act === 'export') exportData();
+    else if (act === 'abackup') {
+      const pick = async () => { const r = await MC.Native.backupPick(); renderSettings(); if (r && r.ok) UI.toast(`已备份到「${r.folder || '所选文件夹'}」，以后每天自动备份`); else if (r && r.on) UI.toast('文件夹已选好，但这次没写进去，稍后会再试'); };
+      const bi2 = MC.Native.backupInfo() || {};
+      if (!bi2.on) pick();
+      else UI.menu(row.querySelector('.sval') || row, [{ label: '立即备份', value: 'now' }, { label: '更换文件夹', value: 'pick' }, { label: '关闭自动备份', value: 'off', danger: true }], async v => {
+        if (v === 'pick') pick();
+        else if (v === 'now') { const r = await MC.Native.backupNow(); renderSettings(); UI.toast(r && r.ok ? '已备份' : '备份失败：文件夹可能被移走了，换一个文件夹试试'); }
+        else { MC.Native.backupOff(); renderSettings(); UI.toast('已关闭自动备份（已经存下的文件不会删）'); }
+      });
+    }
     else if (act === 'import') $('#importFile').click();
     else if (act === 'update') {
       // 清掉旧缓存并重新下载最新版本；日历数据和令牌都保存在别处，不受影响

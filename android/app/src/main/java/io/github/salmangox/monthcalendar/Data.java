@@ -76,6 +76,12 @@ final class Data {
         LocalDate date;
         boolean pin, from1;
         long updatedAt;
+        /** 提醒：提前几天（0 = 当天），都在 remindMin（当天第几分钟）提醒 */
+        int[] reminds = new int[0];
+        int remindMin = 9 * 60;
+        /** 提前几小时（1 / 12），按这个日子的精确时间，没设就按当天 0 点 */
+        int[] remindH = new int[0];
+        int startMin() { return time.isEmpty() ? 0 : minutes(time); }
 
         /** 从 today 起的下一次（不重复的就是那一天） */
         LocalDate occ(LocalDate today) {
@@ -205,6 +211,19 @@ final class Data {
                 y.unit = x.optString("unit", "d");
                 y.pin = x.optBoolean("pin"); y.from1 = x.optBoolean("from1"); y.icon = x.optString("icon");
                 y.updatedAt = x.optLong("updatedAt");
+                JSONArray rs = x.optJSONArray("reminds");
+                if (rs != null) {
+                    java.util.TreeSet<Integer> set = new java.util.TreeSet<>();
+                    for (int k = 0; k < rs.length() && set.size() < 6; k++) { int n = rs.optInt(k, -1); if (n >= 0 && n <= 60) set.add(n); }
+                    y.reminds = set.stream().mapToInt(Integer::intValue).toArray();
+                }
+                String ra = x.optString("remindAt"); if (TIME.matcher(ra).matches()) y.remindMin = minutes(ra);
+                JSONArray rh = x.optJSONArray("remindH");
+                if (rh != null) {
+                    java.util.TreeSet<Integer> hs = new java.util.TreeSet<>();
+                    for (int k = 0; k < rh.length(); k++) { int n = rh.optInt(k, -1); if (n == 1 || n == 12) hs.add(n); }
+                    y.remindH = hs.stream().mapToInt(Integer::intValue).toArray();
+                }
                 d.days.add(y);
             }
             d.days.removeIf(y -> !d.dayCals.containsKey(y.cal));

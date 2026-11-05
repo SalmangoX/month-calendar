@@ -291,7 +291,7 @@
   };
   pullFrom(calPage);
   if (daysPage) pullFrom(daysPage);
-  if (sumPage) pullFrom(sumPage);
+  // 总览是纪念日历的第二页：往右滑是回到纪念日，不拉侧栏（回到纪念日后再往右滑才拉侧栏）
 
   // 触控板：在侧栏或遮罩上双指往左轻扫收起
   let wx = 0, wxT = null;

@@ -1561,7 +1561,7 @@ body #page-cal .weekdays {
   font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--text2);
   text-shadow: 0 0 5px var(--bg), 0 0 2px var(--bg), 0 0 1px var(--bg);
 }
-body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { display: none; }
+body #page-cal .weekdays.hide { display: none; }
 
 /* ---------- 设置页：左上角返回 ---------- */
 #page-set::before {

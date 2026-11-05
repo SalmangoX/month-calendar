@@ -199,7 +199,7 @@ final class Engine: ObservableObject {
     /// 把接下来的提醒交给系统预约：App 退出、电脑睡眠后醒来也会弹出
     private func schedule() async {
         let pending = await center.pendingNotificationRequests()
-        let ours = pending.map(\.identifier).filter { $0.hasPrefix("ev:") || $0.hasPrefix("daily@") || $0.hasPrefix("course@") }
+        let ours = pending.map(\.identifier).filter { $0.hasPrefix("ev:") || $0.hasPrefix("daily@") || $0.hasPrefix("course@") || $0.hasPrefix("day@") }
         center.removePendingNotificationRequests(withIdentifiers: ours)
         guard prefs.bool(forKey: "notify"), notif == "granted" else { return }
 
@@ -235,6 +235,33 @@ final class Engine: ObservableObject {
                 c.threadIdentifier = "daily"
                 c.userInfo = ["hash": "#today"]
                 reqs.append(UNNotificationRequest(identifier: "daily@" + day.key, content: c, trigger: at(t)))
+            }
+        }
+        do { // 纪念日提醒：接下来 62 天里要响的（提前几天、当天），按时间排，最多 24 条
+            var list: [(Date, CDay, Int, YMD)] = []
+            for k in 0..<62 {
+                let day = YMD.today.adding(k)
+                for y in d.days {
+                    for r in y.reminds {
+                        let o = y.occ(day.adding(r))
+                        guard o.adding(-r) == day else { continue }
+                        let t = day.at(minutes: y.remindMin)
+                        if t > now { list.append((t, y, r, o)) }
+                    }
+                    for h in y.remindH where y.occ(day) == day {   // 提前几小时：这一天就是那一次
+                        let t = day.at(minutes: y.startMin - h * 60)
+                        if t > now { list.append((t, y, -h, day)) }
+                    }
+                }
+            }
+            for (t, y, r, o) in list.sorted(by: { $0.0 < $1.0 }).prefix(24) {
+                let c = UNMutableNotificationContent()
+                c.title = y.title.isEmpty ? I18n.t("（无标题）") : y.title
+                c.body = (r < 0 ? I18n.t("还有 {0} 小时", -r) : r > 0 ? I18n.t("还有 {0} 天", r) : I18n.t("就是今天")) + " · " + I18n.md(o.m, o.d) + (y.time.isEmpty ? "" : " " + y.time)
+                c.sound = .default
+                c.threadIdentifier = "day"
+                c.userInfo = ["hash": "#days-" + y.id]
+                reqs.append(UNNotificationRequest(identifier: "day@\(y.id)@\(o.key)@\(r < 0 ? "h\(-r)" : "\(r)")", content: c, trigger: at(t)))
             }
         }
         if d.courseOn { // 课程提醒：接下来 7 天每节课开始前 courseLead 分钟

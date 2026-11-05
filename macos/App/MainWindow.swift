@@ -217,7 +217,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         MC.UI.menu = function(anchor, items, cb){
           var r = anchor.getBoundingClientRect(), id = String(++seq);
           cbs[id] = { items: items, cb: cb };
-          H.postMessage({ name: 'menu', args: [id, JSON.stringify(items.map(function(it){ return { label: String(it.label), on: !!it.on, danger: !!it.danger }; })), r.left, r.top, r.width, r.height] });
+          H.postMessage({ name: 'menu', args: [id, JSON.stringify(items.map(function(it){ return { label: String(it.label), on: !!it.on, danger: !!it.danger, sw: it.swatch ? String(it.swatch) : '' }; })), r.left, r.top, r.width, r.height] });
         };
         MC.UI.closeMenu = function(){};
         window.__mcMenuPick = function(id, i){ var m = cbs[id]; delete cbs[id]; if (m && i >= 0 && m.cb) m.cb(m.items[i].value, m.items[i]); };

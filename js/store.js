@@ -123,7 +123,7 @@
   // 提醒：带时间的事件以开始时间为准，全天事件以当天 9:00 为准；数值为提前的分钟数
   MC.remindOptions = hasTime => hasTime
     ? [{ v: null, label: '无' }, { v: 0, label: '准时' }, { v: 5, label: '提前 5 分钟' }, { v: 15, label: '提前 15 分钟' },
-       { v: 30, label: '提前 30 分钟' }, { v: 60, label: '提前 1 小时' }, { v: 1440, label: '提前 1 天' }]
+       { v: 30, label: '提前 30 分钟' }, { v: 60, label: '提前 1 小时' }, { v: 720, label: '提前 12 小时' }, { v: 1440, label: '提前 1 天' }]
     : [{ v: null, label: '无' }, { v: 0, label: `当天 ${MC.fmtTime('09:00')}` }, { v: 1440, label: `提前 1 天 ${MC.fmtTime('09:00')}` },
        { v: 2880, label: `提前 2 天 ${MC.fmtTime('09:00')}` }, { v: 10080, label: `提前 1 周 ${MC.fmtTime('09:00')}` }];
   MC.remindLabel = (v, hasTime) => {
@@ -281,10 +281,14 @@
       date: x.date, time: /^\d{2}:\d{2}$/.test(x.time || '') ? x.time : '',
       rep: ['week', 'month', 'year'].includes(x.rep) ? x.rep : '',
       book: String(x.book || '').slice(0, 40), icon: String(x.icon || '').slice(0, 24), // 图标名（旧版存过表情，days.js 会换回对应图标）
-      cover: /^(p[a-z0-9]{4,40}|c:#[0-9a-fA-F]{6})$/.test(x.cover || '') ? x.cover : '', // 主题图片：照片 id 或 c:#颜色
+      cover: /^(p[a-z0-9]{4,40}|c:#[0-9a-fA-F]{6}|g:[a-z]{2,12})$/.test(x.cover || '') ? x.cover : '', // 主题图片：照片 id、g:内置背景（js/days.js 的 SCENES）或旧的 c:#颜色
       cat: String(x.cat || '').slice(0, 16), sub: String(x.sub || '').slice(0, 40), // 大类、细分（细分是内置的 cat.xxx 或自定义细分 book 的 id）
       hl: /^#[0-9a-fA-F]{6}$/.test(x.hl || '') ? x.hl : '', pin: !!x.pin,
       unit: DAY_UNITS.includes(x.unit) ? x.unit : 'd', from1: !!x.from1,
+      // 提醒：提前几天（0 = 当天），每个在 remindAt 这个钟点提醒；重复的日子每次都会提醒
+      reminds: [...new Set((Array.isArray(x.reminds) ? x.reminds : []).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n <= 60))].sort((a, b) => a - b).slice(0, 6),
+      remindH: [...new Set((Array.isArray(x.remindH) ? x.remindH : []).map(Number).filter(n => n === 1 || n === 12))].sort((a, b) => a - b), // 提前几小时（按这个日子的精确时间，没设就按当天 0 点）
+      remindAt: /^\d{2}:\d{2}$/.test(x.remindAt || '') ? x.remindAt : '09:00', remindTz: String(x.remindTz || '').slice(0, 60), // 按设提醒时所在的时区算（后台推送用）
       notes: (Array.isArray(x.notes) ? x.notes : []).filter(n => n && n.id).slice(0, 300)
         .map(n => ({ id: String(n.id).slice(0, 40), text: String(n.text || '').slice(0, 2000), at: Number(n.at) || t })),
       photos: (Array.isArray(x.photos) ? x.photos : []).filter(p => p && p.id).slice(0, 300)

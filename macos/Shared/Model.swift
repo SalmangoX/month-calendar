@@ -58,6 +58,12 @@ struct CDay {
     var id = "", cal = "", title = "", time = "", rep = "", hl = "", unit = "d", icon = ""
     var date = YMD(y: 1970, m: 1, d: 1)
     var pin = false, from1 = false
+    /// 提醒：提前几天（0 = 当天），都在 remindMin（当天第几分钟）提醒
+    var reminds: [Int] = []
+    var remindMin = 9 * 60
+    /// 提前几小时（1 / 12），按这个日子的精确时间，没设就按当天 0 点
+    var remindH: [Int] = []
+    var startMin: Int { time.isEmpty ? 0 : minutesOf(time) }
     /// 标题前面带上彩色表情（旧版的线条图标名不显示）
     var named: String {
         let t = title.isEmpty ? I18n.t("（无标题）") : title
@@ -260,6 +266,9 @@ final class CalData {
             let r = x.str("rep"); y.rep = ["week", "month", "year"].contains(r) ? r : ""
             let h = x.str("hl"); y.hl = h.count == 7 && h.hasPrefix("#") && UInt32(h.dropFirst(), radix: 16) != nil ? h : ""
             y.unit = x.str("unit", "d"); y.icon = x.str("icon"); y.pin = x.bool("pin"); y.from1 = x.bool("from1"); y.updatedAt = x.long("updatedAt")
+            y.reminds = Array(Set(((x["reminds"] as? [Any]) ?? []).compactMap { ($0 as? NSNumber)?.intValue }.filter { $0 >= 0 && $0 <= 60 })).sorted().prefix(6).map { $0 }
+            let ra = x.str("remindAt"); if isTime(ra) { y.remindMin = minutesOf(ra) }
+            y.remindH = Array(Set(((x["remindH"] as? [Any]) ?? []).compactMap { ($0 as? NSNumber)?.intValue }.filter { $0 == 1 || $0 == 12 })).sorted()
             d.days.append(y)
         }
         if let daily = o.obj("daily") {

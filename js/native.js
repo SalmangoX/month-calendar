@@ -62,6 +62,11 @@
   Native.wxReady = () => (feats.has('wx') ? !!call('wxReady') : false);
   Native.wxShare = (dataUrl, scene) => Native.ask('wxShare', dataUrl, scene);
   Native.syncNow = () => call('syncNow');
+  // 安卓：自动备份到手机文件夹（选一次文件夹，之后每天自动备份一份，留最近 7 份）
+  Native.backupInfo = () => { if (!feats.has('autoBackup')) return null; try { return JSON.parse(call('backupInfo') || '{}'); } catch (e) { return {}; } };
+  Native.backupPick = () => Native.ask('backupPick');
+  Native.backupNow = () => Native.ask('backupNow');
+  Native.backupOff = () => call('backupOff');
   // 完成反馈：响铃模式才允许出声；旧版 App 判断不了，就不出声
   Native.soundAllowed = () => (feats.has('feedback') ? !!call('soundAllowed') : false);
   Native.haptic = () => (feats.has('feedback') ? (call('haptic'), true) : false);

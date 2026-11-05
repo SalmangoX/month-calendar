@@ -783,7 +783,8 @@
         const holes = [];
         document.querySelectorAll('#toast.show').forEach(t => { const r = t.getBoundingClientRect(); if (r.width) holes.push([...[r.left, r.top, r.width, r.height].map(v => Math.round(v)), 14]); });
         // 固定在顶上的栏（纪念日历的筛选栏、记录统计的切换栏）：内容滚到它下面时，玻璃也要被它挡住
-        document.querySelectorAll('.page.active .dv-bar, .page.active .rs-ctl').forEach(t => { const r = t.getBoundingClientRect(); if (r.width && r.height) holes.push([...[r.left, r.top, r.width, r.height].map(v => Math.round(v)), 0]); });
+        // 只在没有更上面一层（纪念日详情、面板…）时才算：不然下面那页的筛选栏会把详情页顶上的返回、编辑按钮挖掉一条
+        if (!top) document.querySelectorAll('.page.active .dv-bar, .page.active .rs-ctl').forEach(t => { const r = t.getBoundingClientRect(); if (r.width && r.height) holes.push([...[r.left, r.top, r.width, r.height].map(v => Math.round(v)), 0]); });
         // 纪念日详情：下面的内容区往上盖住照片底部（圆角），牌子的玻璃也要被它挡住
         document.querySelectorAll('.dp.show .dp-body').forEach(t => { const r = t.getBoundingClientRect(); if (r.width && r.top < H) holes.push([...[r.left, r.top, r.width, Math.min(r.height, H - r.top + 40)].map(v => Math.round(v)), 26]); });
         // 原生正在画的控件：网页自己的字和图标藏起来（不然会被玻璃糊住、和原生画的叠在一起）；不画了就恢复

@@ -83,10 +83,10 @@ function fireTime(e, tz) {
 // ---------- 语言（应用里的设置：同步数据 profile.lang；没设 / 跟随系统时用简体中文） ----------
 let LANG = 'zh-Hans';
 const TXT = {
-  'zh-Hans': { cIn: n => `${n} 分钟后开始`, cNow: '现在开始', allDay: '全天', openT: '查看今日未完成事件', openB: n => `今天还有 ${n} 件事未完成，点开查看。`, doneT: '今日事件已完成', doneB: '今天的事件都完成了。' },
-  'zh-Hant': { cIn: n => `${n} 分鐘後開始`, cNow: '現在開始', allDay: '全天', openT: '查看今日未完成事件', openB: n => `今天還有 ${n} 件事未完成，點開查看。`, doneT: '今日事件已完成', doneB: '今天的事件都完成了。' },
-  en: { cIn: n => `Starts in ${n} min`, cNow: 'Starting now', allDay: 'All day', openT: 'Check today’s open events', openB: n => `${n} things are still open today — tap to see them.`, doneT: 'All done today', doneB: 'Everything for today is done.' },
-  fr: { cIn: n => `Commence dans ${n} min`, cNow: 'Commence maintenant', allDay: 'Toute la journée', openT: 'Voir les tâches du jour', openB: n => `Encore ${n} choses à faire aujourd’hui — touchez pour les voir.`, doneT: 'Tout est fait aujourd’hui', doneB: 'Tout est fait pour aujourd’hui.' },
+  'zh-Hans': { hIn: n => `还有 ${n} 小时`, dIn: n => `还有 ${n} 天`, dNow: '就是今天', cIn: n => `${n} 分钟后开始`, cNow: '现在开始', allDay: '全天', openT: '查看今日未完成事件', openB: n => `今天还有 ${n} 件事未完成，点开查看。`, doneT: '今日事件已完成', doneB: '今天的事件都完成了。' },
+  'zh-Hant': { hIn: n => `還有 ${n} 小時`, dIn: n => `還有 ${n} 天`, dNow: '就是今天', cIn: n => `${n} 分鐘後開始`, cNow: '現在開始', allDay: '全天', openT: '查看今日未完成事件', openB: n => `今天還有 ${n} 件事未完成，點開查看。`, doneT: '今日事件已完成', doneB: '今天的事件都完成了。' },
+  en: { hIn: n => `In ${n} h`, dIn: n => `In ${n} days`, dNow: 'It’s today', cIn: n => `Starts in ${n} min`, cNow: 'Starting now', allDay: 'All day', openT: 'Check today’s open events', openB: n => `${n} things are still open today — tap to see them.`, doneT: 'All done today', doneB: 'Everything for today is done.' },
+  fr: { hIn: n => `Dans ${n} h`, dIn: n => `Dans ${n} jours`, dNow: 'C’est aujourd’hui', cIn: n => `Commence dans ${n} min`, cNow: 'Commence maintenant', allDay: 'Toute la journée', openT: 'Voir les tâches du jour', openB: n => `Encore ${n} choses à faire aujourd’hui — touchez pour les voir.`, doneT: 'Tout est fait aujourd’hui', doneB: 'Tout est fait pour aujourd’hui.' },
 };
 const L = () => TXT[LANG] || TXT['zh-Hans'];
 const MON = { en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], fr: ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'] };
@@ -203,6 +203,77 @@ if (cr.on && Array.isArray(data.courses) && data.courses.length) {
       } catch (err) {
         if (err.statusCode === 404 || err.statusCode === 410) dead.add(sub.endpoint);
         else console.log(`课程提醒发送失败 ${err.statusCode || ''}: ${err.body || err.message}`);
+      }
+    }
+  }
+}
+
+// 纪念日提醒：每个日子选的提前几天（0 = 当天），在 remindAt 钟点（按设提醒时所在的时区）；重复的日子按下一次算
+{
+  const pad2 = n => String(n).padStart(2, '0');
+  const ymdOf = (y, m, d) => { const t = new Date(Date.UTC(y, m - 1, d)); return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())}`; };
+  const parts = s => s.split('-').map(Number);
+  const addD = (s, n) => { const [y, m, d] = parts(s); return ymdOf(y, m, d + n); };
+  const dim = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const clampD = (y, m, d) => { const t = new Date(Date.UTC(y, m - 1, 1)); const yy = t.getUTCFullYear(), mm = t.getUTCMonth() + 1; return ymdOf(yy, mm, Math.min(d, dim(yy, mm))); };
+  const occ = (x, from) => {   // 和应用 days.js 的 occurrence 一样：从 from 起的下一次
+    if (!x.rep || x.date >= from) return x.date;
+    const [by, bm, bd] = parts(x.date), [fy, fm, fd] = parts(from);
+    if (x.rep === 'week') { const diff = (Date.UTC(fy, fm - 1, fd) - Date.UTC(by, bm - 1, bd)) / 864e5; return addD(x.date, Math.ceil(diff / 7) * 7); }
+    if (x.rep === 'month') { let d = clampD(fy, fm, bd); if (d < from) d = clampD(fy, fm + 1, bd); return d; }
+    let d = clampD(fy, bm, bd); if (d < from) d = clampD(fy + 1, bm, bd); return d;
+  };
+  const sendDay = async (x, tag, ft, msg) => {
+    for (const sub of info.subs) {
+      if (dead.has(sub.endpoint) || ft < (sub.addedAt || 0)) continue;
+      const key = `${tag}|${sub.device || sub.endpoint.slice(-24)}`;
+      if (sent[key]) continue;
+      try {
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys },
+          JSON.stringify({ ...msg, tag, url: (info.subject || './') + '#days-' + x.id }), { TTL: 6 * 3600, urgency: 'normal' });
+        count++; sent[key] = now; changed = true;
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) dead.add(sub.endpoint);
+        else console.log(`纪念日提醒发送失败 ${err.statusCode || ''}: ${err.body || err.message}`);
+      }
+    }
+  };
+  for (const x of data.days || []) {
+    if (!x || !/^\d{4}-\d{2}-\d{2}$/.test(x.date || '')) continue;
+    const hs = Array.isArray(x.remindH) ? x.remindH.filter(n => n === 1 || n === 12) : [];
+    if ((!Array.isArray(x.reminds) || !x.reminds.length) && !hs.length) continue;
+    const tz = x.remindTz || (data.daily || {}).tz || 'UTC';
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit' })
+      .formatToParts(new Date(now)).map(z => [z.type, z.value]));
+    const ds = `${p.year}-${p.month}-${p.day}`;
+    const [h, mi] = (/^\d{2}:\d{2}$/.test(x.remindAt || '') ? x.remindAt : '09:00').split(':').map(Number);
+    // 提前几小时：按这个日子的精确时间（没设就按当天 0 点），今天或明天那一次
+    for (const hh of hs) for (const from of [ds, addD(ds, 1)]) {
+      const o = occ(x, from), [oy, om, od] = parts(o), [th, tm] = (/^\d{2}:\d{2}$/.test(x.time || '') ? x.time : '00:00').split(':').map(Number);
+      const ft = localToUtc(oy, om, od, th, tm, tz) - hh * 3600e3;
+      if (ft > now || ft < now - 2 * 3600e3) continue;
+      await sendDay(x, `day@${x.id}@${o}@h${hh}`, ft, { title: x.title || '纪念日', body: `${L().hIn(hh)} · ${LANG.startsWith('zh') ? `${om}月${od}日` : `${oy}-${pad2(om)}-${pad2(od)}`}${x.time ? ' ' + x.time : ''}` });
+    }
+    for (const k of x.reminds || []) {
+      const o = occ(x, addD(ds, k));
+      if (addD(o, -k) !== ds) continue;
+      const ft = localToUtc(+p.year, +p.month, +p.day, h, mi, tz);
+      if (ft > now || ft < now - LOOKBACK) continue;
+      const tag = `day@${x.id}@${o}@${k}`;
+      const [oy, om, od] = parts(o);
+      const msg = { title: x.title || '纪念日', body: `${k ? L().dIn(k) : L().dNow} · ${LANG.startsWith('zh') ? `${om}月${od}日` : `${oy}-${pad2(om)}-${pad2(od)}`}` };
+      for (const sub of info.subs) {
+        if (dead.has(sub.endpoint) || ft < (sub.addedAt || 0)) continue;
+        const key = `${tag}|${sub.device || sub.endpoint.slice(-24)}`;
+        if (sent[key]) continue;
+        try {
+          await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys },
+            JSON.stringify({ ...msg, tag, url: (info.subject || './') + '#days-' + x.id }), { TTL: 6 * 3600, urgency: 'normal' });
+          count++; sent[key] = now; changed = true;
+        } catch (err) {
+          if (err.statusCode === 404 || err.statusCode === 410) dead.add(sub.endpoint);
+          else console.log(`纪念日提醒发送失败 ${err.statusCode || ''}: ${err.body || err.message}`);
+        }
       }
     }
   }

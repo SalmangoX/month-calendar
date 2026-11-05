@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Insets;
+import android.content.Context;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -47,7 +48,7 @@ import java.util.regex.Pattern;
  */
 public class MainActivity extends androidx.activity.ComponentActivity {
     static final String EXTRA_HASH = "hash";
-    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_PERM = 13, REQ_CAM = 14;
+    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_PERM = 13, REQ_CAM = 14, REQ_TREE = 15;
     private android.webkit.PermissionRequest camReq;
 
     private WebView web;
@@ -55,7 +56,7 @@ public class MainActivity extends androidx.activity.ComponentActivity {
     DockHost dock;
     private Uri appUri;
     private ValueCallback<Uri[]> fileCb;
-    private String saveContent, saveCb, pendingCb;
+    private String saveContent, saveCb, pendingCb, treeCb;
     /** 国内经常打不开 github.io：网页开始显示前一直是 false；镜像只试一次 */
     private boolean committed, triedMirror;
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -465,6 +466,27 @@ public class MainActivity extends androidx.activity.ComponentActivity {
         return m.isRequestPinAppWidgetSupported() && m.requestPinAppWidget(new ComponentName(this, cls), null, null);
     }
 
+    // ---------- 自动备份：选一个手机文件夹（一直保有写入权限） ----------
+    void pickBackupFolder(String cb) {
+        treeCb = cb;
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        try { startActivityForResult(i, REQ_TREE); }
+        catch (ActivityNotFoundException e) { finishTree(false); }
+    }
+
+    private void finishTree(boolean ok) {
+        String cb = treeCb; treeCb = null;
+        if (!ok) { JSONObject o = Backup.info(this); try { o.put("ok", false); } catch (Exception ignored) { } callback(cb, o); return; }
+        Context app = getApplicationContext();
+        new Thread(() -> {
+            boolean w = Backup.write(app);
+            JSONObject o = Backup.info(app);
+            try { o.put("ok", w); } catch (Exception ignored) { }
+            callback(cb, o);
+        }, "mcal-backup").start();
+    }
+
     // ---------- 导出备份：保存到用户选的位置 ----------
     void saveFile(String name, String mime, String content, String cb) {
         saveContent = content;
@@ -495,6 +517,21 @@ public class MainActivity extends androidx.activity.ComponentActivity {
         if (req == REQ_FILE) {
             if (fileCb != null) fileCb.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result, data));
             fileCb = null;
+        } else if (req == REQ_TREE) {
+            boolean ok = false;
+            if (result == RESULT_OK && data != null && data.getData() != null) {
+                Uri u = data.getData();
+                try {
+                    getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                    String old = Store.prefs(this).getString(Backup.KEY_TREE, "");
+                    if (!old.isEmpty() && !old.equals(u.toString())) {
+                        try { getContentResolver().releasePersistableUriPermission(Uri.parse(old), Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION); } catch (Exception ignored) { }
+                    }
+                    Store.prefs(this).edit().putString(Backup.KEY_TREE, u.toString()).remove(Backup.KEY_LAST).apply();
+                    ok = true;
+                } catch (Exception ignored) { }
+            }
+            finishTree(ok);
         } else if (req == REQ_SAVE) {
             boolean ok = false;
             if (result == RESULT_OK && data != null && data.getData() != null && saveContent != null) {

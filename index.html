@@ -51,14 +51,6 @@
       <div id="calViewport"><div id="calZoom"><div id="calTrack"></div></div></div>
       <div class="preview glass-panel" id="preview" aria-live="polite"></div>
     </div>
-    <!-- 纪念日历：倒数日 / 纪念日（js/days.js） -->
-    <div class="dv" id="daysView">
-      <header class="dv-head">
-        <button class="dv-title" aria-label="选择日历"><h1 class="dvName" data-uc></h1><p class="dvSub"></p></button>
-        <div class="seg small dv-ym" id="dvYM" role="tablist"><button data-ym="year">年</button><button data-ym="month">月</button></div>
-      </header>
-      <div class="pscroll dv-scroll" id="dvBody"></div>
-    </div>
   </section>
 
   <!-- 纪念日历：日子列表（只在纪念日历里出现在底部菜单） -->
@@ -314,6 +306,7 @@
 
 <!-- 纪念日：分享图片 -->
 <section class="sheet tall ds" id="dayShare" aria-label="分享图片">
+  <div class="ds-amb" id="dsAmb" aria-hidden="true"><img alt=""></div>
   <div class="handle"></div>
   <div class="sheet-head">
     <button class="text-btn muted" data-close>完成</button>
@@ -878,8 +871,7 @@
     const pg = page();
     if (idx(pg) < 0 || !pages[pg] || open || pv) return;
     if (blockedBy(e.target)) return;
-    if (body.dataset.kind === 'days' && pg === 'cal') return;   // 纪念日历的日历页左右滑是翻月，不切页（点分页点切）
-    if (e.touches[0].clientX < 26) return;          // 左边缘留给抽屉
+    if (e.touches[0].clientX < 26 && idx(pg) === 0) return;   // 第一页的左边缘留给侧栏；后面几页从边上往右滑也是翻回上一页
     dg = { pg, x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: performance.now(), active: false };
   }, { capture: true, passive: true });
 
@@ -890,7 +882,7 @@
       if (Math.abs(dx) < 12) return;
       if (Math.abs(dx) < Math.abs(dy) * 1.25) { dg = null; return; }
       const list = ORDER(), i = list.indexOf(dg.pg), to = list[dx < 0 ? i + 1 : i - 1];   // 往左拖去右边那页，往右拖回左边那页
-      if (!to || !pages[to] || (body.dataset.kind === 'days' && to === 'cal')) { dg = null; return; }
+      if (!to || !pages[to]) { dg = null; return; }
       dg.active = true; dg.to = to; dg.W = pages[dg.pg].clientWidth || 1;
       wake();
       pager.classList.add('dragging');

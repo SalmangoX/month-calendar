@@ -59,7 +59,15 @@ final class NavModel: ObservableObject {
     var wheeling = false
     /// 网页的弹出菜单（用原生玻璃画）：在哪个按钮下面、有哪些项
     struct Menu: Identifiable { let id: String; let items: [MenuItem]; let anchor: CGRect }
-    struct MenuItem: Decodable { let label: String; let on: Bool; let danger: Bool }
+    struct MenuItem: Decodable {
+        let label: String; let on: Bool; let danger: Bool
+        /// 色块（比如高亮颜色）：#RRGGBB，画在文字左边
+        let sw: String?
+        var swatch: Color? {
+            guard let s = sw, s.count == 7, s.hasPrefix("#"), let v = UInt32(s.dropFirst(), radix: 16) else { return nil }
+            return Color(argb: 0xFF00_0000 | v)
+        }
+    }
     @Published var menu: Menu?
 
     /// 在网页里执行一段 JS（有结果时回调）
@@ -1044,6 +1052,7 @@ struct GlassMenu: View {
                         ForEach(Array(mm.items.enumerated()), id: \.offset) { i, it in
                             Button { m.pickMenu(i) } label: {
                                 HStack(spacing: 10) {
+                                    if let c = it.swatch { RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(c, lineWidth: 2).frame(width: 22, height: 16).shadow(color: c.opacity(0.55), radius: 3) }   // 和列表里高亮的样子一样：带一点光的圆角空心框
                                     Text(it.label).font(.system(size: MenuSize.font, weight: it.on ? .semibold : .regular)).lineLimit(1)
                                     Spacer(minLength: 8)
                                     if it.on { Image(systemName: "checkmark").font(.system(size: MenuSize.font - 1, weight: .bold)) }

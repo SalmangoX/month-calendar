@@ -32,6 +32,10 @@ final class I18n {
         put("{0} 分钟后开始", "{0} 分鐘後開始", "Starts in {0} min", "Commence dans {0} min");
         ja("{0} 分钟后开始", "{0} 分後に開始");
         put("现在开始", "現在開始", "Starting now", "Commence maintenant");
+        put("还有 {0} 小时", "還有 {0} 小時", "In {0} h", "Dans {0} h");
+        ja("还有 {0} 小时", "あと {0} 時間");
+        put("还有 {0} 天", "還有 {0} 天", "In {0} days", "Dans {0} jours");
+        ja("还有 {0} 天", "あと {0} 日");
         ja("现在开始", "まもなく開始");
         ja("返回", "戻る");
         put("收起", "收起", "Close", "Fermer");

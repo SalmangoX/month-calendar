@@ -268,10 +268,37 @@
         if (ft <= now && ft > now - 3 * 60000 && !sent[key]) { sent[key] = now; classes.push([c, key]); }
       }
     }
+    // 纪念日提醒：每个日子可以选提前几天（0 = 当天），在 remindAt 钟点提醒；重复的日子按下一次算
+    const dayHits = [], DP = MC.Days && MC.Days.parts;
+    if (DP && DP.occurrence) {
+      const d = new Date(), today = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      for (const x of MC.data.days || []) {
+        if (!x.reminds || !x.reminds.length) continue;
+        const [h, m] = (x.remindAt || '09:00').split(':').map(Number);
+        for (const k of x.reminds) {
+          const occ = DP.occurrence(x, MC.addDays(today, k));
+          if (MC.ymd(MC.addDays(occ, -k)) !== MC.ymd(today)) continue;   // 今天不是这一条该响的日子
+          const ft = new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, m).getTime();
+          const key = `day@${x.id}@${MC.ymd(occ)}@${k}`;
+          if (ft <= now && ft > now - 3 * 60000 && !sent[key]) { sent[key] = now; dayHits.push([x, k, occ, key]); }
+        }
+        for (const hh of x.remindH || []) {   // 提前几小时：按这个日子的精确时间（没设就按当天 0 点），今天或明天那一次
+          for (const from of [today, MC.addDays(today, 1)]) {
+            const occ = DP.occurrence(x, from), [th, tm] = (x.time || '00:00').split(':').map(Number);
+            const ft = new Date(occ.getFullYear(), occ.getMonth(), occ.getDate(), th, tm).getTime() - hh * 3600e3;
+            const key = `day@${x.id}@${MC.ymd(occ)}@h${hh}`;
+            if (ft <= now && ft > now - 3 * 60000 && !sent[key]) { sent[key] = now; dayHits.push([x, -hh, occ, key]); }
+          }
+        }
+      }
+    }
     for (const k of Object.keys(sent)) if (sent[k] < now - 3 * 864e5) delete sent[k];
     localStorage.setItem(LKEY, JSON.stringify(sent));
-    if (!due.length && !daily && !classes.length) return;
+    if (!due.length && !daily && !classes.length && !dayHits.length) return;
     const reg = await navigator.serviceWorker.ready;
+    for (const [x, k, occ, key] of dayHits) {
+      reg.showNotification(x.title || MC.t('纪念日'), { body: `${k < 0 ? MC.t(`还有 ${-k} 小时`) : k ? MC.t(`还有 ${k} 天`) : MC.t('就是今天')} · ${MC.t(MC.dateLabel(MC.ymd(occ)))}${x.time ? ' ' + MC.fmtTime(x.time) : ''}`, tag: key, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: `./#days-${x.id}` } });
+    }
     for (const [c, key] of classes) {
       const p = Push.courseMsg(c, cr.lead || 0);
       reg.showNotification(p.title, { body: p.body, tag: key, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: './#sched' } });

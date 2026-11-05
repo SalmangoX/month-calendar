@@ -19,7 +19,7 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update", "nativeDock", "getData"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update", "nativeDock", "getData", "autoBackup"
     };
 
     private final MainActivity a;
@@ -190,6 +190,26 @@ final class Bridge {
             a.runOnUiThread(() -> a.callback(cb, o));
         });
     }
+
+    // ---------- 自动备份到手机文件夹 ----------
+    @JavascriptInterface
+    public String backupInfo() { return Backup.info(c).toString(); }
+
+    /** 打开系统的文件夹选择器；选好后立刻备份一份，回调 {ok, folder, at} */
+    @JavascriptInterface
+    public void backupPick(String cb) { a.runOnUiThread(() -> a.pickBackupFolder(cb)); }
+
+    @JavascriptInterface
+    public void backupNow(String cb) {
+        new Thread(() -> {
+            JSONObject o = Backup.info(c);
+            try { o.put("ok", Backup.write(c)); o.put("at", Store.prefs(c).getLong(Backup.KEY_AT, 0)); } catch (Exception ignored) { }
+            a.callback(cb, o);
+        }, "mcal-backup").start();
+    }
+
+    @JavascriptInterface
+    public void backupOff() { Backup.off(c); }
 
     @JavascriptInterface
     public void saveFile(String name, String mime, String content, String cb) {
