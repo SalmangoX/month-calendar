@@ -43,7 +43,7 @@
   <section class="page active" id="page-cal">
     <header class="topbar">
       <div class="title-wrap">
-        <div class="title"><h1 id="calTitle"></h1><p id="calSub"></p></div>
+        <div class="title" role="button" aria-label="选择日历"><h1 id="calTitle"></h1><p id="calSub"></p><svg class="title-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></div>
       </div>
     </header>
     <div class="weekdays" id="weekdays"></div>
@@ -112,11 +112,8 @@
 
   <!-- 设置 -->
   <section class="page" id="page-set">
+    <button class="set-back tap" id="backToCal" aria-label="回到日历"><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg></span></button>
     <div class="pscroll" id="setBody">
-      <button class="back-to-cal" id="backToCal" aria-label="回到日历">
-        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M14.5 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        日历
-      </button>
       <div class="profile">
         <button class="avatar" id="avatarBtn" aria-label="更换头像">
           <img id="avatarImg" alt="" hidden>
@@ -491,103 +488,254 @@
 })();
 </script>
 
-<!-- 新底栏：左「今日/日历」气泡 · 中分页点 · 右「logo」扇形菜单 -->
-
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lg-refract" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
-  <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="1" seed="9" result="n"/>
-  <feGaussianBlur in="n" stdDeviation="1.4" result="nb"/>
-  <feDisplacementMap in="SourceGraphic" in2="nb" scale="16" xChannelSelector="R" yChannelSelector="G"/>
-</filter></svg>
+<!-- 悬浮控件：左「时钟 / 返回」气泡 · 中分页点 · 右 logo 扇形菜单（样式见 styles.css 末尾） -->
+<div class="dock-scrim" id="dockScrim"></div>
 <div class="dock2" id="dock2">
-  <button class="pod pod-today" id="bubbleToday" aria-label="切换今日 / 日历"><span id="bubbleTodayLabel">今日</span></button>
-  <div class="pager" id="pager" aria-hidden="true"><i class="on"></i><i></i></div>
+  <button class="pod-today tap" id="bubbleToday" aria-label="今日">
+    <span class="face" id="ptFace">
+      <span class="pt-lbl pt-time" id="ptTime"></span>
+      <span class="pt-lbl pt-back off" id="ptBack" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg><span id="ptBackTxt">日历</span></span>
+    </span>
+  </button>
+  <button class="pager tap" id="pager" aria-label="切换日历 / 日程"><span class="face"><i></i><i></i></span></button>
   <div class="pod-menu" id="podMenu">
-    <button class="fan fan-set" id="fanSet" aria-label="设置" tabindex="-1"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.9v.06a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg></button>
-    <button class="fan fan-add" id="fanAdd" aria-label="添加事件" tabindex="-1"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
-    <button class="pod pod-logo" id="bubbleLogo" aria-label="更多"><img src="icons/logo.png" alt=""></button>
+    <button class="fan fan-cal tap" id="fanCal" aria-label="回到日历" tabindex="-1" hidden><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.2h17M8 2.8v3.4M16 2.8v3.4"/><text id="fanCalNum" x="12" y="18" text-anchor="middle" font-size="8.4" font-weight="700" fill="currentColor" stroke="none">1</text></svg></span></button>
+    <button class="fan fan-add tap" id="fanAdd" aria-label="添加事件" tabindex="-1"><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:2.4"><path d="M12 5v14M5 12h14"/></svg></span></button>
+    <button class="fan fan-set tap" id="fanSet" aria-label="设置" tabindex="-1"><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:1.7"><path d="M10.40 5.08L10.75 2.48 L13.25 2.48 L13.60 5.08A7.1 7.1 0 0 1 15.76 5.98L17.84 4.38 L19.62 6.16 L18.02 8.24A7.1 7.1 0 0 1 18.92 10.40L21.52 10.75 L21.52 13.25 L18.92 13.60A7.1 7.1 0 0 1 18.02 15.76L19.62 17.84 L17.84 19.62 L15.76 18.02A7.1 7.1 0 0 1 13.60 18.92L13.25 21.52 L10.75 21.52 L10.40 18.92A7.1 7.1 0 0 1 8.24 18.02L6.16 19.62 L4.38 17.84 L5.98 15.76A7.1 7.1 0 0 1 5.08 13.60L2.48 13.25 L2.48 10.75 L5.08 10.40A7.1 7.1 0 0 1 5.98 8.24L4.38 6.16 L6.16 4.38 L8.24 5.98A7.1 7.1 0 0 1 10.40 5.08Z"/><circle cx="12" cy="12" r="3"/></svg></span></button>
+    <button class="pod-logo tap" id="bubbleLogo" aria-label="更多" aria-expanded="false"><span class="face"><img src="icons/logo.png" alt=""><svg class="x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span></button>
   </div>
 </div>
 <script>
 (function () {
-  const dock2 = document.getElementById('dock2');
-  if (!dock2) return;
-  const label = document.getElementById('bubbleTodayLabel');
-  const pager = document.getElementById('pager');
-  const dots = [...pager.querySelectorAll('i')];
-  const menu = document.getElementById('podMenu');
+  const $id = id => document.getElementById(id);
+  const dock2 = $id('dock2');
+  if (!dock2 || !window.MC || !MC.App) return;
   const body = document.body;
+  const menu = $id('podMenu'), logo = $id('bubbleLogo'), scrim = $id('dockScrim');
+  const pill = $id('bubbleToday'), face = $id('ptFace'), lTime = $id('ptTime'), lBack = $id('ptBack'), lBackTxt = $id('ptBackTxt');
+  const pager = $id('pager');
+  const fans = { cal: $id('fanCal'), add: $id('fanAdd'), set: $id('fanSet') };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const page = () => body.dataset.page || 'cal';
+  const pages = { cal: $id('page-cal'), sched: $id('page-sched') };
+  const todayEl = $id('page-today');
+
+  // 原生壳：iOS / Mac 先只打标记，玻璃以后交给原生
+  try { const N = MC.Native; if (N && N.ios) body.classList.add('native-ios'); if (N && N.mac) body.classList.add('native-mac'); } catch (e) {}
+
+  const tick = () => { try { if (MC.Native && MC.Native.on && MC.Native.haptic && MC.Native.haptic()) return; if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(6); } catch (e) {} };
+
+  // ---------- 按压反馈：按下立刻收缩，松手回弹；快速轻点也保证看得到 ----------
+  let pressed = null;
+  const PRESS_SEL = '.tap, #page-cal .topbar .title';
+  const unpress = () => {
+    if (!pressed) return;
+    const t = pressed, held = performance.now() - t._pt;
+    pressed = null;
+    setTimeout(() => t.classList.remove('pressed'), Math.max(0, 80 - held));
+  };
+  document.addEventListener('pointerdown', e => {
+    const t = e.target.closest && e.target.closest(PRESS_SEL);
+    if (!t) return;
+    if (pressed) pressed.classList.remove('pressed');
+    pressed = t; t._pt = performance.now(); t.classList.add('pressed');
+  }, { capture: true, passive: true });
+  document.addEventListener('pointerup', unpress, { capture: true, passive: true });
+  document.addEventListener('pointercancel', unpress, { capture: true, passive: true });
+  document.addEventListener('pointermove', e => {
+    if (!pressed) return;
+    const r = pressed.getBoundingClientRect(), m = 16;   // 手指滑出按钮一段距离才算取消
+    if (e.clientX < r.left - m || e.clientX > r.right + m || e.clientY < r.top - m || e.clientY > r.bottom + m) unpress();
+  }, { passive: true });
+
+  // ---------- logo 扇形菜单 ----------
+  // 按钮沿四分之一圆弧均匀排开：两个按钮时彼此的间距和到 logo 的间距一样；设置页多一个最上面的「回到日历」
   let open = false;
-
-  // 真折射需要 backdrop-filter 支持 SVG 滤镜（Chromium 支持，Safari 不支持）
-  try {
-    if (window.CSS && CSS.supports && CSS.supports('backdrop-filter', 'url(#lg-refract)')) {
-      document.documentElement.classList.add('lg-refract');
-    }
-  } catch (e) {}
-  // 原生壳：iOS / Mac 上换成更接近 Apple 液态玻璃的配比
-  try {
-    const N = window.MC && MC.Native;
-    if (N && N.ios) body.classList.add('native-ios');
-    if (N && N.mac) body.classList.add('native-mac');
-  } catch (e) {}
-
-  const closeMenu = () => { open = false; menu.classList.remove('open'); };
-  const openMenu = () => { open = true; menu.classList.add('open'); };
-
+  function layoutFans() {
+    const inSet = page() === 'set';
+    fans.cal.hidden = !inSet;
+    const order = inSet ? [fans.cal, fans.add, fans.set] : [fans.add, fans.set];   // 从上到下
+    const n = order.length, R = n === 3 ? 88 : 84;
+    const angles = n === 3 ? [90, 135, 180] : [105, 165];
+    order.forEach((b, k) => {
+      const a = angles[k] * Math.PI / 180;
+      b.style.setProperty('--fx', (Math.cos(a) * R).toFixed(1) + 'px');
+      b.style.setProperty('--fy', (-Math.sin(a) * R).toFixed(1) + 'px');
+      b.style.setProperty('--i', n - 1 - k);           // 从下往上依次弹出
+    });
+    const num = $id('fanCalNum'); if (num) num.textContent = new Date().getDate();
+  }
+  function setOpen(v) {
+    if (v === open) return;
+    open = v;
+    if (v) layoutFans();
+    menu.classList.toggle('open', v);
+    scrim.classList.toggle('show', v);
+    body.classList.toggle('pod-open', v);
+    logo.setAttribute('aria-expanded', String(v));
+    logo.setAttribute('aria-label', v ? '收起' : '更多');
+    Object.values(fans).forEach(b => b.tabIndex = v ? 0 : -1);
+    tick();
+  }
+  const closeMenu = () => setOpen(false);
   let lastDragEnd = 0;   // 刚拖完页面的那一下，不要顺手把菜单点开
-  document.getElementById('bubbleLogo').addEventListener('click', e => {
+  logo.addEventListener('click', e => {
     e.stopPropagation();
     if (Date.now() - lastDragEnd < 320) return;
-    if (open) closeMenu(); else openMenu();
+    setOpen(!open);
   });
+  scrim.addEventListener('click', closeMenu);
+  fans.add.addEventListener('click', () => { closeMenu(); const f = $id('fab'); if (f) f.click(); });
+  fans.set.addEventListener('click', () => {
+    closeMenu();
+    if (page() === 'set') { const sb = $id('setBody'); if (sb) sb.scrollTo({ top: 0, behavior: reduce.matches ? 'auto' : 'smooth' }); }
+    else MC.App.showPage('set');
+  });
+  fans.cal.addEventListener('click', () => { closeMenu(); MC.App.showPage('cal'); });
+  const backBtn = $id('backToCal');
+  if (backBtn) backBtn.addEventListener('click', () => MC.App.showPage('cal'));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && open) { e.stopPropagation(); closeMenu(); } }, true);
 
-  // 页面变化时同步：气泡文字、分页点、显隐
+  // ---------- 时钟气泡 ----------
+  let returnTo = 'cal', lastClock = '';
+  function sizePill() {
+    const l = page() === 'today' ? lBack : lTime;
+    const w = Math.ceil(l.offsetWidth);
+    if (w) face.style.width = Math.max(52, w) + 'px';
+  }
+  function tickClock() {
+    const d = new Date();
+    const h12 = !!(MC.use12 && MC.use12());
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, '0');
+    let html;
+    if (h12) { const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; html = `${h}<i>:</i>${m}<small>${ap}</small>`; }
+    else html = `${String(h).padStart(2, '0')}<i>:</i>${m}`;
+    if (html === lastClock) return;
+    lastClock = html; lTime.innerHTML = html;
+    pill.setAttribute('aria-label', page() === 'today' ? lBack.textContent : `今日 · ${lTime.textContent}`);
+    sizePill();
+  }
+  function syncPill() {
+    const onToday = page() === 'today';
+    lTime.classList.toggle('off', onToday);
+    lBack.classList.toggle('off', !onToday);
+    lTime.setAttribute('aria-hidden', String(onToday));
+    lBack.setAttribute('aria-hidden', String(!onToday));
+    lBackTxt.textContent = returnTo === 'sched' ? '日程' : '日历';
+    pill.setAttribute('aria-label', onToday ? (returnTo === 'sched' ? '回到日程' : '回到日历') : `今日 · ${lTime.textContent}`);
+    sizePill();
+    requestAnimationFrame(sizePill);   // 文字可能被翻译成别的语言，下一帧再量一次
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  // 今日页从气泡里长出来（圆角矩形裁切从气泡的位置铺满全屏），来源页轻轻退后；再点一下随时从当前位置原路收回
+  let pv = null, pvTimer = 0;
+  const EASE = 'cubic-bezier(.32,.72,0,1)';
+  function pvDone() {
+    if (!pv) return;
+    const p = pv; pv = null; clearTimeout(pvTimer);
+    p.anims.forEach(a => { try { a.cancel(); } catch (e) {} });
+    todayEl.classList.remove('pv-hold'); p.otherEl.classList.remove('pv-hold');
+  }
+  function armDone(ms) {  // finish 事件在后台不一定触发，用定时器兜底
+    clearTimeout(pvTimer);
+    pvTimer = setTimeout(pvDone, Math.max(0, ms) + 80);   // 到点直接收尾：页面状态由 showPage 决定，取消动画后就是终态
+  }
+  function toggleToday() {
+    if (pv) {          // 动画进行中又点了：从当前位置反向
+      pv.anims.forEach(a => a.reverse());
+      pv.dir = pv.dir === 'in' ? 'out' : 'in';
+      MC.App.showPage(pv.dir === 'in' ? 'today' : pv.other);
+      syncPill(); tick();
+      const t = pv.anims[0].currentTime || 0;
+      armDone(pv.dir === 'in' ? 520 - t : t);
+      return;
+    }
+    const cur = page(), goingIn = cur !== 'today';
+    if (goingIn) returnTo = cur === 'sched' ? 'sched' : 'cal';
+    const other = goingIn ? (pages[cur] ? cur : 'cal') : returnTo;
+    const otherEl = $id('page-' + other);
+    if (goingIn && cur !== other) { MC.App.showPage('today'); syncPill(); return; }   // 从别的页（不应出现）直接切
+    if (reduce.matches || !todayEl.animate) { MC.App.showPage(goingIn ? 'today' : other); syncPill(); return; }
+
+    const r = face.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+    const small = `inset(${r.top}px ${W - r.right}px ${H - r.bottom}px ${r.left}px round ${r.height / 2}px)`;
+    const full = 'inset(0px 0px 0px 0px round 0px)';
+    todayEl.classList.add('pv-hold'); otherEl.classList.add('pv-hold');
+    const kToday = [{ clipPath: small, opacity: .3 }, { opacity: 1, offset: .3 }, { clipPath: full, opacity: 1 }];
+    const kBack = [{ transform: 'none', opacity: 1 }, { transform: 'scale(.94)', opacity: .5 }];
+    const kKids = [{ transform: 'translateY(18px) scale(.98)', opacity: 0 }, { transform: 'none', opacity: 1 }];
+    const opt = goingIn
+      ? { duration: 520, easing: EASE, fill: 'both' }
+      : { duration: 420, easing: 'cubic-bezier(1,0,.68,.28)', fill: 'both', direction: 'reverse' };
+    const anims = [todayEl.animate(kToday, opt), otherEl.animate(kBack, opt)];
+    [...todayEl.children].forEach(c => anims.push(c.animate(kKids, goingIn ? { ...opt, duration: 460, delay: 40 } : { ...opt, duration: 300 })));
+    pv = { anims, dir: goingIn ? 'in' : 'out', other, otherEl };
+    anims[0].onfinish = () => { if (pv && pv.anims[0] === anims[0]) pvDone(); };
+    armDone(opt.duration + 60);
+    MC.App.showPage(goingIn ? 'today' : other);
+    syncPill(); tick();
+  }
+  pill.addEventListener('click', toggleToday);
+
+  // 系统返回：先收菜单，今日页原路收回
+  const prevBack = MC.back;
+  MC.back = () => {
+    if (open) { closeMenu(); return true; }
+    const U = MC.UI || {};
+    const busy = (U.confirmOpen && U.confirmOpen()) || (U.anyOpen && U.anyOpen()) || (U.menuOpen && U.menuOpen()) || (MC.Drawer && MC.Drawer.isOpen && MC.Drawer.isOpen());
+    if (!busy && page() === 'today' && body.dataset.kind !== 'days') { toggleToday(); return true; }
+    return prevBack ? prevBack() : false;
+  };
+
+  // ---------- 分页点：只在日历、日程页；静止时淡一点（但隐藏时始终隐藏） ----------
+  function syncPager() {
+    const pg = page();
+    pager.classList.toggle('hide', !(pg === 'cal' || pg === 'sched'));
+    if (!pager.classList.contains('dragging')) pager.style.setProperty('--p', pg === 'sched' ? 1 : 0);
+  }
+  let idleTimer = 0;
+  const wake = () => { pager.classList.remove('idle'); clearTimeout(idleTimer); idleTimer = setTimeout(() => pager.classList.add('idle'), 1600); };
+  ['touchstart', 'pointerdown'].forEach(ev => document.addEventListener(ev, wake, { passive: true }));
+  wake();
+  pager.addEventListener('click', () => { const pg = page(); if (pg === 'cal') slide('cal', 'sched', 0, true); else if (pg === 'sched') slide('sched', 'cal', 0, true); });
+
+  // ---------- 页面变化时同步 ----------
   function sync() {
-    const pg = body.dataset.page || 'cal';
     const days = body.dataset.kind === 'days';
     dock2.classList.toggle('hide', days);
-    if (days) { closeMenu(); return; }
-
-    const two = pg === 'cal' || pg === 'sched';
-    pager.classList.toggle('hide', !two);
-    dots.forEach((d, i) => d.classList.toggle('on', i === (pg === 'sched' ? 1 : 0)));
+    if (days || open) closeMenu();
+    syncPager(); syncPill();
   }
-  // 扇形始终铺开，不再给返回键预留空间（返回键已经上移）
-  menu.classList.add('wide');
   new MutationObserver(sync).observe(body, { attributes: true, attributeFilter: ['data-page', 'data-kind'] });
   sync();
+  addEventListener('resize', () => requestAnimationFrame(sizePill));
 
   // 状态栏跟着当前页的底色走（只在原生壳里有效）
   const hex2 = v => {
     const m = String(v).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/);
     if (!m) return null;
-    if (m[4] !== undefined && parseFloat(m[4]) < 0.05) return null;   // 全透明：别当成黑色传给原生
+    if (m[4] !== undefined && parseFloat(m[4]) < 0.05) return null;
     return '#' + [1, 2, 3].map(i => (+m[i]).toString(16).padStart(2, '0')).join('');
   };
   function syncChrome() {
-    const N = window.MC && MC.Native;
+    const N = MC.Native;
     if (!N || !N.on || !N.has || !N.has('chrome')) return;
     const el = document.querySelector('.page.active');
     let c = el ? hex2(getComputedStyle(el).backgroundColor) : null;
-    if (!c) c = hex2(getComputedStyle(document.body).backgroundColor);
-    if (!c) c = hex2(getComputedStyle(document.documentElement).backgroundColor);
+    if (!c) c = hex2(getComputedStyle(body).backgroundColor);
     if (c) N.chrome(c);
   }
   new MutationObserver(syncChrome).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   new MutationObserver(syncChrome).observe(body, { attributes: true, attributeFilter: ['data-page'] });
   setTimeout(syncChrome, 300);
 
-  // 分页点：静止一会儿就淡下去，一碰就回来
-  let idleTimer = 0;
-  const wake = () => { pager.classList.remove('idle'); clearTimeout(idleTimer); idleTimer = setTimeout(() => pager.classList.add('idle'), 1400); };
-  ['touchstart', 'touchmove', 'pointerdown'].forEach(ev => document.addEventListener(ev, wake, { passive: true }));
-  wake();
-
-  function goPage(p) { MC.App.showPage(p); }
-
+  // ---------- 日历 ←→ 日程：跟手拖拽切页 ----------
   // 进应用就在后台把日程页画好：第一次滑过去不再现算，切页时也跳过重复渲染
   let schedReady = false, skipSchedRender = false;
-  if (window.MC && MC.Sched && MC.Sched.render) {
+  if (MC.Sched && MC.Sched.render) {
     const realSchedRender = MC.Sched.render;
     MC.Sched.render = function () {
       if (skipSchedRender) { skipSchedRender = false; return; }
@@ -595,7 +743,7 @@
     };
   }
   function preloadSched() {
-    if (schedReady || !pages.sched || !(window.MC && MC.Sched && MC.Sched.render)) return;
+    if (schedReady || !pages.sched || !(MC.Sched && MC.Sched.render)) return;
     const el = pages.sched;
     el.classList.add('preload');
     try { MC.Sched.render(); schedReady = true; } catch (e) {}
@@ -604,95 +752,67 @@
   setTimeout(preloadSched, 600);
   if ('requestIdleCallback' in window) requestIdleCallback(preloadSched, { timeout: 2500 });
 
-  // 今日气泡显示当前时间：跟随系统的 12/24 小时设置，冒号每秒闪一下
-  function tickClock() {
-    if (!label) return;
-    const d = new Date();
-    const h12 = !!(window.MC && MC.use12 && MC.use12());
-    let h = d.getHours();
-    const m = String(d.getMinutes()).padStart(2, '0');
-    if (h12) {
-      const ap = h >= 12 ? 'PM' : 'AM';
-      h = h % 12 || 12;
-      label.innerHTML = `${h}<i>:</i>${m}<s>${ap}</s>`;
-    } else {
-      label.innerHTML = `${String(h).padStart(2, '0')}<i>:</i>${m}`;
-    }
-  }
-  tickClock();
-  setInterval(tickClock, 1000);
-  // 今日页从时钟气泡位置放大，日历在后面退后；动画随时可以被打断并从当前状态反向
-  const todayPage = document.getElementById('page-today');
-  const calPageEl = document.getElementById('page-cal');
-  let pvAnims = [];
-
-  const stopPv = () => { pvAnims.forEach(a => { try { a.cancel(); } catch (e) {} }); pvAnims = []; };
-
-  document.getElementById('bubbleToday').addEventListener('click', e => {
-    if (!todayPage || !calPageEl) return;
-    const pg = body.dataset.page || 'cal';
-    const to = pg === 'today' ? 'cal' : 'today';
-    const r = e.currentTarget.getBoundingClientRect();
-    todayPage.style.transformOrigin = `${r.left + r.width / 2}px ${r.top + r.height / 2}px`;
-
-    // 先读当前视觉状态，动画才能从中断处接着走，而不是跳回起点
-    const tS = getComputedStyle(todayPage), cS = getComputedStyle(calPageEl);
-    const tFrom = { transform: tS.transform === 'none' ? 'scale(1)' : tS.transform, opacity: +tS.opacity };
-    const cFrom = { transform: cS.transform === 'none' ? 'scale(1)' : cS.transform, opacity: +cS.opacity };
-
-    stopPv();
-    todayPage.classList.add('pv-hold');
-    calPageEl.classList.add('pv-hold');
-
-    const tTo = to === 'today' ? { transform: 'scale(1)', opacity: 1 } : { transform: 'scale(.42)', opacity: 0 };
-    const cTo = to === 'today' ? { transform: 'scale(.93) translateY(6px)', opacity: .45 } : { transform: 'scale(1)', opacity: 1 };
-    const ez = 'cubic-bezier(.22,.9,.26,1)';
-    const a1 = todayPage.animate([tFrom, tTo], { duration: 380, easing: ez, fill: 'both' });
-    const a2 = calPageEl.animate([cFrom, cTo], { duration: 380, easing: ez, fill: 'both' });
-    pvAnims = [a1, a2];
-
-    if (to === 'today' && pg !== 'today') MC.App.showPage('today');
-    if (to === 'cal' && pg !== 'cal') MC.App.showPage('cal');
-
-    // 用定时器收尾（finish 事件在后台标签页里不一定触发）
-    setTimeout(() => {
-      if (pvAnims[0] !== a1) return;      // 已经被新的点击接管
-      pvAnims = [];
-      try { a1.cancel(); a2.cancel(); } catch (e) {}
-      todayPage.classList.remove('pv-hold');
-      calPageEl.classList.remove('pv-hold');
-    }, 400);
-  });
-
-  document.getElementById('fanSet').addEventListener('click', () => {
-    closeMenu();
-    const b = document.querySelector('.tabbar button[data-page="set"]');
-    if (b) b.click();
-  });
-  const backBtn = document.getElementById('backToCal');
-  if (backBtn) backBtn.addEventListener('click', () => goPage('cal'));
-  document.getElementById('fanAdd').addEventListener('click', () => {
-    closeMenu();
-    const f = document.getElementById('fab');
-    if (f) f.click();
-  });
-  document.addEventListener('click', e => { if (open && !menu.contains(e.target)) closeMenu(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
-
-  // 日历 ←→ 日程：跟手拖拽切页（拖动过程中另一页就在旁边）
-  const pages = { cal: document.getElementById('page-cal'), sched: document.getElementById('page-sched') };
-  let pendingFinish = null;   // 上一次切换的收尾还没跑完时，新的滑动要先把它落地
-  // 这两页现在靠滑动切换，不要每次进入都播一次淡入（会闪）
   Object.values(pages).forEach(el => el && el.classList.add('no-in'));
-  let dg = null;
+  let pendingFinish = null, dg = null;
+  const blockedBy = t => !!(t && t.closest && t.closest('.drawer, .sheet, .drawer-scrim, .dock2, .dock-scrim, .tabbar, .preview, .wkpick, .set-back'));
 
-  const blockedBy = t => !!(t && t.closest && t.closest('.drawer, .sheet, .drawer-scrim, .dock2, .tabbar, .preview, .wkpick'));
+  // 收尾：dx 是松手时的位移，go 表示切过去还是弹回
+  function slide(from, to, dx, go) {
+    const cur = pages[from], nxt = pages[to];
+    if (!cur || !nxt) return;
+    if (pendingFinish) pendingFinish();
+    const sign = to === 'sched' ? 1 : -1;
+    if (!cur.classList.contains('drag')) {          // 点分页点触发：先把另一页摆到旁边
+      cur.classList.add('drag'); nxt.classList.add('drag');
+      cur.style.transition = 'none'; nxt.style.transition = 'none';
+      cur.style.transform = 'translate3d(0,0,0)';
+      nxt.style.transform = `translate3d(${sign * 100}%,0,0)`;
+      void nxt.offsetWidth;
+    }
+    const ease = go ? `transform .42s ${EASE}` : 'transform .5s cubic-bezier(.16,.78,.26,1)';
+    cur.style.transition = ease; nxt.style.transition = ease;
+    if (!go) {
+      nxt.style.transition = 'none';
+      nxt.style.transform = `translate3d(${sign * 100}%,0,0)`;
+      requestAnimationFrame(() => nxt.classList.remove('drag'));
+    }
+    cur.style.transform = `translate3d(${go ? -sign * 100 : 0}%,0,0)`;
+    nxt.style.transform = `translate3d(${go ? 0 : sign * 100}%,0,0)`;
+    pager.classList.remove('dragging');
+    pager.style.setProperty('--p', (go ? to : from) === 'sched' ? 1 : 0);
+    if (go) tick();
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true; pendingFinish = null;
+      nxt.removeEventListener('transitionend', onEnd);
+      if (go) {
+        cur.style.display = 'none';
+        cur.classList.remove('drag');
+        cur.style.transition = ''; cur.style.transform = '';
+        nxt.style.transition = ''; nxt.style.transform = '';
+        if (to === 'sched' && schedReady) skipSchedRender = true;
+        MC.App.showPage(to);
+        nxt.classList.remove('drag');
+        requestAnimationFrame(() => { cur.style.display = ''; });
+      } else {
+        cur.style.transition = ''; cur.style.transform = '';
+        nxt.style.transition = ''; nxt.style.transform = '';
+        nxt.classList.remove('drag'); cur.classList.remove('drag');
+      }
+    };
+    const onEnd = e => { if (e.target === nxt && e.propertyName === 'transform') finish(); };
+    pendingFinish = finish;
+    nxt.addEventListener('transitionend', onEnd);
+    setTimeout(finish, go ? 540 : 620);
+  }
 
   document.addEventListener('touchstart', e => {
-    if (pendingFinish) { pendingFinish(); }        // 上一次还没收完尾就手快又滑：先立刻落地
+    if (pendingFinish) pendingFinish();
     if (e.touches.length !== 1 || dg) { dg = null; return; }
-    const pg = body.dataset.page;
-    if (!pages[pg]) return;
+    const pg = page();
+    if (!pages[pg] || open || pv) return;
     if (blockedBy(e.target)) return;
     if (e.touches[0].clientX < 26) return;          // 左边缘留给抽屉
     dg = { pg, x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: performance.now(), active: false };
@@ -704,159 +824,37 @@
     if (!dg.active) {
       if (Math.abs(dx) < 12) return;
       if (Math.abs(dx) < Math.abs(dy) * 1.25) { dg = null; return; }
-      // 只有「日历往左」「日程往右」才切，反方向不做任何事
-      if (dg.pg === 'cal' && dx > 0) { dg = null; return; }
+      if (dg.pg === 'cal' && dx > 0) { dg = null; return; }     // 只有「日历往左」「日程往右」才切
       if (dg.pg === 'sched' && dx < 0) { dg = null; return; }
       const to = dg.pg === 'cal' ? 'sched' : 'cal';
-      if (!pages[to]) { dg = null; return; }
       dg.active = true; dg.to = to; dg.W = pages[dg.pg].clientWidth || 1;
-      pager.classList.add('idle');
-      pages[dg.pg].classList.add('drag');
-      pages[to].classList.add('drag');
-      pages[dg.pg].style.transition = 'none';
-      pages[to].style.transition = 'none';
-      pages[to].style.transform = `translate3d(${to === 'sched' ? 100 : -100}%,0,0)`;   // 用百分比，边缘严丝合缝
-      // 日程页已在后台按真实宽高画好（preloadSched），这里不再重画
+      wake();
+      pager.classList.add('dragging');
+      pages[dg.pg].classList.add('drag'); pages[to].classList.add('drag');
+      pages[dg.pg].style.transition = 'none'; pages[to].style.transition = 'none';
+      pages[to].style.transform = `translate3d(${to === 'sched' ? 100 : -100}%,0,0)`;
     }
     e.preventDefault();
     const pct = dg.to === 'sched' ? 100 : -100;
     pages[dg.pg].style.transform = `translate3d(${dx}px,0,0)`;
     pages[dg.to].style.transform = `translate3d(calc(${pct}% + ${dx}px),0,0)`;
+    const prog = Math.min(1, Math.abs(dx) / dg.W);
+    pager.style.setProperty('--p', dg.to === 'sched' ? prog : 1 - prog);
   }, { capture: true, passive: false });
 
   const endDrag = e => {
     if (!dg) return;
     const d = dg; dg = null;
     if (!d.active) return;
-    lastDragEnd = Date.now();     // 只有真拖动了才拦 logo 点击
+    lastDragEnd = Date.now();
     const t = e.changedTouches && e.changedTouches[0];
     const dx = t ? t.clientX - d.x0 : 0;
-    // 快滑（甩）：速度够快、距离过了最低门槛就走；慢滑：必须拖过 1/4 屏才走，否则轻轻回去
-    const dt = Math.max(1, performance.now() - d.t0);
-    const v = Math.abs(dx) / dt;                       // px/ms
-    const far = Math.abs(dx) > d.W * 0.25;
-    const flick = v > 0.55 && Math.abs(dx) > 36;
-    const go = far || flick;
-    const sign = d.to === 'sched' ? 1 : -1;
-    const cur = pages[d.pg], nxt = pages[d.to];
-    const ease = go ? 'transform .38s cubic-bezier(.2,.85,.25,1)' : 'transform .58s cubic-bezier(.16,.78,.26,1)';
-    cur.style.transition = ease; nxt.style.transition = ease;
-    if (!go) {
-      // 另一页本来就在屏幕外：直接收走，避免它跟着动画又“闪”一下
-      nxt.style.transition = 'none';
-      nxt.style.transform = `translate3d(${sign * 100}%,0,0)`;
-      requestAnimationFrame(() => { nxt.classList.remove('drag'); });
-    }
-    cur.style.transform = `translate3d(${go ? -sign * 100 : 0}%,0,0)`;
-    nxt.style.transform = `translate3d(${go ? 0 : sign * 100}%,0,0)`;
-
-    // 等动画真的播完再收尾，固定 250ms 会在动画中途把页面抽掉，看起来像卡一下
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      pendingFinish = null;
-      nxt.removeEventListener('transitionend', onEnd);
-      if (go) {
-        cur.style.display = 'none';
-        cur.classList.remove('drag');
-        cur.style.transition = ''; cur.style.transform = '';
-        nxt.style.transition = ''; nxt.style.transform = '';
-        if (d.to === 'sched' && schedReady) skipSchedRender = true;
-        MC.App.showPage(d.to);           // 加 .active（.drag 还在，画面不闪）
-        nxt.classList.remove('drag');
-        requestAnimationFrame(() => { cur.style.display = ''; });
-      } else {
-        cur.style.transition = ''; cur.style.transform = '';
-        nxt.style.transition = ''; nxt.style.transform = '';
-        nxt.classList.remove('drag');
-        cur.classList.remove('drag');
-      }
-    };
-    const onEnd = e => { if (e.target === nxt && e.propertyName === 'transform') finish(); };
-    pendingFinish = finish;
-    nxt.addEventListener('transitionend', onEnd);
-    setTimeout(finish, go ? 520 : 700);
-    pager.classList.remove('idle');
+    const v = Math.abs(dx) / Math.max(1, performance.now() - d.t0);
+    const go = Math.abs(dx) > d.W * 0.25 || (v > 0.55 && Math.abs(dx) > 36);   // 拖过 1/4 屏，或者甩得够快
+    slide(d.pg, d.to, dx, go);
   };
   document.addEventListener('touchend', endDrag, { capture: true, passive: true });
   document.addEventListener('touchcancel', endDrag, { capture: true, passive: true });
-})();
-</script>
-
-<script>
-// 设计调节器：侧面抽屉，上预览下参数；只在这台设备的 ?tune=1 打开
-(function () {
-  if (!/[?&]tune=1/.test(location.search)) return;
-  const V = [
-    { k: '--pill-k', label: '月份气泡位置 × 行高', min: 0, max: 1.4, step: 0.02, val: 0.72 },
-    { k: '--pill-gap', label: '月份气泡向上偏移', min: 0, max: 160, step: 2, val: 72, unit: 'px' },
-    { k: '--pill-fs', label: '月份字号', min: 12, max: 30, step: 1, val: 23, unit: 'px' },
-    { k: '--pill-py', label: '月份上下内边距', min: 0, max: 16, step: 1, val: 5, unit: 'px' },
-    { k: '--pill-px', label: '月份左右内边距', min: 6, max: 40, step: 1, val: 29, unit: 'px' },
-    { k: '--mwd-fs', label: '星期行字号', min: 8, max: 16, step: 0.5, val: 11, unit: 'px' },
-    { k: '--mwd-op', label: '星期行不透明度', min: 0.2, max: 1, step: 0.05, val: 1 },
-    { k: '--fan-x', label: '扇形「设置」水平距离', min: 40, max: 170, step: 2, val: 100, unit: 'px' },
-    { k: '--fan-d', label: '扇形「添加」斜向距离', min: 30, max: 110, step: 2, val: 70, unit: 'px' },
-    { k: '--back-off', label: '返回键底部偏移', min: 90, max: 240, step: 2, val: 152, unit: 'px' },
-  ];
-  const root = document.documentElement;
-
-  const css = document.createElement('style');
-  css.textContent = `
-    #tuneToggle { position:fixed; top:10px; right:10px; z-index:99999; border:0; border-radius:999px;
-      background:#1b1a20; color:#fff; padding:8px 14px; font:13px/1 -apple-system,sans-serif; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); }
-    #tuneDrawer { position:fixed; top:0; right:0; bottom:0; width:min(360px,92vw); z-index:99998;
-      background:#fbfaf8; box-shadow:-12px 0 40px rgba(0,0,0,.18);
-      transform:translateX(100%); transition:transform .28s cubic-bezier(.2,.8,.25,1);
-      display:flex; flex-direction:column; font:13px/1.5 -apple-system,"PingFang SC",sans-serif; }
-    #tuneDrawer.open { transform:translateX(0); }
-    #tuneDrawer .tp { height:44vh; flex:none; overflow:hidden; background:#e9e6e1; border-bottom:1px solid #e3e0da; }
-    #tuneDrawer .tp iframe { border:0; width:520px; height:880px; transform:scale(.62); transform-origin:0 0; pointer-events:none; }
-    #tuneDrawer .tc { flex:1; overflow:auto; padding:12px 16px 20px; }
-    #tuneDrawer .tc label { display:block; margin:11px 0 2px; color:#3a3742; }
-    #tuneDrawer .tc label b { float:right; color:#4C6EAC; }
-    #tuneDrawer .tc input[type=range] { width:100%; }
-    #tuneDrawer .tc button { margin-top:14px; width:100%; border:0; border-radius:12px; padding:12px;
-      background:#1b1a20; color:#fff; font:600 14px/1 -apple-system,sans-serif; cursor:pointer; }
-    #tuneDrawer .th { flex:none; display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid #e3e0da; }
-    #tuneDrawer .th b { font-size:15px; }
-    #tuneClose { margin-left:auto; border:0; background:#ece9e4; border-radius:10px; padding:6px 10px; font-size:12px; cursor:pointer; }
-  `;
-  document.head.appendChild(css);
-
-  const toggle = document.createElement('button');
-  toggle.id = 'tuneToggle'; toggle.textContent = '⚙ 调节';
-  document.body.appendChild(toggle);
-
-  const drawer = document.createElement('div');
-  drawer.id = 'tuneDrawer';
-  const src = location.pathname.split('/').pop() || 'index.html';
-  drawer.innerHTML = `<div class="th"><b>设计调节</b><span style="color:#999;font-size:11px">调完点复制发我</span><button id="tuneClose">收起</button></div>
-    <div class="tp"><iframe src="./${src}"></iframe></div>
-    <div class="tc">${V.map((v, i) => `<label>${v.label} <b id="tv${i}">${v.val}${v.unit || ''}</b></label><input id="ti${i}" type="range" min="${v.min}" max="${v.max}" step="${v.step}" value="${v.val}">`).join('')}
-    <button id="tuneCopy">复制配置</button></div>`;
-  document.body.appendChild(drawer);
-
-  toggle.onclick = () => drawer.classList.toggle('open');
-  document.getElementById('tuneClose').onclick = () => drawer.classList.remove('open');
-
-  const vals = V.map(v => v.val);
-  const apply = () => {
-    V.forEach((v, i) => {
-      if (v.k.startsWith('--')) root.style.setProperty(v.k, vals[i] + (v.unit || ''));
-      const out = document.getElementById('tv' + i);
-      if (out) out.textContent = vals[i] + (v.unit || '');
-    });
-  };
-  V.forEach((v, i) => {
-    document.getElementById('ti' + i).addEventListener('input', e => { vals[i] = +e.target.value; apply(); });
-  });
-  document.getElementById('tuneCopy').onclick = () => {
-    const out = V.map((v, i) => `${v.label}: ${vals[i]}${v.unit || ''}`).join('\n');
-    navigator.clipboard?.writeText(out);
-    document.getElementById('tuneCopy').textContent = '已复制（也可截图发我）';
-  };
 })();
 </script>
 

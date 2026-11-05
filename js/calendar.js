@@ -22,12 +22,14 @@
   // ---------- 尺寸 ----------
   // 打开当天预览时，日历区域变矮：每一周还是原来的高度（不压扁），只是少显示几周，可以照常上下滚动
   let fullH = 0;
+  let TOP = 0;   // 月视图顶部留给悬浮月份气泡的高度（styles.css 的 --cal-top）：内容从它下面开始，往上滚时从气泡下面穿过
   let firstOpenDone = false;
   function measure() {
     W = vp.clientWidth; H = vp.clientHeight;
     const pv = body.classList.contains('previewing');
     if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
-    rowH = (pv ? fullH : H) / 6.5;
+    TOP = parseFloat(getComputedStyle(vp).getPropertyValue('--cal-top')) || 0;
+    rowH = Math.max(0, (pv ? fullH : H) - TOP) / 6.5;
     const head = 39 + 3; // 数字区 + 底部留白
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
     withMore = Math.floor((rowH - head - 12 + 2) / 17);
@@ -60,8 +62,8 @@
       const top = MC.addDays(anchor, 7 * Math.round(scrollY / (rowH || 1)));
       // 本周那一行要整行露在导航栏上面才算看得到：压在导航栏下面、只露一截也给返回
       const off = scrollY - Math.round(scrollY / (rowH || 1)) * rowH;
-      const row = Math.round((MC.weekStartOf(n) - top) / (7 * 864e5)), rowTop = row * rowH - off;
-      away = rowTop < -2 || rowTop + rowH > H - (body.classList.contains('previewing') ? 0 : barSpace()) + 2 || focus.y !== n.getFullYear() || focus.m !== n.getMonth(); // 看的是别的月份也算
+      const row = Math.round((MC.weekStartOf(n) - top) / (7 * 864e5)), rowTop = TOP + row * rowH - off;
+      away = rowTop < TOP - 2 || rowTop + rowH > H - (body.classList.contains('previewing') ? 0 : barSpace()) + 2 || focus.y !== n.getFullYear() || focus.m !== n.getMonth(); // 看的是别的月份也算
     }
     if (away === backShown) return;
     backShown = away; $('#calBack').hidden = !away;
@@ -204,7 +206,7 @@
 
     track.style.cssText = '';
     track.innerHTML = h + mw + `<svg class="mframe" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
-    setT(0, -(BUF * rowH + scrollY));
+    setT(0, TOP - (BUF * rowH + scrollY));
     monthTitle();
     drawFrame();
   }
@@ -279,11 +281,11 @@
       onDone && onDone();
     };
   }
-  const monthCss = y => `translate3d(0,${-(BUF * rowH + y)}px,0)`;
+  const monthCss = y => `translate3d(0,${TOP - (BUF * rowH + y)}px,0)`;
   const monthH = { apply: y => { scrollY = y; track.style.transform = monthCss(y); }, css: monthCss, tick: y => { scrollY = y; refreshFocus(); } };
   let lastFocusKey = '';
   function applyMonth() {
-    setT(0, -(BUF * rowH + scrollY));
+    setT(0, TOP - (BUF * rowH + scrollY));
     refreshFocus();
   }
   function refreshFocus() {
@@ -336,7 +338,7 @@
     if (view !== 'month' || !selected) return;
     const top = MC.addDays(anchor, 7 * Math.round(scrollY / rowH));
     const row = Math.floor((MC.weekStartOf(MC.parse(selected)) - top) / (7 * 864e5));
-    const shown = Math.max(1, Math.floor(H / rowH));
+    const shown = Math.max(1, Math.floor((H - TOP) / rowH));
     if (row >= shown) shiftRows(row - shown + 1);
     else if (row < 0) shiftRows(row);
   }
@@ -346,7 +348,7 @@
     const top = MC.addDays(anchor, 7 * Math.round(scrollY / rowH));
     const off = scrollY - Math.round(scrollY / rowH) * rowH;
     const row = Math.round((MC.weekStartOf(MC.parse(ds)) - top) / (7 * 864e5));
-    const y = vp.getBoundingClientRect().top + row * rowH - off;
+    const y = vp.getBoundingClientRect().top + TOP + row * rowH - off;
     if (row >= 0 && y + rowH <= limitY) return;
     shiftRows(row);
   };
