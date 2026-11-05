@@ -652,9 +652,7 @@
   const COURSE_LEADS = [0, 5, 10, 15, 20, 30, 45, 60];
   const leadText = m => (m ? `开始前 ${m} 分钟` : '开始时');
   function srow(o) {
-    const links = o.links && o.links.length ? `<span class="slinks">${o.links.map(l =>
-      `<button type="button" class="slink${l.warn ? ' warn' : ''}" data-act="${l.act}"${l.tip ? ` title="${esc(l.tip)}"` : ''}>${esc(l.label)}${l.warn ? `<em>${esc(l.tip)}</em>` : ''}</button>`).join('')}</span>` : '';
-    const sub = (o.sub ? `<small>${esc(o.sub)}</small>` : '') + links;
+    const sub = o.sub ? `<small>${esc(o.sub)}</small>` : '';
     const val = o.val ? `<span class="sval">${esc(o.val)}</span>` : '';
     const help = o.help ? `<button class="help" data-help="${o.help}" aria-label="查看步骤">?</button>` : '';
     const right = o.sw !== undefined
@@ -769,11 +767,23 @@
       gSync = group('同步', rows, ic ? '每台 Mac 选同一个 iCloud 云盘文件夹，数据就会互相同步；同步快慢由 iCloud 决定，一般几秒到一两分钟。'
         : dav ? '账号和密码只保存在这台设备上。' : '令牌只保存在这台设备上。');
     }
-    // 测试通知、权限检查不再单独占一行，收进「提醒通知」这一行下面的小按钮里
-    const nlinks = [];
-    if (Push.enabled()) nlinks.push({ act: 'ntest', label: '发送测试通知' });
-    if (Push.native) { const ps = nativePermSummary(); nlinks.push({ act: 'nperm', label: '提醒权限检查', warn: ps !== '各项都已就绪', tip: ps }); }
-    const nrows = [srow({ icon: 'bell', tone: 'coral', label: '提醒通知', sw: 'nSwitch', swOn: Push.enabled(), help: 'notify', links: nlinks })];
+    // 「提醒通知」点开是一张卡片：开关、测试通知、权限检查（网页版还有 App 关闭时也提醒）都在里面，设置页里只留一行
+    const ncard = [srow({ icon: 'bell', tone: 'coral', label: '提醒通知', sw: 'nSwitch', swOn: Push.enabled(), help: Push.native ? undefined : 'notify' })];
+    if (Push.enabled()) ncard.push(srow({ act: 'ntest', icon: 'send', tone: 'teal', label: '发送测试通知', chev: false }));
+    if (Push.native) ncard.push(srow({ act: 'nperm', icon: 'bell', tone: 'sage', label: '提醒权限检查', sub: nativePermSummary(), help: 'nperm' }));
+    if (!Push.native) {
+      ncard.push(S.remoteSetup
+        ? srow({ act: 'nsetup', icon: 'cloud', tone: 'sky', label: 'App 关闭时也提醒', sub: S.remoteSetup.repo ? `由 ${S.remoteSetup.repo} 推送` : '', val: '已设置' })
+        : srow({ act: 'nsetup', icon: 'cloud', tone: 'sky', label: 'App 关闭时也提醒', sub: '点这里一键设置', val: '未设置' }));
+      if (S.remoteSetup) checkBoost();
+      if (S.remoteSetup && !S.boostOn) ncard.push(srow({ act: 'boost', icon: 'clock', tone: 'lavender', label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
+    }
+    // 原生 App（iPhone / Mac / 安卓）由系统准时提醒，不用再解释；只有网页版要说明 App 关着时怎么提醒
+    $('#notifyBody').innerHTML = `<div class="sgroup">${ncard.join('')}</div>${Push.native ? '' : `<p class="hint">${esc(notifyHint())}</p>`}`;
+    const permBad = Push.native && nativePermSummary() !== '各项都已就绪';
+    const nrows = [srow({ act: 'notify', icon: 'bell', tone: 'coral', label: '提醒通知',
+      sub: Push.enabled() ? (permBad ? nativePermSummary() : '') : Push.native ? '' : '设置了提醒的事件到点通知你',
+      val: Push.enabled() ? '已开启' : '未开启' })];
     const dl = MC.data.daily;
     const city = (dl.tz || MC.currentTz()).split('/').pop().replace(/_/g, ' ');
     nrows.push(srow({ icon: 'sun', tone: 'apricot', label: '每日未完成提醒', sub: dl.on ? `每天 ${MC.fmtTime(dl.time)} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
@@ -782,15 +792,7 @@
     const cr = MC.data.courseRemind || { on: false, lead: 10 };
     nrows.push(srow({ icon: 'grid', tone: 'jade', label: '日程开始前提醒', sub: cr.on ? `每项日程${leadText(cr.lead)}提醒` : '日程里的每一项开始前提醒你', sw: 'cSwitch', swOn: cr.on }));
     if (cr.on) nrows.push(srow({ act: 'clead', icon: 'clock', tone: 'lavender', label: '提前多久', val: leadText(cr.lead).replace(/^开始前 /, '') }));
-    // 始终显示，点进去会自动补齐前置条件（连接 GitHub、通知权限）；安卓 App 由系统提醒，不需要
-    if (!Push.native) {
-      nrows.splice(1, 0, S.remoteSetup
-        ? srow({ act: 'nsetup', icon: 'cloud', tone: 'sky', label: 'App 关闭时也提醒', sub: S.remoteSetup.repo ? `由 ${S.remoteSetup.repo} 推送` : '', val: '已设置' })
-        : srow({ act: 'nsetup', icon: 'cloud', tone: 'sky', label: 'App 关闭时也提醒', sub: '点这里一键设置', val: '未设置' }));
-      if (S.remoteSetup) checkBoost();
-      if (S.remoteSetup && !S.boostOn) nrows.splice(2, 0, srow({ act: 'boost', icon: 'clock', tone: 'lavender', label: '让提醒准时', sub: 'GitHub 定时任务会延迟，用 cron-job.org 每 5 分钟叫醒一次', help: 'boost', chev: false }));
-    }
-    const gRemind = group('提醒', nrows, notifyHint());
+    const gRemind = group('提醒', nrows);
     if (MC.Native.mac) {
       const I = MC.Native.info;
       gWidgets += group('桌面小组件', [
@@ -844,11 +846,12 @@
     if (!workflowYml) fetch('scripts/reminders.yml', { cache: 'no-cache' }).then(r => r.text()).then(t => (workflowYml = t)).catch(() => {});
   }
 
+  const onSet = (t, f) => ['#setGroups', '#notifyBody'].forEach(q => $(q).addEventListener(t, f)); // 提醒卡片和设置页共用一套处理
   // 页脚：开发用的屏幕信息平时收起，点一下版本号显示 / 收起
   let showDbg = false;
   $('#statLine').addEventListener('click', () => { showDbg = !showDbg; const d = $('#statLine .dbg'); if (d) d.hidden = !showDbg; });
-  $('#setGroups').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.srow.tap')) { e.preventDefault(); e.target.click(); } });
-  $('#setGroups').addEventListener('click', async e => {
+  onSet('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.srow.tap')) { e.preventDefault(); e.target.click(); } });
+  onSet('click', async e => {
     if (e.target.closest('[data-help]')) return;
     const row = e.target.closest('[data-act]'); if (!row) return;
     const act = row.dataset.act;
@@ -856,6 +859,7 @@
       if (!MC.Native.pinWidget(act.slice(4))) openHelp('nwidget');
       return;
     }
+    if (act === 'notify') { UI.open('notifySheet'); return; }
     if (act === 'nperm') { openHelp('nperm'); return; }
     if (act === 'mwidget') { openHelp('mwidget'); return; }
     if (act === 'macpkg') { window.MCNative.makeInstaller(); return; }
@@ -990,7 +994,7 @@
       location.replace(location.pathname + '?u=' + Date.now());
     }
   });
-  $('#setGroups').addEventListener('change', async e => {
+  onSet('change', async e => {
     if (e.target.id === 'cSwitch') {
       const sw = e.target; sw.disabled = true;
       try {
