@@ -367,7 +367,7 @@ body .weekdays { display: none; }
 .td-hr span { position: absolute; right: calc(100% + 8px); top: -7px; font-size: 11px; line-height: 14px; color: var(--text3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .td-hr span small { font-size: 9px; margin-right: 1px; }
 .td-evs { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; }
-.td-ev { position: absolute; display: flex; border-radius: 8px; overflow: hidden; background: color-mix(in srgb, var(--c) 16%, var(--surface)); box-shadow: inset 3px 0 0 var(--c); }
+.td-ev { position: absolute; display: flex; border-radius: 11px; overflow: hidden; background: color-mix(in srgb, var(--c) 16%, var(--surface)); box-shadow: inset 3px 0 0 var(--c); }
 .td-ev.done { opacity: .55; }
 .td-ev.done b { text-decoration: line-through; }
 .td-ev-main { flex: 1; min-width: 0; text-align: left; padding: 4px 4px 4px 10px; display: flex; flex-direction: column; justify-content: flex-start; gap: 1px; }
@@ -407,7 +407,7 @@ body .weekdays { display: none; }
 .profile-main { flex: 1; min-width: 0; }
 .nick { width: 100%; border: 0; background: none; font-size: 21px; font-weight: 680; padding: 2px 0; outline: none; letter-spacing: -.005em; }
 .nick::placeholder { color: var(--text3); font-weight: 600; }
-.status-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 4px 10px 4px 8px; border-radius: 12px; font-size: 12px; color: var(--text2); background: var(--field); }
+.status-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 4px 10px 4px 8px; border-radius: 999px; font-size: 12px; color: var(--text2); background: var(--field); }
 .status-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); }
 .status-pill.ok i { background: #5BA77F; }
 .status-pill.err i { background: var(--red); }
@@ -454,8 +454,9 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 body[data-page="set"] .fab { opacity: 0; transform: scale(.6); pointer-events: none; }
 body[data-page="sched"] .fab { background: #34A853; } /* 课表页的加号是添加课程：绿色 */
 
-.seg { display: flex; background: var(--field); border-radius: 12px; padding: 3px; gap: 2px; }
-.seg button { flex: 1; padding: 7px 12px; border-radius: 9px; font-size: 13.5px; color: var(--text2); white-space: nowrap; transition: background .2s, color .2s; }
+/* 分段选择（单个 / 批量、日期 / 时间段、日历 / 滚轮…）：整条和选中块都做成胶囊，不要方角 */
+.seg { display: flex; background: var(--field); border-radius: 999px; padding: 3px; gap: 2px; }
+.seg button { flex: 1; padding: 7px 12px; border-radius: 999px; font-size: 13.5px; color: var(--text2); white-space: nowrap; transition: background .2s, color .2s; }
 .seg button.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 :root[data-theme="dark"] .seg button.on { background: rgba(255,255,255,.14); }
 .seg.small button { padding: 6px 14px; font-size: 13px; }
@@ -549,7 +550,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 #schedSheet { --sh-def: .74; } /* 添加 / 编辑课程：先停在四分之三高，往下还能停在 .56、.4 两档 */
 .composer.mid, .sheet.tall.mid { height: var(--sh, calc(var(--sh-def) * 100%)); max-height: none; }
 /* 新建事件里的日历紧凑一点 */
-.cmp-pk .pk-grid { grid-template-rows: repeat(6, 32px); }
+.cmp-pk .pk-grid { grid-auto-rows: 32px; }   /* 行数跟着这个月实际占几周走 */
 .cmp-pk .pk-d { font-size: 14px; }
 .cmp-pk .pk-d span { width: 28px; height: 28px; }
 .cmp-pk .pk-cal-head { padding: 0 4px 2px; }
@@ -635,7 +636,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .b-note { min-width: 0; border: 0; background: none; outline: none; padding: 0; font-size: 14px; line-height: 19px; color: var(--text2); }
 .b-note::placeholder { color: var(--text3); }
 .b-tools { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.b-when, .b-opt { flex: 1; min-width: 0; height: 40px; padding: 0 8px; border-radius: 13px; background: var(--field); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.b-when, .b-opt { flex: 1; min-width: 0; height: 40px; padding: 0 8px; border-radius: 999px; background: var(--field); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
 .b-when { color: var(--accent-text); }
 .b-opt { color: var(--text2); }
 .b-when span, .b-opt span { overflow: hidden; text-overflow: ellipsis; }
@@ -643,14 +644,14 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .b-opt .b-ic { width: 15px; height: 15px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---------- 液态玻璃拖动条（优先级 / 等级）：一条浅浅的槽，选中的那格上停着一颗玻璃水滴（和底部菜单栏的一样） ---------- */
-.lgbar { position: relative; display: flex; padding: 3px; border-radius: 14px; background: var(--field); touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.lgbar { position: relative; display: flex; padding: 3px; border-radius: 999px; background: var(--field); touch-action: pan-y; -webkit-user-select: none; user-select: none; }
 .lg-opt { position: relative; z-index: 1; flex: 1; min-width: 0; height: 34px; display: flex; align-items: center; justify-content: center; gap: 6px;
-  font-size: 14px; font-weight: 600; color: var(--text2); border-radius: 11px; transition: color .2s, transform .28s cubic-bezier(.3, 1.5, .5, 1); }
+  font-size: 14px; font-weight: 600; color: var(--text2); border-radius: 999px; transition: color .2s, transform .28s cubic-bezier(.3, 1.5, .5, 1); }
 .lg-opt span[data-uc] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lg-opt .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; }
 .lg-opt.on { color: color-mix(in srgb, var(--c) 68%, var(--text)); }
 .lgbar.dragging .lg-opt.near { transform: scale(1.1); color: color-mix(in srgb, var(--c) 68%, var(--text)); } /* 水滴经过的字像被透镜放大 */
-.lg-thumb { position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n)); border-radius: 11px; pointer-events: none;
+.lg-thumb { position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n)); border-radius: 999px; pointer-events: none;
   transform: translateX(calc(var(--p) * 100%)); scale: var(--sx, 1) 1;
   transition: transform .52s cubic-bezier(.28, 1.42, .48, 1), scale .4s cubic-bezier(.3, 1.6, .5, 1), background .25s, box-shadow .25s;
   background: linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .62));
@@ -695,10 +696,10 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .pk-cal-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 6px; }
 .pk-cal-head h4 { margin: 0; font-size: 16px; font-weight: 650; }
 .pk-cal-head .nav-btn { font-size: 22px; color: var(--text2); }
-.pk-mode { padding: 5px 11px; border-radius: 14px; font-size: 12px; font-weight: 600; color: var(--accent-text); }
+.pk-mode { padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--accent-text); }
 .pk-week, .pk-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
 .pk-week { font-size: 11px; color: var(--text2); padding-bottom: 4px; }
-.pk-grid { grid-template-rows: repeat(6, 40px); }
+.pk-grid { grid-auto-rows: 40px; }
 .pk-d { display: grid; place-items: center; font-size: 15px; font-variant-numeric: proportional-nums; }
 .pk-d span { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; transition: background .15s; }
 .pk-d.out { color: var(--text3); }
@@ -746,7 +747,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 /* 表单 */
 .form { padding: 0 18px 10px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text2); }
-.field input { font-size: 16px; color: var(--text); background: var(--field); border: 0; border-radius: 12px; padding: 12px 14px; outline: none; }
+.field input { font-size: 16px; color: var(--text); background: var(--field); border: 0; border-radius: 16px; padding: 12px 14px; outline: none; }
 .field input:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .form-note { font-size: 12.5px; line-height: 1.6; color: var(--text2); margin: 2px 2px 0; }
 .form-note a { color: var(--accent-text); font-weight: 650; text-decoration: none; }
@@ -775,7 +776,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 /* 弹出菜单 */
 .popover { position: absolute; z-index: 50; min-width: 190px; border-radius: 16px; padding: 5px; opacity: 0; transform: scale(.94); transform-origin: var(--ox, 50%) var(--oy, 100%); pointer-events: none; transition: opacity .15s, transform .22s var(--ease); }
 .popover.show { opacity: 1; transform: none; pointer-events: auto; }
-.popover button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border-radius: 11px; font-size: 15px; text-align: left; }
+.popover button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border-radius: 14px; font-size: 15px; text-align: left; }
 .popover button:active, .popover button.on { background: var(--field); }
 .popover button .tick { margin-left: auto; color: var(--accent-text); font-weight: 700; }
 .popover .flag { width: 18px; height: 18px; }
@@ -787,9 +788,9 @@ html.locked .lock { display: grid; }
 .lock-card h2 { margin: 0; font-size: 22px; font-weight: 680; }
 .lock-card > p { color: var(--text2); margin: 6px 0 22px; font-size: 14px; }
 #lockForm { display: flex; flex-direction: column; gap: 12px; }
-#lockPw { font-size: 17px; text-align: center; border: 0; border-radius: 14px; padding: 14px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); outline: none; }
+#lockPw { font-size: 17px; text-align: center; border: 0; border-radius: 18px; padding: 14px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); outline: none; }
 #lockPw:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
-.wide-btn { padding: 14px; border-radius: 14px; font-size: 16px; font-weight: 650; }
+.wide-btn { padding: 14px; border-radius: 999px; font-size: 16px; font-weight: 650; }
 .lock-err { color: var(--red); font-size: 13px; min-height: 18px; margin: 10px 0 4px; }
 .shake { animation: shake .35s; }
 @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
@@ -806,7 +807,7 @@ html.locked .lock { display: grid; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast { display: flex; align-items: center; gap: 14px; }
 .toast.has-act { pointer-events: auto; padding: 6px 6px 6px 18px; text-align: left; }
-.toast-act { flex: none; padding: 6px 13px; border-radius: 14px; font-size: 14px; font-weight: 650; color: var(--accent-text); background: var(--field); }
+.toast-act { flex: none; padding: 6px 13px; border-radius: 999px; font-size: 14px; font-weight: 650; color: var(--accent-text); background: var(--field); }
 .toast-act:active { opacity: .7; }
 
 /* 确认框（替代系统 confirm） */
@@ -817,7 +818,7 @@ html.locked .lock { display: grid; }
 .cfm.show { transform: translate(-50%, -50%); opacity: 1; pointer-events: auto; }
 .cfm p { margin: 0 4px 18px; font-size: 15px; line-height: 1.5; text-align: center; white-space: normal; word-break: break-word; user-select: text; -webkit-user-select: text; }
 .cfm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.cfm-btns button { padding: 11px 8px; border-radius: 13px; font-size: 15px; font-weight: 600; background: var(--field); }
+.cfm-btns button { padding: 11px 8px; border-radius: 999px; font-size: 15px; font-weight: 600; background: var(--field); }
 .cfm-btns button.strong { background: var(--accent); color: #fff; }
 .cfm-btns button.danger { background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); }
 .cfm-btns button:active { opacity: .75; }
@@ -827,7 +828,7 @@ html.locked .lock { display: grid; }
 
 /* 今日：分组标题右侧的小按钮（已逾期 → 全部移到今天） */
 .sec-r { display: inline-flex; align-items: center; gap: 10px; }
-.sec-act { font-size: 12.5px; font-weight: 600; color: var(--accent-text); padding: 2px 8px; margin: -2px 0; border-radius: 10px; background: var(--field); }
+.sec-act { font-size: 12.5px; font-weight: 600; color: var(--accent-text); padding: 2px 8px; margin: -2px 0; border-radius: 999px; background: var(--field); }
 .sec-act:active { opacity: .7; }
 /* 长按事件时不弹出系统的文字菜单 */
 .item, .cell, .wcol { -webkit-touch-callout: none; }
@@ -1013,13 +1014,13 @@ html.locked .lock { display: grid; }
 .cpop.show { opacity: 1; transform: none; pointer-events: auto; }
 .cpop::before { content: ""; position: absolute; left: 16px; right: 16px; top: 0; height: 3px; border-radius: 0 0 3px 3px; background: var(--c); }
 .cp-top { display: flex; align-items: center; justify-content: space-between; }
-.cp-tag { font-size: 12px; font-weight: 650; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); padding: 3px 10px; border-radius: 10px; }
+.cp-tag { font-size: 12px; font-weight: 650; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); padding: 3px 10px; border-radius: 999px; }
 .cp-x { width: 28px; height: 28px; background: var(--field); }
 .cpop h3 { margin: 8px 0 10px; font-size: 22px; font-weight: 750; letter-spacing: -.01em; color: var(--text); }
 .cp-row { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; font-size: 14.5px; line-height: 1.4; }
 .cp-row svg { width: 18px; height: 18px; flex: none; color: var(--c); margin-top: 1px; }
 .cp-row small { display: block; font-size: 12px; color: var(--text2); }
-.cp-next { margin-top: 8px; padding: 9px 12px; border-radius: 14px; background: var(--field); font-size: 13px; color: var(--text2); }
+.cp-next { margin-top: 8px; padding: 9px 12px; border-radius: 17px; background: var(--field); font-size: 13px; color: var(--text2); }
 .cp-next.live { color: var(--accent-text); background: var(--accent-soft); font-weight: 600; }
 .cp-acts { display: flex; justify-content: flex-end; margin-top: 12px; }
 .cp-edit { height: 36px; padding: 0 20px; border-radius: 18px; background: var(--accent); color: #fff; font-size: 14.5px; font-weight: 650; }
@@ -1039,7 +1040,7 @@ html.locked .lock { display: grid; }
 .wp-week, .wp-row { display: grid; grid-template-columns: 26px repeat(7, 1fr); align-items: center; text-align: center; }
 .wp-week { font-size: 11px; color: var(--text2); padding: 0 4px 4px; }
 .wp-week em, .wp-row em { font-style: normal; font-size: 10px; color: var(--text3); }
-.wp-row { width: 100%; padding: 7px 4px; border-radius: 13px; font-size: 14px; font-variant-numeric: tabular-nums; transition: background .15s; }
+.wp-row { width: 100%; padding: 7px 4px; border-radius: 16px; font-size: 14px; font-variant-numeric: tabular-nums; transition: background .15s; }
 .wp-row:active { background: var(--field); }
 .wp-row.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--sel-line); }
 .wp-row span { position: relative; }
@@ -1171,7 +1172,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .date-tool .b-ic { width: 13px; height: 13px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
 
 /* 课程编辑：开始 / 结束时间按钮（点开下面的时间滚轮） */
-.sc-tbtn { display: block; width: 100%; height: 44px; padding: 0 12px; border-radius: 12px; background: var(--field); color: var(--text); font-size: 16px; text-align: left; font-variant-numeric: tabular-nums; }
+.sc-tbtn { display: block; width: 100%; height: 44px; padding: 0 12px; border-radius: 16px; background: var(--field); color: var(--text); font-size: 16px; text-align: left; font-variant-numeric: tabular-nums; }
 .sc-tbtn.on { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .sc-wheel { margin-top: -4px; }
 
@@ -1180,7 +1181,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
   background: color-mix(in srgb, var(--lc) 18%, transparent); color: var(--lt); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc) 40%, transparent); }
 .qchip.pri.rate.on { background: color-mix(in srgb, var(--c) 16%, transparent); }
 .rate-inputs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
-.rate-inputs input { min-width: 0; width: 100%; text-align: center; padding: 10px 4px; border-radius: 12px; background: var(--field); font-size: 14px; }
+.rate-inputs input { min-width: 0; width: 100%; text-align: center; padding: 10px 4px; border-radius: 16px; background: var(--field); font-size: 14px; }
 
 /* 常用事件 */
 .cmp-presets { margin-top: 4px; margin-bottom: 12px; }
@@ -1193,7 +1194,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 /* 分段评价（每半小时一段） */
 #cmpSegSec .cmp-label small { font-weight: 500; margin-left: 6px; opacity: .75; }
 .seg-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; margin-bottom: 10px; }
-.seg-b { --k: 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 4px 6px; border-radius: 12px; font-size: 12px; font-variant-numeric: tabular-nums;
+.seg-b { --k: 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 4px 6px; border-radius: 16px; font-size: 12px; font-variant-numeric: tabular-nums;
   background: color-mix(in srgb, var(--c) calc(var(--k) * 100%), var(--field)); color: var(--text); transition: background .15s, box-shadow .15s; }
 .seg-b i { display: block; width: 100%; height: 0; }
 .seg-b em { font-style: normal; font-size: 10.5px; font-weight: 650; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1249,7 +1250,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-evh b { text-align: right; font-size: 16px; font-weight: 650; color: var(--c); font-variant-numeric: tabular-nums; }
 .rs-det { padding: 0 18px 12px; }
 .rs-cells { display: flex; gap: 8px; margin-bottom: 4px; }
-.rs-cells > div { flex: 1; padding: 8px 10px; border-radius: 12px; background: color-mix(in srgb, var(--text) 4%, transparent); }
+.rs-cells > div { flex: 1; padding: 8px 10px; border-radius: 16px; background: color-mix(in srgb, var(--text) 4%, transparent); }
 .rs-cells span { display: block; font-size: 11px; color: var(--text2); }
 .rs-cells b { font-size: 14px; font-weight: 600; }
 .rs-list { list-style: none; margin: 0 -12px; padding: 0; }
@@ -1281,7 +1282,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .rs-tt { display: grid; gap: 5px; }
 .rs-tr { display: grid; grid-template-columns: 3em 1fr 1fr; gap: 5px; align-items: stretch; }
 .rs-th { font-size: 12px; color: var(--text2); align-self: center; font-variant-numeric: tabular-nums; }
-.rs-tc { min-height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; color: var(--text); }
+.rs-tc { min-height: 40px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; color: var(--text); }
 .rs-tc b { font-size: 13px; font-weight: 650; }
 .rs-tc small { font-size: 11px; opacity: .8; font-variant-numeric: tabular-nums; }
 .rs-tc.few { opacity: .55; outline: 1.5px dashed color-mix(in srgb, var(--text) 30%, transparent); outline-offset: -1.5px; }
@@ -1578,15 +1579,16 @@ body #page-cal .weekdays {
 .lg-refract body #page-cal .weekdays { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); }
 :root[data-theme="dark"] body #page-cal .weekdays { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
 :root[data-theme="dark"].lg-refract body #page-cal .weekdays { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }
-/* 安卓 App：月份胶囊和星期条不用折射滤镜（安卓 WebView 里会把背后提亮、糊成一片，深色下又亮又不透），
-   改成和安卓原生底栏（ui/Glass.kt 的 Modifier.glass）完全一样的透明玻璃：中间极淡的竖向光泽 + 一圈高光边 + 外面柔和的影子 */
+/* 安卓 App：月份胶囊和星期条做成 iOS 那样的透明液态玻璃——轻微模糊 + 柔和的折射（#lg-refract-soft，位移比按钮小），
+   不提亮、不加重饱和（以前 brightness / saturate 加在安卓 WebView 上会把深色背景提亮、糊成一片） */
 .in-android #page-cal .topbar .title, .in-android body #page-cal .weekdays {
-  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .11), rgba(255, 255, 255, .02) 50%, rgba(255, 255, 255, .063));
+  -webkit-backdrop-filter: blur(2px) saturate(135%) url(#lg-refract-soft) !important; backdrop-filter: blur(2px) saturate(135%) url(#lg-refract-soft) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .03) 50%, rgba(255, 255, 255, .08));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 -1px 0 rgba(255, 255, 255, .5), inset 0 0 0 .6px rgba(20, 40, 70, .08), 0 5px 14px rgba(20, 32, 56, .16);
 }
 :root[data-theme="dark"].in-android #page-cal .topbar .title, :root[data-theme="dark"].in-android body #page-cal .weekdays {
-  background: linear-gradient(180deg, rgba(255, 255, 255, .078), rgba(255, 255, 255, .02) 50%, rgba(255, 255, 255, .05));
+  -webkit-backdrop-filter: blur(2px) saturate(120%) brightness(.94) url(#lg-refract-soft) !important; backdrop-filter: blur(2px) saturate(120%) brightness(.94) url(#lg-refract-soft) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .015) 50%, rgba(255, 255, 255, .04));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 -1px 0 rgba(255, 255, 255, .03), 0 5px 14px rgba(0, 0, 0, .5);
 }
 /* 情绪光谱：一层柔光铺在日历下面、星期条后面。每一天一团椭圆的光，中心在星期条上，往上照到状态栏、往下照进前几周；
@@ -1690,12 +1692,13 @@ body #page-cal .weekdays.hide { display: none; }
   background: color-mix(in srgb, var(--brand-b) 9%, var(--field));
   box-shadow: inset 0 1px 2px rgba(20, 30, 50, .06);
 }
-/* 渐变铺满整条，用裁切露出到滑块中心：位置固定，所以填得越多，暖色露得越多 */
+/* 渐变铺满整条，用裁切露出到滑块的右边缘：填充的圆头和滑块那个圈正好重合（不会从透明的圈里露出一个尖头）；
+   位置固定，所以填得越多，暖色露得越多 */
 .pb-fill {
   position: absolute; inset: var(--pad); border-radius: 999px;
   background: linear-gradient(90deg, var(--p0) calc(var(--th) / 2), var(--p1) calc(var(--th) / 2 + (100% - var(--th)) / 3),
     var(--p2) calc(var(--th) / 2 + (100% - var(--th)) * 2 / 3), var(--p3) calc(100% - var(--th) / 2));
-  clip-path: inset(0 calc((1 - var(--f)) * (100% - var(--th)) + var(--th) / 2) 0 0 round 999px);
+  clip-path: inset(0 calc((1 - var(--f)) * (100% - var(--th))) 0 0 round 999px);
   transition: clip-path .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1));
 }
 .pb-stop {

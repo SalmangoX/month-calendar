@@ -1,6 +1,8 @@
 /* 月历 · 添加 / 编辑、日期与时间段选择、批量添加 */
 (() => {
   'use strict';
+  // 小月历要画多少格：这个月实际占几周 × 7（5 行或 6 行，2 月有时只有 4 行）
+  const cellsOf = (y, m, off) => Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7) * 7;
   const MC = window.MC, UI = MC.UI, $ = UI.$, esc = MC.esc;
   const Editor = (MC.Editor = {});
 
@@ -66,7 +68,7 @@
       $('#cmpOtherTitle').textContent = `${y}年${m + 1}月`;
       let wk = '', g = '';
       for (let i = 0; i < 7; i++) wk += `<div>${MC.WD[(i + MC.settings.weekStart) % 7]}</div>`;
-      for (let i = 0; i < 42; i++) {
+      for (let i = 0, N = cellsOf(y, m, off); i < N; i++) {   // 这个月占几周就画几行，不把下个月整周塞进来
         const dd = new Date(y, m, 1 - off + i), ds = MC.ymd(dd);
         g += `<button class="pk-d${dd.getMonth() !== m ? ' out' : ''}${ds === t ? ' today' : ''}${ds === draft.date ? ' on' : ''}" data-ds="${ds}"><span>${dd.getDate()}</span></button>`;
       }
@@ -402,7 +404,7 @@
     const t = MC.todayStr();
     let wk = '', g = '';
     for (let i = 0; i < 7; i++) wk += `<div>${MC.WD[(i + MC.settings.weekStart) % 7]}</div>`;
-    for (let i = 0; i < 42; i++) {
+    for (let i = 0, N = cellsOf(y, m, off); i < N; i++) {   // 这个月占几周就画几行，不把下个月整周塞进来
       const d = new Date(y, m, 1 - off + i), ds = MC.ymd(d);
       const cls = ['pk-d'];
       if (d.getMonth() !== m) cls.push('out');
@@ -438,7 +440,7 @@
       const { y, m } = c.cal, off = (new Date(y, m, 1).getDay() - MC.settings.weekStart + 7) % 7, t = MC.todayStr();
       let wk = '', g = '';
       for (let i = 0; i < 7; i++) wk += `<div>${MC.WD[(i + MC.settings.weekStart) % 7]}</div>`;
-      for (let i = 0; i < 42; i++) {
+      for (let i = 0, N = cellsOf(y, m, off); i < N; i++) {   // 这个月占几周就画几行，不把下个月整周塞进来
         const d = new Date(y, m, 1 - off + i), ds = MC.ymd(d);
         const dis = (key === 'end' || key === 'until') && ds < pk.date;
         let rng = '';
