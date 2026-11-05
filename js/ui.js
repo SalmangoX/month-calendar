@@ -114,7 +114,8 @@
       if (e.touches.length > 1 || e.target.closest(EDITABLE)) { state = 0; return; }
       // 有两档高度的面板（新建事件）：按住最上面那一条（把手和标题行，不含按钮）上下拉，切换半屏 / 全屏
       sizing = sh.classList.contains('mid');
-      grab = sizing && !!e.target.closest('.handle, .cmp-head, .sheet-head') && !e.target.closest('button');
+      // 抓手区：面板最上面 72px 一整条都算（把手、标题行，连取消 / 确认按钮上也行，没拖动就照常是点按），手指粗、安卓上把手又细，只认把手常常抓不到
+      grab = sizing && (e.touches[0].clientY - sh.getBoundingClientRect().top < 72 || (!!e.target.closest('.handle, .cmp-head, .sheet-head') && !e.target.closest('button')));
       sc = grab ? null : e.target.closest(SCROLLERS);
       if (sc && !sh.contains(sc)) sc = null;
       state = 1; d = 0; v = 0;
@@ -238,7 +239,7 @@
     popCb = cb;
     pop.innerHTML = items.map((it, i) =>
       // sw：开关类的选项（比如子日历的「在主日历显示」「通知」）画成开关，点了原地切换、菜单不关
-      it.sw ? `<button role="menuitemcheckbox" aria-checked="${!!it.on}" data-i="${i}" class="sw">${it.icon || ''}<span>${esc(it.label)}</span><span class="mi-sw${it.on ? ' on' : ''}" aria-hidden="true"><i class="mi-ck"><svg viewBox="0 0 24 24"><path d="M6.5 12.5l3.8 3.8 7.2-8.3"/></svg></i></span></button>`
+      it.sw ? `<button role="menuitemcheckbox" aria-checked="${!!it.on}" data-i="${i}" class="sw">${it.icon || ''}<span>${esc(it.label)}</span><span class="mi-sw${it.on ? ' on' : ''}" aria-hidden="true"><i class="mi-base"></i><i class="mi-ck"><svg viewBox="0 0 24 24"><path d="M6.5 12.5l3.8 3.8 7.2-8.3"/></svg></i></span></button>`
         : `<button role="menuitem" data-i="${i}" class="${it.on ? 'on' : ''}${it.danger ? ' danger' : ''}">${it.icon || ''}<span>${esc(it.label)}</span>${it.on ? '<span class="tick">✓</span>' : ''}</button>`).join('');
     if (dropA) { dropA.cancel(); dropA = null; }
     pop.classList.toggle('grow', !!opts.center);   // 以按钮为中心时：从那一点长出来（更明显的缩放 + 回弹）
@@ -277,14 +278,14 @@
     const kids = [...pop.children];
     if (opening) {
       dropA = pop.animate([{ clipPath: dot, transform: 'scale(1)' }, { clipPath: full, transform: 'scale(1.025)', offset: .7 }, { clipPath: full, transform: 'scale(1)' }],
-        { duration: 460, easing: 'cubic-bezier(.3,.9,.35,1)' });
-      kids.forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 120, easing: 'ease-out', fill: 'backwards' }));
+        { duration: 280, easing: 'cubic-bezier(.3,.9,.35,1)' });   // 干脆，别拖
+      kids.forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, delay: 60, easing: 'ease-out', fill: 'backwards' }));
     } else {
-      kids.forEach(k => k.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 90, fill: 'forwards' }));
-      dropA = pop.animate([{ clipPath: full }, { clipPath: dot, opacity: 1, offset: .85 }, { clipPath: dot, opacity: 0 }], { duration: 300, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' });
+      kids.forEach(k => k.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 60, fill: 'forwards' }));
+      dropA = pop.animate([{ clipPath: full }, { clipPath: dot, opacity: 1, offset: .85 }, { clipPath: dot, opacity: 0 }], { duration: 200, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' });
       const a = dropA;
       const end = () => { if (dropA !== a) return; pop.classList.remove('show', 'grow'); a.cancel(); kids.forEach(k => k.getAnimations().forEach(x => x.cancel())); dropO = null; dropA = null; };
-      a.onfinish = end; setTimeout(end, 380);   // 后台标签页里动画事件可能不来：到点也一定收干净，不留一个看不见的菜单
+      a.onfinish = end; setTimeout(end, 260);   // 后台标签页里动画事件可能不来：到点也一定收干净，不留一个看不见的菜单
     }
   }
   UI.closeMenu = () => { if (pop.classList.contains('grow') && pop.classList.contains('show')) dropPop(false); else pop.classList.remove('show'); };

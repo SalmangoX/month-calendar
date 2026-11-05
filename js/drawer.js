@@ -233,12 +233,16 @@
     const kf = opening ? frames.map((f, k) => ({ ...f, offset: offs[k] }))
       : [frames[3], frames[1], frames[0]].map((f, k) => ({ ...f, offset: [0, .6, 1][k] }));   // 收起：直接缩回去，不再冲过
     const a = blob.animate(kf, { duration: opening ? 380 : 300, easing: opening ? 'cubic-bezier(.3,.75,.35,1)' : 'cubic-bezier(.45,0,.4,1)', fill: 'forwards' });
-    let fin = false;
+    let fin = false, shown = false;
+    // 一点下去就看得到里面的东西：水滴拉到四成多（已经接近卡片大小）时，卡片和内容就淡进来，不等动画放完（用户要的：只提速、动画不变）
+    const reveal = () => { if (shown || fin) return; shown = true; KS.style.opacity = ''; KS.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 110, easing: 'ease-out' }); };
+    if (opening) setTimeout(reveal, 380 * .45);
     const finish = () => {
-      if (fin) return; fin = true;
+      if (fin) return;
+      if (opening) reveal();
+      fin = true;
       if (opening) {
         KS.style.opacity = '';
-        [...KS.children].forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' }));
       } else { btn.classList.remove('empty'); KS.style.opacity = ''; }
       blob.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160 }).onfinish = () => blob.remove();
       KS.classList.remove('morph');

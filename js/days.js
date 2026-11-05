@@ -1705,7 +1705,7 @@
         title: TT(x.title), state: a.today ? TT(T('就是今天')) : TT(stateWord(x, inf)), num: String(a.num), unit: TT(a.unit || ''), today: !!a.today,
         rest: a.rest ? TT(T('又')) + ' ' + TT(a.rest) : '',
         date: TT(P.fmtDateTime(inf.occ, x.time)) + (x.rep ? ' · ' + TT(repLabel(x.rep)) : ''),
-        accent: x.hl ? dk2 => hlOf(x.hl, dk2) : null,
+        accent: null,   // 照片模板：数字、图标的强调色和底色一样，都按照片的颜色算（photoTone / photoPal），不跟高亮色走——高亮色只用在没有照片的模板
         icon: (c2, cx, cy, size, color) => drawIcon(c2, x, '', cx, cy, size, color, o.font, true),
       };
       const tone = o.bg ? photoTone(o.bg) : { h: .6, s: 0, lum: .2 };

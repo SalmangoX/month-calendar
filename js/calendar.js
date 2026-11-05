@@ -60,6 +60,17 @@
       // 月份胶囊（高 36）的水平中线：最上面那一行（吸附线上面那行）里第一条和第二条事件中间（--ct 是第一条事件的顶，事件条高 --chip-h、间距 2）
       const wr = vp.querySelector('.wrow'), ct = (wr && parseFloat(getComputedStyle(wr).getPropertyValue('--ct'))) || 39;
       const wkY = Math.round(snap - 4 - 24), pillY = Math.round(snap - rowH + ct + px('--chip-h') + 1 - 18);
+      // 【联动:底部悬浮控件】最下面那一行（露出一部分的那行）的顶边离屏幕底多远：行都落在整行的格线上，滚动时这条线的位置不变。
+      // 安卓的原生时钟胶囊、logo 按它抬高，整个落在这条线上面、当月的虚线框里（iPhone 本来就在里面，不读它）
+      { const k = Math.max(1, Math.floor((H - TOP - 1) / rowH)), line = pc.offsetTop + y0 + TOP + k * rowH;
+        const fl = Math.max(0, Math.round(innerHeight - line)), R = document.documentElement;
+        R.style.setProperty('--d2-floor', fl + 'px');
+        // 网页 / 安卓的悬浮控件也按这条线抬：时钟胶囊（圆面比热区底边高 6）底边离线至少 4px，整个在当月虚线框里。
+        // iPhone / Mac 的原生控件不抬（本来就在框里），网页这份也不动，今日页从它展开的位置才对得上
+        if (!R.classList.contains('in-ios') && !R.classList.contains('in-mac')) {
+          const d2 = $('#dock2'), d2b = d2 ? parseFloat(getComputedStyle(d2).bottom) || 0 : 0;
+          R.style.setProperty('--d2-lift-base', Math.max(40, Math.round(fl + 4 - 6 - d2b)) + 'px');
+        } }
       if (pc.style.getPropertyValue('--wk-y') !== wkY + 'px' || pc.style.getPropertyValue('--pill-y') !== pillY + 'px') {
         pc.style.setProperty('--wk-y', wkY + 'px'); pc.style.setProperty('--pill-y', pillY + 'px');
         requestAnimationFrame(() => { try { paintMood(); } catch (e) {} });   // 光心跟着星期条走

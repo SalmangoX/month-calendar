@@ -945,10 +945,10 @@ struct GlassDrawer: View {
             if let k {
                 var t = Transaction(); t.disablesAnimations = true
                 withTransaction(t) { moreShown = k; moreUp = false }
-                DispatchQueue.main.async { withAnimation(.spring(response: 0.42, dampingFraction: 0.7)) { moreUp = true } }
+                DispatchQueue.main.async { withAnimation(.spring(response: 0.26, dampingFraction: 0.78)) { moreUp = true } }   // 干脆，别拖
             } else if moreShown != nil {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { moreUp = false }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) { if m.moreRow == nil { moreShown = nil } }
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.9)) { moreUp = false }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { if m.moreRow == nil { moreShown = nil } }
             }
         }
         .onPreferenceChange(DotsKey.self) { dots = $0 }
@@ -1055,7 +1055,7 @@ struct GlassDrawer: View {
                 .padding(.vertical, 6)
                 .frame(width: w, height: h)
                 .opacity(moreUp ? 1 : 0)
-                .animation(moreUp ? .easeOut(duration: 0.2).delay(0.1) : .easeIn(duration: 0.08), value: moreUp)   // 字等玻璃拉开再出来，收起时先收字
+                .animation(moreUp ? .easeOut(duration: 0.12).delay(0.05) : .easeIn(duration: 0.06), value: moreUp)   // 字等玻璃拉开再出来，收起时先收字
                 // 玻璃本身是一颗水滴：合着时是三个点上 30pt 的小圆，弹簧一口气拉伸成窗口（带一点果冻回弹），收起时缩回小圆
                 .frame(width: moreUp ? w : 30, height: moreUp ? h : 30, alignment: .center)
                 .clipShape(RoundedRectangle(cornerRadius: moreUp ? 22 : 15, style: .continuous))
@@ -1221,7 +1221,7 @@ struct GlassDrawer: View {
                         .font(.system(size: 11.5)).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 0)
-                    if r.on { Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(color) }
+                    if r.on { Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(Color.primary) }
                 }
                 .contentShape(Rectangle())
             }
@@ -1238,7 +1238,7 @@ struct GlassDrawer: View {
         }
         .padding(.horizontal, 10).padding(.vertical, 8)
         .background {
-            if r.on { RoundedRectangle(cornerRadius: 15, style: .continuous).fill(color.opacity(scheme == .dark ? 0.2 : 0.13)) }
+            if r.on { RoundedRectangle(cornerRadius: 15, style: .continuous).fill(Color.white.opacity(scheme == .dark ? 0.1 : 0.62)).shadow(color: .black.opacity(scheme == .dark ? 0 : 0.06), radius: 2, y: 1) }   // 选中：中性的白色高亮，不染日历色
         }
         .id(r.key)
     }
@@ -1290,12 +1290,16 @@ struct FillToggleBody: View {
             Spacer(minLength: 12)
             ZStack(alignment: .leading) {
                 Capsule().fill(dark ? Color.black.opacity(0.28) : Color.black.opacity(0.07))   // 空的时候：淡淡凹陷的底
+                // 第一层：一点就整条铺上一层淡淡的 logo 渐变（0.18 秒），和小勾一起马上给反馈
+                Capsule().fill(FillToggleBody.logo).opacity(on ? 0.6 : 0)
+                    .animation(on ? .easeOut(duration: 0.18) : .easeIn(duration: 0.12), value: on)
+                // 第二层：原来那团彩色的气，在第一层上面慢慢涨开、由模糊变清晰，把层次补饱满
                 GeometryReader { g in
                     Capsule().fill(FillToggleBody.logo)   // 一团彩色的气：从左边涨开、由模糊变清晰
                         .frame(width: on ? g.size.width : g.size.height * 0.6)
                         .blur(radius: on ? 0 : 8)
                         .opacity(on ? 1 : 0)
-                        .animation(on ? .spring(response: 0.26, dampingFraction: 0.9) : .easeIn(duration: 0.14), value: on)   // 干脆：一下涨满，不拖
+                        .animation(on ? .spring(response: 0.6, dampingFraction: 0.8) : .easeIn(duration: 0.14), value: on)
                 }
                 .clipShape(Capsule())
                 Capsule().fill(Color.clear)   // 最上面：系统的透明液态玻璃，折射下面的颜色，像一颗水滴
@@ -1308,7 +1312,7 @@ struct FillToggleBody: View {
                     .shadow(color: Color(argb: 0xFF5A_4A80).opacity(0.45), radius: 1.2, y: 1)
                     .shadow(color: Color(argb: 0xFF5A_4A80).opacity(0.2), radius: 4, y: 2)
                     .frame(maxWidth: .infinity)
-                    .animation(on ? .easeOut(duration: 0.15).delay(0.1) : .easeIn(duration: 0.08), value: on)   // 颜色快满时紧跟着一笔画出
+                    .animation(on ? .easeOut(duration: 0.16).delay(0.05) : .easeIn(duration: 0.08), value: on)   // 第一层一铺上就画出来，不等气涨满
             }
             .frame(width: 50, height: 28)
             // 点击反馈：按下去水滴被压扁一点（横向变宽、纵向变矮），松手像果冻一样弹回

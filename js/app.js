@@ -277,7 +277,9 @@
 
   // ---------- 记录日历：等级统计 ----------
   // 开了「等级评分」的记录日历，logo 扇形里多一个「统计」
-  const rs = { range: 'month', off: 0, tab: 'all', openEv: null, allEv: false };
+  // range：卡片当前停在哪一页（周 / 月 / 年 / 全部）；offs：每一页各自往前翻了几个周期，左右滑过去再滑回来还停在原处
+  const rs = { range: 'month', offs: { week: 0, month: 0, year: 0 }, tab: 'all', openEv: null, allEv: false };
+  const RANGES = ['week', 'month', 'year', 'all'];
   const recCal = () => { const id = MC.activeCal(); return id && MC.rateOn(id) ? MC.cal(id) : null; };
   function syncRecTabs() {
     const fs = $('#fanStat'); if (fs) fs.hidden = document.body.dataset.kind === 'days' || !recCal();   // logo 扇形里的「统计」
@@ -290,11 +292,11 @@
     else { if (page === 'rstat') renderRstat(); placeInd(false); }
   }
   MC.onCalChange = syncRecTabs;
-  function rsSpan(off = rs.off) {
+  function rsSpan(off = rs.offs[rs.range] || 0, range = rs.range) {
     const t = new Date(); t.setHours(0, 0, 0, 0);
-    if (rs.range === 'week') { const a = MC.addDays(MC.weekStartOf(t), off * 7); return [a, MC.addDays(a, 6)]; }
-    if (rs.range === 'month') { const a = new Date(t.getFullYear(), t.getMonth() + off, 1); return [a, new Date(a.getFullYear(), a.getMonth() + 1, 0)]; }
-    if (rs.range === 'year') { const y = t.getFullYear() + off; return [new Date(y, 0, 1), new Date(y, 11, 31)]; }
+    if (range === 'week') { const a = MC.addDays(MC.weekStartOf(t), off * 7); return [a, MC.addDays(a, 6)]; }
+    if (range === 'month') { const a = new Date(t.getFullYear(), t.getMonth() + off, 1); return [a, new Date(a.getFullYear(), a.getMonth() + 1, 0)]; }
+    if (range === 'year') { const y = t.getFullYear() + off; return [new Date(y, 0, 1), new Date(y, 11, 31)]; }
     return null;
   }
 
@@ -388,24 +390,9 @@
     return card('每个月平均下来的时段状态', heatmap('a', monthCols(rated, keys, multiYear), pts, labels, 2))
       + card(`${multiYear ? mk.slice(0, 4) + '年' : ''}${+mk.slice(5)}月平均下来：周几 × 时段`, chips + heatmap('b', weekdayCols(mRated, ws), mPts, labels, 2));
   }
+  // 概览：大数字在上面的时段卡片里，这里放时段图和亮点
   function pageAll(c, evs, rated, span, labels) {
-    const avg = avgOf(rated), done = evs.filter(e => e.done).length;
-    let cmp = '';
-    if (span && rated.length) {
-      const p = rsSpan(rs.off - 1), a = MC.ymd(p[0]), b = MC.ymd(p[1]);
-      const prev = MC.data.events.filter(e => e.cal === c.id && e.rate && e.date >= a && e.date <= b && e.date <= MC.todayStr());
-      if (prev.length) { const d = avg - avgOf(prev), w = { week: '上周', month: '上个月', year: '去年' }[rs.range]; cmp = Math.abs(d) < .05 ? `和${w}差不多` : `比${w}${d > 0 ? '好' : '差'} ${f1(Math.abs(d))}`; }
-    }
-    const max = Math.max(1, ...[1, 2, 3, 4].map(v => rated.filter(e => e.rate === v).length));
-    const dist = [4, 3, 2, 1].map(v => { const k = rated.filter(e => e.rate === v).length;
-      return `<div class="rs-dr"><span data-uc>${MC.esc(labels[v - 1])}</span><i><b class="lv${v}" style="width:${(k / max * 100).toFixed(1)}%"></b></i><em>${k} 条</em></div>`; }).join('');
-    const hero = `<section class="rs-hero">
-        <p class="rs-say">${rated.length ? `整体是「${lvText(labels, avg)}」` : '还没有评级'}</p>
-        <div class="rs-big">${rated.length ? f1(avg) : '–'}<small> / 4</small></div>
-        <div class="rs-sub">${[`${evs.length} 条记录`, `完成 ${Math.round(done / evs.length * 100)}%`, evs.length - rated.length ? `${evs.length - rated.length} 条没评级` : '', cmp].filter(Boolean).join(' · ')}</div>
-        ${rated.length ? `<div class="rs-dist">${dist}</div>` : ''}
-      </section>`;
-    if (!rated.length) return hero;
+    if (!rated.length) return `<div class="rs-empty">这段时间还没有评级</div>`;
     // 亮点：只用样本够的数据，并写明是几条算出来的
     const facts = [];
     const sp = segPoints(evs), slots = SLOTS.map(s => ({ s, l: sp.filter(p => p.clock >= s[1] * 60 && p.clock < s[2] * 60) })).filter(x => x.l.length >= MIN_N);
@@ -416,7 +403,7 @@
     const gs = [...g.entries()].filter(([, l]) => l.length >= MIN_N);
     if (gs.length >= 2) { const b = gs.sort((x, y) => avgOf(y[1]) - avgOf(x[1]))[0]; facts.push(['评价最高的事件', `<span data-uc>${MC.esc(b[0])}</span>　${lvText(labels, avgOf(b[1]))}`, `${b[1].length} 次`]); }
     const fc = facts.length ? card('', facts.map(([k, v, n]) => `<div class="rs-kv"><span>${k}</span><b>${v}<small>${n}</small></b></div>`).join('')) : '';
-    return hero + timeMap(c, evs, rated, span, labels) + fc;
+    return timeMap(c, evs, rated, span, labels) + fc;
   }
   // 时段：按钟点排成一张「时间表」，每格写着等级名和段数，一看就知道几点状态好
   function pageSlot(c, evs, labels) {
@@ -516,21 +503,57 @@
   }
 
   const RS_TABS = [['all', '概览'], ['slot', '时段'], ['ev', '事件'], ['note', '备注']];
-  function renderRstat() {
-    const c = recCal();
-    if (!c) { $('#rsBody').innerHTML = '<div class="rs-empty">当前日历没有开等级评分</div>'; return; }
-    const span = rsSpan(), labels = MC.rateLabels(c.id);
-    $('#rsName').textContent = c.name;
-    $('#page-rstat').style.setProperty('--c', c.color);
-    $('#rsTabs').innerHTML = RS_TABS.map(([v, l]) => `<button data-v="${v}"${v === rs.tab ? ' class="on"' : ''}>${l}</button>`).join('');
-    $('#rsSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === rs.range));
-    $('#rsNav').hidden = !span;
-    if (span) $('#rsLabel').textContent = rs.range === 'week' ? `${MC.dateLabel(MC.ymd(span[0]))} – ${MC.dateLabel(MC.ymd(span[1]))}` : rs.range === 'month' ? `${span[0].getFullYear()}年${span[0].getMonth() + 1}月` : `${span[0].getFullYear()}年`;
+  // 一个时段的汇总（上面卡片每一页用）
+  function rsSum(c, range) {
+    const off = rs.offs[range] || 0, span = rsSpan(off, range), today = MC.todayStr();
     const a = span ? MC.ymd(span[0]) : '', b = span ? MC.ymd(span[1]) : '';
-    const today = MC.todayStr();
-    const evs = MC.data.events.filter(e => e.cal === c.id && e.date <= today && (!span || (e.date >= a && e.date <= b)))
-      .sort((x, y) => x.date.localeCompare(y.date) || (x.time || '').localeCompare(y.time || ''));
+    const inR = (e, x, y) => e.cal === c.id && e.date <= today && (!x || (e.date >= x && e.date <= y));
+    const evs = MC.data.events.filter(e => inR(e, a, b));
     const rated = evs.filter(e => e.rate);
+    let cmp = '';
+    if (span && rated.length) {
+      const p = rsSpan(off - 1, range), pa = MC.ymd(p[0]), pb = MC.ymd(p[1]);
+      const prev = MC.data.events.filter(e => e.rate && inR(e, pa, pb));
+      if (prev.length) { const d = avgOf(rated) - avgOf(prev), w = { week: '上周', month: '上个月', year: '去年' }[range];
+        cmp = Math.abs(d) < .05 ? `和${w}差不多` : `<span class="${d > 0 ? 'up' : 'down'}">比${w}${d > 0 ? '好' : '差'} ${f1(Math.abs(d))}</span>`; }
+    }
+    return { off, span, evs, rated, cmp };
+  }
+  const rsLabel = (range, span) => !span ? '全部' : range === 'week' ? `${MC.dateLabel(MC.ymd(span[0]))} – ${MC.dateLabel(MC.ymd(span[1]))}`
+    : range === 'month' ? `${span[0].getFullYear()}年${span[0].getMonth() + 1}月` : `${span[0].getFullYear()}年`;
+  // 卡片的一页：时间 + 大数字 + 一句话 + 等级分布条 + 几个小数字
+  function rsPage(c, range, labels) {
+    const { off, span, evs, rated, cmp } = rsSum(c, range), avg = avgOf(rated), done = evs.filter(e => e.done).length;
+    const nav = span ? `<div class="rs-pnav"><button data-step="-1" aria-label="上一个">‹</button><span>${rsLabel(range, span)}</span><button data-step="1" aria-label="下一个"${off >= 0 ? ' disabled' : ''}>›</button></div>`
+      : `<div class="rs-pnav"><span>${rsLabel(range, span)}</span></div>`;
+    const n = v => rated.filter(e => e.rate === v).length;
+    // 分布条：从左到右 = 低 → 高（MC.RATE_ORDER），和选等级的条一样
+    const bar = rated.length ? `<div class="rs-bar">${MC.RATE_ORDER.map(v => n(v) ? `<i class="lv${v}" style="flex:${n(v)}"></i>` : '').join('')}</div>
+      <div class="rs-blg">${MC.RATE_ORDER.map(v => `<span><i class="lv${v}"></i><b data-uc>${MC.esc(labels[v - 1])}</b><em>${n(v)}</em></span>`).join('')}</div>` : '';
+    return `<div class="rs-pg" data-r="${range}">${nav}
+      <div class="rs-big">${rated.length ? f1(avg) : '–'}<small> / 4</small></div>
+      <p class="rs-say">${!evs.length ? '这段时间还没有记录' : rated.length ? `整体是「${lvText(labels, avg)}」` : '还没有评级'}</p>
+      ${bar}
+      <div class="rs-meta">${evs.length ? [`<span><b>${evs.length}</b> 条记录</span>`, `<span>完成 <b>${Math.round(done / evs.length * 100)}%</b></span>`,
+        evs.length - rated.length ? `<span>${evs.length - rated.length} 条没评级</span>` : '', cmp ? `<span>${cmp}</span>` : ''].filter(Boolean).join('') : ''}</div>
+    </div>`;
+  }
+  // 上面的卡片：周 / 月 / 年 / 全部 四页，左右滑动切换（scroll-snap），顶上的胶囊跟着走
+  let rsSilent = false;
+  function renderRsCard(c, labels) {
+    $('#rsPages').innerHTML = RANGES.map(r => rsPage(c, r, labels)).join('');
+    rsScrollTo(rs.range, false);
+  }
+  function rsScrollTo(range, smooth) {
+    const pg = $('#rsPages'), i = RANGES.indexOf(range);
+    const go = () => { if (!pg.clientWidth) return; rsSilent = !smooth; pg.scrollTo({ left: i * pg.clientWidth, behavior: smooth ? 'smooth' : 'instant' }); rsInd(i); if (!smooth) requestAnimationFrame(() => (rsSilent = false)); };
+    if (pg.clientWidth) go(); else requestAnimationFrame(go);   // 页面刚显示出来、还没排版时等一帧
+  }
+  const rsInd = p => { $('#rsCard').style.setProperty('--p', p); $('#rsSeg').querySelectorAll('button').forEach((b, k) => b.classList.toggle('on', k === Math.round(p))); };
+  // 下面的内容：跟着卡片当前那一页的时段
+  function renderRsBody(c, labels) {
+    const { span, evs, rated } = rsSum(c, rs.range);
+    $('#rsTabs').innerHTML = RS_TABS.map(([v, l]) => `<button data-v="${v}"${v === rs.tab ? ' class="on"' : ''}>${l}</button>`).join('');
     try {
       $('#rsBody').innerHTML = !evs.length ? '<div class="rs-empty">这段时间还没有记录</div>'
         : rs.tab === 'slot' ? pageSlot(c, evs, labels) : rs.tab === 'ev' ? pageEv(c, evs, labels) : rs.tab === 'note' ? pageNote(c, rated) : pageAll(c, evs, rated, span, labels);
@@ -539,20 +562,51 @@
       $('#rsBody').innerHTML = `<div class="rs-empty">统计页出错了：${MC.esc(err && err.message || err)}<br><small>多半是有文件没更新到同一版本，把最新的包整个覆盖后刷新</small></div>`;
     }
   }
+  function renderRstat() {
+    const c = recCal();
+    if (!c) { $('#rsPages').innerHTML = ''; $('#rsBody').innerHTML = '<div class="rs-empty">当前日历没有开等级评分</div>'; return; }
+    const labels = MC.rateLabels(c.id);
+    $('#rsName').textContent = c.name;
+    $('#page-rstat').style.setProperty('--c', c.color);
+    renderRsCard(c, labels);
+    renderRsBody(c, labels);
+  }
+  const rsBodyOnly = () => { const c = recCal(); if (c) renderRsBody(c, MC.rateLabels(c.id)); };
   UI.bindList($('#rsBody'));
   $('#rsBody').addEventListener('click', e => {
-    if (e.target.closest('[data-more]')) { rs.allEv = !rs.allEv; renderRstat(); return; }
+    if (e.target.closest('[data-more]')) { rs.allEv = !rs.allEv; rsBodyOnly(); return; }
     const mo = e.target.closest('[data-month]');
-    if (mo) { rs.allMonth = mo.dataset.month; rs.pick = null; renderRstat(); return; }
+    if (mo) { rs.allMonth = mo.dataset.month; rs.pick = null; rsBodyOnly(); return; }
     const pk = e.target.closest('[data-pick]');
-    if (pk) { rs.pick = rs.pick === pk.dataset.pick ? null : pk.dataset.pick; renderRstat(); return; }
+    if (pk) { rs.pick = rs.pick === pk.dataset.pick ? null : pk.dataset.pick; rsBodyOnly(); return; }
     const h = e.target.closest('.rs-evh'); if (!h) return;
-    rs.openEv = rs.openEv === h.dataset.ev ? null : h.dataset.ev; rs.allEv = false; renderRstat();
+    rs.openEv = rs.openEv === h.dataset.ev ? null : h.dataset.ev; rs.allEv = false; rsBodyOnly();
   });
-  $('#rsTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.tab = b.dataset.v; rs.pick = null; renderRstat(); $('.rs-scroll').scrollTop = 0; });
-  $('#rsSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rs.range = b.dataset.v; rs.off = 0; rs.pick = null; renderRstat(); });
-  $('#rsPrev').onclick = () => { rs.off--; rs.pick = null; renderRstat(); };
-  $('#rsNext').onclick = () => { rs.off++; rs.pick = null; renderRstat(); };
+  // 卡片外面：概览 / 时段 / 事件 / 备注
+  $('#rsTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.dataset.v === rs.tab) return; rs.tab = b.dataset.v; rs.pick = null; rsBodyOnly(); });
+  // 卡片顶上的胶囊：点了滑到那一页
+  $('#rsSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rsScrollTo(b.dataset.v, true); if (b.dataset.v !== rs.range) { rs.range = b.dataset.v; rs.pick = null; rs.openEv = null; rsBodyOnly(); } });   // 下面的内容马上跟着换，不等滑完
+  // 卡片里每一页的 ‹ ›：只翻这一页自己的时段
+  $('#rsPages').addEventListener('click', e => {
+    const b = e.target.closest('[data-step]'); if (!b || b.disabled) return;
+    const r = b.closest('.rs-pg').dataset.r, c = recCal(); if (!c) return;
+    rs.offs[r] = Math.min(0, (rs.offs[r] || 0) + +b.dataset.step); rs.pick = null;
+    const labels = MC.rateLabels(c.id), tmp = document.createElement('div');
+    tmp.innerHTML = rsPage(c, r, labels); b.closest('.rs-pg').replaceWith(tmp.firstElementChild);
+    if (r === rs.range) renderRsBody(c, labels);
+  });
+  // 左右滑：胶囊跟着手指走；停下后换下面的内容
+  { let stT = 0;
+    $('#rsPages').addEventListener('scroll', () => {
+      const pg = $('#rsPages'); if (!pg.clientWidth) return;
+      const p = pg.scrollLeft / pg.clientWidth; rsInd(p);
+      if (rsSilent) return;
+      clearTimeout(stT); stT = setTimeout(() => {
+        const r = RANGES[Math.max(0, Math.min(3, Math.round(pg.scrollLeft / pg.clientWidth)))];
+        if (r !== rs.range) { rs.range = r; rs.pick = null; rs.openEv = null; rsBodyOnly(); }
+      }, 90);
+    }, { passive: true });
+  }
 
   // ---------- 头像 / 昵称 ----------
   const initial = () => (MC.data.profile.name || '我').trim().slice(0, 1).toUpperCase();
@@ -1645,7 +1699,7 @@
   }, 60000);
 
   // 本地开发（localhost / 127.0.0.1）不用 Service Worker：它会把旧文件缓存住，改完代码看不到；已经注册的顺手注销、清掉缓存
-  const localDev = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  const localDev = /^(localhost|127\.0\.0\.1|\[::1\]|10\.0\.2\.2|192\.168\.\d+\.\d+)$/.test(location.hostname);   // 10.0.2.2：安卓模拟器里的这台电脑
   if (localDev && 'serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
     if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k))).catch(() => {});

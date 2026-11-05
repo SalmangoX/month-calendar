@@ -2,79 +2,124 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>隐私政策 — 节律 Cadence</title>
-<meta name="description" content="节律（Cadence）隐私政策：数据保存在本机，不收集个人信息。">
+<meta name="description" content="节律（Cadence）隐私政策：不需要注册，不收集个人信息，数据只存在你的设备和你自己选的同步空间里。">
 <link rel="icon" href="icons/icon-192.png">
 <style>
-  :root{--bg:#FBF9F7;--ink:#1B1A20;--sub:#6E6A78;--line:#ECE7E1;--a1:#9F9DBA;--a2:#E6CDB8}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.85;
-    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-    -webkit-font-smoothing:antialiased}
-  a{color:inherit}
-  .wrap{max-width:720px;margin:0 auto;padding:0 24px}
-  header{border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(251,249,247,.9);backdrop-filter:blur(14px)}
-  .bar{display:flex;align-items:center;gap:10px;height:60px;font-weight:650}
-  .mark{width:27px;height:27px;display:block;flex:0 0 auto}
-  .bar a{margin-left:auto;font-size:14px;font-weight:450;color:var(--sub);text-decoration:none}
-  .bar a:hover{color:var(--ink)}
-  main{padding:52px 0 72px}
-  h1{font-size:30px;margin:0 0 8px;letter-spacing:-.01em}
-  .date{color:var(--sub);font-size:13.5px;margin-bottom:32px}
-  h2{font-size:17.5px;margin:32px 0 8px}
-  p,li{color:#3a3742;font-size:15.5px}
-  p{margin:0 0 12px}
-  ul{padding-left:20px;margin:0 0 12px}
-  li{margin-bottom:6px}
-  .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:22px 0}
-  .box p:last-child{margin-bottom:0}
-  footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--sub);font-size:13.5px}
+  :root { --bg: #F7F7F9; --card: #fff; --ink: #1C1C1F; --sub: #6B6B74; --line: rgba(0, 0, 0, .08); --accent: #4F80C4; }
+  @media (prefers-color-scheme: dark) { :root:not(.light) { --bg: #111113; --card: #1C1C1F; --ink: #F2F2F4; --sub: #9B9BA4; --line: rgba(255, 255, 255, .1); --accent: #8DB0EA; color-scheme: dark; } }
+  :root.dark { --bg: #111113; --card: #1C1C1F; --ink: #F2F2F4; --sub: #9B9BA4; --line: rgba(255, 255, 255, .1); --accent: #8DB0EA; color-scheme: dark; }
+  :root.light { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-size: 15.5px; line-height: 1.75;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 0 20px; }
+  header { position: sticky; top: 0; z-index: 2; background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom: .5px solid var(--line); }
+  .bar { display: flex; align-items: center; gap: 10px; height: 56px; font-weight: 650; }
+  .bar img { width: 26px; height: 26px; }
+  .bar a { margin-left: auto; font-size: 14px; font-weight: 500; }
+  main { padding: 36px 0 56px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -.02em; }
+  .date { color: var(--sub); font-size: 13px; margin: 0 0 24px; }
+  .sum { background: var(--card); border-radius: 22px; padding: 18px 20px; margin: 0 0 28px; box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 0 0 .5px var(--line); }
+  .sum ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+  .sum li { display: flex; gap: 10px; align-items: baseline; }
+  .sum li::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); transform: translateY(-2px); }
+  section { background: var(--card); border-radius: 22px; padding: 6px 20px 8px; margin: 0 0 14px; box-shadow: 0 0 0 .5px var(--line); }
+  h2 { font-size: 16px; margin: 14px 0 6px; }
+  p { margin: 0 0 10px; color: var(--ink); }
+  .muted { color: var(--sub); }
+  dl { margin: 0 0 10px; }
+  dt { font-weight: 600; margin-top: 10px; }
+  dd { margin: 2px 0 0; color: var(--sub); }
+  footer { color: var(--sub); font-size: 13px; padding: 8px 0 40px; text-align: center; }
+  /* 在 App 里打开（?embed）：App 自己有返回键，不显示网页的顶栏和页脚链接 */
+  .embed header, .embed .foot-links { display: none; }
+  .embed main { padding-top: 20px; }
 </style>
+<script>
+  var q = location.search, h = document.documentElement;
+  if (/[?&]embed\b/.test(q)) h.classList.add('embed');
+  if (/[?&]dark\b/.test(q)) h.classList.add('dark'); else if (/[?&]light\b/.test(q)) h.classList.add('light');   // App 里按 App 自己的浅色 / 深色
+</script>
 </head>
 <body>
-<header><div class="wrap bar"><img class="mark" src="icons/logo.png" alt="节律" width="27" height="27">节律 Cadence<a href="./about.html">返回介绍页</a></div></header>
+<header><div class="wrap bar"><img src="icons/logo.png" alt="" width="26" height="26">节律 Cadence<a href="./about.html">关于节律</a></div></header>
 
 <main class="wrap">
   <h1>隐私政策</h1>
-  <p class="date">最后更新：2026 年 11 月 4 日</p>
+  <p class="date">最后更新：2026 年 11 月 5 日</p>
 
-  <div class="box">
-    <p><strong>简单说：</strong>节律不需要注册，不收集个人信息，日程数据都保存在你自己的设备上。应用没有广告，也没有统计分析。</p>
-    <p>本应用由个人开发者<strong>蒋昕哲</strong>独立开发并运营，联系方式见页面末尾。</p>
+  <div class="sum">
+    <ul>
+      <li>不需要注册账号，我们不收集你的姓名、手机号、位置或任何能认出你的信息。</li>
+      <li>你记下的内容只存在你的设备上，以及你自己选择的同步空间里；我们没有服务器，也看不到这些内容。</li>
+      <li>没有广告，没有统计分析，不出售、不共享任何数据。</li>
+    </ul>
   </div>
 
-  <h2>1. 我们收集什么</h2>
-  <p>不收集可识别个人身份的信息，包括姓名、手机号、邮箱、位置、通讯录和设备标识符。不要求注册或登录。</p>
+  <section>
+    <h2>谁在提供节律</h2>
+    <p>节律（Cadence）由 SalmangoX 开发和维护。对本政策有任何问题，都可以通过页面末尾的邮箱联系。</p>
+  </section>
 
-  <h2>2. 数据存在哪</h2>
-  <p>你创建的事件、课程、纪念日和设置，都保存在设备的本地存储中。卸载应用后随之删除，我们无法访问，也无法恢复。</p>
-  <p>如果你在设置里开启同步，数据会用你自己的 GitHub 令牌写入你自己的私有仓库；令牌只存在本机，我们不经过、也不保存任何同步内容。</p>
+  <section>
+    <h2>你的数据存在哪里</h2>
+    <p>事件、日程、课程、纪念日、小纸条、照片和设置，默认只保存在你这台设备上。删除应用或清除数据后，这些内容会一起删除，我们无法找回。</p>
+    <p>如果你在「设置 → 同步」里打开同步，数据会直接从你的设备传到你自己选的地方：</p>
+    <dl>
+      <dt>GitHub</dt><dd>写入你自己账号下的私密 Gist，使用你自己生成的访问令牌。</dd>
+      <dt>WebDAV</dt><dd>写入你自己的网盘（例如坚果云、Nextcloud、群晖）。</dd>
+      <dt>iCloud 云盘</dt><dd>仅限 iPhone / Mac App，存在你自己的 iCloud 里。</dd>
+    </dl>
+    <p class="muted">令牌和密码只保存在本机，不会发给我们。同步过程不经过任何属于我们的服务器。</p>
+  </section>
 
-  <h2>3. 分享</h2>
-  <p>分享图片由应用在本地生成，通过系统分享能力交给你选择的第三方应用（例如微信）。分享给谁、发什么，完全由你决定。</p>
+  <section>
+    <h2>提醒</h2>
+    <p>iPhone、Mac 和安卓 App 使用系统自带的本地通知和闹钟，提醒在设备上直接排好，不需要联网。</p>
+    <p>只用网页版时，可以选择开启「App 关闭时也提醒」：提醒由你自己 GitHub 仓库里的定时任务发送，通过浏览器的推送服务送达。这项功能需要你主动设置，随时可以关闭。</p>
+  </section>
 
-  <h2>4. 课表识别</h2>
-  <p>从表格、网页或课表照片导入课程时，识别在设备本地完成。照片不会上传到服务器；识别模型首次使用时会下载到本机。</p>
+  <section>
+    <h2>用到的权限</h2>
+    <dl>
+      <dt>相册</dt><dd>只在你选择封面、给纪念日添加照片、从照片导入课表或保存分享图片时使用。</dd>
+      <dt>相机</dt><dd>只在你打开纪念日里的「纪念相机」时使用，画面不会离开你的设备。</dd>
+      <dt>通知与闹钟</dt><dd>只用于你设置的提醒，可以随时在系统设置里关闭。</dd>
+      <dt>网络</dt><dd>用于你开启的同步、检查新版本，以及第一次识别课表照片时下载识别模型。</dd>
+    </dl>
+  </section>
 
-  <h2>5. 权限</h2>
-  <ul>
-    <li><strong>相册 / 存储：</strong>只在你选择封面、导入课表照片或保存分享图时使用。</li>
-    <li><strong>通知与闹钟：</strong>只用于事件提醒，可随时在系统设置里关闭。</li>
-    <li><strong>网络：</strong>用于检查版本更新、下载识别模型和开启同步时访问 GitHub。</li>
-  </ul>
+  <section>
+    <h2>课表识别和分享</h2>
+    <p>从网页、表格或照片导入课表时，识别都在你的设备上完成，照片不会上传。分享图片在本机生成，发给谁由你通过系统分享决定。</p>
+  </section>
 
-  <h2>6. 第三方</h2>
-  <p>应用不含广告 SDK 和统计 SDK，不出售或共享任何数据。若你从应用市场安装，该市场可能按其自身隐私政策收集下载与崩溃信息，这不在我们的控制范围内。</p>
+  <section>
+    <h2>第三方</h2>
+    <p>节律不包含广告或统计分析 SDK。你选择的同步服务（GitHub、WebDAV 网盘、iCloud）和下载应用的平台，会按照它们各自的隐私政策处理数据。</p>
+  </section>
 
-  <h2>7. 儿童</h2>
-  <p>应用不面向 13 岁以下儿童收集任何信息。</p>
+  <section>
+    <h2>儿童</h2>
+    <p>节律不会有意收集任何人的个人信息，包括 14 岁以下的儿童。</p>
+  </section>
 
-  <h2>8. 变更与联系</h2>
-  <p>政策变更会更新本页日期。有任何疑问，或希望删除与你相关的数据，请写信到
-    <a href="mailto:2651189539@qq.com">2651189539@qq.com</a>。</p>
+  <section>
+    <h2>政策变更</h2>
+    <p>如果本政策有变化，会更新本页的日期；重要的变化会在应用里提示。</p>
+  </section>
+
+  <section>
+    <h2>联系我们</h2>
+    <p>有任何疑问或建议，请写信到 <a href="mailto:jxz2651189539@163.com">jxz2651189539@163.com</a>。</p>
+  </section>
 </main>
 
-<footer><div class="wrap">© 2026 节律 Cadence · <a href="./about.html">介绍页</a></div></footer>
+<footer><div class="wrap">© 2026 SalmangoX · 节律 Cadence<span class="foot-links"> · <a href="./about.html">关于节律</a></span></div></footer>
 </body>
 </html>

@@ -78,7 +78,8 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
     class Dock(val t: String, val ap: String, val today: Boolean, val back: String, val pager: Boolean, val n: Int, val p: Float, val set: Boolean,
                /** 扇形里有「统计」（开了等级评分的记录日历） */ val st: Boolean,
                /** 分页点亮着（正在左右切页）；false = 停下后淡下去 */ val lit: Boolean,
-               /** 日历里点开某一天的卡片时，时钟和 logo 再抬高多少（dp）；-1 = 没打开 */ val pv: Float)
+               /** 日历里点开某一天的卡片时，时钟和 logo 再抬高多少（dp）；-1 = 没打开 */ val pv: Float,
+               /** 只有安卓用：月视图最下面那一行的顶边离 WebView 底多远（dp），时钟和 logo 整个放在这条线上面、当月虚线框里；0 = 还没量到 */ val fl: Float = 0f)
 
     var dock by mutableStateOf<Dock?>(null); private set
     var cover by mutableStateOf(false); private set
@@ -92,7 +93,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
         val d = o.optJSONObject("dock")?.let {
             Dock(it.optString("t"), it.optString("ap"), it.optBoolean("today"), it.optString("back").ifEmpty { "日历" },
                 it.optBoolean("pager"), it.optInt("n", 2).coerceIn(2, 5), it.optDouble("p", 0.0).toFloat(), it.optBoolean("set"),
-                it.optBoolean("st"), it.optBoolean("lit", true), it.optDouble("pv", -1.0).toFloat())
+                it.optBoolean("st"), it.optBoolean("lit", true), it.optDouble("pv", -1.0).toFloat(), it.optDouble("fl", 0.0).toFloat())
         }
         if (d == null || d.set != dock?.set) fanOpen = false
         val pg = o.optString("page")
@@ -141,7 +142,8 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
              pager: !!pg && !pg.classList.contains('hide'), n: pg ? (+pg.dataset.n || 2) : 2, p: pg ? (+pg.dataset.p || 0) : 0, set: page === 'set',
              st: !!document.getElementById('fanStat') && !document.getElementById('fanStat').hidden,
              lit: !(document.getElementById('pager') || { classList: { contains: function(){ return false; } } }).classList.contains('idle'),
-             pv: document.body.classList.contains('dock-pv') ? (parseFloat(document.body.style.getPropertyValue('--d2-pv')) || 0) : -1 };
+             pv: document.body.classList.contains('dock-pv') ? (parseFloat(document.body.style.getPropertyValue('--d2-pv')) || 0) : -1,
+             fl: parseFloat(document.documentElement.style.getPropertyValue('--d2-floor')) || 0 };
   }
   function backShown(page){
     var id = page === 'cal' ? 'calBack' : page === 'sched' ? 'schedBack' : '', b = id && document.getElementById(id);
@@ -180,7 +182,9 @@ fun DockOverlay(m: DockModel) {
     val b = 24 // 热区底边离 WebView 底边（WebView 已经在导航条上面）
     // 日历里点开某一天的卡片时：时钟和 logo 往上、往里挪，整个落在卡片底部里面（和网页、iPhone 一样）
     // 时钟胶囊、logo 按中轴放：左边对准周日 / 周一之间那条线，右边对准周五 / 周六之间那条线（和网页 --d2-cx、iPhone 一样），卡片打开时只往上挪
-    val lift by animateDpAsState((DockModel.LIFT + maxOf(0f, d.pv)).dp, spring(.85f, 300f), label = "lf")
+    // 安卓的 WebView 在导航条上面、日历行高也跟着变：固定抬 40 会压到最下面那一行。按网页量的那条行线（fl）再抬，底边离线 6dp
+    val base = maxOf(DockModel.LIFT.toFloat(), if (d.fl > 0f) d.fl + 6f - b else 0f)
+    val lift by animateDpAsState((base + maxOf(0f, d.pv)).dp, spring(.85f, 300f), label = "lf")
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val cx = 2f + (maxWidth.value - 4f) / 7f
         // 扇形打开时：右下角一层很淡的暗角接住点击，不会点穿到日历

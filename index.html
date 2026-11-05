@@ -76,13 +76,13 @@
       <div><h1>统计</h1><p id="rsName" data-uc></p></div>
     </header>
     <div class="pscroll rs-scroll">
-      <div class="rs-ctl">
-        <nav class="rs-tabs" id="rsTabs" role="tablist"></nav>
-        <div class="rs-range">
-          <div class="seg small" id="rsSeg"><button data-v="week">周</button><button data-v="month" class="on">月</button><button data-v="year">年</button><button data-v="all">全部</button></div>
-          <div class="rs-nav" id="rsNav"><button id="rsPrev" aria-label="上一个">‹</button><span id="rsLabel"></span><button id="rsNext" aria-label="下一个">›</button></div>
-        </div>
-      </div>
+      <!-- 时段卡片：周 / 月 / 年 / 全部 四页，左右滑动切换；每页自己的 ‹ › 翻时段（app.js 的 renderRsCard） -->
+      <section class="rs-pcard" id="rsCard">
+        <div class="rs-pseg" id="rsSeg" role="tablist"><i class="rs-pind" aria-hidden="true"></i><button data-v="week">周</button><button data-v="month" class="on">月</button><button data-v="year">年</button><button data-v="all">全部</button></div>
+        <div class="rs-pages" id="rsPages"></div>
+      </section>
+      <!-- 卡片外面：换看法 -->
+      <nav class="rs-views" id="rsTabs" role="tablist"></nav>
       <div id="rsBody"></div>
     </div>
   </section>
@@ -489,6 +489,16 @@
 #pvGate li{margin-bottom:5px}
 #pvGate a{color:var(--accent,#4a6cf7);text-decoration:none}
 #pvGate .pv-actions{display:flex;gap:10px;margin-top:16px}
+/* 隐私政策全文：在 App 里整页盖上去，左上角返回回到原来的地方（不离开 App、不新开网页） */
+#pvDoc{position:fixed;inset:0;z-index:100000;display:none;flex-direction:column;background:var(--bg,#F7F7F9)}
+#pvDoc.show{display:flex;animation:pvIn .28s cubic-bezier(.2,.9,.3,1)}
+@keyframes pvIn{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+#pvDoc .pv-bar{flex:none;display:flex;align-items:center;gap:8px;padding:calc(var(--safe-t,env(safe-area-inset-top)) + 8px) 12px 8px}
+#pvDoc .pv-back{display:inline-flex;align-items:center;gap:2px;height:40px;padding:0 16px 0 10px;border:0;border-radius:999px;cursor:pointer;
+  font:600 15px -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--text,#1b1a20);
+  background:color-mix(in srgb, var(--text,#1b1a20) 7%, transparent);box-shadow:var(--glass-rim,none)}
+#pvDoc .pv-back svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+#pvDoc iframe{flex:1;width:100%;border:0;background:transparent}
 #pvGate .pv-btn{flex:1;padding:13px;border:0;border-radius:999px;font-size:15px;font-weight:600;
   background:color-mix(in srgb, var(--text,#1b1a20) 7%, transparent);box-shadow:var(--glass-rim,none);
   color:var(--text,#1b1a20);cursor:pointer;font-family:inherit}
@@ -503,17 +513,18 @@
 <div id="pvGate" role="dialog" aria-modal="true" aria-labelledby="pvTitle">
   <div class="pv-card">
     <h2 id="pvTitle">隐私政策</h2>
-    <p>开始使用前，请花一分钟了解节律如何处理你的数据：</p>
+    <p>开始使用前，花一分钟了解节律怎么对待你的数据：</p>
     <ul>
-      <li>不需要注册，不收集你的个人信息</li>
-      <li>日程、课程、纪念日全部保存在本机</li>
-      <li>相册只在你选择封面、导入课表、保存分享图时使用</li>
-      <li>没有广告，没有统计分析 SDK</li>
+      <li>不需要注册，不收集任何能认出你的信息</li>
+      <li>记下的内容只存在你的设备和你自己选的同步空间里</li>
+      <li>相册、相机只在你主动选择照片或拍照时使用</li>
+      <li>没有广告，没有统计分析</li>
     </ul>
-    <p>完整条款见 <a href="https://salmangox.github.io/month-calendar/privacy.html" target="_blank" rel="noopener">隐私政策全文</a>，之后也可以随时在「设置」里查看。</p>
+    <p>完整内容见 <a href="privacy.html" id="pvFull">隐私政策全文</a>，之后也可以随时在「设置」里查看。</p>
     <div class="pv-actions">
       <button type="button" class="pv-btn" id="pvNo">不同意</button>
       <button type="button" class="pv-btn pv-primary" id="pvYes">同意并继续</button>
+      <button type="button" class="pv-btn pv-primary" id="pvDone" hidden>完成</button>
     </div>
     <p class="pv-tip" id="pvTip" hidden>不同意将无法使用节律。我们不会收集任何数据，日程只存在你这台设备上。</p>
   </div>
@@ -523,7 +534,13 @@
   var KEY = 'mcal.privacy.v1';
   var gate = document.getElementById('pvGate');
   if (!gate) return;
-  function open() { gate.style.display = 'flex'; document.documentElement.style.overflow = 'hidden'; }
+  // review：已经同意过、从「设置」里再看一遍——只留「完成」，点外面也能关（不再要你重新同意）
+  function open(review) {
+    gate.classList.toggle('review', !!review);
+    document.getElementById('pvNo').hidden = !!review; document.getElementById('pvYes').hidden = !!review; document.getElementById('pvDone').hidden = !review;
+    document.getElementById('pvTip').hidden = true;
+    gate.style.display = 'flex'; document.documentElement.style.overflow = 'hidden';
+  }
   function close() { gate.style.display = 'none'; document.documentElement.style.overflow = ''; }
   var agreed = false;
   try { agreed = !!localStorage.getItem(KEY); } catch (e) {}
@@ -535,8 +552,30 @@
   document.getElementById('pvNo').addEventListener('click', function () {
     document.getElementById('pvTip').hidden = false;
   });
+  document.getElementById('pvDone').addEventListener('click', close);
+  gate.addEventListener('click', function (e) { if (e.target === gate && gate.classList.contains('review')) close(); });
   document.addEventListener('click', function (e) {
-    if (e.target && e.target.id === 'pvOpen') open();
+    if (e.target && e.target.id === 'pvOpen') open(true);
+  });
+  // 隐私政策全文：在 App 里整页盖上去（iframe），返回键 / 安卓的返回 / 浏览器后退都回到原来的地方
+  var doc = null;
+  function openDoc() {
+    if (!doc) {
+      doc = document.createElement('div'); doc.id = 'pvDoc'; doc.setAttribute('role', 'dialog'); doc.setAttribute('aria-label', '隐私政策');
+      doc.innerHTML = '<div class="pv-bar"><button type="button" class="pv-back" id="pvDocBack"><svg viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>返回</button></div><iframe title="隐私政策"></iframe>';
+      document.body.appendChild(doc);
+      doc.querySelector('#pvDocBack').addEventListener('click', function () { history.state && history.state.pvDoc ? history.back() : closeDoc(); });
+    }
+    var dark = document.documentElement.dataset.theme === 'dark';
+    doc.querySelector('iframe').src = 'privacy.html?embed&' + (dark ? 'dark' : 'light');   // 跟 App 自己的浅色 / 深色，不跟系统
+    doc.classList.add('show');
+    try { history.pushState({ pvDoc: 1 }, ''); } catch (e) {}
+  }
+  function closeDoc() { if (doc) doc.classList.remove('show'); }
+  window.addEventListener('popstate', function () { if (doc && doc.classList.contains('show')) closeDoc(); });
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest && e.target.closest('#pvFull, [data-privacy]');
+    if (a) { e.preventDefault(); openDoc(); }
   });
 })();
 </script>
