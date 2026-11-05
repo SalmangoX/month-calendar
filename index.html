@@ -489,6 +489,11 @@
 </script>
 
 <!-- 悬浮控件：左「时钟 / 返回」气泡 · 中分页点 · 右 logo 扇形菜单（样式见 styles.css 末尾） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lg-refract" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+  <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="1" seed="9" result="n"/>
+  <feGaussianBlur in="n" stdDeviation="1.4" result="nb"/>
+  <feDisplacementMap in="SourceGraphic" in2="nb" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+</filter></svg>
 <div class="dock-scrim" id="dockScrim"></div>
 <div class="dock2" id="dock2">
   <button class="pod-today tap" id="bubbleToday" aria-label="今日">
@@ -520,6 +525,8 @@
   const pages = { cal: $id('page-cal'), sched: $id('page-sched') };
   const todayEl = $id('page-today');
 
+  // 液态玻璃的真折射要 backdrop-filter 支持 SVG 滤镜（Chromium / 安卓 WebView 支持，Safari 不支持）
+  try { if (CSS.supports('backdrop-filter', 'url(#lg-refract)')) document.documentElement.classList.add('lg-refract'); } catch (e) {}
   // 原生壳：iOS / Mac 先只打标记，玻璃以后交给原生
   try { const N = MC.Native; if (N && N.ios) body.classList.add('native-ios'); if (N && N.mac) body.classList.add('native-mac'); } catch (e) {}
 
@@ -630,13 +637,40 @@
   tickClock();
   setInterval(tickClock, 1000);
 
-  // 今日页从气泡里长出来（圆角矩形裁切从气泡的位置铺满全屏），来源页轻轻退后；再点一下随时从当前位置原路收回
+  // 今日页从气泡里长出来：圆角一直保持得很圆（像 iPhone 打开 App），内容从气泡的位置放大，带一点液体似的回弹；
+  // 来源页轻轻退后。再点一下随时从当前位置原路收回
   let pv = null, pvTimer = 0;
-  const EASE = 'cubic-bezier(.32,.72,0,1)';
+  const DUR_IN = 560, DUR_OUT = 420, R_END = 44;
+  const springP = (t, w, z) => {   // 弹簧进度：z < 1 有一点过冲
+    if (z >= 1) return 1 - Math.exp(-w * t) * (1 + w * t);
+    const k = Math.sqrt(1 - z * z), wd = w * k;
+    return 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z / k) * Math.sin(wd * t));
+  };
+  function morphFrames(r, goingIn) {
+    const W = innerWidth, H = innerHeight, cx = r.left + r.width / 2, cy = r.top + r.height / 2, r0 = r.height / 2;
+    const dur = goingIn ? DUR_IN : DUR_OUT, N = 28, fT = [], fB = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, sec = t * dur / 1000;
+      let p = goingIn ? springP(sec, 10.5, .82) : 1 - springP(sec, 16, 1);
+      if (i === N) p = goingIn ? 1 : 0;
+      const q = Math.min(1, Math.max(0, p));
+      const sc = .84 + .16 * p;                         // 内容缩放（展开时略微过冲再回到 1）
+      // 想看到的圆角矩形（屏幕坐标），再换算回缩放前的坐标给 clip-path
+      const L = r.left * (1 - q), T = r.top * (1 - q), Rr = W - (W - r.right) * (1 - q), B = H - (H - r.bottom) * (1 - q);
+      const l = cx + (L - cx) / sc, tp = cy + (T - cy) / sc, rr = cx + (Rr - cx) / sc, b = cy + (B - cy) / sc;
+      let rad = q < .82 ? r0 + (R_END - r0) * Math.min(1, q / .45) : R_END * (1 - (q - .82) / .18);
+      rad = Math.max(0, rad) / sc;
+      fT.push({ offset: t, clipPath: `inset(${tp.toFixed(1)}px ${(W - rr).toFixed(1)}px ${(H - b).toFixed(1)}px ${l.toFixed(1)}px round ${rad.toFixed(1)}px)`,
+        transform: `scale(${sc.toFixed(4)})`, opacity: +Math.min(1, .3 + q * 2.4).toFixed(3) });
+      fB.push({ offset: t, transform: `scale(${(1 - .05 * q).toFixed(4)})`, opacity: +(1 - .4 * q).toFixed(3) });
+    }
+    return { fT, fB, origin: `${cx}px ${cy}px`, dur };
+  }
   function pvDone() {
     if (!pv) return;
     const p = pv; pv = null; clearTimeout(pvTimer);
     p.anims.forEach(a => { try { a.cancel(); } catch (e) {} });
+    todayEl.style.transformOrigin = '';
     todayEl.classList.remove('pv-hold'); p.otherEl.classList.remove('pv-hold');
   }
   function armDone(ms) {  // finish 事件在后台不一定触发，用定时器兜底
@@ -649,8 +683,8 @@
       pv.dir = pv.dir === 'in' ? 'out' : 'in';
       MC.App.showPage(pv.dir === 'in' ? 'today' : pv.other);
       syncPill(); tick();
-      const t = pv.anims[0].currentTime || 0;
-      armDone(pv.dir === 'in' ? 520 - t : t);
+      const a = pv.anims[0], t = a.currentTime || 0;
+      armDone(a.playbackRate < 0 ? t : pv.dur - t);
       return;
     }
     const cur = page(), goingIn = cur !== 'today';
@@ -660,21 +694,14 @@
     if (goingIn && cur !== other) { MC.App.showPage('today'); syncPill(); return; }   // 从别的页（不应出现）直接切
     if (reduce.matches || !todayEl.animate) { MC.App.showPage(goingIn ? 'today' : other); syncPill(); return; }
 
-    const r = face.getBoundingClientRect(), W = innerWidth, H = innerHeight;
-    const small = `inset(${r.top}px ${W - r.right}px ${H - r.bottom}px ${r.left}px round ${r.height / 2}px)`;
-    const full = 'inset(0px 0px 0px 0px round 0px)';
+    const m = morphFrames(face.getBoundingClientRect(), goingIn);
     todayEl.classList.add('pv-hold'); otherEl.classList.add('pv-hold');
-    const kToday = [{ clipPath: small, opacity: .3 }, { opacity: 1, offset: .3 }, { clipPath: full, opacity: 1 }];
-    const kBack = [{ transform: 'none', opacity: 1 }, { transform: 'scale(.94)', opacity: .5 }];
-    const kKids = [{ transform: 'translateY(18px) scale(.98)', opacity: 0 }, { transform: 'none', opacity: 1 }];
-    const opt = goingIn
-      ? { duration: 520, easing: EASE, fill: 'both' }
-      : { duration: 420, easing: 'cubic-bezier(1,0,.68,.28)', fill: 'both', direction: 'reverse' };
-    const anims = [todayEl.animate(kToday, opt), otherEl.animate(kBack, opt)];
-    [...todayEl.children].forEach(c => anims.push(c.animate(kKids, goingIn ? { ...opt, duration: 460, delay: 40 } : { ...opt, duration: 300 })));
-    pv = { anims, dir: goingIn ? 'in' : 'out', other, otherEl };
+    todayEl.style.transformOrigin = m.origin;
+    const opt = { duration: m.dur, easing: 'linear', fill: 'both' };
+    const anims = [todayEl.animate(m.fT, opt), otherEl.animate(m.fB, opt)];
+    pv = { anims, dir: goingIn ? 'in' : 'out', other, otherEl, dur: m.dur };
     anims[0].onfinish = () => { if (pv && pv.anims[0] === anims[0]) pvDone(); };
-    armDone(opt.duration + 60);
+    armDone(m.dur);
     MC.App.showPage(goingIn ? 'today' : other);
     syncPill(); tick();
   }

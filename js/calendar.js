@@ -186,26 +186,9 @@
       }
       h += barsHTML(lay, days, lims) + '</div>';
     }
-    // 每个月第一天所在的那一行，上方贴一条「日 … 六」
-    let mw = '';
-    for (let r = 0; r < 6 + BUF * 2; r++) {
-      let first = false;
-      for (let c = 0; c < 7; c++) {
-        const d = MC.addDays(start, r * 7 + c);
-        if (d.getDate() === 1) { first = true; break; }
-      }
-      if (first && r > 0) {
-        const mIdx = (() => { for (let c = 0; c < 7; c++) { const d = MC.addDays(start, r * 7 + c); if (d.getDate() === 1) return d; } return null; })();
-        const curIdx = focus.y * 12 + focus.m, thisIdx = mIdx ? mIdx.getFullYear() * 12 + mIdx.getMonth() : -1;
-        if (thisIdx !== curIdx && thisIdx !== curIdx + 1) continue;   // 上方缓冲区的旧月份不画
-        const ws = MC.settings.weekStart;
-        const letters = Array.from({ length: 7 }, (_, i) => `<span>${MC.WD[(i + ws) % 7]}</span>`).join('');
-        mw += `<div class="mwd" style="top:${r * rowH - 22}px">${letters}</div>`;
-      }
-    }
 
     track.style.cssText = '';
-    track.innerHTML = h + mw + `<svg class="mframe" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
+    track.innerHTML = h + `<svg class="mframe" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
     setT(0, TOP - (BUF * rowH + scrollY));
     monthTitle();
     drawFrame();
@@ -454,7 +437,7 @@
   // ---------- 渲染入口 ----------
   function renderWeekdays() {
     const el = $('#weekdays');
-    el.classList.toggle('hide', view === 'year');
+    el.classList.toggle('hide', view !== 'month');   // 只在月视图悬浮显示；周视图每列自带星期
     let h = '';
     for (let i = 0; i < 7; i++) h += `<div>${MC.WD[(i + MC.settings.weekStart) % 7]}</div>`;
     el.innerHTML = h;

@@ -1404,7 +1404,7 @@ body:not([data-kind="days"]) .dock { display: none; }
 body[data-kind="days"] .dock2, body[data-kind="days"] .dock-scrim { display: none; }
 
 :root {
-  --d2-b: max(10px, calc(var(--safe-b) - 4px));   /* 热区底边；视觉圆面再往里收 5px */
+  --d2-b: max(24px, calc(var(--safe-b) + 10px));   /* 热区底边；视觉圆面再往里收 6px，离屏幕底边约 30px，拇指好按 */
   --d2-side: 10px;
   --d2-hit: 64px;
   --spring-out: cubic-bezier(.3, 1.45, .45, 1);   /* 松手回弹：一点点过冲 */
@@ -1416,39 +1416,44 @@ body[data-kind="days"] .dock2, body[data-kind="days"] .dock-scrim { display: non
 .face {
   position: relative; display: grid; place-items: center; border-radius: 999px; overflow: hidden;
   color: var(--text);
-  background: rgba(255, 255, 255, .64);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
-  box-shadow:
-    inset 0 0 0 .5px rgba(20, 30, 50, .07),
-    inset 0 1px 0 rgba(255, 255, 255, .95),
-    0 8px 24px rgba(20, 32, 56, .11),
-    0 1px 3px rgba(20, 32, 56, .07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .20), rgba(255, 255, 255, .04) 60%, rgba(255, 255, 255, .10));
+  -webkit-backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05);
+  backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05);
+  box-shadow: var(--lg-shadow);
+  text-shadow: var(--lg-ink-halo);
   transition: transform .55s var(--spring-out), background .25s;
   will-change: transform;
 }
 /* 镜面边：只在 1px 上随角度明暗变化 */
 .face::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 1px;
-  background: conic-gradient(from 215deg, rgba(255,255,255,.9), rgba(255,255,255,.12) 25%, rgba(255,255,255,0) 50%, rgba(255,255,255,.5) 72%, rgba(255,255,255,.9));
+  background: conic-gradient(from 215deg, rgba(255,255,255,1), rgba(255,255,255,.2) 22%, rgba(255,255,255,.04) 46%, rgba(255,255,255,.6) 70%, rgba(255,255,255,1));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
-  opacity: .7;
+  opacity: .95;
 }
 /* 按下时的一层亮光 */
 .face::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: rgba(255, 255, 255, .5); opacity: 0; transition: opacity .35s ease;
 }
-:root[data-theme="dark"] .face {
-  background: rgba(46, 46, 52, .58);
-  box-shadow:
-    inset 0 0 0 .5px rgba(255, 255, 255, .09),
-    inset 0 1px 0 rgba(255, 255, 255, .13),
-    0 10px 28px rgba(0, 0, 0, .5),
-    0 1px 3px rgba(0, 0, 0, .35);
+:root {
+  --lg-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 -1px 1px rgba(255, 255, 255, .4), inset 0 0 0 .5px rgba(255, 255, 255, .5),
+    inset 0 -10px 18px -12px rgba(30, 45, 70, .10), 0 6px 18px rgba(20, 32, 56, .10), 0 1px 2px rgba(20, 32, 56, .06);
+  --lg-ink-halo: 0 0 6px rgba(255, 255, 255, .7), 0 0 1px rgba(255, 255, 255, .9);   /* 透明玻璃上的字：一圈淡淡的光，压在任何日期上都看得清 */
 }
-:root[data-theme="dark"] .face::after { opacity: .18; }
+:root[data-theme="dark"] {
+  --lg-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 1px rgba(255, 255, 255, .06), inset 0 0 0 .5px rgba(255, 255, 255, .12),
+    inset 0 -10px 18px -12px rgba(0, 0, 0, .4), 0 8px 22px rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .3);
+  --lg-ink-halo: 0 0 6px rgba(0, 0, 0, .75), 0 0 1px rgba(0, 0, 0, .9);
+}
+:root[data-theme="dark"] .face { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
+:root[data-theme="dark"] .face::after { opacity: .32; }
+/* 真折射：把背景按噪声位移，边缘像液体一样扭曲（Chromium / 安卓 WebView 支持；不支持的就用上面的普通玻璃） */
+.lg-refract .face, .lg-refract #page-cal .topbar .title {
+  -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract);
+  backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract);
+}
 :root[data-theme="dark"] .face::before { background: rgba(255, 255, 255, .12); }
 
 /* 统一的按压反馈：按下快速收缩，松手弹回（由 js 加 .pressed，触摸、鼠标都一样） */
@@ -1556,11 +1561,11 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 /* ---------- 顶部月份气泡：在安全区下面，不压灵动岛 / 状态栏 ---------- */
 #page-cal::before {
   content: ""; position: absolute; left: 0; right: 0; top: 0; z-index: 5; pointer-events: none;
-  height: calc(var(--safe-t) + 54px);
-  background: linear-gradient(to bottom, var(--bg) 0, var(--bg) var(--safe-t), color-mix(in srgb, var(--bg) 88%, transparent) calc(var(--safe-t) + 26px), transparent);
+  height: var(--safe-t);   /* 只盖住状态栏 / 灵动岛那一条，日历其余部分整页显示 */
+  background: var(--bg);
 }
-/* 月视图内容从气泡下面开始（calendar.js 读这个值） */
-#calViewport { --cal-top: 52px; }
+/* 月视图顶部留白（calendar.js 读这个值）；0 = 日历整页铺满，月份气泡悬浮在上面 */
+#calViewport { --cal-top: 0px; }
 #page-cal .topbar {
   position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 6px); z-index: 6;
   padding: 0; display: flex; justify-content: center; pointer-events: none;
@@ -1570,17 +1575,14 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
   pointer-events: auto; position: relative; min-width: 0;
   display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 13px 0 17px;
   border-radius: 999px; cursor: pointer;
-  background: rgba(255, 255, 255, .66);
-  -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: inset 0 0 0 .5px rgba(20, 30, 50, .07), inset 0 1px 0 rgba(255, 255, 255, .95), 0 6px 18px rgba(20, 32, 56, .09), 0 1px 2px rgba(20, 32, 56, .06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .05) 60%, rgba(255, 255, 255, .12));
+  -webkit-backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05); backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05);
+  box-shadow: var(--lg-shadow); text-shadow: var(--lg-ink-halo);
   transition: transform .55s var(--spring-out);
 }
 #page-cal .topbar .title::before { content: ""; position: absolute; inset: -8px -6px; border-radius: 999px; }   /* 热区比圆面大一圈 */
 #page-cal .topbar .title.pressed { transform: scale(.94); transition: transform .14s var(--press-in); }
-:root[data-theme="dark"] #page-cal .topbar .title {
-  background: rgba(46, 46, 52, .6);
-  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .09), inset 0 1px 0 rgba(255, 255, 255, .12), 0 8px 22px rgba(0, 0, 0, .45);
-}
+:root[data-theme="dark"] #page-cal .topbar .title { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
 #page-cal .topbar .title h1 {
   margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -.02em; line-height: 1; white-space: nowrap;
   font-family: -apple-system, "SF Pro Display", system-ui, "PingFang SC", sans-serif;
@@ -1591,15 +1593,15 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 }
 #page-cal .topbar .title .title-chev { width: 12px; height: 12px; stroke-width: 2.4; color: var(--text2); opacity: .7; margin-left: -1px; }
 
-/* 每个月第一天那一行上方的星期条，跟着内容一起滚 */
-.mwd {
-  position: absolute; left: 6px; right: 6px; height: 22px; z-index: 3;
-  display: grid; grid-template-columns: repeat(7, 1fr); align-items: center;
-  color: var(--text2); font-size: 11px; font-weight: 550; letter-spacing: .06em;
-  background: linear-gradient(to bottom, var(--bg) 70%, transparent);
-  pointer-events: none;
+
+/* 悬浮星期条：固定在月份气泡下面，透明，日历在下面整页滚动 */
+body #page-cal .weekdays {
+  display: grid; position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 50px); z-index: 6;
+  height: 20px; padding: 0 2px; align-items: center; pointer-events: none;
+  font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--text2);
+  text-shadow: 0 0 5px var(--bg), 0 0 2px var(--bg), 0 0 1px var(--bg);
 }
-.mwd span { text-align: center; }
+body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { display: none; }
 
 /* ---------- 设置页：左上角返回 ---------- */
 #page-set::before {
@@ -1652,6 +1654,7 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 :root[data-theme="dark"] { --brand-a: #9794C6; --brand-b: #D6B28C; }
 /* 加号（扇形里的、纪念日历的） */
 .fan-add .face, :root[data-theme="dark"] .fan-add .face { background: var(--brand-grad); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 0 0 .5px rgba(255, 255, 255, .18), var(--brand-glow); }
+.fan-add .face { text-shadow: none; }
 .fan-add svg, .fab.accent svg { filter: drop-shadow(0 1px 1.5px rgba(60, 50, 80, .28)); }
 .fab.glass.accent { background: var(--brand-grad); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), var(--brand-glow); }
 /* 选中的是今天：日期圆用品牌渐变，整格的淡底也带一点暖色 */
@@ -1668,7 +1671,7 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 }
 
 /* ---------- iOS / Mac 原生壳：先只留底子（安全区已统一用 --safe-t / --safe-b），玻璃以后交给原生 ---------- */
-.native-ios .face, .native-mac .face { -webkit-backdrop-filter: blur(24px) saturate(190%); backdrop-filter: blur(24px) saturate(190%); }
+/* iOS / Mac 的 WebKit 做不了位移折射，用上面的普通透明玻璃；以后由原生画真正的液态玻璃 */
 
 @media (prefers-reduced-motion: reduce) {
   .face, .fan, .pod-menu.open .fan, .pt-lbl, .pod-logo img, .pod-logo .x, .pod-today .face { transition-duration: .01s !important; transition-delay: 0s !important; }
