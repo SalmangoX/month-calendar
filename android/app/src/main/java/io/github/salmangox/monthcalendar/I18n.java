@@ -28,8 +28,8 @@ final class I18n {
         ja("添加事件", "予定を追加");
         put("设置", "設定", "Settings", "Réglages");
         ja("设置", "設定");
-        put("回到日历", "回到日曆", "Back to calendar", "Retour au calendrier");
-        ja("回到日历", "カレンダーに戻る");
+        put("返回", "返回", "Back", "Retour");
+        ja("返回", "戻る");
         put("收起", "收起", "Close", "Fermer");
         ja("收起", "閉じる");
         put("更多", "更多", "More", "Plus");

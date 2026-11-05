@@ -14,11 +14,12 @@
 | 网页（浏览器 / PWA） | 网页 | `index.html` `styles.css` `days.css` `js/` |
 | iPhone | **网页**（WKWebView 加载线上网址）+ 原生画底部悬浮控件和液态玻璃 | `ios/App/`，原生层和 Mac 共用 `macos/App/GlassNav.swift` |
 | Mac | 同 iPhone | `macos/App/`、`macos/Shared/` |
-| 安卓 | **原生**（Kotlin + Jetpack Compose）：主日历、今日、新建 / 编辑、底部悬浮控件；日程、纪念日、设置等暂时还是 WebView 加载网页 | `android/app/src/main/kotlin/…/monthcalendar/`（`ui/` 是界面），老的 Java 部分负责小组件、提醒、同步 |
+| 安卓 | **网页**（WebView）+ 原生画底部悬浮控件（Kotlin + Jetpack Compose） | 悬浮控件在 `android/app/src/main/kotlin/…/monthcalendar/ui/Dock.kt`（状态脚本 `NAV_JS` 也在里面）；Java 部分负责小组件、提醒、同步 |
 
-- **只改网页**：浏览器、iPhone、Mac 立刻都变（推送后 GitHub Pages 自动发布，App 打开就加载新网页，不用重新打包）。安卓上只有还在用 WebView 的那几页会变。
-- **安卓原生的那几页**（日历、今日、编辑、底部控件）要在 Kotlin 里单独改一遍。是否改回「网页 + 原生悬浮层」（和 iPhone 一样）还没定，动手前先问用户。
-- **iPhone / Mac 的底部悬浮控件**（时钟胶囊 · 分页点 · logo 扇形 · 回到今天）是 `GlassNav.swift` 里的 `GlassDock`，用系统 Liquid Glass 画；点按交给网页里同名的按钮（`#bubbleToday` `#pager` `#fanAdd` `#fanSet` `#fanCal` `#calBack` `#schedBack`），网页那一份在 App 里只是 `visibility:hidden`（今日页展开动画还要用它的位置）。状态由注入脚本 `navJS`（`ios/App/WebShell.swift`、`macos/App/MainWindow.swift` 各一份，两份要一起改）发给原生。
+- **只改网页**：浏览器、iPhone、Mac、安卓都立刻变（推送后 GitHub Pages 自动发布，App 打开就加载新网页，不用重新打包）。
+- **安卓（2026-11-05 定的）**：和 iPhone 一样是「网页壳 + 原生悬浮层」，页面全部用网页，原生只画底部悬浮控件，外加小组件、提醒、同步。
+- **改底部悬浮控件要改四处**：网页（`index.html` 末尾的 dock2 脚本 + `styles.css`「悬浮控件」一节）、iOS / Mac 的 `GlassNav.swift`、两份 `navJS`（`ios/App/WebShell.swift`、`macos/App/MainWindow.swift`）、安卓的 `Dock.kt`（含它自己的 `NAV_JS`）。状态字段四处要一致：`t ap today back pager p set lit pv`。
+- **iPhone / Mac 的底部悬浮控件**（时钟胶囊 · 分页点 · logo 扇形 · 回到今天）是 `GlassNav.swift` 里的 `GlassDock`，用系统 Liquid Glass 画；点按交给网页里同名的按钮（`#bubbleToday` `#pager` `#fanAdd` `#fanSet` `#calBack` `#schedBack`），网页那一份在 App 里只是 `visibility:hidden`（今日页展开动画还要用它的位置）。状态由注入脚本 `navJS`（`ios/App/WebShell.swift`、`macos/App/MainWindow.swift` 各一份，两份要一起改）发给原生。
 - **iPhone / Mac 上网页里的玻璃控件**：`js/ui.js` 的 `LG_SEL` 里列出的元素，由原生在同样位置画系统液态玻璃（`MC.LG`）。
 - **纪念日历**（`body[data-kind="days"]`）还用旧的底部菜单栏 `#dock` / `#tabbar` 和加号 `#fab`。
 
@@ -27,15 +28,21 @@
 - 苹果式的简洁美学；**点击区域要比看到的按钮大**（悬浮按钮热区 64，圆面 50–54）。
 - 日历**整页显示**：顶部没有标题栏，月份胶囊（`#page-cal .topbar .title`）和星期条（`#weekdays`）悬浮在日历上面，在安全区下面（不压灵动岛）。日历内容不要再加顶部留白（`--cal-top: 0`）。
 - 底部：左时钟胶囊、中分页点、右 logo。时钟和 logo 比分页点高（`--d2-lift: 40px`，原生 `DockSize.lift`），分页点只在日历 / 日程页出现。
-- logo 扇形：按钮沿四分之一圆弧均匀排开（两个时 105° / 165°、半径 84；三个时 90° / 135° / 180°、半径 88）；设置页多一个最上面的「回到日历」。
-- 返回键（回到今天 / 本周）：平时贴在 logo 正上方（中心高 62），扇形打开时被顶到上方（151），收起时落回。今天所在周被顶上的胶囊挡住（滑到最上面一行）也要出现。
+- 分页点平时是淡的（`.idle`，透明度 .3），只在左右切页时亮起，停下 1.2 秒后再淡下去（状态字段 `lit`）。
+- 日历里点开某一天的卡片时，时钟和 logo 往上、往里挪，整个落在卡片底部里面（`body.dock-pv` + `--d2-pv`，状态字段 `pv`），收起卡片回原位；分页点不动。
+- logo 扇形：两个按钮沿四分之一圆弧排开（105° / 165°、半径 84）：加号 + 设置。**在设置页里「设置」换成「返回」**（回到进设置之前那一页），没有「回到日历」键。
+- 返回键（回到今天 / 本周）：平时贴在 logo 正上方（中心高 62），扇形打开时被顶到上方（151），收起时落回。今天不在屏幕上、被顶上的胶囊挡住，或者**选中的不是今天**，都要出现。
+- 日历顶部：状态栏到月份胶囊是实底，到星期条下面渐隐（`#page-cal::before`），日历内容不和胶囊、星期条叠在一起。
+- 纪念日历里左右滑不切到日程。
+- 面板（新建事件、批量添加、添加 / 编辑课程）在手机上有几档高度（`UI.detents`：.4 / .56 / 默认 / .74 / .9），往下拉先停在矮一档，拉过最矮那档才收起；不要一打开就铺满整屏。
 - 今日页：从时钟胶囊长出一张大圆角卡片，可中途打断反向。
 - 液态玻璃要**透明**（中间几乎全透，靠高光边和折射），深色模式**不要白边**。
 - **优先级从左到右 = 低 → 高**。颜色按色彩心理学：无 `#A3A1AD` 灰 · 低 `#5B8FD0` 天蓝 · 中 `#C98A1E` 琥珀 · 高 `#D4472C` 朱红（深色调由 `MC.darkTone` / `CourseColors.darkTone` 按 OKLCH 算）。优先级用拖动条选（`UI.priBar`），渐变的每档颜色要正好落在刻度上。
 - 品牌渐变（加号、选中的今天）：明亮的金黄 → 天蓝 → 亮蓝（`--brand-a/-mid/-b`），不要深色，不然发闷。
 - 主色天蓝 `#4F80C4`（深色 `#8DB0EA`）。
 - **红色 `--red` 只用于**「现在时间」的线、删除、出错、逾期，和优先级无关。
-- 热力图（记录日历的等级统计）配色不动，但图例从左到右也是低 → 高。
+- **记录日历的等级从左到右 = 默认（无）→ 最低 → 最高**（`MC.RATE_ORDER = [4, 3, 2, 1]`）：等级条、分段评价、等级菜单、日历设置里的名称、统计图例都按这个顺序。数据里 1 级 = 红 = 最高（比如「超忙」），4 级 = 绿 = 最低（比如「轻松」），颜色跟着名字走。热力图配色不动。
+- 月份胶囊里记录日历的名字是真文字（`#calChip`），别用 `::before` 写字：iPhone / Mac 的原生玻璃只重画真实的文字节点。
 
 ### 颜色要同步的位置
 
@@ -43,10 +50,10 @@
 
 1. 网页：`styles.css` 顶部的 `:root` 变量（`--p0…--p3`、`--accent…`、`--red`）和末尾的 `--brand-*`；`js/store.js` 的 `MC.PAL.light`。
 2. iOS / Mac：`macos/Shared/Colors.swift`（`Pal.P`、`accentV`、`fab`、`accentText`、`RED`），`macos/App/GlassNav.swift` 的 `Brand`。小组件也用 `Pal`。
-3. 安卓原生：`android/…/ui/Theme.kt`、`Palette.kt`；安卓小组件在老的 Java / `res` 里。
+3. 安卓：悬浮控件 `android/…/ui/Theme.kt`、`Palette.kt`；小组件在 `res/values*/colors.xml`（含 `brand_a/_mid/_b`）、`res/drawable/`（今天的日期 `today_bg.xml` 用品牌渐变）和 `Widgets.java`。
 4. 网页版小组件和 Scriptable 脚本：`widget.html`、`widget-*-scriptable.js`。
 
-> 待办：安卓原生（Theme.kt / Palette.kt）、安卓小组件、`widget.html` 和 Scriptable 脚本还是旧配色，没同步到上面的新颜色。
+安卓小组件的红色是 `res/values*/colors.xml` 里单独的 `red`（逾期、课表现在时间线），不要用 `p3`。XML 注释里不能出现两个连续的减号。
 
 ## 版本号和发布
 
@@ -57,12 +64,13 @@
 
 ## 本地开发和验证
 
-- 网页预览：`.claude/launch.json` 里的 `web`（`python3 -m http.server 8791`）。手机尺寸用浏览器面板的 mobile 预设。
+- 网页预览：`.claude/launch.json` 里的 `web`（`python3 -m http.server 8791`）。别的会话占着 8791 时用 `web-8792`（python 不认分配的端口，直接打开 `http://localhost:8792/`）。手机尺寸用浏览器面板的 mobile 预设。
 - **Service Worker 会缓存旧文件**：改完看不到效果时，先在页面里注销 SW、清 caches，再用 `fetch(url, {cache:'reload'})` 刷一遍 CSS / JS，最后重新打开。
 - 第一次打开有隐私弹窗（`#pvYes`）。测试时加的事件记得删掉。
 - iOS：`bash ios/build.sh sim` 编译模拟器版；调试版用 `devURL` 指向本机网页：`xcrun simctl spawn booted defaults write io.github.salmangox.cadence devURL http://localhost:8791/`（用完改回原值）。
-- Mac：`bash macos/build.sh` 会**直接替换「应用程序」里的节律并打开**，只想检查能不能编译时别用它。**不要在 `macos/` 里单独跑 `xcodegen`**：它会生成 `macos/Widgets/Info.plist` 等文件，iOS 工程会重复引用导致编译失败；跑过的话把生成的文件删掉。
-- 安卓：本机有 Android SDK（`~/Library/Android/sdk`）和 Homebrew 的 JDK 17。
+- iPhone 真机：`bash ios/install-iphone.sh` 编译并装到连着的 iPhone（数据线或同一 Wi-Fi），同时打开自动续期。
+- Mac：`bash macos/build.sh` 会**直接替换「应用程序」里的节律并打开**，只想检查能不能编译时别用它。它编完会自动删掉 xcodegen 生成的 `macos/App/Info.plist`、`macos/Widgets/Info.plist` 和 entitlements。**不要在 `macos/` 里单独跑 `xcodegen`**，不然 iOS 编译会报「Multiple commands produce」，跑过的话把这几个文件删掉。先装 iPhone 再编 Mac（Mac 脚本会清掉多余的 `Cadence.app` 副本）。
+- 安卓：本机有 Android SDK 和 Homebrew 的 JDK 17。编译要带上环境变量：`ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=$(/usr/libexec/java_home -v 17) bash ./gradlew :app:assembleDebug`（在 `android/` 里跑；`gradlew` 没有执行权限，用 `bash` 跑）。
 
 ## 协作注意
 

@@ -71,7 +71,9 @@ import kotlin.math.sin
  */
 @Stable
 class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit) {
-    class Dock(val t: String, val ap: String, val today: Boolean, val back: String, val pager: Boolean, val p: Float, val set: Boolean)
+    class Dock(val t: String, val ap: String, val today: Boolean, val back: String, val pager: Boolean, val p: Float, val set: Boolean,
+               /** 分页点亮着（正在左右切页）；false = 停下后淡下去 */ val lit: Boolean,
+               /** 日历里点开某一天的卡片时，时钟和 logo 再抬高多少（dp）；-1 = 没打开 */ val pv: Float)
 
     var dock by mutableStateOf<Dock?>(null); private set
     var cover by mutableStateOf(false); private set
@@ -84,7 +86,8 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
         val o = runCatching { JSONObject(json) }.getOrNull() ?: return
         val d = o.optJSONObject("dock")?.let {
             Dock(it.optString("t"), it.optString("ap"), it.optBoolean("today"), it.optString("back").ifEmpty { "日历" },
-                it.optBoolean("pager"), it.optDouble("p", 0.0).toFloat(), it.optBoolean("set"))
+                it.optBoolean("pager"), it.optDouble("p", 0.0).toFloat(), it.optBoolean("set"),
+                it.optBoolean("lit", true), it.optDouble("pv", -1.0).toFloat())
         }
         if (d == null || d.set != dock?.set) fanOpen = false
         val pg = o.optString("page")
@@ -100,7 +103,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
     fun setFan(open: Boolean) { if (open != fanOpen) { tick(); fanOpen = open } }
     fun fan(id: String) {
         fanOpen = false; tick()
-        when (id) { "add" -> click("fab"); "set" -> click("fanSet"); else -> click("fanCal") }
+        if (id == "add") click("fab") else click("fanSet")   // 设置页里它是「返回」，由网页决定回到哪一页
     }
     fun goToday() {
         tick()
@@ -129,7 +132,9 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
     if (!d2 || !pt || document.body.dataset.kind === 'days') return null;
     var ap = pt.querySelector('small'), apt = ap ? ap.textContent : '';
     return { t: pt.textContent.replace(apt, '').trim(), ap: apt, today: page === 'today', back: ((document.getElementById('ptBackTxt') || {}).textContent || '').trim(),
-             pager: page === 'cal' || page === 'sched', p: page === 'sched' ? 1 : 0, set: page === 'set' };
+             pager: page === 'cal' || page === 'sched', p: page === 'sched' ? 1 : 0, set: page === 'set',
+             lit: !(document.getElementById('pager') || { classList: { contains: function(){ return false; } } }).classList.contains('idle'),
+             pv: document.body.classList.contains('dock-pv') ? (parseFloat(document.body.style.getPropertyValue('--d2-pv')) || 0) : -1 };
   }
   function backShown(page){
     var id = page === 'cal' ? 'calBack' : page === 'sched' ? 'schedBack' : '', b = id && document.getElementById(id);
@@ -146,6 +151,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
   var ptm = document.getElementById('ptTime'); if (ptm) new MutationObserver(send).observe(ptm, { childList: true, subtree: true, characterData: true });
   var pbt = document.getElementById('ptBackTxt'); if (pbt) new MutationObserver(send).observe(pbt, { childList: true, subtree: true, characterData: true });
   new MutationObserver(send).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['class'] });
+  new MutationObserver(send).observe(document.body, { attributes: true, attributeFilter: ['style'] }); // 日卡片打开时底栏挪进卡片（--d2-pv）
   send(); setTimeout(send, 600);
 })();
 """
@@ -164,6 +170,10 @@ fun DockOverlay(m: DockModel) {
     val coverY by animateDpAsState(if (m.cover) 160.dp else 0.dp, if (m.cover) tween(120) else spring(.86f, 420f), label = "cv")
     val coverA by animateFloatAsState(if (m.cover) 0f else 1f, if (m.cover) tween(120) else spring(.86f, 420f), label = "ca")
     val b = 24 // 热区底边离 WebView 底边（WebView 已经在导航条上面）
+    // 日历里点开某一天的卡片时：时钟和 logo 往上、往里挪，整个落在卡片底部里面（和网页、iPhone 一样）
+    val inCard = d.pv >= 0
+    val side by animateDpAsState(if (inCard) 16.dp else DockModel.SIDE.dp, spring(.85f, 300f), label = "sd")
+    val lift by animateDpAsState((DockModel.LIFT + maxOf(0f, d.pv)).dp, spring(.85f, 300f), label = "lf")
     Box(Modifier.fillMaxSize()) {
         // 扇形打开时：右下角一层很淡的暗角接住点击，不会点穿到日历
         AnimatedVisibility(m.fanOpen && !m.cover, enter = fadeIn(), exit = fadeOut()) {
@@ -181,8 +191,8 @@ fun DockOverlay(m: DockModel) {
         Box(Modifier.fillMaxSize().offset(y = coverY).graphicsLayer { alpha = coverA }) {
             if (!m.cover) {
                 if (d.pager) Pager(m, d, Modifier.align(Alignment.BottomCenter).padding(bottom = b.dp))
-                if (!d.set) Clock(m, d, Modifier.align(Alignment.BottomStart).padding(start = DockModel.SIDE.dp, bottom = (b + DockModel.LIFT).dp))
-                LogoCluster(m, d, Modifier.align(Alignment.BottomEnd).padding(end = DockModel.SIDE.dp, bottom = (b + DockModel.LIFT).dp))
+                if (!d.set) Clock(m, d, Modifier.align(Alignment.BottomStart).padding(start = side, bottom = b.dp + lift))
+                LogoCluster(m, d, Modifier.align(Alignment.BottomEnd).padding(end = side, bottom = b.dp + lift))
             }
         }
     }
@@ -221,7 +231,8 @@ private fun Clock(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
 private fun Pager(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
     val t = T
     val p by animateFloatAsState(d.p, spring(.8f, 300f), label = "p")
-    Tap(modifier.height(DockModel.HIT.dp).width(84.dp), label = tr("切换日历 / 日程"), haptic = false, onClick = { m.tapPager() }) { mod ->
+    val dim by animateFloatAsState(if (d.lit) 1f else .3f, tween(350), label = "dim")   // 左右切页时亮起，停下后淡下去（和网页一样）
+    Tap(modifier.height(DockModel.HIT.dp).width(84.dp).graphicsLayer { alpha = dim }, label = tr("切换日历 / 日程"), haptic = false, onClick = { m.tapPager() }) { mod ->
         Row(mod.height(22.dp).glass(RoundedCornerShape(50), t).padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for (i in 0..1) {
                 val on = if (i == 0) 1 - p else p
@@ -236,8 +247,8 @@ private fun Pager(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
 private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
     val t = T
     val density = LocalDensity.current
-    val items = (if (d.set) listOf("cal") else emptyList()) + listOf("add", "set")
-    val (r, angles) = if (items.size == 3) 88f to listOf(90.0, 135.0, 180.0) else 84f to listOf(105.0, 165.0)
+    val items = listOf("add", "set")   // 设置页里「设置」换成「返回」
+    val r = 84f; val angles = listOf(105.0, 165.0)
     Box(modifier.size(DockModel.HIT.dp)) {
         // 回到今天 / 本周：平时贴在 logo 正上方；扇形弹出时被顶到扇形上方，收起时落回来
         val backY by animateDpAsState(if (m.fanOpen) (-151).dp else (-62).dp, spring(.68f, 300f), label = "by")
@@ -258,12 +269,12 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
                     Modifier.align(Alignment.Center)
                         .offset { IntOffset((cos(rad) * r * v * density.density).roundToInt(), (-sin(rad) * r * v * density.density).roundToInt()) }
                         .size((DockModel.FAN + 12).dp).graphicsLayer { alpha = v.coerceIn(0f, 1f); val s = .35f + .65f * v; scaleX = s; scaleY = s },
-                    label = when (id) { "add" -> tr("添加事件"); "set" -> tr("设置"); else -> tr("回到日历") }, haptic = false, onClick = { m.fan(id) },
+                    label = if (id == "add") tr("添加事件") else if (d.set) tr("返回") else tr("设置"), haptic = false, onClick = { m.fan(id) },
                 ) { mod ->
                     val face = if (id == "add") mod.size(DockModel.FAN.dp).clip(CircleShape).background(t.brand)
                     else mod.size(DockModel.FAN.dp).glass(CircleShape, t)
                     Box(face, contentAlignment = Alignment.Center) {
-                        when (id) { "add" -> PlusIcon(Color.White); "set" -> GearIcon(t.text); else -> CalIcon(t.text) }
+                        if (id == "add") PlusIcon(Color.White) else if (d.set) ChevronIcon(t.text) else GearIcon(t.text)
                     }
                 }
             }
@@ -303,13 +314,12 @@ private fun GearIcon(c: Color) = Canvas(Modifier.size(22.dp)) {
     drawCircle(c, w * .12f, style = Stroke(st))
 }
 
+/** 设置页里的「返回」：往左的尖角 */
 @Composable
-private fun CalIcon(c: Color) = Canvas(Modifier.size(22.dp)) {
-    val w = size.width; val st = 1.7.dp.toPx()
-    drawRoundRect(c, Offset(w * .15f, w * .19f), androidx.compose.ui.geometry.Size(w * .7f, w * .66f), androidx.compose.ui.geometry.CornerRadius(w * .17f), style = Stroke(st))
-    drawLine(c, Offset(w * .15f, w * .39f), Offset(w * .85f, w * .39f), st)
-    drawLine(c, Offset(w * .33f, w * .1f), Offset(w * .33f, w * .26f), st, StrokeCap.Round)
-    drawLine(c, Offset(w * .67f, w * .1f), Offset(w * .67f, w * .26f), st, StrokeCap.Round)
+private fun ChevronIcon(c: Color) = Canvas(Modifier.size(20.dp)) {
+    val w = size.width; val st = 2.4.dp.toPx()
+    drawLine(c, Offset(w * .62f, w * .2f), Offset(w * .32f, w * .5f), st, StrokeCap.Round)
+    drawLine(c, Offset(w * .32f, w * .5f), Offset(w * .62f, w * .8f), st, StrokeCap.Round)
 }
 
 /** 回到今天：一个往回的箭头（和 iOS 的 arrow.uturn.backward 一样意思） */
