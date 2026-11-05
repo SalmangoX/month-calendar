@@ -559,7 +559,8 @@
       if (el._swUntil && Date.now() < el._swUntil) { ev.stopPropagation(); ev.preventDefault(); return; }
       const li = ev.target.closest('.item'); if (!li) return;
       const e = MC.data.events.find(x => x.id === li.dataset.id); if (!e) return;
-      const act = ev.target.closest('[data-act]')?.dataset.act;
+      // 整条都能点开编辑：只有完成框、滑出来的按钮有自己的动作
+      const act = ev.target.closest('[data-act]')?.dataset.act || (ev.target.closest('.swipe-acts') ? null : 'open');
       if (openLi === li && act !== 'edit' && act !== 'del') { closeOpen(); return; } // 滑开了：点一下先收回
       if (act === 'edit') { closeOpen(); MC.Editor.openEdit(e); return; }
       if (act === 'del') {

@@ -436,6 +436,13 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 .slabel { flex: 1; min-width: 0; }
 .slabel small { display: block; font-size: 12px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .srow.danger .slabel { color: var(--red); }
+/* 收在某一行里面的小按钮（提醒通知下面的「发送测试通知」「提醒权限检查」） */
+.slinks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.slink { border: 0; font: inherit; font-size: 12.5px; font-weight: 600; line-height: 1; padding: 7px 11px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.slink em { font-style: normal; font-weight: 500; margin-left: 6px; opacity: .85; }
+.slink.warn { color: var(--p2); background: color-mix(in srgb, var(--p2) 14%, transparent); }
+.slink:active { transform: scale(.96); }
 .sval { color: var(--text2); font-size: 14.5px; white-space: nowrap; max-width: 46%; overflow: hidden; text-overflow: ellipsis; }
 .chev { width: 8px; height: 13px; color: var(--text3); flex: none; }
 .chev svg { width: 8px; height: 13px; stroke-width: 2; }
@@ -1521,11 +1528,17 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 /* ---------- 顶部月份气泡：在安全区下面，不压灵动岛 / 状态栏 ---------- */
 #page-cal::before {
   content: ""; position: absolute; left: 0; right: 0; top: 0; z-index: 5; pointer-events: none;
-  height: var(--safe-t);   /* 只盖住状态栏 / 灵动岛那一条，日历其余部分整页显示、不加遮挡（星期那一条自己是一块玻璃，见下面） */
-  background: var(--bg);
+  /* 状态栏 / 灵动岛那一条不再是实底：日历和情绪光谱一直铺到屏幕最顶上（App 本来就是全屏画的），
+     这里只做 iOS 26 那种「软边」——轻轻模糊 + 往下渐隐，让时间、电量还看得清 */
+  height: calc(var(--safe-t) + 8px);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 62%, transparent), color-mix(in srgb, var(--bg) 30%, transparent) 70%, transparent);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent); mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
 /* 月视图顶部留白（calendar.js 读这个值）；0 = 日历整页铺满，月份气泡悬浮在上面 */
 #calViewport { --cal-top: 0px; }
+/* 月视图：日历区从屏幕最顶上开始（灵动岛后面也有日历），calendar.js 把行往下让开安全区 */
+body.cal-m #page-cal { padding-top: 0; }
 #page-cal .topbar {
   position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 6px); z-index: 6;
   padding: 0; display: flex; justify-content: center; pointer-events: none;
@@ -1655,6 +1668,18 @@ body #page-cal .weekdays.hide { display: none; }
 }
 .cell.today.sel::before, .wcol.today.sel::before {
   background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 16%, transparent), color-mix(in srgb, var(--brand-mid) 14%, transparent));
+}
+/* 选中的是别的日子：不再用旧的蓝色淡底和蓝色空心圈——日期外面一圈品牌渐变的细圈（金黄 → 天蓝 → 亮蓝），整格一层更淡的品牌色，
+   和选中今天是同一套样子，只是更轻 */
+.cell.sel:not(.today) .num, .wcol.sel:not(.today) .wnum {
+  color: var(--text); font-weight: 650; border: 1.6px solid transparent; box-shadow: none;
+  background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--brand-grad) border-box;
+}
+.cell.sel:not(.today)::before, .wcol.sel:not(.today)::before {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 9%, transparent), color-mix(in srgb, var(--brand-mid) 8%, transparent));
+}
+:root[data-theme="dark"] .cell.sel:not(.today)::before, :root[data-theme="dark"] .wcol.sel:not(.today)::before {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 13%, transparent), color-mix(in srgb, var(--brand-mid) 11%, transparent));
 }
 :root[data-theme="dark"] .cell.today.sel::before, :root[data-theme="dark"] .wcol.today.sel::before {
   background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 22%, transparent), color-mix(in srgb, var(--brand-mid) 18%, transparent));

@@ -434,19 +434,27 @@
 <script src="js/days.js?v=0.22.0"></script>
 <style>
 #pvGate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
-  padding:24px;background:rgba(20,20,26,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-#pvGate .pv-card{width:100%;max-width:420px;background:var(--surface,#fff);color:var(--text,#1b1a20);
-  border-radius:20px;padding:24px 22px 20px;box-shadow:0 24px 60px rgba(0,0,0,.28);
+  padding:24px;background:rgba(20,20,26,.22)}
+/* 透明液态玻璃：中间几乎全透，靠模糊、高光边撑住；和 App 里的玻璃同一套变量 */
+#pvGate .pv-card{width:100%;max-width:420px;color:var(--text,#1b1a20);
+  background:color-mix(in srgb, var(--bg,#fff) 30%, transparent);
+  backdrop-filter:var(--glass-fx-strong,blur(32px) saturate(180%));-webkit-backdrop-filter:var(--glass-fx-strong,blur(32px) saturate(180%));
+  border-radius:26px;padding:24px 22px 20px;box-shadow:var(--glass-rim,none),0 24px 60px rgba(0,0,0,.22);
   font:15px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;max-height:86vh;overflow:auto}
+:root[data-theme="dark"] #pvGate .pv-card{background:color-mix(in srgb, var(--bg,#111) 26%, transparent)}
 #pvGate h2{margin:0 0 10px;font-size:19px;font-weight:680;letter-spacing:-.01em}
 #pvGate p{margin:0 0 10px;color:var(--text2,#6e6a78);font-size:14px}
 #pvGate ul{margin:0 0 12px;padding-left:18px;color:var(--text2,#6e6a78);font-size:14px}
 #pvGate li{margin-bottom:5px}
 #pvGate a{color:var(--accent,#4a6cf7);text-decoration:none}
 #pvGate .pv-actions{display:flex;gap:10px;margin-top:16px}
-#pvGate .pv-btn{flex:1;padding:12px;border:0;border-radius:12px;font-size:15px;font-weight:600;
-  background:var(--field,rgba(0,0,0,.05));color:var(--text,#1b1a20);cursor:pointer;font-family:inherit}
-#pvGate .pv-primary{background:var(--accent,#4a6cf7);color:#fff}
+#pvGate .pv-btn{flex:1;padding:13px;border:0;border-radius:999px;font-size:15px;font-weight:600;
+  background:color-mix(in srgb, var(--text,#1b1a20) 7%, transparent);box-shadow:var(--glass-rim,none);
+  color:var(--text,#1b1a20);cursor:pointer;font-family:inherit}
+/* 确认键：和加号同一种品牌渐变 */
+#pvGate .pv-primary{background:var(--brand-grad,#4F80C4);color:#fff;font-weight:700;
+  text-shadow:0 1px 1.5px rgba(60,50,80,.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),var(--brand-glow,none)}
+#pvGate .pv-btn:active{transform:scale(.97)}
 #pvGate .pv-tip{margin:12px 0 0;font-size:12.5px;color:var(--text2,#8a8694)}
 .pv-setfoot{text-align:center;padding:6px 0 22px}
 .pv-setfoot button{border:0;background:none;color:var(--text2,#8a8694);font-size:13px;font-family:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
@@ -912,6 +920,48 @@
   };
   document.addEventListener('touchend', endDrag, { capture: true, passive: true });
   document.addEventListener('touchcancel', endDrag, { capture: true, passive: true });
+
+  // ---------- 设置页：从左往右滑，回到进设置之前的那一页（像系统的返回手势，页面跟着手指走） ----------
+  const setPage = $id('page-set');
+  let sg = null;
+  const SET_BLOCK = 'input, textarea, select, .switch, .seg, .lgbar, .wheel, .wheel-wrap, .sheet, .popover, [contenteditable]';
+  document.addEventListener('touchstart', e => {
+    sg = null;
+    if (page() !== 'set' || !setPage || e.touches.length !== 1 || open) return;
+    if (MC.UI && ((MC.UI.anyOpen && MC.UI.anyOpen()) || (MC.UI.confirmOpen && MC.UI.confirmOpen()))) return;
+    if (e.target.closest && e.target.closest(SET_BLOCK)) return;   // 开关、分段、滑块这些自己要左右拖
+    sg = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: performance.now(), on: false, W: setPage.clientWidth || innerWidth };
+  }, { capture: true, passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!sg || e.touches.length !== 1) return;
+    const t = e.touches[0], dx = t.clientX - sg.x0, dy = t.clientY - sg.y0;
+    if (!sg.on) {
+      if (Math.abs(dx) < 12) return;
+      if (dx < 0 || Math.abs(dx) < Math.abs(dy) * 1.4) { sg = null; return; }   // 只认明显的往右滑，上下滚动不受影响
+      sg.on = true; setPage.style.transition = 'none';
+    }
+    if (e.cancelable) e.preventDefault();
+    setPage.style.transform = `translate3d(${Math.max(0, dx)}px,0,0)`;
+    setPage.style.opacity = String(1 - Math.min(.35, dx / sg.W * .5));
+  }, { capture: true, passive: false });
+  const endSet = e => {
+    if (!sg) return;
+    const s = sg; sg = null;
+    if (!s.on) return;
+    const t = e.changedTouches && e.changedTouches[0], dx = t ? t.clientX - s.x0 : 0;
+    const v = dx / Math.max(1, performance.now() - s.t0);
+    const go = dx > s.W * .3 || (v > .5 && dx > 40);   // 拖过三成屏，或者甩得够快
+    setPage.style.transition = 'transform .28s cubic-bezier(.32,.72,0,1), opacity .28s';
+    if (go) {
+      setPage.style.transform = `translate3d(${s.W}px,0,0)`; setPage.style.opacity = '0';
+      setTimeout(() => { MC.App.showPage(lastMain); setPage.style.transition = 'none'; setPage.style.transform = ''; setPage.style.opacity = ''; tick(); }, 240);
+    } else {
+      setPage.style.transform = ''; setPage.style.opacity = '';
+      setTimeout(() => { setPage.style.transition = ''; }, 300);
+    }
+  };
+  document.addEventListener('touchend', endSet, { capture: true, passive: true });
+  document.addEventListener('touchcancel', endSet, { capture: true, passive: true });
 })();
 </script>
 

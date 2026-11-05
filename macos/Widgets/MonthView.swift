@@ -160,7 +160,7 @@ struct MonthView: View {
                     cell(wk[k], occ: lay.occ[k], lim: lim[k], ym: ym, today: today, cap: cap, cw: cw, rowH: rowH, pal: pal)
                         .frame(width: cw, height: rowH, alignment: .topLeading)
                         // 底色铺满整格（只盖住日期那一行时，下面会露出分隔线的灰色）
-                        .background { if wk[k] == today { RoundedRectangle(cornerRadius: 7, style: .continuous).fill(pal.todayCell).padding(1.5) } } // 今天：圆角的淡色块
+                        .background { if wk[k] == today { RoundedRectangle(cornerRadius: 7, style: .continuous).fill(pal.todayTint).padding(1.5) } } // 今天：圆角的品牌渐变淡底（和 App 一样）
                         .clipped()
                 }
             }
@@ -273,6 +273,12 @@ struct MonthView: View {
     private static let chipW: Font.Weight = .semibold
     #endif
 
+    /// 文字末尾 6pt 渐隐（宽度 w 内）
+    static func fade(_ w: CGFloat) -> LinearGradient {
+        LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: max(0, 1 - 6 / w)), .init(color: .clear, location: 1)],
+                       startPoint: .leading, endPoint: .trailing)
+    }
+
     /// tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致）
     private func chip(_ e: CEvent, soft: Bool, out: Bool = false, width: CGFloat, pal: Pal, tm: Bool = false) -> some View {
         let (fill, ink) = pal.chip(e, entry.data, soft: soft, out: out)
@@ -283,8 +289,9 @@ struct MonthView: View {
             .lineLimit(1)
             .fixedSize()
             .padding(.leading, 1.5)
-            .frame(width: max(0, width - (tm ? 7 : 0)), height: MonthView.chipH, alignment: .leading)
+            .frame(width: max(0, width - (tm ? 7 : 0) - 1.5), height: MonthView.chipH, alignment: .leading)
             .clipped()
+            .mask(MonthView.fade(max(1, width - (tm ? 7 : 0) - 1.5)))   // 放不下的字在色条里面渐隐，不再一刀切到边上（像冲出格子）
             .frame(width: width, height: MonthView.chipH, alignment: .leading)
             .overlay(alignment: .trailing) {
                 if tm { Circle().fill(ink).frame(width: 3.5, height: 3.5).opacity(0.75).padding(.trailing, 3) }
@@ -309,8 +316,10 @@ struct MonthView: View {
             .lineLimit(1)
             .fixedSize()
             .padding(.leading, 2.5)
-            .frame(width: max(0, x1 - x0), height: MonthView.chipH, alignment: .leading)
+            .frame(width: max(0, x1 - x0 - (s.openR ? 0 : 1.5)), height: MonthView.chipH, alignment: .leading)
             .clipped()
+            .mask(MonthView.fade(max(1, x1 - x0 - (s.openR ? 0 : 1.5))))
+            .frame(width: max(0, x1 - x0), height: MonthView.chipH, alignment: .leading)
             .background(UnevenRoundedRectangle(topLeadingRadius: rl, bottomLeadingRadius: rl, bottomTrailingRadius: rr, topTrailingRadius: rr).fill(fill))
             .widgetAccentable()
             .offset(x: x0, y: y)

@@ -585,21 +585,21 @@
     $('#schedTitle').textContent = '导入日程';
     $('#schedOk').textContent = '导入';
     $('#schedForm').innerHTML = `
-      <p class="hint" style="margin:0 2px 10px">从学校选课系统、教务网站、Excel 表格或任何日历里复制课程表，粘贴到下面即可；也可以导入 .ics 文件、保存下来的网页，或者拍一张课表照片。识别结果会画成日程，确认后再导入。</p>
-      <div class="help-tip" style="margin-bottom:10px">小技巧：网页上的周课表可以直接全选复制（电脑按 ⌘A / Ctrl+A，手机长按后「全选」），表格的行和列会一起带过来。有「列表视图」的系统（比如 uoZone 的「List View」）切到列表再复制更准。<br>也可以自己一行写一节：<code>MAT 2348 周二 14:30-15:50 Tabaret 333</code><br>或从 Excel 复制带表头的表格（课程 / 星期 / 开始 / 结束 / 教室）。</div>
+      <p class="hint imp-how">粘贴课程表就行：教务网站整页全选复制、Excel 表格、日历都可以；也能导入 .ics / 网页文件或拍照识别。自己写也行，一行一节，比如 <code>MAT 2348 周二 14:30-15:50 Tabaret 333</code>。</p>
       <textarea id="schedText" rows="6" placeholder="在这里粘贴课程表…"></textarea>
-      <div class="btn-line imp-src"><span><button class="chip-btn glass" id="schedIcs">.ics / 网页文件</button> <button class="chip-btn glass" id="schedPhotoBtn">照片识别</button> <button class="chip-btn glass" id="schedManual">手动添加</button></span><label class="replace-opt"><input type="checkbox" id="schedReplace" checked> 替换现有日程</label></div>
+      <div class="btn-line imp-src"><span><button class="chip-btn glass" id="schedIcs">.ics / 网页文件</button> <button class="chip-btn glass" id="schedPhotoBtn">照片识别</button> <button class="chip-btn glass" id="schedManual">手动添加</button></span></div>
       <p class="hint imp-status" id="impStatus" hidden></p>
-      <div class="imp-range" id="impRange" hidden>
-        <p class="hint" style="margin:12px 4px 8px">有些课程没有写日期，请选择它们的上课时间：</p>
+      <div class="imp-range" id="impRange">
+        <p class="hint" style="margin:12px 4px 8px">时间段（没写日期的课按这段时间上；替换时也只换这段时间里的日程）</p>
         <div class="sc-times"><label class="field"><span>从</span><input type="month" id="impFromM"></label><label class="field"><span>到</span><input type="month" id="impToM"></label></div>
         <label class="replace-opt" style="margin:2px 4px 8px"><input type="checkbox" id="impExact"> 精确到具体日期（可选）</label>
         <div class="sc-times" id="impExactBox" hidden><label class="field"><span>开课日期</span><input type="date" id="impFrom"></label><label class="field"><span>结课日期</span><input type="date" id="impTo"></label></div>
+        <label class="replace-opt" style="margin:4px 4px 0"><input type="checkbox" id="schedReplace" checked> 替换这段时间内的日程</label>
       </div>
       <div id="schedPreview"></div>`;
-    const ym0 = new Date(), ym1 = new Date(ym0.getFullYear(), ym0.getMonth() + 3, 1);
-    $('#impFromM').value = `${ym0.getFullYear()}-${pad(ym0.getMonth() + 1)}`;
-    $('#impToM').value = `${ym1.getFullYear()}-${pad(ym1.getMonth() + 1)}`;
+    const yy = new Date().getFullYear();   // 默认：今年和前后各一年
+    $('#impFromM').value = `${yy - 1}-01`;
+    $('#impToM').value = `${yy + 1}-12`;
     $('#impExact').onchange = () => { $('#impExactBox').hidden = !$('#impExact').checked; preview(); };
     ['impFromM', 'impToM', 'impFrom', 'impTo'].forEach(id => $('#' + id).addEventListener('change', preview));
     $('#schedText').addEventListener('input', () => { parsed = Sched.parseText($('#schedText').value); impSel = -1; preview(); });
@@ -624,10 +624,21 @@
     UI.open('schedSheet');
   }
   // 没写日期的课程：用选择的月份（默认整月），勾了「精确」就用具体日期
+  // 选的时间段（从 / 到，都可以为空）
+  function impSpan() {
+    let from = '', to = '';
+    if ($('#impExact') && $('#impExact').checked && $('#impFrom').value) { from = $('#impFrom').value; to = $('#impTo').value || ''; }
+    else {
+      const fm = $('#impFromM') && $('#impFromM').value, tm = $('#impToM') && $('#impToM').value;
+      from = fm ? `${fm}-01` : '';
+      if (tm) { const [y, m] = tm.split('-').map(Number); to = MC.ymd(new Date(y, m, 0)); }
+    }
+    if (from && to && to < from) to = '';
+    return { from, to };
+  }
   function fillDates(list) {
     const box = $('#impRange'); if (!box) return list;
     const missing = list.some(c => !c.from && !c.to);
-    box.hidden = !missing;
     if (!missing) return list;
     let from, to;
     if ($('#impExact').checked && $('#impFrom').value) { from = $('#impFrom').value; to = $('#impTo').value || ''; }
@@ -810,8 +821,17 @@
       if (!parsed.length) return;
       if (parsed.some(c => !c.code)) { UI.toast('还有课程没有填名称'); return; }
       const items = fillDates(parsed).map(c => ({ ...c, id: MC.uid() }));
-      MC.setCourses($('#schedReplace').checked ? items : [...(MC.data.courses || []), ...items]);
-      UI.close('schedSheet'); UI.toast(`已导入 ${items.length} 节课`);
+      const old = MC.data.courses || [];
+      if (!$('#schedReplace').checked) { MC.setCourses([...old, ...items]); UI.close('schedSheet'); UI.toast(`已导入 ${items.length} 节课`); return; }
+      const sp = impSpan();
+      const finish = keep => { MC.setCourses([...keep, ...items]); UI.close('schedSheet'); UI.toast(`已导入 ${items.length} 节课${old.length - keep.length ? `，替换了 ${old.length - keep.length} 节` : ''}`); };
+      if (!sp.from && !sp.to) {   // 没选时间段：替换就是全部替换，先问一句
+        UI.confirm('没有选时间段，会用这次导入的课程覆盖所有现有日程。继续吗？', { ok: '全部覆盖', danger: true }).then(ok => { if (ok) finish([]); });
+        return;
+      }
+      // 只替换和这段时间重叠的日程：开课在结束之后、或结课在开始之前的留着
+      const keep = old.filter(c => (sp.to && c.from && c.from > sp.to) || (sp.from && c.to && c.to < sp.from));
+      finish(keep);
       return;
     }
     const code = $('#scCode').value.trim(), start = $('#scStart').value, end = $('#scEnd').value;

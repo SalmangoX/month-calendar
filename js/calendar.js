@@ -8,6 +8,7 @@
   const BUF = 12; // 月视图上下各预渲染 12 周，快速甩动也不会滑到尽头
   const now0 = new Date();
   let view = ['year', 'month', 'week'].includes(MC.settings.view) ? MC.settings.view : 'month';
+  document.body.classList.toggle('cal-m', view === 'month');   // 月视图铺到屏幕最顶上（styles.css），一打开就要对
   let anchor = MC.weekStartOf(new Date(now0.getFullYear(), now0.getMonth(), 1)); // 月视图最上面一行的周起始日
   let weekAnchor = MC.weekStartOf(now0);
   let year = now0.getFullYear();
@@ -25,11 +26,18 @@
   let TOP = 0;      // 月视图顶部留白（styles.css 的 --cal-top，现在是 0：日历整页铺满）
   let coverTop = 0; // 顶部悬浮的月份胶囊 + 星期条挡住的高度（相对日历区顶部）
   let firstOpenDone = false;
+  let probe = null;   // 量安全区顶部高度（env() 在 JS 里读不到数值）
+  const safeTop = () => {
+    if (!probe) { probe = document.createElement('div'); probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:var(--safe-t);visibility:hidden;pointer-events:none'; document.body.appendChild(probe); }
+    return probe.offsetHeight;
+  };
   function measure() {
+    document.body.classList.toggle('cal-m', view === 'month');
     W = vp.clientWidth; H = vp.clientHeight;
     const pv = body.classList.contains('previewing');
     if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
-    TOP = parseFloat(getComputedStyle(vp).getPropertyValue('--cal-top')) || 0;
+    // 月视图的日历区一直铺到屏幕最顶上（灵动岛、状态栏后面也画日历），行的位置往下让开安全区那一段，和以前一样
+    TOP = (parseFloat(getComputedStyle(vp).getPropertyValue('--cal-top')) || 0) + (view === 'month' ? safeTop() : 0);
     { const wd = $('#weekdays'), r = wd && wd.getBoundingClientRect(); coverTop = r && r.height ? Math.max(TOP, r.bottom - vp.getBoundingClientRect().top) : TOP; }
     rowH = Math.max(0, (pv ? fullH : H) - TOP) / 6.5;
     const head = 39 + 3; // 数字区 + 底部留白
@@ -464,8 +472,10 @@
     let h = '';
     [...el.children].forEach((d, i) => {
       const wd = (i + MC.settings.weekStart) % 7, now = wd === today, k = now ? K_TODAY : K_OTHER;
-      const col = dark ? MC.oklch(.7, .12, H[wd], .62 * k) : MC.oklch(.78, .14, H[wd], k);
-      const w = (now ? 2.1 : 1.7) / 7 * 100, cx = (i + .5) / 7 * 100;
+      // 今天和其他几天要一眼分得出：今天的光更饱和、更亮、更宽，其他几天收淡收窄（只当底色）
+      const col = dark ? (now ? MC.oklch(.74, .14, H[wd], .66 * k) : MC.oklch(.66, .09, H[wd], .5 * k))
+        : (now ? MC.oklch(.76, .15, H[wd], .82 * k) : MC.oklch(.82, .1, H[wd], .8 * k));
+      const w = (now ? 2.0 : 1.5) / 7 * 100, cx = (i + .5) / 7 * 100;
       const dn = now ? DOWN * 1.3 : DOWN, tot = up + dn;   // 往下照多远：今天更远
       h += `<i class="${now ? 'now' : ''}" style="left:${(cx - w / 2).toFixed(2)}%;width:${w.toFixed(2)}%;top:0;height:${tot}px;--cy:${(up / tot * 100).toFixed(1)}%;--c:${col}"></i>`;
       d.style.color = dark ? MC.oklch(now ? .9 : .78, now ? .12 : .07, H[wd], now ? 1 : .8) : MC.oklch(now ? .48 : .58, now ? .15 : .08, H[wd], now ? 1 : .85);

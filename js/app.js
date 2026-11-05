@@ -652,7 +652,9 @@
   const COURSE_LEADS = [0, 5, 10, 15, 20, 30, 45, 60];
   const leadText = m => (m ? `开始前 ${m} 分钟` : '开始时');
   function srow(o) {
-    const sub = o.sub ? `<small>${esc(o.sub)}</small>` : '';
+    const links = o.links && o.links.length ? `<span class="slinks">${o.links.map(l =>
+      `<button type="button" class="slink${l.warn ? ' warn' : ''}" data-act="${l.act}"${l.tip ? ` title="${esc(l.tip)}"` : ''}>${esc(l.label)}${l.warn ? `<em>${esc(l.tip)}</em>` : ''}</button>`).join('')}</span>` : '';
+    const sub = (o.sub ? `<small>${esc(o.sub)}</small>` : '') + links;
     const val = o.val ? `<span class="sval">${esc(o.val)}</span>` : '';
     const help = o.help ? `<button class="help" data-help="${o.help}" aria-label="查看步骤">?</button>` : '';
     const right = o.sw !== undefined
@@ -733,13 +735,15 @@
     paintStatus();
 
     const S = MC.settings;
-    let gSync = '', gWidgets = '';
-    const gDisplay = group('显示与时间', [
+    let gSync = '', gWidgets = '', aboutHint = '';
+    const about = []; // 「关于」：App 版本、检查更新
+    const gDisplay = group('外观', [
       srow({ act: 'theme', icon: 'theme', tone: 'periwinkle', label: '外观', val: { auto: '跟随系统', light: '浅色', dark: '深色' }[S.theme] }),
-      srow({ act: 'week', icon: 'week', tone: 'rose', label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
       srow({ act: 'wktint', icon: 'sun', tone: 'orchid', label: '星期颜色', sub: S.weekTint === 'mood' ? '每一天一种颜色的柔光从星期条散开，今天那一列最亮' : '', val: S.weekTint === 'mood' ? '情绪光谱' : '默认' }),
+    ]) + group('语言与时间', [
       srow({ act: 'lang', icon: 'globe', tone: 'lavender', label: '语言', val: MC.langPref() === 'auto' ? '跟随系统语言' : (MC.LANGS.find(l => l.v === MC.langPref()) || {}).label }),
       srow({ act: 'clock', icon: 'clock', tone: 'teal', label: '时间格式', val: MC.clockPref() === '12' ? '12 小时制' : MC.clockPref() === '24' ? '24 小时制' : `跟随地区（${MC.region12() ? 12 : 24} 小时）` }),
+      srow({ act: 'week', icon: 'week', tone: 'rose', label: '每周第一天', val: S.weekStart ? '周一' : '周日' }),
     ]);
     if (!MC.vault.connected()) {
       gSync = group('同步', [
@@ -765,16 +769,18 @@
       gSync = group('同步', rows, ic ? '每台 Mac 选同一个 iCloud 云盘文件夹，数据就会互相同步；同步快慢由 iCloud 决定，一般几秒到一两分钟。'
         : dav ? '账号和密码只保存在这台设备上。' : '令牌只保存在这台设备上。');
     }
-    const nrows = [srow({ icon: 'bell', tone: 'coral', label: '提醒通知', sw: 'nSwitch', swOn: Push.enabled(), help: 'notify' })];
-    if (Push.enabled()) nrows.push(srow({ act: 'ntest', icon: 'send', tone: 'teal', label: '发送测试通知', chev: false }));
-    if (Push.native) nrows.push(srow({ act: 'nperm', icon: 'bell', tone: 'sage', label: '提醒权限检查', sub: nativePermSummary(), help: 'nperm' }));
+    // 测试通知、权限检查不再单独占一行，收进「提醒通知」这一行下面的小按钮里
+    const nlinks = [];
+    if (Push.enabled()) nlinks.push({ act: 'ntest', label: '发送测试通知' });
+    if (Push.native) { const ps = nativePermSummary(); nlinks.push({ act: 'nperm', label: '提醒权限检查', warn: ps !== '各项都已就绪', tip: ps }); }
+    const nrows = [srow({ icon: 'bell', tone: 'coral', label: '提醒通知', sw: 'nSwitch', swOn: Push.enabled(), help: 'notify', links: nlinks })];
     const dl = MC.data.daily;
     const city = (dl.tz || MC.currentTz()).split('/').pop().replace(/_/g, ' ');
     nrows.push(srow({ icon: 'sun', tone: 'apricot', label: '每日未完成提醒', sub: dl.on ? `每天 ${MC.fmtTime(dl.time)} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
     if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', tone: 'periwinkle', label: '每日提醒时间', val: MC.fmtTime(dl.time) }));
     // 课程（日程）提醒：每节课开始前提醒，提前多久可以选
     const cr = MC.data.courseRemind || { on: false, lead: 10 };
-    nrows.push(srow({ icon: 'grid', tone: 'jade', label: '课程开始前提醒', sub: cr.on ? `每节课${leadText(cr.lead)}提醒` : '日程里的每节课开始前提醒你', sw: 'cSwitch', swOn: cr.on }));
+    nrows.push(srow({ icon: 'grid', tone: 'jade', label: '日程开始前提醒', sub: cr.on ? `每项日程${leadText(cr.lead)}提醒` : '日程里的每一项开始前提醒你', sw: 'cSwitch', swOn: cr.on }));
     if (cr.on) nrows.push(srow({ act: 'clead', icon: 'clock', tone: 'lavender', label: '提前多久', val: leadText(cr.lead).replace(/^开始前 /, '') }));
     // 始终显示，点进去会自动补齐前置条件（连接 GitHub、通知权限）；安卓 App 由系统提醒，不需要
     if (!Push.native) {
@@ -790,14 +796,13 @@
       gWidgets += group('桌面小组件', [
         srow({ act: 'mwidget', icon: 'grid', tone: 'periwinkle', label: '添加桌面小组件', sub: '整月、今日、课表、纪念日', help: 'mwidget', chev: false }),
       ], '菜单栏右上角的日历图标也能随时查看本月和当天的事件。');
-      gWidgets += group('Mac App', [
+      about.push(
         srow({ act: 'macapp', icon: 'laptop', tone: 'sage', label: 'Mac App', sub: '点一下检查更新', val: I.app || '', chev: false }),
-        ...(MC.Native.has('makeInstaller') ? [srow({ act: 'macpkg', icon: 'export', tone: 'apricot', label: '生成安装包', sub: '打包成 .dmg 放在桌面，可以直接发给别人', chev: false })] : []),
-      ], '改网页不需要重新编译，打开就是最新的；只有原生部分（菜单栏、小组件、提醒）改了才需要在 Mac 上重新运行 macos/build.sh。');
+        ...(MC.Native.has('makeInstaller') ? [srow({ act: 'macpkg', icon: 'export', tone: 'apricot', label: '生成安装包', sub: '打包成 .dmg 放在桌面，可以直接发给别人', chev: false })] : []));
+      aboutHint = '改网页不需要重新编译，打开就是最新的；只有原生部分（菜单栏、小组件、提醒）改了才需要在 Mac 上重新运行 macos/build.sh。';
     } else if (MC.Native.ios) {
-      gWidgets += group('iPhone App', [
-        srow({ icon: 'phone', tone: 'sage', label: 'iPhone App', sub: MC.Native.info.channel === 'mac' ? 'Mac 续签时自动更新到最新版' : '在 AltStore / SideStore 里更新', val: MC.Native.info.app || '', chev: false }),
-      ], '改网页不需要更新 App，打开就是最新的；只有原生部分（提醒、玻璃菜单栏）改了才需要装新的安装包。');
+      about.push(srow({ icon: 'phone', tone: 'sage', label: 'iPhone App', sub: MC.Native.info.channel === 'mac' ? 'Mac 续签时自动更新到最新版' : '在 AltStore / SideStore 里更新', val: MC.Native.info.app || '', chev: false }));
+      aboutHint = '改网页不需要更新 App，打开就是最新的；只有原生部分（提醒、玻璃菜单栏）改了才需要装新的安装包。';
     } else if (MC.Native.on) {
       gWidgets += group('桌面小组件', [
         srow({ act: 'pin:month', icon: 'grid', tone: 'periwinkle', label: '整月小组件', sub: '点一下添加到桌面', help: 'nwidget', chev: false }),
@@ -806,9 +811,8 @@
         ...(MC.Native.has('daysWidget') ? [srow({ act: 'pin:days', icon: 'heart', tone: 'rose', label: DT('纪念日小组件'), sub: DT('置顶或最近的日子，以及接下来的几个'), chev: false })] : []),
       ], '也可以长按桌面空白处 → 小组件 → 节律，按住拖到桌面。');
       const up = MC.Native.updateAvailable(), I = MC.Native.info;
-      gWidgets += group('安卓 App', [
-        srow({ act: 'apk', icon: 'android', tone: 'sage', label: '安卓 App', sub: up ? `有新版本 ${up.name}，点这里下载安装` : '点这里检查 App 更新', val: I.app || '', chev: false }),
-      ], '改网页不需要更新 App，打开就是最新的；只有原生部分（小组件、提醒）改了才需要装新的 APK。');
+      about.push(srow({ act: 'apk', icon: 'android', tone: 'sage', label: '安卓 App', sub: up ? `有新版本 ${up.name}，点这里下载安装` : '点这里检查 App 更新', val: I.app || '', chev: false }));
+      aboutHint = '改网页不需要更新 App，打开就是最新的；只有原生部分（小组件、提醒）改了才需要装新的 APK。';
     } else gWidgets += group('桌面小组件', [
       srow({ act: 'ios', icon: 'phone', tone: 'periwinkle', label: 'iOS 小组件', sub: '复制 Scriptable 脚本', help: 'ios', chev: false }),
       srow({ act: 'android', icon: 'android', tone: 'sage', label: '安卓小组件', sub: '复制小组件链接', help: 'android', chev: false }),
@@ -823,15 +827,16 @@
         sub: bi.on ? `${bi.folder || '已选的文件夹'} · 每天一份，留最近 7 份${biWhen ? ' · 上次 ' + biWhen : ''}` : '选一个手机文件夹，每天自动备份一份' })] : []),
       srow({ act: 'export', icon: 'export', tone: 'jade', label: '导出备份', chev: false }),
       srow({ act: 'import', icon: 'import', tone: 'sky', label: '导入备份', sub: '与现有数据合并', chev: false }),
-      srow({ act: 'update', icon: 'refresh', tone: 'lavender', label: '检查更新', sub: `当前版本 ${MC.versionText()}`, chev: false }),
     ]);
-    // 按重要程度排：最常来设置的是提醒，其次是显示，同步、小组件和数据放后面
+    const gAbout = group('关于', [...about,
+      srow({ act: 'update', icon: 'refresh', tone: 'lavender', label: '检查更新', sub: `当前版本 ${MC.versionText()}`, chev: false })], aboutHint);
+    // 顺序：同步 → 提醒 → 外观 → 语言与时间 → 小组件 → 数据 → 关于
     // iPhone 网页版 / 浏览器：Safari 不能自己读写 iCloud 云盘，只能每次手动选文件、存回去，和 Mac 的 iCloud 云盘同步接上
     const gIcFile = MC.Native.on ? '' : group('iCloud 云盘', [
       srow({ act: 'icfile', icon: 'cloud', tone: 'sky', label: '与 iCloud 云盘同步', help: 'icloud', chev: false,
         sub: S.icFileDirty ? '手机上有改动还没存回去' : S.icFileAt ? '上次 · ' + new Date(S.icFileAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '读取 Mac 的数据，合并后存回去' }),
     ], '给 Mac 的 iCloud 云盘同步用：浏览器不能自己读写 iCloud 云盘，只能你来点。用过一次后，打开节律或手机上有改动时会自动提醒你同步。');
-    const h = gSync + gIcFile + gRemind + gDisplay + gWidgets + gData; // 同步放最上面：最常要看的就是有没有同步上
+    const h = gSync + gIcFile + gRemind + gDisplay + gWidgets + gData + gAbout; // 同步放最上面：最常要看的就是有没有同步上
     $('#setGroups').innerHTML = h;
     const total = MC.data.events.length, done = MC.data.events.filter(e => e.done).length;
     $('#statLine').innerHTML = `版本 ${MC.versionText()} · 共 ${total} 个事件，已完成 ${done} 个<small class="dbg"${showDbg ? '' : ' hidden'}>${esc(MC.screenInfo || '')}</small>`;
@@ -940,7 +945,7 @@
     else if (act === 'clead') {
       const cur = (MC.data.courseRemind || {}).lead;
       UI.menu(row.querySelector('.sval') || row, COURSE_LEADS.map(m => ({ label: m ? `${m} 分钟` : '开始时', value: m, on: m === cur })), v => {
-        MC.setCourseRemind({ lead: v, tz: MC.currentTz() }); renderSettings(); UI.toast(`每节课${leadText(v)}提醒`);
+        MC.setCourseRemind({ lead: v, tz: MC.currentTz() }); renderSettings(); UI.toast(`每项日程${leadText(v)}提醒`);
       });
     }
     else if (act === 'boost') openHelp('boost');
@@ -992,7 +997,7 @@
         if (sw.checked) {
           if (!Push.enabled()) await Push.enable();
           MC.setCourseRemind({ on: true, tz: MC.currentTz() });
-          UI.toast(`每节课${leadText(MC.data.courseRemind.lead)}提醒你`);
+          UI.toast(`每项日程${leadText(MC.data.courseRemind.lead)}提醒你`);
         } else { MC.setCourseRemind({ on: false }); UI.toast('已关闭课程提醒'); }
       } catch (err) { UI.toast(err.message); }
       renderSettings();

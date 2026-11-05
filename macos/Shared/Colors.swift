@@ -180,6 +180,13 @@ struct Pal {
     #else
     var todayCell: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(accentV, dark ? 0x33 : 0x1F)) }
     #endif
+    /// 今天那一格 / 那一列的淡底：和 App 里选中的今天一样，一层很淡的品牌渐变（金黄 → 天蓝），不再是蓝色或灰色的块
+    var todayTint: AnyShapeStyle {
+        if glass { return AnyShapeStyle(Color.white.opacity(0.16)) }
+        let a: UInt32 = dark ? 0xFFE4_B96B : 0xFFE2_B562, m: UInt32 = dark ? 0xFF80_B1EC : 0xFF74_A8E6
+        return AnyShapeStyle(LinearGradient(colors: [Color(argb: withAlpha(a, dark ? 0x38 : 0x29)), Color(argb: withAlpha(m, dark ? 0x2E : 0x24))],
+                                            startPoint: .topLeading, endPoint: .bottomTrailing))
+    }
     var dim: Color { glass ? .white.opacity(0.42) : Color(argb: 0x8088_8890) }
     /// 「今天」那个实色圆 / 小标签：玻璃样式下改成半透明的白底，上面的字才看得清
     var todayFill: Color { glass ? .white.opacity(0.3) : accent }

@@ -318,11 +318,7 @@ struct SchedWeek: View {
         }
         .padding(.bottom, 3)
         .frame(maxWidth: .infinity)
-        #if os(iOS)
-        .background { if isToday { RoundedRectangle(cornerRadius: 9).fill(pal.todayCell) } } // iPhone：今天这一列用中性的浅灰
-        #else
-        .background { if isToday { RoundedRectangle(cornerRadius: 9).fill(pal.live) } }
-        #endif
+        .background { if isToday { RoundedRectangle(cornerRadius: 9).fill(pal.todayTint) } } // 今天这一列：品牌渐变淡底（和 App 一样）
     }
 }
 
