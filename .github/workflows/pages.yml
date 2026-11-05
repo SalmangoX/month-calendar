@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment2.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,7 +47,17 @@ jobs:
         with:
           path: _site
 
+      # GitHub 那边偶尔会卡住一次发布（超时），紧接着下一次会因为「上一次还在进行」被拒：失败了等一会儿再发一次
       - id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: 发布失败，等 90 秒再试一次
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 90
+
+      - id: deployment2
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
       # 国内镜像（jsDelivr）会缓存 main 分支上的文件最多 12 小时：发布后刷新一下，国内打不开 GitHub 时 Mac App 从镜像拿到的也是最新的
