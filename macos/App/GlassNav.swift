@@ -754,11 +754,11 @@ enum DockSize {
     }
 }
 
-/// 品牌色（和网页一致）：金黄 → 天蓝 → 深靛蓝
+/// 品牌色（和网页一致）：金黄 → 天蓝 → 亮蓝
 enum Brand {
-    static func a(_ dark: Bool) -> Color { Color(argb: dark ? 0xFFDD_B16A : 0xFFD6_A757) }
-    static func mid(_ dark: Bool) -> Color { Color(argb: dark ? 0xFF70_A5E6 : 0xFF5A_93D6) }
-    static func b(_ dark: Bool) -> Color { Color(argb: dark ? 0xFF6E_74D2 : 0xFF3F_45A2) }
+    static func a(_ dark: Bool) -> Color { Color(argb: dark ? 0xFFE4_B96B : 0xFFE2_B562) }
+    static func mid(_ dark: Bool) -> Color { Color(argb: dark ? 0xFF80_B1EC : 0xFF74_A8E6) }
+    static func b(_ dark: Bool) -> Color { Color(argb: dark ? 0xFF6A_99E2 : 0xFF5A_8DDA) }
     static func grad(_ dark: Bool) -> LinearGradient {
         LinearGradient(stops: [.init(color: a(dark), location: 0.06), .init(color: mid(dark), location: 0.52), .init(color: b(dark), location: 0.96)],
                        startPoint: .topLeading, endPoint: .bottomTrailing)

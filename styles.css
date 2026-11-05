@@ -1599,13 +1599,13 @@ body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { disp
 
 /* ---------- 品牌渐变：取自 logo 的暖沙（左）→ 蓝（中）→ 深靛蓝（右），略加深一点，白色加号和日期数字才看得清 ---------- */
 :root {
-  --brand-a: #D6A757;    /* 左 / 低：金黄 */
-  --brand-mid: #5A93D6;  /* 中间：天蓝 */
-  --brand-b: #3F45A2;    /* 右 / 高：深靛蓝 */
+  --brand-a: #E2B562;    /* 左：明亮的金黄 */
+  --brand-mid: #74A8E6;  /* 中间：天蓝 */
+  --brand-b: #5A8DDA;    /* 右：亮一点的蓝（不用深色：选中的今天、加号要明快，不能发闷） */
   --brand-grad: linear-gradient(135deg, var(--brand-a) 6%, var(--brand-mid) 52%, var(--brand-b) 96%);
   --brand-glow: 0 8px 22px color-mix(in srgb, var(--brand-a) 38%, transparent), 0 2px 6px color-mix(in srgb, var(--brand-b) 30%, transparent);
 }
-:root[data-theme="dark"] { --brand-a: #DDB16A; --brand-mid: #70A5E6; --brand-b: #6E74D2; }
+:root[data-theme="dark"] { --brand-a: #E4B96B; --brand-mid: #80B1EC; --brand-b: #6A99E2; }
 /* 加号（扇形里的、纪念日历的） */
 .fan-add .face, :root[data-theme="dark"] .fan-add .face { background: var(--brand-grad); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 0 0 .5px rgba(255, 255, 255, .18), var(--brand-glow); }
 .fan-add .face { text-shadow: none; }
