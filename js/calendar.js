@@ -71,8 +71,9 @@
           const d2 = $('#dock2'), d2b = d2 ? parseFloat(getComputedStyle(d2).bottom) || 0 : 0;
           R.style.setProperty('--d2-lift-base', Math.max(40, Math.round(fl + 4 - 6 - d2b)) + 'px');
         } }
-      if (pc.style.getPropertyValue('--wk-y') !== wkY + 'px' || pc.style.getPropertyValue('--pill-y') !== pillY + 'px') {
+      if (pc.style.getPropertyValue('--wk-y') !== wkY + 'px' || pc.style.getPropertyValue('--pill-y') !== pillY + 'px' || pc.style.getPropertyValue('--snap-y') !== Math.round(snap) + 'px') {
         pc.style.setProperty('--wk-y', wkY + 'px'); pc.style.setProperty('--pill-y', pillY + 'px');
+        pc.style.setProperty('--snap-y', Math.round(snap) + 'px');   // 顶部标题板的底边就落在吸附线上
         requestAnimationFrame(() => { try { paintMood(); } catch (e) {} });   // 光心跟着星期条走
       }
     }
@@ -265,10 +266,33 @@
     for (const [k, arr] of MC.byDate) if (k.startsWith(prefix)) for (const e of arr) if (!e.dv && !seen.has(e.id)) { seen.add(e.id); total++; if (e.done) done++; }
     return { total, done };
   }
+  // 中文用汉字月份（十一月），其他语言写「11月」交给翻译换成当地的月份名
+  const CN_M = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+  const monthName = m => (MC.isZh ? CN_M[m] + '月' : `${m + 1}月`);
+  // 眉题：年份 · 吸附线上那一周是第几周（ISO 周数，滚动时跟着变）；今天标签：今天几日 · 周几
+  const isoWeek = d => { const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3 - ((d.getDay() + 6) % 7)); const w1 = new Date(t.getFullYear(), 0, 4); return { y: t.getFullYear(), w: 1 + Math.round(((t - w1) / 864e5 - 3 + ((w1.getDay() + 6) % 7)) / 7) }; };
+  const L = MC.lang ? MC.lang() : 'zh-Hans';
+  const eyebrowText = (y, w) => L === 'en' ? `${y} · Week ${w}` : L === 'fr' ? `${y} · Semaine ${w}` : L === 'ja' ? `${y}　第${w}週` : L === 'zh-Hant' ? `${y}　第 ${w} 週` : `${y}　第 ${w} 周`;
+  function todayText() {
+    const n = new Date(), d = n.getDate(), wd = n.getDay();
+    if (L === 'en') return `Today · ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][wd]} ${d}`;
+    if (L === 'fr') return `Aujourd’hui · ${['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'][wd]} ${d}`;
+    if (L === 'ja') return `今日 ${d}日 · ${'日月火水木金土'[wd]}曜`;
+    return `今天 ${d} 日 · ${L === 'zh-Hant' ? '週' : '周'}${MC.WD[wd]}`;
+  }
+  let lastBrow = '';
+  function paintEyebrow() {
+    const el = $('#calEyebrow'); if (!el || view !== 'month') return;
+    const wk = MC.addDays(anchor, 7 * (1 + Math.round(scrollY / (rowH || 1)))), iw = isoWeek(MC.addDays(wk, 3));   // 用这一行的周中那天算（一周从周日开始时也对）   // 吸附线上那一行（本周那一行的位置）
+    const t = eyebrowText(focus.y, iw.w);
+    if (t !== lastBrow) { lastBrow = t; el.textContent = t; }
+    const td = $('#calToday'); if (td) { const x = todayText(); if (td.textContent !== x) td.textContent = x; }
+  }
   function monthTitle() {
     const t1 = $('#calTitle'), t2 = $('#calSub');
     if (!t1) return;                      // 顶部抬头已移除
-    t1.textContent = `${focus.m + 1}月`;
+    t1.textContent = monthName(focus.m);
+    paintEyebrow();
     const { total, done } = tally(`${focus.y}-${MC.pad(focus.m + 1)}-`);
     if (t2) t2.textContent = String(focus.y);
   }
@@ -326,7 +350,7 @@
   function markMoving() {
     if (mvY === null || mvY === scrollY) { mvY = scrollY; return; } mvY = scrollY;   // 第一次只记下位置，不算在动
     const wd = $('#weekdays'); if (!wd || view !== 'month') return;
-    if (!moving) { moving = true; wd.classList.add('moving'); document.querySelector('.mframe')?.classList.add('moving'); }
+    if (!moving) { moving = true; document.querySelector('.mframe')?.classList.add('moving'); }   // 星期在标题板里，不再跟着变淡；虚线月框照旧
     clearTimeout(mvT); mvT = setTimeout(function idle() { if (animating) { mvT = setTimeout(idle, 80); return; } endMoving(); }, 140);
   }
   function endMoving() {
@@ -337,6 +361,7 @@
   }
   function refreshFocus() {
     markMoving();
+    paintEyebrow();
     const before = focus.y * 12 + focus.m;
     computeFocus();
     try { updateBack(); } catch (e) {} // setT 时 focus 还是旧的月份：算完再看一次
@@ -499,7 +524,8 @@
     const el = $('#weekdays');
     el.classList.toggle('hide', view !== 'month');   // 只在月视图悬浮显示；周视图每列自带星期
     let h = '';
-    for (let i = 0; i < 7; i++) h += `<div>${MC.WD[(i + MC.settings.weekStart) % 7]}</div>`;
+    const today = new Date().getDay();
+    for (let i = 0; i < 7; i++) { const d = (i + MC.settings.weekStart) % 7; h += `<div class="${d === 0 || d === 6 ? 'we' : ''}${d === today ? ' td' : ''}">${MC.WD[d]}</div>`; }   // 周末更淡，今天那一列更深
     el.innerHTML = h;
     paintMood();
   }
@@ -686,6 +712,7 @@
     if (from !== 'month') playZoom(LEVELS.indexOf('month') > LEVELS.indexOf(from) ? 'in' : 'out');
   }
   Cal.goToday = goToday;
+  { const td = $('#calToday'); if (td) td.addEventListener('click', e => { e.stopPropagation(); goToday(); }); }
 
   // ---------- 手势 ----------
   let sx = 0, sy = 0, dx = 0, dy = 0, tracking = false, dragging = false, suppress = false, base = 0, caught = false;

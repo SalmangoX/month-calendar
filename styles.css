@@ -286,7 +286,7 @@ body .weekdays { display: none; }
 .wcol .chip small { display: block; font-size: 9px; opacity: .85; font-weight: 500; }
 
 /* 年视图 */
-.ypanel { position: absolute; left: 0; right: 0; height: 100%; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); gap: 2px 10px; padding: 4px 12px var(--bar-space); }
+.ypanel { position: absolute; left: 0; right: 0; height: 100%; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); gap: 2px 10px; padding: 58px 12px var(--bar-space); }   /* 顶上让开标题板（52px） */
 .mini { min-width: 0; display: flex; flex-direction: column; padding: 6px 4px; border-radius: var(--r-m); cursor: pointer; transition: background .15s; }
 .mini:active { background: var(--field); }
 .mini h4 { margin: 0 0 4px 3px; font-size: 14px; font-weight: 680; }
@@ -1596,11 +1596,11 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 :root[data-theme="dark"] .face { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
 :root[data-theme="dark"] .face::after { opacity: .07; }
 /* 真折射：把背景按噪声位移，边缘像液体一样扭曲（Chromium / 安卓 WebView 支持；不支持的就用上面的普通玻璃） */
-.lg-refract .face, .lg-refract #page-cal .topbar .title {
+.lg-refract .face {
   -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract);
   backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract);
 }
-:root[data-theme="dark"].lg-refract .face, :root[data-theme="dark"].lg-refract #page-cal .topbar .title {
+:root[data-theme="dark"].lg-refract .face {
   -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract);
   backdrop-filter: blur(2px) saturate(170%) url(#lg-refract);
 }
@@ -1719,17 +1719,7 @@ body[data-page="sched"] .sched-back { display: grid; }
 body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); pointer-events: none; }
 
 /* ---------- 顶部月份气泡：在安全区下面，不压灵动岛 / 状态栏 ---------- */
-#page-cal::before {
-  content: ""; position: absolute; left: 0; right: 0; top: 0; z-index: 5; pointer-events: none;
-  /* 状态栏 / 灵动岛那一条不再是实底：日历和情绪光谱一直铺到屏幕最顶上（App 本来就是全屏画的），
-     这里只做 iOS 26 那种「软边」——轻轻模糊 + 往下渐隐，让时间、电量还看得清 */
-  /* 用户在效果图里调的：虚化的下沿在灵动岛从上往下 15% 处（iPhone 17 上约 16.5pt，安全区高度的 .27），
-     强度 4px、底色 55%、渐隐 65%；下沿以下的日历照常清楚显示，灵动岛两边也看得到日期和事件 */
-  height: calc(var(--safe-t) * .27);
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 55%, transparent), transparent);
-  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
-  -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent); mask-image: linear-gradient(to bottom, #000 35%, transparent);
-}
+#page-cal::before { content: none; }   /* 状态栏的软边：顶部标题板已经盖住状态栏，不再需要 */
 /* 月视图顶部留白（calendar.js 读这个值）；0 = 日历整页铺满，月份气泡悬浮在上面 */
 #calViewport { --cal-top: 0px; }
 /* 月份胶囊、星期条往下让开侧拉菜单的那一点距离；月视图的日历行也整体往下挪同样多（calendar.js 读它），
@@ -1739,71 +1729,68 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 :root { --cal-shift: -20px; }
 /* 月视图：日历区从屏幕最顶上开始（灵动岛后面也有日历），calendar.js 把行往下让开安全区 */
 body.cal-m #page-cal { padding-top: 0; }
-/* 周视图：每列顶上先让开悬浮的月份胶囊（胶囊底在安全区下 50px），再写星期、日期；只影响周视图 */
-body.cal-w .wcol { padding-top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 42px - var(--safe-t)); }   /* 胶囊（高 36）底边下面 6px */
+/* 周视图：每列顶上先让开顶部的标题板（安全区下 52px），再写星期、日期；只影响周视图 */
+body.cal-w .wcol { padding-top: 58px; }
 .wwd { font-size: 11px; color: var(--text2); text-align: center; line-height: 1; margin-bottom: 2px; }
 .wcol.today .wwd { color: var(--accent-text); font-weight: 650; }
-body.cal-w .wbar { top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 93px - var(--safe-t) + var(--s) * 23px); }   /* 列顶留白 + 星期 13 + 日期 38 */
+body.cal-w .wbar { top: calc(109px + var(--s) * 23px); }   /* 列顶留白 58 + 星期 13 + 日期 38 */
+/* ---------- 顶部标题板（用户定的：放弃悬浮胶囊和星期条，改回一块半透明的板） ----------
+   从屏幕最顶上（状态栏、灵动岛后面）一直到吸附线：底边正好落在吸附线上（--snap-y，calendar.js 的 measure() 按布局位置算）。
+   日历的行、吸附线位置都不变，日历在板下面照常滚动，透过磨砂隐约看得见。
+   排版走编辑式：左对齐的大号月份 + 同一条基线上的淡色年份；星期一行贴在板的底边、对准七列，小号、拉开字距；
+   周末更淡，今天那一列的星期字更深。材质：背景色 62% + 模糊 18px + 提饱和，底边一根发丝线，没有阴影、没有高光 */
 /* 【联动:顶部悬浮】见 CLAUDE.md「联动分组」 */
 #page-cal .topbar {
-  position: absolute; left: 0; right: 0; top: var(--pill-y, calc(var(--safe-t) + 6px + var(--cal-drop))); z-index: 6;   /* --pill-y：calendar.js 按吸附线算 */   /* 比侧拉菜单的顶（安全区下 10px）再低一点：菜单拉出来能整个盖住胶囊 */
-  padding: 0; display: flex; justify-content: center; pointer-events: none;
+  position: absolute; left: 0; right: 0; top: 0; z-index: 6; padding: 0 !important; pointer-events: none;
+  height: var(--snap-y, calc(var(--safe-t) + 104px));
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(180%); backdrop-filter: blur(18px) saturate(180%);
+  box-shadow: inset 0 -.5px 0 color-mix(in srgb, var(--text) 14%, transparent);
 }
-#page-cal .topbar .title-wrap { pointer-events: none; }
+:root[data-theme="dark"] #page-cal .topbar { background: color-mix(in srgb, var(--bg) 60%, transparent); box-shadow: inset 0 -.5px 0 rgba(255, 255, 255, .1); }
+/* 周视图、年视图：只要标题那一条（安全区下 52px） */
+body:not(.cal-m) #page-cal .topbar { height: calc(var(--safe-t) + 52px); }
+/* 版式（用户选的 B「编辑式标题」）：月视图里——上面一行小号眉题（年份　第几周，拉开字距），下面大号粗体月份（十一月），
+   右边一颗浅色小标签写今天（点了回到今天）；年份不再跟在月份后面，箭头也不要。周视图 / 年视图只留一行紧凑的标题 */
+#page-cal .topbar .title-wrap { position: absolute; left: 18px; right: 150px; bottom: 48px; pointer-events: none; display: flex; flex-direction: column; align-items: flex-start; }
+body:not(.cal-m) #page-cal .topbar .title-wrap { bottom: 10px; right: 18px; }
+.cal-eyebrow { margin: 0 0 7px 2px; font-size: 11px; font-weight: 650; letter-spacing: .16em; color: var(--text2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+body:not(.cal-m) .cal-eyebrow, body:not(.cal-m) .cal-today { display: none; }
 #page-cal .topbar .title {
-  pointer-events: auto; position: relative; min-width: 0;
-  /* 造型：高 36，左边留白比右边多 4（右边的箭头自带视觉重量，这样字的重心正好在胶囊中间） */
-  display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px 0 18px;
-  border-radius: 999px; cursor: pointer;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .05) 60%, rgba(255, 255, 255, .12));
-  -webkit-backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05); backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05);
-  box-shadow: var(--lg-shadow); text-shadow: var(--lg-ink-halo);
-  transition: transform .55s var(--spring-out);
+  pointer-events: auto; position: relative; min-width: 0; max-width: 100%;
+  display: inline-flex; align-items: baseline; gap: 10px; cursor: pointer; transform-origin: 0 80%;
+  transition: transform .45s var(--spring-out), opacity .2s;
 }
-#page-cal .topbar .title::before { content: ""; position: absolute; inset: -8px -6px; border-radius: 999px; }   /* 热区比圆面大一圈 */
-#page-cal .topbar .title.pressed { transform: scale(.94); transition: transform .14s var(--press-in); }
-:root[data-theme="dark"] #page-cal .topbar .title { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
+#page-cal .topbar .title::before { content: ""; position: absolute; inset: -10px -12px; }   /* 热区比字大一圈 */
+#page-cal .topbar .title.pressed { transform: scale(.97); opacity: .7; transition: transform .14s var(--press-in), opacity .14s; }
 #page-cal .topbar .title h1 {
-  margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.025em; line-height: 1; white-space: nowrap;
+  margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -.04em; line-height: 1; white-space: nowrap; color: var(--text);
   font-family: -apple-system, "SF Pro Display", system-ui, "PingFang SC", sans-serif;
 }
 #page-cal .topbar .title p {
-  margin: 0; font-size: 15px; font-weight: 450; color: var(--text2); letter-spacing: .005em; line-height: 1; white-space: nowrap;
+  margin: 0; font-size: 17px; font-weight: 500; color: var(--text2); letter-spacing: -.01em; line-height: 1; white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-#page-cal .topbar .title .title-chev { width: 10px; height: 10px; stroke-width: 2.6; color: var(--text2); opacity: .55; margin-left: 0; }
+body.cal-m #page-cal .topbar .title p, body.cal-m #page-cal .topbar .title .title-chev { display: none; }   /* 月视图：年份在眉题里 */
+body:not(.cal-m) #page-cal .topbar .title h1 { font-size: 30px; font-weight: 750; letter-spacing: -.035em; }
+#page-cal .topbar .title .cal-chip { align-self: center; margin: 0; }
+#page-cal .topbar .title .title-chev { align-self: center; width: 12px; height: 12px; stroke-width: 2.6; color: var(--text2); opacity: .6; margin-left: -2px; }
+/* 今天：浅色胶囊，和大标题的中线对齐 */
+.cal-today { position: absolute; right: 20px; bottom: 53px; height: 30px; padding: 0 13px; border-radius: 999px; pointer-events: auto;
+  font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--text) 6%, transparent); transition: transform .4s var(--spring-out), background .2s; }
+.cal-today:active, .cal-today.pressed { transform: scale(.95); background: color-mix(in srgb, var(--text) 10%, transparent); transition: transform .12s var(--press-in); }
 
-/* 悬浮星期条：固定在月份气泡下面，透明，日历在下面整页滚动 */
-/* 星期条：一条细长的悬浮玻璃（和月份胶囊同一种玻璃），只占这一条的高度；下面的日历不加任何遮挡，透过玻璃还看得见 */
-/* 左右边距和下面日历的每一行（.wrow 左右各 2px）完全一样：七个字正好对准七列，不会越往两边越歪。
-   玻璃和月份胶囊、底部按钮是同一种（iPhone / Mac 上同一种原生液态玻璃，深色模式不发白） */
+/* 星期：贴在标题板的底边（底边离吸附线 4px），七个字对准七列（左右和日历每一行一样各 2px） */
 /* 【联动:顶部悬浮】见 CLAUDE.md「联动分组」 */
 body #page-cal .weekdays {
-  display: grid; position: absolute; left: 2px; right: 2px; top: var(--wk-y, calc(var(--safe-t) + 50px + var(--cal-drop))); z-index: 6;   /* --wk-y：底边在吸附线（默认本周那一行的顶边）上方 4px */
-  height: 24px; padding: 0; align-items: center; pointer-events: none; border-radius: 12px;
-  font-size: 11px; font-weight: 650; letter-spacing: .04em; color: var(--text);
-  background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .05) 60%, rgba(255, 255, 255, .12));
-  -webkit-backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05); backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05);
-  box-shadow: var(--lg-shadow); text-shadow: var(--lg-ink-halo);
-  transition: transform .5s cubic-bezier(.25, .1, .25, 1), opacity .5s cubic-bezier(.25, .1, .25, 1);   /* 停下后和月框同一条曲线一起恢复，不回弹 */
+  display: grid; position: absolute; left: 2px; right: 2px; z-index: 7; pointer-events: none;
+  top: calc(var(--snap-y, calc(var(--safe-t) + 104px)) - 26px); height: 22px; padding: 0; align-items: center;
+  font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--text2); background: none;
 }
-/* 滑动中：玻璃效果柔和地变浅、只轻轻扩一点点（不突兀），停下后慢慢恢复（calendar.js 的 markMoving）。iPhone / Mac 的原生玻璃按 opacity 跟着变淡 */
-body #page-cal .weekdays.moving { opacity: .55; transform: scale(1.01, 1.04); transition: transform .45s cubic-bezier(.25, .1, .25, 1), opacity .45s cubic-bezier(.25, .1, .25, 1); }
-.lg-refract body #page-cal .weekdays { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); }
-:root[data-theme="dark"] body #page-cal .weekdays { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
-:root[data-theme="dark"].lg-refract body #page-cal .weekdays { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }
-/* 安卓 App：月份胶囊和星期条做成 iOS 那样的透明液态玻璃——轻微模糊 + 柔和的折射（#lg-refract-soft，位移比按钮小），
-   不提亮、不加重饱和（以前 brightness / saturate 加在安卓 WebView 上会把深色背景提亮、糊成一片） */
-.in-android #page-cal .topbar .title, .in-android body #page-cal .weekdays {
-  -webkit-backdrop-filter: blur(2px) saturate(135%) url(#lg-refract-soft) !important; backdrop-filter: blur(2px) saturate(135%) url(#lg-refract-soft) !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .03) 50%, rgba(255, 255, 255, .08));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 -1px 0 rgba(255, 255, 255, .5), inset 0 0 0 .6px rgba(20, 40, 70, .08), 0 5px 14px rgba(20, 32, 56, .16);
-}
-:root[data-theme="dark"].in-android #page-cal .topbar .title, :root[data-theme="dark"].in-android body #page-cal .weekdays {
-  -webkit-backdrop-filter: blur(2px) saturate(120%) brightness(.94) url(#lg-refract-soft) !important; backdrop-filter: blur(2px) saturate(120%) brightness(.94) url(#lg-refract-soft) !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .015) 50%, rgba(255, 255, 255, .04));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 -1px 0 rgba(255, 255, 255, .03), 0 5px 14px rgba(0, 0, 0, .5);
-}
+body #page-cal .weekdays > div { text-align: center; }
+body #page-cal .weekdays .we { opacity: .55; }                 /* 周末更淡 */
+body #page-cal .weekdays .td { color: var(--text); font-weight: 750; opacity: 1; }   /* 今天那一列 */
 /* 情绪光谱：一层柔光铺在日历下面、星期条后面。每一天一团椭圆的光，中心在星期条上，往上照到状态栏、往下照进前几周；
    高度模糊让相邻的光融在一起。深色用「滤色」像暗处透出的光，浅色用「正片叠底」像水彩染在纸上（白天也看得清） */
 /* 光在日历内容的下面（z-index 0、在日历之前），只染背景：事件、日期、文字都在光上面，保持清楚，不会像蒙了一层雾 */
@@ -1814,7 +1801,6 @@ body.wk-mood #page-cal .wk-glow { display: block; }
 /* 每一团光的位置、高度和光心（--cy：星期条在这团光里的高度）由 calendar.js 按星期条的实际位置算 */
 #page-cal .wk-glow i { position: absolute; border-radius: 50%; background: radial-gradient(50% 50% at 50% var(--cy), var(--c), transparent 100%); }
 body.wk-mood #page-cal .weekdays .now { position: relative; font-weight: 750; font-size: 12px; }
-body #page-cal .weekdays span { opacity: .78; }
 body #page-cal .weekdays.hide { display: none; }
 
 /* ---------- 设置页：左上角返回 ---------- */

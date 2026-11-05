@@ -43,8 +43,11 @@
   <section class="page active" id="page-cal">
     <header class="topbar">
       <div class="title-wrap">
+        <!-- 编辑式标题（用户选的 B）：上面一行小号眉题（年份 · 第几周），下面大号月份；右边一颗小标签写今天，点了回到今天 -->
+        <div class="cal-eyebrow" id="calEyebrow" data-uc></div>
         <div class="title" role="button" aria-label="选择日历"><h1 id="calTitle"></h1><span class="cal-chip" id="calChip" data-uc hidden></span><p id="calSub"></p><svg class="title-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></div>
       </div>
+      <button class="cal-today tap" id="calToday" type="button" data-uc></button>
     </header>
     <div class="wk-glow" id="wkGlow" aria-hidden="true"></div>
     <div class="weekdays" id="weekdays"></div>
