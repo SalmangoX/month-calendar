@@ -568,6 +568,10 @@ body:not([data-page="cal"]) .back-today { display: none; }
 }
 /* 新建子日历：两种日历的介绍卡片，左右并排，各带一个简单的效果图 */
 #calKindSheet { z-index: 42; }
+/* 介绍卡片在手机上也居中（从胶囊长到屏幕中间），不贴在底部；要打字的设置表单还是从底部弹出，键盘不挡输入框 */
+#calKindSheet.fl { top: 50%; bottom: auto; translate: 0 -50%; max-height: calc(100% - var(--safe-t) - var(--safe-b) - 40px); overflow-y: auto; }
+#calKindSheet.fl:not(.show) { transform: translateY(28px) scale(.97); opacity: 0; }
+#calKindSheet .handle { visibility: hidden; }   /* 居中的卡片不往下拉收起，不显示把手 */
 #calKindSheet.morph { transition: none !important; }   /* 从胶囊长出来 / 缩回胶囊时：位置不再走面板自己的弹出过渡，形状由 drawer.js 的 morphKinds 画 */
 .ck-lead { margin: -4px 20px 12px; font-size: 13px; line-height: 1.5; color: var(--text2); text-align: center; }
 .ck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 4px; }

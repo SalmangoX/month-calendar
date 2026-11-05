@@ -192,7 +192,7 @@
       { duration: opening ? 520 : 380, fill: 'forwards' }));
     a.onfinish = () => {
       done && done();
-      requestAnimationFrame(() => { a.cancel(); kids.forEach(k => k.getAnimations().forEach(x => x.cancel())); KS.classList.remove('morph'); btn.style.opacity = ''; });
+      requestAnimationFrame(() => { a.cancel(); kids.forEach(k => k.getAnimations().forEach(x => x.cancel())); KS.classList.remove('morph'); if (!opening) btn.style.opacity = ''; });   // 卡片开着时胶囊一直藏着（卡片就是它变的），收回后再出现
     };
   }
   function openKinds() {
@@ -202,7 +202,7 @@
     KS.querySelector('[data-k="days"]').onclick = () => pick('days');
     // 关闭前先缩回胶囊（往下拉着关的已经跟着手指走了，直接收起）
     UI.guard('calKindSheet', proceed => { if (KS.style.transform) { proceed(); return; } morphKinds(false, proceed); });
-    UI.open('calKindSheet', () => { UI.guard('calKindSheet'); if (!picked && nativeDrawer()) D.open(); });
+    UI.open('calKindSheet', () => { UI.guard('calKindSheet'); $('#drawerAdd').style.opacity = ''; if (!picked && nativeDrawer()) D.open(); });
     KS.classList.add('morph'); void KS.offsetWidth;   // 先没有过渡地放到最终位置，再从胶囊长出来
     morphKinds(true);
   }
