@@ -1,4 +1,4 @@
-/* 月历 · 页面切换、今日、四象限、设置、锁屏、帮助、启动 */
+/* 月历 · 页面切换、今日、设置、锁屏、帮助、启动 */
 (() => {
   'use strict';
   const MC = window.MC, UI = MC.UI, $ = UI.$, esc = MC.esc, Push = MC.Push;
@@ -88,7 +88,7 @@
     placeInd();
     renderPage();
   }
-  // 菜单第三项：四象限 / 课表 / 不显示
+  // 菜单第三项：课表（四象限已移除）
   const TAB3 = {
     sched: { label: '课表', svg: '<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="4"/><path d="M3.5 9.5h17M9.5 9.5v11M3.5 15h17"/></svg>' },
   };
@@ -276,7 +276,7 @@
 
 
   // ---------- 记录日历：等级统计 ----------
-  // 开了「等级评分」的记录日历，底部菜单里的四象限 / 课表换成「统计」
+  // 开了「等级评分」的记录日历，logo 扇形里多一个「统计」
   const rs = { range: 'month', off: 0, tab: 'all', openEv: null, allEv: false };
   const recCal = () => { const id = MC.activeCal(); return id && MC.rateOn(id) ? MC.cal(id) : null; };
   function syncRecTabs() {
@@ -299,8 +299,6 @@
   }
 
   // ---- 计算 ----
-  const dayNum = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 864e5;
-  const numDay = n => { const d = new Date(n * 864e5); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
   const mean = l => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 0);
   const avgOf = l => mean(l.map(e => e.rate));
   const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
@@ -310,33 +308,11 @@
   const fmtDur = m => { m = Math.round(m); return m >= 60 ? `${Math.floor(m / 60)}小时${m % 60 ? (m % 60) + '分' : ''}` : `${m}分钟`; };
   const hhLabel = h => `${Math.floor(h / 2)}:${h % 2 ? '30' : '00'}`;
   const offLabel = i => (i === 0 ? '开始' : i % 2 ? `${i > 1 ? Math.floor(i / 2) + '小时' : ''}30分` : `${i / 2}小时`);
-  function slope(pts) { // 最小二乘斜率
-    const n = pts.length; if (n < 3) return null;
-    const mx = mean(pts.map(p => p[0])), my = mean(pts.map(p => p[1]));
-    let sxx = 0, sxy = 0; for (const [x, y] of pts) { sxx += (x - mx) ** 2; sxy += (x - mx) * (y - my); }
-    return sxx ? sxy / sxx : null;
-  }
   // 每半小时一段：没单独评的段跟着整条事件的等级
   function segPoints(evs) {
     const pts = [];
     for (const e of evs) MC.segBlocks(e.time, e.endTime).forEach((b, i) => { const v = MC.segVal(e, b.k); if (v) pts.push({ e, clock: b.a % 1440, hh: Math.floor((b.a % 1440) / 30), idx: i, v }); });
     return pts;
-  }
-  // 时间分桶（趋势线用）
-  function bins(evs, span) {
-    const x0 = span ? dayNum(MC.ymd(span[0])) : dayNum(evs[0].date), x1 = span ? dayNum(MC.ymd(span[1])) : dayNum(evs[evs.length - 1].date);
-    const unit = rs.range === 'year' ? 'm' : span ? 'd' : x1 - x0 <= 62 ? 'd' : x1 - x0 <= 1100 ? 'm' : 'y', out = [];
-    if (unit === 'd') for (let x = x0; x <= x1; x++) { const d = numDay(x); out.push({ x0: x, x1: x, label: `${d.getMonth() + 1}月${d.getDate()}日`, short: rs.range === 'week' ? WD[d.getDay()].slice(1) : rs.range === 'month' ? String(d.getDate()) : `${d.getMonth() + 1}/${d.getDate()}` }); }
-    else {
-      let d = numDay(x0); d = unit === 'm' ? new Date(d.getFullYear(), d.getMonth(), 1) : new Date(d.getFullYear(), 0, 1);
-      while (dayNum(MC.ymd(d)) <= x1) {
-        const nx = unit === 'm' ? new Date(d.getFullYear(), d.getMonth() + 1, 1) : new Date(d.getFullYear() + 1, 0, 1);
-        out.push({ x0: dayNum(MC.ymd(d)), x1: dayNum(MC.ymd(nx)) - 1, label: unit === 'm' ? `${d.getFullYear()}年${d.getMonth() + 1}月` : `${d.getFullYear()}年`, short: unit === 'm' ? String(d.getMonth() + 1) : String(d.getFullYear()).slice(2) });
-        d = nx;
-      }
-    }
-    for (const b of out) { const l = evs.filter(e => e.rate && dayNum(e.date) >= b.x0 && dayNum(e.date) <= b.x1); b.v = l.length ? avgOf(l) : 0; b.n = l.length; }
-    return out;
   }
 
   // ---- 图表（只画必要的东西）----
@@ -1067,10 +1043,6 @@
   $('#formSubmit').onclick = submitForm;
   $('#formBody').addEventListener('submit', submitForm);
 
-  function checkPw(pw, pw2) {
-    if (pw !== pw2) throw new Error('两次输入的密码不一致');
-    if (pw && pw.length < 4) throw new Error('密码至少 4 位');
-  }
   const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=' + encodeURIComponent('月历同步');
   function connectForm(isRetoken) {
     openForm({

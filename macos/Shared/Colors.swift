@@ -202,6 +202,9 @@ struct Pal {
     static let P: [UInt32] = [0xFFA3_A1AD, 0xFF5B_8FD0, 0xFFC9_8A1E, 0xFFD4_472C]
     static let DARK_FILL: [UInt32] = P.map { CourseColors.darkTone($0).0 }
     static let DARK_INK: [UInt32] = P.map { CourseColors.darkTone($0).1 }
+    /// 优先级色条的渐变（和网页 store.js 的 GRAD 同一组色标）：低在右端带一点中级，中两端带低级 / 高级，高在左端带一点中级
+    static let GRAD_L: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF5B_8FD0), (0.55, 0xFF5B_8FD0), (0.775, 0xFF7E_92AB), (1, 0xFF9C_9183)], 2: [(0, 0xFF91_9293), (0.15, 0xFFAE_8F66), (0.3, 0xFFC9_8A1E), (0.7, 0xFFC9_8A1E), (0.85, 0xFFCD_7A24), (1, 0xFFD1_6828)], 3: [(0, 0xFFCF_6F26), (0.225, 0xFFD2_5C2A), (0.45, 0xFFD4_472C), (1, 0xFFD4_472C)]]
+    static let GRAD_D: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF23_5692), (0.55, 0xFF23_5692), (0.775, 0xFF4F_627C), (1, 0xFF73_6B61)], 2: [(0, 0xFF66_686B), (0.15, 0xFF8A_6F4C), (0.3, 0xFFAC_7305), (0.7, 0xFFAC_7305), (0.85, 0xFFAA_6312), (1, 0xFFA8_5319)], 3: [(0, 0xFFA9_5917), (0.225, 0xFFA6_481C), (0.45, 0xFFA3_351F), (1, 0xFFA3_351F)]]
     /// 红色只用于逾期、现在时间的线（和优先级无关）
     static let RED: UInt32 = 0xFFD9_453E
 
@@ -228,6 +231,13 @@ struct Pal {
         if !dark { return (Color(argb: col), .white) }
         if let cc = d.calColorOf(e) { let t = CourseColors.darkTone(cc); return (Color(argb: t.0), Color(argb: t.1)) }
         return (Color(argb: Pal.DARK_FILL[e.priority]), Color(argb: Pal.DARK_INK[e.priority]))
+    }
+
+    /// 色条的底：优先级事件（没完成、本月、不是记录日历颜色）画成渐变，其余照旧是实色
+    func chipFill(_ e: CEvent, _ d: CalData, soft: Bool, out: Bool = false) -> AnyShapeStyle {
+        let fill = chip(e, d, soft: soft, out: out).0
+        guard !glass, !soft, !out, !e.done, d.calColorOf(e) == nil, let g = (dark ? Pal.GRAD_D : Pal.GRAD_L)[e.priority] else { return AnyShapeStyle(fill) }
+        return AnyShapeStyle(LinearGradient(stops: g.map { .init(color: Color(argb: $0.1), location: $0.0) }, startPoint: .leading, endPoint: .trailing))
     }
 
     /// 课程小色块：(底色, 字色)

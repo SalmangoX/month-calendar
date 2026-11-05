@@ -723,8 +723,11 @@
         let top = null, tz = -1;
         document.querySelectorAll(LAYERS).forEach(l => { const z = Number(getComputedStyle(l).zIndex) || 0; if (z >= tz) { tz = z; top = l; } });
         const W = innerWidth, H = innerHeight, out = [], shown = new Set();
+        // 今日页打开着、或者正在从时钟胶囊展开 / 收回：它盖在别的页面上面，别的页面里的玻璃（月份胶囊、星期条）不画，不然原生玻璃浮在今日页上面
+        const td = document.querySelector('#page-today.active, #page-today.pv-hold');
         document.querySelectorAll(LG_SEL).forEach(el => {
           if (top && !top.contains(el)) return;
+          if (td && !td.contains(el) && el.closest('.page')) return;
           if (!top && el.closest('.sheet, .dp, .cam, .popover')) return;
           if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) {
             if (!el.classList.contains('lg-thumb')) return; // 水滴在网页里是透明的（只给原生画），照样要发

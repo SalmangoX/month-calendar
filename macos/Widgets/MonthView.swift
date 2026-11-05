@@ -281,7 +281,7 @@ struct MonthView: View {
 
     /// tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致）
     private func chip(_ e: CEvent, soft: Bool, out: Bool = false, width: CGFloat, pal: Pal, tm: Bool = false) -> some View {
-        let (fill, ink) = pal.chip(e, entry.data, soft: soft, out: out)
+        let ink = pal.chip(e, entry.data, soft: soft, out: out).1
         return Text(e.displayTitle)
             .font(.system(size: MonthView.chipFS, weight: pal.dark ? .medium : MonthView.chipW))
             .strikethrough(e.done)
@@ -296,7 +296,7 @@ struct MonthView: View {
             .overlay(alignment: .trailing) {
                 if tm { Circle().fill(ink).frame(width: 3.5, height: 3.5).opacity(0.75).padding(.trailing, 3) }
             }
-            .background(RoundedRectangle(cornerRadius: MonthView.chipR).fill(fill))
+            .background(RoundedRectangle(cornerRadius: MonthView.chipR).fill(pal.chipFill(e, entry.data, soft: soft, out: out)))
             .padding(.horizontal, 1)
             .widgetAccentable()
     }
@@ -304,7 +304,7 @@ struct MonthView: View {
     /// 跨天横条：和格子里的色条同样的颜色、圆角、字号；延续到上一周 / 下一周的一端是平的
     private func bar(_ s: WeekLanes.Seg, wk: [YMD], ym: YMD, cw: CGFloat, pal: Pal) -> some View {
         let out = !(s.a...s.b).contains { wk[$0].m == ym.m }
-        let (fill, ink) = pal.chip(s.e, entry.data, soft: s.e.done || out, out: out)
+        let ink = pal.chip(s.e, entry.data, soft: s.e.done || out, out: out).1
         let x0 = CGFloat(s.a) * (cw + MonthView.sp) + (s.openL ? 0 : 1)
         let x1 = CGFloat(s.b) * (cw + MonthView.sp) + cw - (s.openR ? 0 : 1)
         let y = MonthView.cellTop + MonthView.dateH + 1 + CGFloat(s.slot) * MonthView.slot
@@ -320,7 +320,7 @@ struct MonthView: View {
             .clipped()
             .mask(MonthView.fade(max(1, x1 - x0 - (s.openR ? 0 : 1.5))))
             .frame(width: max(0, x1 - x0), height: MonthView.chipH, alignment: .leading)
-            .background(UnevenRoundedRectangle(topLeadingRadius: rl, bottomLeadingRadius: rl, bottomTrailingRadius: rr, topTrailingRadius: rr).fill(fill))
+            .background(UnevenRoundedRectangle(topLeadingRadius: rl, bottomLeadingRadius: rl, bottomTrailingRadius: rr, topTrailingRadius: rr).fill(pal.chipFill(s.e, entry.data, soft: s.e.done || out, out: out)))
             .widgetAccentable()
             .offset(x: x0, y: y)
     }

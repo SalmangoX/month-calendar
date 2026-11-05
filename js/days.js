@@ -531,12 +531,6 @@
   function fillCovers(root) {
     root.querySelectorAll('img[data-cover]:not([src])').forEach(async img => { const u = await P.photoURL(img.dataset.cover); if (u) { img.src = u; img.classList.add('ok'); } });
   }
-  function subLine(x, inf) {
-    const word = inf.state === 'today' ? T('就是今天') : inf.state === 'fut' ? T('还有') : T('起始于');
-    const bits = [`<span class="dv-st">${word}</span>`, esc(fmtDateTime(inf.occ, x.time))];
-    if (x.rep) bits.push(repLabel(x.rep) + (x.rep === 'year' && inf.nth > 0 ? ' · ' + F('{0} 周年', inf.nth) : ''));
-    return bits.join('<i class="dot">·</i>');
-  }
 
   // 小条：文字全靠左；右边约 38% 宽放主题照片，从左往右渐变出来。没有照片时右边是一层很淡的大类颜色和一个大图标水印
   // 列表的一行：左边透明底的实心图标（有主题照片就是照片小图），中间名称和日期，右边大数字——干净的三栏，不再在右边铺渐变和水印
@@ -1211,7 +1205,7 @@
       b.hidden = on ? !['cal', 'days', 'dsum', 'set'].includes(p) : p === 'days' || p === 'dsum' || p === 'rstat';
     });
     body.classList.toggle('days-mode', on);
-    if (!on && MC.onCalChange) MC.onCalChange(); // 回到记录日历：按它有没有开等级评分决定显示「统计」还是四象限
+    if (!on && MC.onCalChange) MC.onCalChange(); // 回到记录日历：按它有没有开等级评分决定扇形里有没有「统计」
     if (!MC.App) return;
     const pg = MC.App.page();
     if (on && (entering || pg === 'today' || pg === 'quad' || pg === 'sched' || pg === 'cal')) MC.App.showPage('days');   // 纪念日历只有 纪念日 · 总览 两页（月历在总览里）

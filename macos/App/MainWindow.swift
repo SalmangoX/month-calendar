@@ -243,8 +243,6 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
             w.dragBand = 28
             nav.onDragHoles = { [weak w] holes in w?.dragHoles = holes }
         }
-        let bar = SolidHostingView(rootView: GlassTabBar(m: nav))
-        let fab = SolidHostingView(rootView: GlassFab(m: nav))
         let drawer = DrawerHostingView(rootView: GlassDrawer(m: nav))
         drawer.nav = nav
         // 日历栏打开时，窗口里所有的触控板左右划都交给日历栏（不管指针在列表上、遮罩上还是哪里）
@@ -258,7 +256,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         let lgLayer = PassThroughHostingView(rootView: GlassLayer(m: nav))
         lgLayer.frame = web.frame; lgLayer.autoresizingMask = [.width, .height]
         root.addSubview(lgLayer, positioned: .above, relativeTo: web)
-        for v in [bar, fab, drawer, menu] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
+        for v in [drawer, menu] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
         // 新底栏（时钟胶囊 · 分页点 · logo 扇形菜单）：铺满窗口，在日历栏和菜单下面；只在按钮上接住点击
         let dock = DockHostingView(rootView: GlassDock(m: nav))
         dock.nav = nav
@@ -270,20 +268,13 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         drawer.isHidden = true
         menu.isHidden = true
         NSLayoutConstraint.activate([
-            bar.centerXAnchor.constraint(equalTo: root.centerXAnchor), bar.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -4),
-            bar.widthAnchor.constraint(lessThanOrEqualTo: root.widthAnchor, constant: -24),
-            { let c = bar.widthAnchor.constraint(equalToConstant: 540); c.priority = .defaultHigh; return c }(),
-            fab.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -10), fab.bottomAnchor.constraint(equalTo: bar.topAnchor, constant: 2),
             drawer.leadingAnchor.constraint(equalTo: root.leadingAnchor), drawer.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             drawer.topAnchor.constraint(equalTo: root.topAnchor), drawer.bottomAnchor.constraint(equalTo: root.bottomAnchor),
             menu.leadingAnchor.constraint(equalTo: root.leadingAnchor), menu.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             menu.topAnchor.constraint(equalTo: root.topAnchor), menu.bottomAnchor.constraint(equalTo: root.bottomAnchor),
         ])
-        // 隐藏时让出点击：加号在设置页不显示；日历栏收起的动画放完再隐藏
+        // 隐藏时让出点击：日历栏收起的动画放完再隐藏（旧的玻璃菜单栏和加号已经不用了，网页发来状态前什么都不画）
         navSubs = [
-            nav.$fab.sink { [weak nav] f in fab.isHidden = !f || nav?.dock != nil },
-            // 有新底栏时（网页 0.23 起、不是纪念日历）：旧的菜单栏和加号让位
-            nav.$dock.sink { [weak nav] d in bar.isHidden = d != nil; fab.isHidden = d != nil || !(nav?.fab ?? true) },
             nav.$addRow.sink { [weak self] r in
                 guard let self, let r else { addMore.isHidden = true; return }
                 addMore.frame = self.web.convert(r, to: root).insetBy(dx: -18, dy: -18)

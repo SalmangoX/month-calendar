@@ -21,15 +21,6 @@
   function resetDraft(date) {
     Object.assign(draft, { title: '', note: '', priority: 0, rate: 0, segs: {}, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', done: false });
   }
-  function chipLabel(d) {
-    const n = MC.dayDiff(d.date);
-    let s = n === 0 ? '今天' : n === 1 ? '明天' : MC.dateLabel(d.date);
-    if (d.time) s += ' ' + MC.timeLabel(d);
-    let extra = '';
-    if (d.repeat && d.repeat !== 'none') extra += ' ↻';
-    if (d.remind !== null && d.remind !== undefined) extra += ' ⏰';
-    return s + extra;
-  }
   function paintFlag(btn, p) {
     const c = MC.rateOn(newCal) ? `var(--lv${p || 1})` : MC.priOf(p).color; // 开了等级评分的日历：标记用等级颜色
     btn.style.setProperty('--pc', p ? c : 'var(--text2)');

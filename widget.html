@@ -12,15 +12,15 @@
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent:#8DB0EA; --red:#F0625A; } }
   :root, :root[data-theme="light"] { color-scheme:light; --bg:#ECF2F5; --line:#DAE1E5; --text:#171B20; --text2:#747B83; --text3:#B9BFC3; --mix:20%;
     --chip-weight:600; }
-  .chip { --chip-bg:var(--c); --chip-fg:#fff; }
+  .chip { --chip-bg:var(--cg, var(--c)); --chip-fg:#fff; }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) { color-scheme:dark; --bg:#1B1C21; --line:#292A2F; --text:#EEEEF1; --text2:#8C8E97; --text3:#494A50; --mix:30%;
       --chip-weight:500; }
-    :root:not([data-theme="light"]) .chip:not(.done) { --chip-bg:var(--cf); --chip-fg:var(--ci); }
+    :root:not([data-theme="light"]) .chip:not(.done) { --chip-bg:var(--cgd, var(--cf)); --chip-fg:var(--ci); }
   }
   :root[data-theme="dark"] { color-scheme:dark; --bg:#1B1C21; --line:#292A2F; --text:#EEEEF1; --text2:#8C8E97; --text3:#494A50; --mix:30%;
     --chip-weight:500; }
-  :root[data-theme="dark"] .chip:not(.done) { --chip-bg:var(--cf); --chip-fg:var(--ci); }
+  :root[data-theme="dark"] .chip:not(.done) { --chip-bg:var(--cgd, var(--cf)); --chip-fg:var(--ci); }
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden;
     font-family:-apple-system, "Noto Sans SC", "PingFang SC", Roboto, sans-serif; }
@@ -168,8 +168,11 @@
     const label = e => { const mm = String(e.title).match(/^\s*([A-Za-z]{2,4})\s?(\d{4})\b/); return mm ? `${mm[1].toUpperCase()} ${mm[2]}` : e.title; };
     // 记录日历里没设优先级的事件用日历自己的颜色（和应用一致），深色用同一套算法生成的深色调
     const calc = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color]));
+    // 优先级色条的渐变（和应用 store.js 的 GRAD 同一组色标）：低在右端带一点中级，中两端带低级 / 高级，高在左端带一点中级
+    const PGRAD = { light: { 1: [[0, '#5B8FD0'], [55, '#5B8FD0'], [77.5, '#7E92AB'], [100, '#9C9183']], 2: [[0, '#919293'], [15, '#AE8F66'], [30, '#C98A1E'], [70, '#C98A1E'], [85, '#CD7A24'], [100, '#D16828']], 3: [[0, '#CF6F26'], [22.5, '#D25C2A'], [45, '#D4472C'], [100, '#D4472C']] }, dark: { 1: [[0, '#235692'], [55, '#235692'], [77.5, '#4F627C'], [100, '#736B61']], 2: [[0, '#66686B'], [15, '#8A6F4C'], [30, '#AC7305'], [70, '#AC7305'], [85, '#AA6312'], [100, '#A85319']], 3: [[0, '#A95917'], [22.5, '#A6481C'], [45, '#A3351F'], [100, '#A3351F']] } };
+    const pg = (p, m) => PGRAD[m][p] ? 'linear-gradient(90deg,' + PGRAD[m][p].map(([q, c]) => c + ' ' + q + '%').join(',') + ')' : '';
     const chip = (e, cls = '', st = '') => { const p = COLORS[e.priority] ? e.priority : 0, ch = e.cal && !e.priority && calc.get(e.cal);
-      const vars = ch ? (() => { const [f, i] = darkTone(ch); return `--c:${ch};--cf:${f};--ci:${i}`; })() : `--c:var(--p${p});--cf:var(--p${p}f);--ci:var(--p${p}i)`;
+      const vars = ch ? (() => { const [f, i] = darkTone(ch); return `--c:${ch};--cf:${f};--ci:${i}`; })() : `--c:var(--p${p});--cf:var(--p${p}f);--ci:var(--p${p}i)` + (PGRAD.light[p] ? `;--cg:${pg(p, 'light')};--cgd:${pg(p, 'dark')}` : '');
       return `<div class="chip${cls}${e.done ? ' done' : ''}" style="${vars}${st}">${esc(label(e))}</div>`; };
     const endOf = e => { const [a, b, c] = e.date.split('-').map(Number); return ymd(new Date(a, b - 1, c + e.days - 1)); };
     let cells = '', bars = '';

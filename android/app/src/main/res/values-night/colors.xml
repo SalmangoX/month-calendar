@@ -18,6 +18,16 @@
     <color name="chip_p3">#A3351F</color>
     <color name="chip_p2">#AC7305</color>
     <color name="chip_p1">#235692</color>
+    <!-- 优先级色条的渐变（和网页 store.js 的 GRAD 同一组色标，安卓最多三个色：起点 / 纯色处 / 终点） -->
+    <color name="chip_p1_a">#235692</color>
+    <color name="chip_p1_c">#235692</color>
+    <color name="chip_p1_e">#736B61</color>
+    <color name="chip_p2_a">#66686B</color>
+    <color name="chip_p2_c">#AC7305</color>
+    <color name="chip_p2_e">#A85319</color>
+    <color name="chip_p3_a">#A95917</color>
+    <color name="chip_p3_c">#A3351F</color>
+    <color name="chip_p3_e">#A3351F</color>
     <color name="chip_p0">#3D3C41</color>
 
     <!-- 今天格子的淡主色底（浅色 12%、深色 20%，和应用里选中日期一致） -->

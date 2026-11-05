@@ -252,10 +252,10 @@ body .weekdays { display: none; }
   height: var(--chip-h); line-height: var(--chip-h);
   font-size: 9.5px; padding: 0 2px; border-radius: 4.5px; letter-spacing: -.025em;
   white-space: nowrap; overflow: hidden;
-  background: var(--c); color: #fff; font-weight: 600;
+  background: var(--cg, var(--c)); color: #fff; font-weight: 600;   /* --cg：优先级渐变（store.js 的 MC.priGrad） */
 }
 /* 深色：每个颜色专门设计的深色调（--cf，宝石色，不发灰不发棕）+ 带一点同色的柔白字（--ci），由 store.js 算好写在每个色条上 */
-:root[data-theme="dark"] .chip:not(.done) { background: var(--cf, var(--c)); color: var(--ci, #F0F0F0); font-weight: 500; }
+:root[data-theme="dark"] .chip:not(.done) { background: var(--cgd, var(--cf, var(--c))); color: var(--ci, #F0F0F0); font-weight: 500; }
 .chip.done { opacity: .42; text-decoration: line-through; }
 @supports (background: color-mix(in srgb, red 50%, blue)) {
   .chip.done { opacity: 1; background: color-mix(in srgb, var(--c) var(--done-mix), transparent); color: color-mix(in srgb, var(--c) 70%, var(--text2)); }
@@ -388,8 +388,7 @@ body .weekdays { display: none; }
 .big-empty .em-ico { width: 54px; height: 54px; margin: 0 auto 12px; border-radius: 17px; display: grid; place-items: center; background: var(--tile); box-shadow: inset 0 0 0 .5px var(--tile-line); color: var(--accent); }
 .big-empty .em-ico svg { width: 26px; height: 26px; }
 
-/* ---------- 四象限 ---------- */
-.quad { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; padding: 0 12px calc(var(--bar-space) + 8px); }
+/* ---------- 小胶囊按钮（课表导入、批量识别等） ---------- */
 .chip-btn { padding: 8px 14px; border-radius: 18px; font-size: 13px; font-weight: 600; white-space: nowrap; color: var(--text); }
 .chip-btn.on { color: var(--accent-text); }
 
@@ -1599,10 +1598,10 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 /* 月视图：日历区从屏幕最顶上开始（灵动岛后面也有日历），calendar.js 把行往下让开安全区 */
 body.cal-m #page-cal { padding-top: 0; }
 /* 周视图：每列顶上先让开悬浮的月份胶囊（胶囊底在安全区下 50px），再写星期、日期；只影响周视图 */
-body.cal-w .wcol { padding-top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 44px - var(--safe-t)); }   /* 胶囊底边下面 6px */
+body.cal-w .wcol { padding-top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 42px - var(--safe-t)); }   /* 胶囊（高 36）底边下面 6px */
 .wwd { font-size: 11px; color: var(--text2); text-align: center; line-height: 1; margin-bottom: 2px; }
 .wcol.today .wwd { color: var(--accent-text); font-weight: 650; }
-body.cal-w .wbar { top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 95px - var(--safe-t) + var(--s) * 23px); }   /* 列顶留白 + 星期 13 + 日期 38 */
+body.cal-w .wbar { top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 93px - var(--safe-t) + var(--s) * 23px); }   /* 列顶留白 + 星期 13 + 日期 38 */
 #page-cal .topbar {
   position: absolute; left: 0; right: 0; top: var(--pill-y, calc(var(--safe-t) + 6px + var(--cal-drop))); z-index: 6;   /* --pill-y：calendar.js 按吸附线算 */   /* 比侧拉菜单的顶（安全区下 10px）再低一点：菜单拉出来能整个盖住胶囊 */
   padding: 0; display: flex; justify-content: center; pointer-events: none;
@@ -1610,7 +1609,8 @@ body.cal-w .wbar { top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 95px - 
 #page-cal .topbar .title-wrap { pointer-events: none; }
 #page-cal .topbar .title {
   pointer-events: auto; position: relative; min-width: 0;
-  display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 13px 0 17px;
+  /* 造型：高 36，左边留白比右边多 4（右边的箭头自带视觉重量，这样字的重心正好在胶囊中间） */
+  display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px 0 18px;
   border-radius: 999px; cursor: pointer;
   background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .05) 60%, rgba(255, 255, 255, .12));
   -webkit-backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05); backdrop-filter: blur(2.5px) saturate(190%) brightness(1.05);
@@ -1621,14 +1621,14 @@ body.cal-w .wbar { top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 95px - 
 #page-cal .topbar .title.pressed { transform: scale(.94); transition: transform .14s var(--press-in); }
 :root[data-theme="dark"] #page-cal .topbar .title { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
 #page-cal .topbar .title h1 {
-  margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -.02em; line-height: 1; white-space: nowrap;
+  margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.025em; line-height: 1; white-space: nowrap;
   font-family: -apple-system, "SF Pro Display", system-ui, "PingFang SC", sans-serif;
 }
 #page-cal .topbar .title p {
-  margin: 0; font-size: 15px; font-weight: 500; color: var(--text2); letter-spacing: -.01em; line-height: 1; white-space: nowrap;
+  margin: 0; font-size: 15px; font-weight: 450; color: var(--text2); letter-spacing: .005em; line-height: 1; white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-#page-cal .topbar .title .title-chev { width: 12px; height: 12px; stroke-width: 2.4; color: var(--text2); opacity: .7; margin-left: -1px; }
+#page-cal .topbar .title .title-chev { width: 10px; height: 10px; stroke-width: 2.6; color: var(--text2); opacity: .55; margin-left: 0; }
 
 /* 悬浮星期条：固定在月份气泡下面，透明，日历在下面整页滚动 */
 /* 星期条：一条细长的悬浮玻璃（和月份胶囊同一种玻璃），只占这一条的高度；下面的日历不加任何遮挡，透过玻璃还看得见 */

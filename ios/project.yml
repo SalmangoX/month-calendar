@@ -1,5 +1,5 @@
 # 节律 iPhone 版的 Xcode 工程描述。不用手改 Xcode 工程：运行 ./build.sh 会用 XcodeGen 从这里生成。
-# 和 Mac 版共用：提醒和同步的核心（Engine）、iCloud 云盘同步（CloudSync）、液态玻璃导航层（GlassNav、GlassLens.metal）、
+# 和 Mac 版共用：提醒和同步的核心（Engine）、iCloud 云盘同步（CloudSync）、液态玻璃导航层（GlassNav）、
 # 数据模型和多语言（macos/Shared）。iPhone 自己的只有网页外壳和桥接（App 文件夹）。
 name: CadenceiOS
 options:
@@ -29,7 +29,6 @@ targets:
       - ../macos/App/Engine.swift
       - ../macos/App/CloudSync.swift
       - ../macos/App/GlassNav.swift
-      - ../macos/App/GlassLens.metal
     settings:
       base:
         PRODUCT_NAME: Cadence

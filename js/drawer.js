@@ -1,5 +1,5 @@
 /* 月历 · 左侧日历栏：在日历页从左往右滑动拉出，切换主日历 / 特殊记录日历。
-   每个日历的事件各自独立：日历页只显示当前选中的日历；今日、四象限、小组件、每日提醒只看主日历。 */
+   每个日历的事件各自独立：日历页只显示当前选中的日历；今日、小组件、每日提醒只看主日历。 */
 (() => {
   'use strict';
   const MC = window.MC, UI = MC.UI, $ = UI.$, esc = MC.esc;
@@ -93,7 +93,7 @@
     const on = c.id === MC.activeCal(), n = MC.countIn(c.id);
     const days = c.kind === 'days';
     const flags = c.id && !days ? `${c.showInMain ? `<span title="显示在主日历">${LAYERS}</span>` : ''}${c.notify ? `<span title="通知已开">${BELL}</span>` : ''}` : '';
-    const sub = (days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日和四象限') + (flags ? `<span class="dr-flags">${flags}</span>` : '');
+    const sub = (days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日页') + (flags ? `<span class="dr-flags">${flags}</span>` : '');
     return `<div class="dr-row${on ? ' on' : ''}" style="--cc:${c.id ? c.color : 'var(--accent-base)'};--i:${i}" data-id="${esc(c.id)}">
       <button class="dr-pick" data-act="pick" aria-pressed="${on}">
         <span class="dr-ico">${days ? ICON_DAYS : c.id ? ICON_REC : ICON_MAIN}</span>
@@ -152,7 +152,7 @@
     const item = c => {
       const n = MC.countIn(c.id), days = c.kind === 'days';
       return { id: c.id, name: c.name, color: c.id ? c.color : '', kind: days ? 'days' : c.id ? 'rec' : 'main', on: c.id === MC.activeCal(),
-        sub: tr(days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日和四象限'),
+        sub: tr(days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日页'),
         inMain: !!c.showInMain && !days, notify: !!c.notify && !days,
         menu: c.id ? menuOf(c).map(m => ({ ...m, label: tr(m.label) })) : [] };
     };

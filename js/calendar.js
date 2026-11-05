@@ -28,7 +28,11 @@
   let firstOpenDone = false;
   let probe = null;   // 量安全区顶部高度（env() 在 JS 里读不到数值）
   const safeTop = () => {
-    if (!probe) { probe = document.createElement('div'); probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:var(--safe-t);visibility:hidden;pointer-events:none'; document.body.appendChild(probe); }
+    if (!probe) {
+      probe = document.createElement('div'); probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:var(--safe-t);visibility:hidden;pointer-events:none'; document.body.appendChild(probe);
+      // 安全区变了（Mac App 在网页加载完后才把 --safe-t 改成 28px 给红黄绿按钮）：重新排，吸附线、胶囊和星期条跟着更新
+      try { let h0 = probe.offsetHeight; new ResizeObserver(() => { if (probe.offsetHeight !== h0) { h0 = probe.offsetHeight; if (Cal.refresh) Cal.refresh(); } }).observe(probe); } catch (e) {}
+    }
     return probe.offsetHeight;
   };
   function measure() {
@@ -45,11 +49,16 @@
     TOP = base + (view === 'month' ? px('--cal-drop') + px('--cal-shift') : 0);
     rowH = Math.max(0, (pv ? fullH : H) - base) / 6.5;
     // 吸附线 = 默认状态下本周那一行的顶边（月视图打开时当月第一行停在第二行的位置：TOP + rowH）。
-    // 月份胶囊、星期条整体跟着它走：星期条的底边在吸附线上方 4px，胶囊在星期条上方 6px（格子大小、行的位置都不变）
+    // 星期条的底边在吸附线上方 4px；月份胶囊的中线在最上面那行第一、第二条事件中间（格子大小、行的位置都不变）
     if (view === 'month' && !pv) {
-      const pc = $('#page-cal'), snap = vp.getBoundingClientRect().top - pc.getBoundingClientRect().top + TOP + rowH;
-      const wkY = Math.round(snap - 4 - 24), pillY = wkY - 6 - 38;
-      if (pc.style.getPropertyValue('--wk-y') !== wkY + 'px') {
+      // 用布局位置（offsetTop）算，不受页面切换时缩放 / 位移动画的影响（Mac 上从今日页回来时量到一半会偏）
+      const pc = $('#page-cal'); let y0 = 0;
+      for (let e = vp; e && e !== pc; e = e.offsetParent) y0 += e.offsetTop;
+      const snap = y0 + TOP + rowH;
+      // 月份胶囊（高 36）的水平中线：最上面那一行（吸附线上面那行）里第一条和第二条事件中间（--ct 是第一条事件的顶，事件条高 --chip-h、间距 2）
+      const wr = vp.querySelector('.wrow'), ct = (wr && parseFloat(getComputedStyle(wr).getPropertyValue('--ct'))) || 39;
+      const wkY = Math.round(snap - 4 - 24), pillY = Math.round(snap - rowH + ct + px('--chip-h') + 1 - 18);
+      if (pc.style.getPropertyValue('--wk-y') !== wkY + 'px' || pc.style.getPropertyValue('--pill-y') !== pillY + 'px') {
         pc.style.setProperty('--wk-y', wkY + 'px'); pc.style.setProperty('--pill-y', pillY + 'px');
         requestAnimationFrame(() => { try { paintMood(); } catch (e) {} });   // 光心跟着星期条走
       }
@@ -366,12 +375,6 @@
     recenter(1);
     const target = Math.max(-(BUF - 1), Math.min(BUF - 1, Math.round(scrollY / rowH) + n));
     spring(scrollY, target * rowH, 0, monthH, settle);
-  }
-  function jumpToMonth(y, m) {
-    const target = MC.weekStartOf(new Date(y, m, 1));
-    const n = Math.round((target - MC.addDays(anchor, 7 * Math.round(scrollY / rowH))) / (7 * 864e5));
-    if (n && Math.abs(n) < BUF - 1) shiftRows(n);
-    else { stopAnim(); anchor = target; scrollY = 0; renderMonth(); }
   }
 
   // ---------- 周视图 ----------

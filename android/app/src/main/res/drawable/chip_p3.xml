@@ -1,2 +1,3 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="@color/chip_p3" /><corners android:radius="3.5dp" /></shape>
+<!-- 优先级色条：从左到右的渐变（低：右端带一点中级；中：两端带低级 / 高级；高：左端带一点中级） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><gradient android:angle="0" android:type="linear" android:startColor="@color/chip_p3_a" android:centerColor="@color/chip_p3_c" android:endColor="@color/chip_p3_e" android:centerX="0.45" /><corners android:radius="3.5dp" /></shape>

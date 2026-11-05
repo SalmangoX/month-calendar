@@ -19,12 +19,6 @@ TEAM=$(sed -n 's/^DEVELOPMENT_TEAM *= *\([A-Z0-9]\{10\}\).*/\1/p' Team.xcconfig 
                          | sed -n 's/.*OU *= *\([A-Z0-9]\{10\}\).*/\1/p' | head -1)
 printf '// 你的 Apple 开发团队 ID，build.sh 自动填写\nDEVELOPMENT_TEAM = %s\n' "$TEAM" > Team.xcconfig
 
-# 液态玻璃的水滴折射用 Metal 着色器，编译要 Xcode 的 Metal Toolchain（没装就自动装一次）
-if ! xcrun metal -v >/dev/null 2>&1; then
-  echo "→ 安装 Xcode 的 Metal 组件（只需要一次）…"
-  xcodebuild -downloadComponent MetalToolchain >/dev/null 2>&1 || echo "  ⚠️ 没装上，稍后可以手动运行：xcodebuild -downloadComponent MetalToolchain"
-fi
-
 echo "→ 生成工程…"
 xcodegen generate --quiet || exit 1
 

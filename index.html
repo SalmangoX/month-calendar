@@ -694,8 +694,12 @@
       // 想看到的圆角矩形（屏幕坐标），再换算回缩放前的坐标给 clip-path
       const L = r.left * (1 - q), T = r.top * (1 - q), Rr = W - (W - r.right) * (1 - q), B = H - (H - r.bottom) * (1 - q);
       const l = cx + (L - cx) / sc, tp = cy + (T - cy) / sc, rr = cx + (Rr - cx) / sc, b = cy + (B - cy) / sc;
-      let rad = q < .82 ? r0 + (R_END - r0) * Math.min(1, q / .45) : R_END * (1 - (q - .82) / .18);
-      rad = Math.max(0, rad) / sc;
+      // 圆角：一开始就是时钟胶囊（短边的一半），长大的过程中按当前卡片短边的一半慢慢过渡到 R_END，一直是圆润的卡片，不会像方框一样硬着放大；
+      // iPhone 最后停在 R_END（藏在屏幕本身的圆角后面），网页 / Mac 最后 20% 才平滑收成直角
+      const sm = x => x * x * (3 - 2 * x), half = Math.min(Rr - L, B - T) / 2, endR = body.classList.contains('native-ios') ? R_END : 0;
+      let rad = half + (R_END - half) * sm(Math.min(1, q / .8));
+      if (q > .8) rad = R_END + (endR - R_END) * sm((q - .8) / .2);
+      rad = Math.max(0, Math.min(rad, half)) / sc;
       fT.push({ offset: t, clipPath: `inset(${tp.toFixed(1)}px ${(W - rr).toFixed(1)}px ${(H - b).toFixed(1)}px ${l.toFixed(1)}px round ${rad.toFixed(1)}px)`,
         transform: `scale(${sc.toFixed(4)})`, opacity: +Math.min(1, .3 + q * 2.4).toFixed(3) });
       fB.push({ offset: t, transform: `scale(${(1 - .05 * q).toFixed(4)})`, opacity: +(1 - .4 * q).toFixed(3) });

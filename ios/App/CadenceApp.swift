@@ -55,21 +55,7 @@ struct RootView: View {
                         .frame(maxHeight: .infinity, alignment: .top)
                 }
                 .ignoresSafeArea(.keyboard)
-            } else {
-                // 旧网页 / 纪念日历：原来的玻璃菜单栏和加号
-                VStack(spacing: -6) {
-                    HStack {
-                        Spacer()
-                        GlassFab(m: m).opacity(m.fab ? 1 : 0).allowsHitTesting(m.fab).padding(.trailing, 6)
-                    }
-                    GlassTabBar(m: m).padding(.horizontal, 6)
-                }
-                .padding(.bottom, -10) // 玻璃留给阴影的边距：贴近底部的 Home 条，和系统菜单栏一样的位置
-                .offset(y: m.cover ? 160 : 0)
-                .opacity(m.cover ? 0 : 1)
-                .allowsHitTesting(!m.cover)
-                .ignoresSafeArea(.keyboard)
-            }
+            }   // 网页还没发来底栏状态（刚打开、预加载时）什么都不画：旧的玻璃菜单栏和蓝色加号已经不用了
             // 批量添加的「再加一个」：系统液态玻璃，画在网页按钮的位置上（网页坐标 = 屏幕坐标）
             ZStack {
                 if let r = m.addRow {

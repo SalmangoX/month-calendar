@@ -114,6 +114,18 @@ function barColors(p, done, out, ch) {
   const bgL = over(h, done ? 0.16 : out ? 0.5 : 1, BG_L), bgD = done ? over(h, 0.26, BG_D) : over(dk[0], out ? 0.45 : 1, BG_D);
   return { bg: dyn(hex(bgL), hex(bgD)), fg: c.fg };
 }
+// 优先级色条的渐变（和应用 store.js 的 GRAD 同一组色标）：低在右端带一点中级，中两端带低级 / 高级，高在左端带一点中级
+const PGRAD = { light: { 1: [[0, '#5B8FD0'], [55, '#5B8FD0'], [77.5, '#7E92AB'], [100, '#9C9183']], 2: [[0, '#919293'], [15, '#AE8F66'], [30, '#C98A1E'], [70, '#C98A1E'], [85, '#CD7A24'], [100, '#D16828']], 3: [[0, '#CF6F26'], [22.5, '#D25C2A'], [45, '#D4472C'], [100, '#D4472C']] }, dark: { 1: [[0, '#235692'], [55, '#235692'], [77.5, '#4F627C'], [100, '#736B61']], 2: [[0, '#66686B'], [15, '#8A6F4C'], [30, '#AC7305'], [70, '#AC7305'], [85, '#AA6312'], [100, '#A85319']], 3: [[0, '#A95917'], [22.5, '#A6481C'], [45, '#A3351F'], [100, '#A3351F']] } };
+// 没完成、本月、不是记录日历颜色的优先级事件：返回渐变（深浅色各一套），否则 null
+function chipGrad(p, done, out, ch) {
+  const L = PGRAD.light[p], D = PGRAD.dark[p];
+  if (done || out || ch || !L) return null;
+  const g = new LinearGradient();
+  g.colors = L.map((s, i) => dyn(hex(s[1]), hex(D[i][1])));
+  g.locations = L.map(s => s[0] / 100);
+  g.startPoint = new Point(0, 0.5); g.endPoint = new Point(1, 0.5);
+  return g;
+}
 function chipColors(p, done, out, ch) {
   const h = ch || PHEX[p] || PHEX[0];
   if (done) return { bg: dyn(hex(h, 0.16), hex(h, 0.26)), fg: dyn(hex(h, out ? 0.45 : 0.75), hex(h, out ? 0.45 : 0.75)) };
@@ -231,6 +243,7 @@ function addChip(parent, e, width, h, fs, out, tm) {
   const ch = parent.addStack();
   ch.size = new Size(width, h);
   ch.backgroundColor = bg;
+  { const gr = chipGrad(e.priority, e.done, out, calHex(e)); if (gr) ch.backgroundGradient = gr; }
   ch.cornerRadius = 3;
   ch.setPadding(0, 1.5, 0, 0.5);
   ch.centerAlignContent();
@@ -422,6 +435,7 @@ function addBar(parent, g, width) {
   const body = bar.addStack();
   body.size = new Size(0, h);
   body.backgroundColor = bg;
+  { const gr = chipGrad(e.priority, e.done, g.out, calHex(e)); if (gr) body.backgroundGradient = gr; }
   body.cornerRadius = g.ol && g.or ? 0 : R;
   body.setPadding(0, g.ol && !g.or ? 0.5 : 1.5, 0, 0.5);
   body.centerAlignContent();
