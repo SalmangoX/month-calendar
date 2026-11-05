@@ -253,7 +253,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         let menu = SolidHostingView(rootView: GlassMenu(m: nav))
         let addMore = SolidHostingView(rootView: GlassAddButton(m: nav).padding(18))
         // 网页玻璃控件的液态玻璃层：铺满网页、紧贴在网页上面（在菜单栏、加号下面），不接收鼠标
-        let lgLayer = PassThroughHostingView(rootView: GlassLayer(m: nav))
+        let lgLayer = PassThroughHostingView(rootView: GlassLayer(m: nav).ignoresSafeArea())   // 和网页同一个坐标：不让开标题栏的安全区（不然整层玻璃比网页里的控件低一截）
         lgLayer.frame = web.frame; lgLayer.autoresizingMask = [.width, .height]
         root.addSubview(lgLayer, positioned: .above, relativeTo: web)
         for v in [drawer, menu] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }

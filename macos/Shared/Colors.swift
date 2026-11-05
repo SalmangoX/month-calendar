@@ -203,8 +203,8 @@ struct Pal {
     static let DARK_FILL: [UInt32] = P.map { CourseColors.darkTone($0).0 }
     static let DARK_INK: [UInt32] = P.map { CourseColors.darkTone($0).1 }
     /// 优先级色条的渐变（和网页 store.js 的 GRAD 同一组色标）：低在右端带一点中级，中两端带低级 / 高级，高在左端带一点中级
-    static let GRAD_L: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF5B_8FD0), (0.55, 0xFF5B_8FD0), (0.775, 0xFF7E_92AB), (1, 0xFF9C_9183)], 2: [(0, 0xFF91_9293), (0.15, 0xFFAE_8F66), (0.3, 0xFFC9_8A1E), (0.7, 0xFFC9_8A1E), (0.85, 0xFFCD_7A24), (1, 0xFFD1_6828)], 3: [(0, 0xFFCF_6F26), (0.225, 0xFFD2_5C2A), (0.45, 0xFFD4_472C), (1, 0xFFD4_472C)]]
-    static let GRAD_D: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF23_5692), (0.55, 0xFF23_5692), (0.775, 0xFF4F_627C), (1, 0xFF73_6B61)], 2: [(0, 0xFF66_686B), (0.15, 0xFF8A_6F4C), (0.3, 0xFFAC_7305), (0.7, 0xFFAC_7305), (0.85, 0xFFAA_6312), (1, 0xFFA8_5319)], 3: [(0, 0xFFA9_5917), (0.225, 0xFFA6_481C), (0.45, 0xFFA3_351F), (1, 0xFFA3_351F)]]
+    static let GRAD_L: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF5B_8FD0), (0.75, 0xFF5B_8FD0), (0.8125, 0xFF6A_9FE0), (0.875, 0xFF77_ABED), (0.9375, 0xFFDA_A258), (1, 0xFFDA_A14F)], 2: [(0, 0xFF79_ACEF), (0.0312, 0xFFDA_A357), (0.0625, 0xFFD9_A04D), (0.0938, 0xFFD3_973A), (0.125, 0xFFC9_8A1E), (0.875, 0xFFC9_8A1E), (0.9062, 0xFFDC_8D2C), (0.9375, 0xFFEB_8D38), (0.9688, 0xFFF3_863E), (1, 0xFFF1_783E)], 3: [(0, 0xFFED_8C39), (0.0625, 0xFFF3_843E), (0.125, 0xFFF0_753D), (0.1875, 0xFFE4_6036), (0.25, 0xFFD4_472C), (1, 0xFFD4_472C)]]
+    static let GRAD_D: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF23_5692), (0.75, 0xFF23_5692), (0.8125, 0xFF38_6AA7), (0.875, 0xFF4A_7BB8), (0.9375, 0xFFAD_7833), (1, 0xFFB1_7D2E)], 2: [(0, 0xFF4D_7DBA), (0.0312, 0xFFAD_7A31), (0.0625, 0xFFB1_7D2D), (0.0938, 0xFFB0_7A20), (0.125, 0xFFAC_7305), (0.875, 0xFFAC_7305), (0.9062, 0xFFBB_761C), (0.9375, 0xFFC6_762A), (0.9688, 0xFFCA_7030), (1, 0xFFC5_6330)], 3: [(0, 0xFFC7_752B), (0.0625, 0xFFC9_6E31), (0.125, 0xFFC3_6030), (0.1875, 0xFFB5_4D29), (0.25, 0xFFA3_351F), (1, 0xFFA3_351F)]]
     /// 红色只用于逾期、现在时间的线（和优先级无关）
     static let RED: UInt32 = 0xFFD9_453E
 

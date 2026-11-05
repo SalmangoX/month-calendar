@@ -1,3 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 优先级色条：从左到右的渐变（低：右端带一点中级；中：两端带低级 / 高级；高：左端带一点中级） -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><gradient android:angle="0" android:type="linear" android:startColor="@color/chip_p2_a" android:centerColor="@color/chip_p2_c" android:endColor="@color/chip_p2_e" android:centerX="0.5" /><corners android:radius="3.5dp" /></shape>
+<!-- 优先级色条：底色 + 两端的渐变叠层（低：右端带一点中级；中：两端带低级 / 高级；高：左端带一点中级），色标见 colors.xml -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="rectangle"><solid android:color="@color/chip_p2" /><corners android:radius="3.5dp" /></shape></item>
+    <item><shape android:shape="rectangle"><gradient android:angle="0" android:type="linear" android:startColor="@color/chip_p2_l1" android:centerColor="@color/chip_p2_l1_0" android:centerX="0.125" android:endColor="@color/chip_p2_l1_0" /><corners android:radius="3.5dp" /></shape></item>
+    <item><shape android:shape="rectangle"><gradient android:angle="0" android:type="linear" android:startColor="@color/chip_p2_l2" android:centerColor="@color/chip_p2_l2_0" android:centerX="0.0312" android:endColor="@color/chip_p2_l2_0" /><corners android:radius="3.5dp" /></shape></item>
+    <item><shape android:shape="rectangle"><gradient android:angle="0" android:type="linear" android:startColor="@color/chip_p2_r1_0" android:centerColor="@color/chip_p2_r1_0" android:centerX="0.875" android:endColor="@color/chip_p2_r1" /><corners android:radius="3.5dp" /></shape></item>
+    <item><shape android:shape="rectangle"><gradient android:angle="0" android:type="linear" android:startColor="@color/chip_p2_r2_0" android:centerColor="@color/chip_p2_r2_0" android:centerX="0.9375" android:endColor="@color/chip_p2_r2" /><corners android:radius="3.5dp" /></shape></item>
+</layer-list>

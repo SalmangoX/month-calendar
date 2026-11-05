@@ -129,7 +129,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
   function covered(){
     var u = (window.MC && MC.UI) || {};
     return !!((u.anyOpen && u.anyOpen()) || (u.confirmOpen && u.confirmOpen()) || document.documentElement.classList.contains('locked')
-      || document.querySelector('.dp.show, .cam.show, .pv.show'));
+      || document.querySelector('.dp.show, .cam.show, .pv.show, #calDrawer.vis'));   // 侧拉菜单（安卓是网页画的）拉出来时，原生的时钟胶囊和 logo 也让开
   }
   function dockState(page){
     var d2 = document.getElementById('dock2'), pt = document.getElementById('ptTime');

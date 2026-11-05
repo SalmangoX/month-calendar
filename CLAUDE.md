@@ -21,6 +21,8 @@
 - **改底部悬浮控件要改四处**：网页（`index.html` 末尾的 dock2 脚本 + `styles.css`「悬浮控件」一节）、iOS / Mac 的 `GlassNav.swift`、两份 `navJS`（`ios/App/WebShell.swift`、`macos/App/MainWindow.swift`）、安卓的 `Dock.kt`（含它自己的 `NAV_JS`）。状态字段四处要一致：`t ap today back pager n p set st lit pv`（`n` 是页数，`p` 是停在第几页，拖动时是小数；`st` 是扇形里有没有「统计」）。
 - iPhone / Mac 原生层已经没有旧的玻璃菜单栏和蓝色加号（`GlassTabBar` / `GlassFab` 已删）：网页发来底栏状态前什么都不画。水滴折射的 Metal 着色器也删了，编译不再需要 Metal 组件。
 - **iPhone / Mac 的底部悬浮控件**（时钟胶囊 · 分页点 · logo 扇形 · 回到今天）是 `GlassNav.swift` 里的 `GlassDock`，用系统 Liquid Glass 画；点按交给网页里同名的按钮（`#bubbleToday` `#pager` `#fanAdd` `#fanSet` `#calBack` `#schedBack`），网页那一份在 App 里只是 `visibility:hidden`（今日页展开动画还要用它的位置）。状态由注入脚本 `navJS`（`ios/App/WebShell.swift`、`macos/App/MainWindow.swift` 各一份，两份要一起改）发给原生。
+- Mac 的玻璃层（`GlassLayer`）必须 `.ignoresSafeArea()`，和网页同一个坐标；不然会让开标题栏，整层玻璃比网页里的控件低约 32pt（以前 Mac 上星期条压住日期就是这个原因）。
+- 安卓的侧拉菜单是网页画的，拉出来时（`#calDrawer.vis`）`NAV_JS` 的 `cover` 为真，原生的时钟胶囊和 logo 让开。
 - **iPhone / Mac 上网页里的玻璃控件**：`js/ui.js` 的 `LG_SEL` 里列出的元素，由原生在同样位置画系统液态玻璃（`MC.LG`）。
 - **纪念日历**（`body[data-kind="days"]`）也用新底栏：分页点两页 纪念日 · 总览（`ORDER()`）。月历放在总览顶上的「本月」小窗里，点开是竖着滑的月历面板（`#dayMonths`）。列表每行是 透明底实心图标 · 名称日期 · 右边大数字（`.dv-row.v2`），不再铺渐变和水印。透明相机的控件由网页自己画（不进 `LG_SEL`），有倍率和前后镜头。旧的 `#dock` / `#tabbar` / `#fab` 都藏起来了，`#fab` 只留给扇形里的「添加」点。
 
@@ -58,7 +60,7 @@
 - 选日期的小月历按这个月实际占几周画（4–6 行），不把下个月整周塞进来。
 - 翻译：繁体没写进字典的靠 `i18n.js` 的 `CMAP` 逐字转换，新增界面文字用到新的简体字要补进 `CMAP`；英 / 法 / 日要在字典里各加一条。
 - 液态玻璃要**透明**（中间几乎全透，靠高光边和折射），深色模式**不要白边**。
-- **优先级色条是渐变**（用户定的）：低在右端带一点中级，中两端带低级 / 高级，高在左端带一点中级；OKLab 往相邻那档混 55% 的固定色标，四处同一组：`js/store.js` 的 `GRAD`、`macos/Shared/Colors.swift` 的 `Pal.GRAD_L/_D`、安卓 `chip_p*.xml` + `colors.xml` 的 `chip_p*_a/_c/_e`、`widget.html` / `widget-ios-scriptable.js` 的 `PGRAD`。已完成、别的月份、记录日历颜色不渐变。
+- **优先级色条是渐变**（用户定的）：低在右端带一点中级，中两端带低级 / 高级，高在左端带一点中级；用户在效果图里定的「提亮过渡」：端点往相邻那档走 65%、纯色占 75%、过渡处提亮 9、保持鲜艳 90%（不要直接混，蓝和琥珀直接混会发灰发闷）；算好的固定色标，几处同一组：`js/store.js` 的 `GRAD`、`macos/Shared/Colors.swift` 的 `Pal.GRAD_L/_D`、安卓 `chip_p*.xml`（底色 + 每侧两层透明叠层）+ `colors.xml` 的 `chip_p*_l1/l2/r1/r2`、`widget.html` / `widget-ios-scriptable.js` 的 `PGRAD`。已完成、别的月份、记录日历颜色不渐变。
 - **优先级从左到右 = 低 → 高**。颜色按色彩心理学：无 `#A3A1AD` 灰 · 低 `#5B8FD0` 天蓝 · 中 `#C98A1E` 琥珀 · 高 `#D4472C` 朱红（深色调由 `MC.darkTone` / `CourseColors.darkTone` 按 OKLCH 算）。优先级用拖动条选（`UI.priBar`），渐变的每档颜色要正好落在刻度上。
 - 品牌渐变（加号、选中的今天）：明亮的金黄 → 天蓝 → 亮蓝（`--brand-a/-mid/-b`），不要深色，不然发闷。
 - 主色天蓝 `#4F80C4`（深色 `#8DB0EA`）。
