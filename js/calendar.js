@@ -33,6 +33,7 @@
   };
   function measure() {
     document.body.classList.toggle('cal-m', view === 'month');
+    document.body.classList.toggle('cal-w', view === 'week');   // 周视图：列的顶上让开悬浮的月份胶囊
     W = vp.clientWidth; H = vp.clientHeight;
     const pv = body.classList.contains('previewing');
     if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
@@ -67,7 +68,7 @@
     let away;
     if (document.body.dataset.kind === 'days') { if (backShown) { backShown = false; $('#calBack').hidden = true; } return; } // 纪念日历的日历页有自己的翻月，不要「回到今天」
     if (view === 'week') away = MC.ymd(weekAnchor) !== MC.ymd(MC.weekStartOf(n)) || Math.abs(pagePos) > W / 2;
-    else if (view === 'year') away = year !== n.getFullYear() || Math.abs(pagePos) > H / 2;
+    else if (view === 'year') away = true;   // 年视图里一直给返回键：点了回到今天所在的月视图
     else {
       const top = MC.addDays(anchor, 7 * Math.round(scrollY / (rowH || 1)));
       // 本周那一行要整行露在导航栏上面才算看得到：压在导航栏下面、只露一截也给返回
@@ -373,7 +374,7 @@
       if (ds === selected) cls.push('sel');
       const chips = lay.evsBy[i].filter(e => !spans(e)).map(e =>
         `<div class="chip${e.done ? ' done' : ''}" style="${MC.toneVars(e)}">${esc(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
-      h += `<div class="${cls.join(' ')}" data-date="${ds}"><div class="wnum">${d.getDate()}</div>${lanes ? '<div class="wlanes"></div>' : ''}${chips}</div>`;
+      h += `<div class="${cls.join(' ')}" data-date="${ds}"><div class="wwd">${MC.WD[d.getDay()]}</div><div class="wnum">${d.getDate()}</div>${lanes ? '<div class="wlanes"></div>' : ''}${chips}</div>`;
     }
     for (const b of lay.bars) {
       const e = b.e;

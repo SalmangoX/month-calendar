@@ -1537,6 +1537,11 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 #calViewport { --cal-top: 0px; }
 /* 月视图：日历区从屏幕最顶上开始（灵动岛后面也有日历），calendar.js 把行往下让开安全区 */
 body.cal-m #page-cal { padding-top: 0; }
+/* 周视图：每列顶上先让开悬浮的月份胶囊（胶囊底在安全区下 44px），再写星期、日期；只影响周视图 */
+body.cal-w .wcol { padding-top: 50px; }
+.wwd { font-size: 11px; color: var(--text2); text-align: center; line-height: 1; margin-bottom: 2px; }
+.wcol.today .wwd { color: var(--accent-text); font-weight: 650; }
+body.cal-w .wbar { top: calc(101px + var(--s) * 23px); }   /* 50 + 星期 13 + 日期 38 */
 #page-cal .topbar {
   position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 6px); z-index: 6;
   padding: 0; display: flex; justify-content: center; pointer-events: none;
