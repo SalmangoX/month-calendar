@@ -42,6 +42,12 @@ final class NavModel: ObservableObject {
         struct Pad: Equatable { let rect: CGRect; let r: CGFloat }
     }
     @Published var lg: [LGItem] = []
+    /// 新底栏（网页 0.23 起：左时钟胶囊 · 中分页点 · 右 logo 扇形菜单）。网页发来时就画新底栏，旧网页或纪念日历是 nil，仍用旧的菜单栏和加号
+    struct Dock: Decodable, Equatable { let t: String; let ap: String; let today: Bool; let back: String; let pager: Bool; let p: Double; let set: Bool }
+    @Published var dock: Dock?
+    @Published var fanOpen = false
+    /// Mac：底栏里各个按钮的位置（窗口坐标），只有点在这些地方才接住，别处的点击漏给后面的网页
+    var dockRects: [String: CGRect] = [:]
     struct Hole: Equatable { let rect: CGRect; let r: CGFloat }
     @Published var lgHoles: [Hole] = []
     /// 网页发出这一批位置的时间（毫秒，和 Date 同一个时钟）
@@ -65,11 +71,15 @@ final class NavModel: ObservableObject {
     /// 网页每次切页、菜单栏有变化时发来：{tabs, page, fab, holes}
     func update(_ json: String) {
         struct Add: Decodable { let x, y, w, h: Double; let t: String }
-        struct State: Decodable { let tabs: [Tab]; let page: String; let fab: Bool; let holes: [[Double]]?; let cover: Bool?; let back: Bool?; let add: Add? }
+        struct State: Decodable { let tabs: [Tab]; let page: String; let fab: Bool; let holes: [[Double]]?; let cover: Bool?; let back: Bool?; let add: Add?; let dock: Dock? }
         guard let d = json.data(using: .utf8), let s = try? JSONDecoder().decode(State.self, from: d) else { return }
         if s.tabs.map(\.id) != tabs.map(\.id) || s.tabs.map(\.label) != tabs.map(\.label) || s.tabs.map(\.hidden) != tabs.map(\.hidden) { tabs = s.tabs }
-        if page != s.page { page = s.page }
         if fab != s.fab { fab = s.fab }
+        if dock != s.dock {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.8)) { dock = s.dock }
+            if s.dock == nil || s.dock?.set != dock?.set { fanOpen = false }
+        }
+        if page != s.page { if fanOpen { withAnimation(.spring(response: 0.36, dampingFraction: 0.82)) { fanOpen = false } }; page = s.page }
         if back != (s.back ?? false) { withAnimation(.spring(response: 0.36, dampingFraction: 0.7)) { back = s.back ?? false } }
         // 面板弹出时菜单栏马上让开（0.12 秒淡出，不会和从底部升起的面板叠在一起）；面板收起后再弹回来
         if cover != (s.cover ?? false) { withAnimation(s.cover == true ? .easeOut(duration: 0.12) : .spring(response: 0.32, dampingFraction: 0.86)) { cover = s.cover ?? false } }
@@ -81,7 +91,24 @@ final class NavModel: ObservableObject {
 
     func go(_ p: String) { eval("document.querySelector('#tabbar [data-page=\"\(p)\"]').click()", nil) }
     func add() { eval("document.getElementById('fab').click()", nil) }
-    func goToday() { eval("document.getElementById('btnToday').click()", nil) }
+    /// 回到今天 / 回到本周（日程页）：点网页里对应的按钮（它们在 App 里藏着，但还在工作）
+    func goToday() { eval("(function(){var b=document.getElementById(document.body.dataset.page==='sched'?'schedBack':'calBack');if(b)b.click();})()", nil) }
+    /// 新底栏的按钮：都交给网页里同名的按钮处理（切页动画、今日页展开都在网页里），原生只负责画和触感
+    func tapClock() { navTick(); eval("document.getElementById('bubbleToday').click()", nil) }
+    func tapPager() { navTick(); eval("document.getElementById('pager').click()", nil) }
+    func setFan(_ open: Bool) {
+        guard open != fanOpen else { return }
+        navTick()
+        withAnimation(.spring(response: open ? 0.46 : 0.34, dampingFraction: open ? 0.7 : 0.85)) { fanOpen = open }
+    }
+    func fan(_ id: String) {
+        setFan(false)
+        switch id {
+        case "add": add()
+        case "set": eval("document.getElementById('fanSet').click()", nil)
+        default: eval("document.getElementById('fanCal').click()", nil)
+        }
+    }
     func updateLG(_ json: String) {
         guard let d = json.data(using: .utf8), let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any], let a = o["i"] as? [[Any]] else { return }
         let f = { (v: Any) -> CGFloat in CGFloat((v as? NSNumber)?.doubleValue ?? 0) }
@@ -708,6 +735,233 @@ extension Color {
 /// 只负责画、不接收鼠标的原生层（盖在网页上）
 final class PassThroughHostingView<Content: View>: NSHostingView<Content> {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+#endif
+
+
+// MARK: - 新底栏
+
+/// 新底栏的尺寸，和网页 styles.css 末尾一致（网页的今日页从这个胶囊的位置展开，两边对得上动画才自然）
+enum DockSize {
+    static let hit: CGFloat = 64, lift: CGFloat = 40, side: CGFloat = 10
+    static let pill: CGFloat = 52, logo: CGFloat = 54, fan: CGFloat = 50, back: CGFloat = 46
+    /// 热区底边离屏幕底：至少 24，有 Home 条时再让 10
+    static func bottom(_ safe: CGFloat) -> CGFloat { max(24, safe + 10) }
+    /// 扇形按钮沿四分之一圆弧均匀排开：两个时彼此的间距和到 logo 的间距一样；设置页多一个最上面的「回到日历」
+    static func fan(_ n: Int) -> [CGSize] {
+        let (r, a): (CGFloat, [CGFloat]) = n == 3 ? (88, [90, 135, 180]) : (84, [105, 165])
+        return a.map { d in CGSize(width: cos(d * .pi / 180) * r, height: -sin(d * .pi / 180) * r) }
+    }
+}
+
+/// 品牌色（和网页一致）：金黄 → 天蓝 → 深靛蓝
+enum Brand {
+    static func a(_ dark: Bool) -> Color { Color(argb: dark ? 0xFFDD_B16A : 0xFFD6_A757) }
+    static func mid(_ dark: Bool) -> Color { Color(argb: dark ? 0xFF70_A5E6 : 0xFF5A_93D6) }
+    static func b(_ dark: Bool) -> Color { Color(argb: dark ? 0xFF6E_74D2 : 0xFF3F_45A2) }
+    static func grad(_ dark: Bool) -> LinearGradient {
+        LinearGradient(stops: [.init(color: a(dark), location: 0.06), .init(color: mid(dark), location: 0.52), .init(color: b(dark), location: 0.96)],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+}
+
+/// App 的 logo：左雾紫、右暖沙，中间一道细白线（和 icons/logo.png 一样，直接画，不用图片）
+struct LogoMark: View {
+    var body: some View {
+        GeometryReader { g in
+            let w = g.size.width
+            HStack(spacing: 0) {
+                LinearGradient(colors: [Color(argb: 0xFFA9_A7C6), Color(argb: 0xFF9B_99B8)], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [Color(argb: 0xFFEF_D6C0), Color(argb: 0xFFE2_CDBD)], startPoint: .top, endPoint: .bottom)
+            }
+            .overlay(Rectangle().fill(.white.opacity(0.92)).frame(width: max(1.5, w * 0.035)).padding(.vertical, w * 0.06))
+            .clipShape(Circle())
+        }
+        .aspectRatio(1, contentMode: .fit)
+    }
+}
+
+/// 新底栏：左「时钟 / 返回」胶囊 · 中分页点 · 右 logo（点开沿圆弧弹出添加、设置；设置页多一个回到日历）。
+/// 全是系统液态玻璃；扇形按钮和 logo 在同一个玻璃组里，弹出 / 收回时玻璃从 logo 里流出来、再融回去。
+/// 点按交给网页里同名的按钮处理，网页那一份在 App 里只是藏起来（今日页从胶囊位置展开的动画还用它的位置）
+@available(macOS 26.0, iOS 26.0, *)
+struct GlassDock: View {
+    @ObservedObject var m: NavModel
+    var safeBottom: CGFloat = 0
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var ns
+
+    var body: some View {
+        if let d = m.dock {
+            let dark = scheme == .dark, b = DockSize.bottom(safeBottom)
+            ZStack(alignment: .bottom) {
+                if m.fanOpen {   // 打开菜单时：一层很淡的暗角接住点击，不会点穿到日历
+                    RadialGradient(colors: [.black.opacity(dark ? 0.45 : 0.14), .black.opacity(dark ? 0.15 : 0.03), .clear],
+                                   center: UnitPoint(x: 1, y: 1), startRadius: 0, endRadius: 420)
+                        .contentShape(Rectangle())
+                        .onTapGesture { m.setFan(false) }
+                        .transition(.opacity)
+                        .ignoresSafeArea()
+                }
+                if d.pager { pager(d).padding(.bottom, b).transition(.opacity) }
+                HStack(alignment: .bottom, spacing: 0) {
+                    if !d.set { clock(d).transition(.scale(scale: 0.86).combined(with: .opacity)) }
+                    Spacer(minLength: 0)
+                    logoCluster(d, dark: dark)
+                }
+                .padding(.horizontal, DockSize.side)
+                .padding(.bottom, b + DockSize.lift)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .offset(y: m.cover ? 160 : 0)
+            .opacity(m.cover ? 0 : 1)
+            .allowsHitTesting(!m.cover)
+        }
+    }
+
+    // 时钟胶囊：平时是现在的时间（分钟变化时数字滚动），在今日页变成「‹ 日历」
+    @ViewBuilder private func clock(_ d: NavModel.Dock) -> some View {
+        Button { m.tapClock() } label: {
+            ZStack {
+                if d.today {
+                    HStack(spacing: 3) {
+                        Image(systemName: "chevron.left").font(.system(size: 16, weight: .semibold)).foregroundStyle(Pal(dark: scheme == .dark).accent)
+                        Text(d.back).font(.system(size: 15.5, weight: .semibold))
+                    }
+                    .padding(.leading, 13).padding(.trailing, 18)
+                    .transition(.blurReplace)
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
+                        Text(d.t).font(.system(size: 18, weight: .semibold, design: .rounded)).monospacedDigit()
+                            .contentTransition(.numericText())
+                        if !d.ap.isEmpty { Text(d.ap).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary) }
+                    }
+                    .padding(.horizontal, 18)
+                    .transition(.blurReplace)
+                }
+            }
+            .foregroundStyle(.primary)
+            .frame(minWidth: DockSize.pill, minHeight: DockSize.pill, maxHeight: DockSize.pill)
+            .glassEffect(NavGlass.chrome(scheme, interactive: true), in: .capsule)
+            .padding((DockSize.hit - DockSize.pill) / 2)   // 热区比看到的大一圈
+            .contentShape(Rectangle())
+            .animation(.spring(response: 0.42, dampingFraction: 0.8), value: d.today)
+            .animation(.snappy, value: d.t)
+        }
+        .buttonStyle(.plain)
+        .modifier(DockRect(m: m, key: "clock"))
+        .accessibilityLabel(Text(d.today ? d.back : "今日 \(d.t)"))
+    }
+
+    // 分页点：日历 / 日程
+    @ViewBuilder private func pager(_ d: NavModel.Dock) -> some View {
+        let accent = Pal(dark: scheme == .dark).accent
+        Button { m.tapPager() } label: {
+            HStack(spacing: 6) {
+                ForEach(0..<2) { i in
+                    let on = (i == 0 ? 1 - d.p : d.p)
+                    Capsule().fill(accent.opacity(0.38 + 0.62 * on)).frame(width: 6 + 12 * on, height: 6)
+                }
+            }
+            .padding(.horizontal, 9).frame(height: 22)
+            .glassEffect(NavGlass.chrome(scheme), in: .capsule)
+            .padding(.vertical, 21).padding(.horizontal, 12)
+            .contentShape(Rectangle())
+            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: d.p)
+        }
+        .buttonStyle(.plain)
+        .modifier(DockRect(m: m, key: "pager"))
+        .accessibilityLabel(Text("切换日历 / 日程"))
+    }
+
+    private struct FanItem: Identifiable { let id: String; let icon: String; let label: String }
+
+    // logo + 扇形菜单 + 回到今天
+    @ViewBuilder private func logoCluster(_ d: NavModel.Dock, dark: Bool) -> some View {
+        let items: [FanItem] = (d.set ? [FanItem(id: "cal", icon: "calendar", label: "回到日历")] : [])
+            + [FanItem(id: "add", icon: "plus", label: "添加事件"), FanItem(id: "set", icon: "gearshape", label: "设置")]
+        let pos = DockSize.fan(items.count)
+        ZStack {
+            if m.back && !m.fanOpen {   // 回到今天：和 logo 同一竖线，在扇形能展开到的范围之上
+                Button { navTick(); m.goToday() } label: {
+                    Image(systemName: "arrow.uturn.backward").font(.system(size: 17, weight: .semibold)).foregroundStyle(Color.primary.opacity(0.7))
+                        .frame(width: DockSize.back, height: DockSize.back)
+                        .glassEffect(NavGlass.chrome(scheme, interactive: true), in: .circle)
+                        .padding(9).contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .modifier(DockRect(m: m, key: "back"))
+                .offset(y: -151)
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
+                .accessibilityLabel(Text(I18n.t("回到今天")))
+            }
+            GlassEffectContainer(spacing: 22) {
+                ZStack {
+                    if m.fanOpen {
+                        ForEach(Array(items.enumerated()), id: \.element.id) { k, it in
+                            Button { m.fan(it.id) } label: {
+                                Image(systemName: it.icon).font(.system(size: it.id == "add" ? 21 : 19, weight: .semibold))
+                                    .foregroundStyle(it.id == "add" ? Color.white : Color.primary)
+                                    .frame(width: DockSize.fan, height: DockSize.fan)
+                                    .background { if it.id == "add" { Circle().fill(Brand.grad(dark)) } }
+                                    .glassEffect(it.id == "add" ? Glass.clear.interactive() : NavGlass.chrome(scheme, interactive: true), in: .circle)
+                                    .padding(6).contentShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                            .glassEffectID(it.id, in: ns)
+                            .offset(pos[k])
+                            .modifier(DockRect(m: m, key: "fan-" + it.id))
+                            .accessibilityLabel(Text(it.label))
+                        }
+                    }
+                    Button { m.setFan(!m.fanOpen) } label: {
+                        ZStack {
+                            LogoMark().frame(width: 34, height: 34)
+                                .opacity(m.fanOpen ? 0 : 1).scaleEffect(m.fanOpen ? 0.5 : 1).rotationEffect(.degrees(m.fanOpen ? 90 : 0))
+                            Image(systemName: "xmark").font(.system(size: 18, weight: .semibold)).foregroundStyle(.primary)
+                                .opacity(m.fanOpen ? 0.85 : 0).scaleEffect(m.fanOpen ? 1 : 0.5).rotationEffect(.degrees(m.fanOpen ? 0 : -90))
+                        }
+                        .frame(width: DockSize.logo, height: DockSize.logo)
+                        .glassEffect(NavGlass.chrome(scheme, interactive: true), in: .circle)
+                        .padding((DockSize.hit - DockSize.logo) / 2).contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffectID("logo", in: ns)
+                    .modifier(DockRect(m: m, key: "logo"))
+                    .accessibilityLabel(Text(m.fanOpen ? "收起" : "更多"))
+                }
+            }
+        }
+        .frame(width: DockSize.hit, height: DockSize.hit)
+    }
+}
+
+/// Mac：记下底栏按钮在窗口里的位置，DockHostingView 只在这些地方接住点击
+@available(macOS 26.0, iOS 26.0, *)
+private struct DockRect: ViewModifier {
+    let m: NavModel, key: String
+    func body(content: Content) -> some View {
+        #if os(macOS)
+        content.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { m.dockRects[key] = $0 }
+            .onDisappear { m.dockRects[key] = nil }
+        #else
+        content
+        #endif
+    }
+}
+
+#if os(macOS)
+/// Mac 的新底栏：铺满整个窗口，但只在按钮上接住点击；扇形菜单打开时整个窗口都接住（点空白处收起）
+final class DockHostingView<Content: View>: NSHostingView<Content> {
+    weak var nav: NavModel?
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard !isHidden, let nav, nav.dock != nil, !nav.cover, let p = superview.map({ convert(point, from: $0) }), bounds.contains(p) else { return nil }
+        if nav.fanOpen { return super.hitTest(point) ?? self }
+        let q = isFlipped ? p : CGPoint(x: p.x, y: bounds.height - p.y)
+        return nav.dockRects.values.contains { $0.contains(q) } ? (super.hitTest(point) ?? self) : nil
+    }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 #endif
 

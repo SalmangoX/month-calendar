@@ -179,7 +179,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
       var H = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.mc;
       var tb = document.getElementById('tabbar'); if (!H || !tb || window.__mcNav) return; window.__mcNav = 1;
       var native = window.MC && MC.Drawer && MC.Drawer.model;
-      var st = document.createElement('style'); st.textContent = '#dock,#fab,#calBack' + (native ? ',#drawerScrim,#calDrawer' : '') + '{display:none!important}#batchAddRow{visibility:hidden!important}';
+      var st = document.createElement('style'); st.textContent = '#dock,#fab,#calBack,#schedBack' + (native ? ',#drawerScrim,#calDrawer' : '') + '{display:none!important}#dock2,#dockScrim{visibility:hidden!important;pointer-events:none!important}#batchAddRow{visibility:hidden!important}';
       document.head.appendChild(st);
       var last = '';
       // 批量添加的「再加一个」：原生用液态玻璃画在同一个位置（网页的按钮只占位置）；面板没开、正在被拖、弹出键盘或盖了别的面板时不显示
@@ -195,17 +195,31 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         return !!((u.anyOpen && u.anyOpen()) || (u.confirmOpen && u.confirmOpen()) || document.documentElement.classList.contains('locked')
           || document.querySelector('.dp.show, .cam.show, .pv.show'));
       }
+      function dockState(page){
+        var d2 = document.getElementById('dock2'), pt = document.getElementById('ptTime');
+        if (!d2 || !pt || document.body.dataset.kind === 'days') return null;
+        var ap = pt.querySelector('small'), apt = ap ? ap.textContent : '';
+        return { t: pt.textContent.replace(apt, '').trim(), ap: apt, today: page === 'today', back: ((document.getElementById('ptBackTxt') || {}).textContent || '').trim() || '日历',
+                 pager: page === 'cal' || page === 'sched', p: page === 'sched' ? 1 : 0, set: page === 'set' };
+      }
+      function backShown(page){
+        var id = page === 'cal' ? 'calBack' : page === 'sched' ? 'schedBack' : '', b = id && document.getElementById(id);
+        return !!b && !b.hidden;
+      }
       function send(){
         var tabs = [].map.call(tb.querySelectorAll('button[data-page]'), function(b){
           var l = b.querySelector('span:not(.tab-avatar)'); return { page: b.dataset.page, label: l ? l.textContent.trim() : '', hidden: !!b.hidden };
         });
         var page = document.body.dataset.page || 'cal', fab = document.getElementById('fab');
-        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, cover: covered(), back: page === 'cal' && !!document.getElementById('calBack') && !document.getElementById('calBack').hidden, add: addRow() });
+        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, cover: covered(), back: backShown(page), add: addRow(), dock: dockState(page) });
         if (j !== last) { last = j; try { H.postMessage({ name: 'nav', args: [j] }); } catch (e) {} }
       }
       new MutationObserver(send).observe(document.body, { attributes: true, attributeFilter: ['data-page'] });
       new MutationObserver(send).observe(tb, { attributes: true, subtree: true, childList: true, characterData: true });
       var cb = document.getElementById('calBack'); if (cb) new MutationObserver(send).observe(cb, { attributes: true, attributeFilter: ['hidden'] }); // 「回到今天」出现 / 消失
+      var sb = document.getElementById('schedBack'); if (sb) new MutationObserver(send).observe(sb, { attributes: true, attributeFilter: ['hidden'] }); // 日程页「回到本周」
+      var ptm = document.getElementById('ptTime'); if (ptm) new MutationObserver(send).observe(ptm, { childList: true, subtree: true, characterData: true }); // 时钟每分钟变一次
+      new MutationObserver(send).observe(document.body, { attributes: true, attributeFilter: ['data-kind'] }); // 切到纪念日历：换回旧菜单栏
       var bs = document.getElementById('batchSheet'); if (bs) new MutationObserver(send).observe(bs, { attributes: true, attributeFilter: ['class', 'style'] });
       // 面板、确认框开关：类名变化时发一次（iPhone 的面板从底部弹出，玻璃菜单栏先让开）
       new MutationObserver(send).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['class'] });

@@ -160,7 +160,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
       var tb = document.getElementById('tabbar'); if (!H || !tb || window.__mcNav) return; window.__mcNav = 1;
       // 网页的日历栏只有在网页支持原生日历栏时才隐藏（新版网页才有 MC.Drawer.model）
       var native = window.MC && MC.Drawer && MC.Drawer.model;
-      var st = document.createElement('style'); st.textContent = '#dock,#fab,#calBack' + (native ? ',#drawerScrim,#calDrawer' : '') + '{display:none!important}'
+      var st = document.createElement('style'); st.textContent = '#dock,#fab,#calBack,#schedBack' + (native ? ',#drawerScrim,#calDrawer' : '') + '{display:none!important}#dock2,#dockScrim{visibility:hidden!important;pointer-events:none!important}'
         // 标题和红黄绿按钮同一行；下面给玻璃菜单栏留的位置收窄，内容铺到它下面
         // 红黄绿按钮单独占顶上一条（不压到页面内容）；页面标题收紧；下面给玻璃菜单栏留的位置收窄，内容铺到它下面
         + ':root{--safe-t:28px!important;--bar-space:44px!important}'
@@ -179,12 +179,23 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         var x = 0, y = 0, e = b; while (e) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; } // 不算面板弹出动画的位移，直接取停下来的位置
         return { x: x, y: y, w: b.offsetWidth, h: b.offsetHeight, t: b.textContent.trim() };
       }
+      function dockState(page){
+        var d2 = document.getElementById('dock2'), pt = document.getElementById('ptTime');
+        if (!d2 || !pt || document.body.dataset.kind === 'days') return null;
+        var ap = pt.querySelector('small'), apt = ap ? ap.textContent : '';
+        return { t: pt.textContent.replace(apt, '').trim(), ap: apt, today: page === 'today', back: ((document.getElementById('ptBackTxt') || {}).textContent || '').trim() || '日历',
+                 pager: page === 'cal' || page === 'sched', p: page === 'sched' ? 1 : 0, set: page === 'set' };
+      }
+      function backShown(page){
+        var id = page === 'cal' ? 'calBack' : page === 'sched' ? 'schedBack' : '', b = id && document.getElementById(id);
+        return !!b && !b.hidden;
+      }
       function send(){
         var tabs = [].map.call(tb.querySelectorAll('button[data-page]'), function(b){
           var l = b.querySelector('span:not(.tab-avatar)'); return { page: b.dataset.page, label: l ? l.textContent.trim() : '', hidden: !!b.hidden };
         });
         var page = document.body.dataset.page || 'cal', fab = document.getElementById('fab');
-        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, holes: holes ? holes() : [], back: page === 'cal' && !!document.getElementById('calBack') && !document.getElementById('calBack').hidden, add: addRow() });
+        var j = JSON.stringify({ tabs: tabs, page: page, fab: page !== 'set' && !!fab && !fab.hidden, holes: holes ? holes() : [], back: backShown(page), add: addRow(), dock: dockState(page) });
         if (j !== last) { last = j; try { H.postMessage({ name: 'nav', args: [j] }); } catch (e) {} }
       }
       // 标题栏一行：可点的按钮位置（其余地方拖动窗口）
@@ -213,6 +224,9 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
       }
       new MutationObserver(send).observe(tb, { attributes: true, subtree: true, childList: true, characterData: true });
       var cb = document.getElementById('calBack'); if (cb) new MutationObserver(send).observe(cb, { attributes: true, attributeFilter: ['hidden'] }); // 「回到今天」出现 / 消失
+      var sb = document.getElementById('schedBack'); if (sb) new MutationObserver(send).observe(sb, { attributes: true, attributeFilter: ['hidden'] }); // 日程页「回到本周」
+      var ptm = document.getElementById('ptTime'); if (ptm) new MutationObserver(send).observe(ptm, { childList: true, subtree: true, characterData: true }); // 时钟每分钟变一次
+      new MutationObserver(send).observe(document.body, { attributes: true, attributeFilter: ['data-kind'] }); // 切到纪念日历：换回旧菜单栏
       var bs = document.getElementById('batchSheet'); if (bs) new MutationObserver(send).observe(bs, { attributes: true, attributeFilter: ['class', 'style'] });
       new MutationObserver(send).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); // 键盘、确认框
       send(); setTimeout(send, 600);
@@ -243,6 +257,11 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         lgLayer.frame = web.frame; lgLayer.autoresizingMask = [.width, .height]
         root.addSubview(lgLayer, positioned: .above, relativeTo: web)
         for v in [bar, fab, drawer, menu] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; root.addSubview(v) }
+        // 新底栏（时钟胶囊 · 分页点 · logo 扇形菜单）：铺满窗口，在日历栏和菜单下面；只在按钮上接住点击
+        let dock = DockHostingView(rootView: GlassDock(m: nav))
+        dock.nav = nav
+        dock.frame = root.bounds; dock.autoresizingMask = [.width, .height]
+        root.addSubview(dock, positioned: .below, relativeTo: drawer)
         // 批量添加的「再加一个」：放在网页按钮的位置上（跟着网页发来的位置挪），在菜单下面
         root.addSubview(addMore, positioned: .below, relativeTo: menu)
         addMore.isHidden = true
@@ -260,7 +279,9 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         ])
         // 隐藏时让出点击：加号在设置页不显示；日历栏收起的动画放完再隐藏
         navSubs = [
-            nav.$fab.sink { fab.isHidden = !$0 },
+            nav.$fab.sink { [weak nav] f in fab.isHidden = !f || nav?.dock != nil },
+            // 有新底栏时（网页 0.23 起、不是纪念日历）：旧的菜单栏和加号让位
+            nav.$dock.sink { [weak nav] d in bar.isHidden = d != nil; fab.isHidden = d != nil || !(nav?.fab ?? true) },
             nav.$addRow.sink { [weak self] r in
                 guard let self, let r else { addMore.isHidden = true; return }
                 addMore.frame = self.web.convert(r, to: root).insetBy(dx: -18, dy: -18)

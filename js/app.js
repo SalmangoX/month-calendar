@@ -658,7 +658,7 @@
     // 图标风格和应用一致（同色淡底 + 同色线条），每一项一种颜色：十种颜色在 OKLCH 里明度、彩度相同，只是色相不同，
     // 大致按含义分（通知珊瑚、每日杏色、同步玉青……），同一组里相邻两项颜色一定不同；深色模式用稍亮的同色。危险操作用红
     const t = SET_TONES[o.tone];
-    const icStyle = t ? `--icl:${t[0]};--icd:${t[1]}` : o.tone === 'danger' ? '--icl:var(--p3);--icd:var(--p3)' : '--icl:var(--accent);--icd:var(--accent)';
+    const icStyle = t ? `--icl:${t[0]};--icd:${t[1]}` : o.tone === 'danger' ? '--icl:var(--red);--icd:var(--red)' : '--icl:var(--accent);--icd:var(--accent)';
     const inner = `<span class="sicon" style="${icStyle}">${IC[o.icon]}</span><span class="slabel">${esc(o.label)}${sub}</span>${right}`;
     return o.sw !== undefined
       ? `<label class="srow">${inner}</label>`
@@ -1220,11 +1220,11 @@
       const st = MC.Native.status();
       const ok = (good, yes, no, key) => good
         ? `<b style="color:var(--accent-text)">✓ ${yes}</b>`
-        : `<b style="color:var(--p3)">${no}</b>　<button class="chip-btn glass" data-copy="nreq:${key}">去设置</button>`;
+        : `<b style="color:var(--red)">${no}</b>　<button class="chip-btn glass" data-copy="nreq:${key}">去设置</button>`;
       const when = st.pullAt ? new Date(st.pullAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
       const mac = MC.Native.mac || MC.Native.ios; // 苹果设备：没有精确闹钟、电池限制这些设置
       const sync = !st.token ? (MC.Native.mac ? '未连接 GitHub（只显示这台 Mac 上的数据）' : '未连接 GitHub（只显示这台手机上的数据）')
-        : st.pullErr ? `<b style="color:var(--p3)">${esc(st.pullErr)}</b>` : `<b style="color:var(--accent-text)">✓ ${when ? '上次 ' + when : '已连接'}</b>`;
+        : st.pullErr ? `<b style="color:var(--red)">${esc(st.pullErr)}</b>` : `<b style="color:var(--accent-text)">✓ ${when ? '上次 ' + when : '已连接'}</b>`;
       return {
         title: '提醒权限检查',
         html: `<p class="hint" style="margin:0 2px 14px">${mac ? (MC.Native.ios ? '提醒由 iPhone 系统按时弹出，App 关着也会提醒；下面第一项要是 ✓。' : '提醒由 macOS 按时弹出，退出节律后也会提醒；下面第一项要是 ✓。') : 'App 关着也要准时提醒，下面前三项都要是 ✓。'}</p>

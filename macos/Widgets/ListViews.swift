@@ -120,7 +120,7 @@ struct TodayView: View {
                             switch r {
                             case .head(let t, let overdue):
                                 Text(t).font(.system(size: WS.section, weight: .bold))
-                                    .foregroundStyle(overdue ? pal.ink(Pal.P[3]) : pal.text2).lineLimit(1)
+                                    .foregroundStyle(overdue ? pal.ink(Pal.RED) : pal.text2).lineLimit(1)
                                     .padding(.leading, 3).padding(.top, WS.rowV + 3).padding(.bottom, 1)
                             case .ev(let e, let prefix):
                                 eventRow(e, prefix, pal)
@@ -357,7 +357,7 @@ struct SchedGrid: View {
         let nm = YMD.cal.component(.hour, from: entry.date) * 60 + YMD.cal.component(.minute, from: entry.date)
         let nowCol: Int? = todayCol.flatMap { nm >= minH * 60 && nm <= maxH * 60 ? $0 : nil }
         let ny = gy + (CGFloat(nm) / 60 - CGFloat(minH)) * hourH
-        let red = pal.ink(Pal.P[3])
+        let red = pal.ink(Pal.RED)
 
         return ZStack(alignment: .topLeading) {
             // 今天那一列：淡淡的主色底

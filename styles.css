@@ -3,12 +3,15 @@
   --glass-rim: inset 0 1px 0 var(--rim-hi), inset 1px 0 0 color-mix(in srgb, var(--rim-hi) 55%, transparent), inset 0 -1px 0 var(--rim-lo), inset -1px 0 0 var(--rim-lo), inset 0 0 0 .5px var(--frost-edge), inset 0 0 22px var(--rim-glow);
   /* 优先级色（按色彩心理设计）：高 = 朱红（紧迫、最醒目）、中 = 琥珀（提醒注意）、低 = 静蓝（平静）、无 = 中性灰（退后）。
      越重要越鲜艳；高和中靠明暗也能区分，红绿色弱也看得出来。深色模式另有一套专门的深色调（见 store.js MC.PAL） */
-  /* 优先级色（黄 → 蓝）：低 = 金黄，中 = 天蓝，高 = 深靛蓝。色相和明暗都拉开，一眼分得清；无 = 中性灰。
-     白字都看得清；深色模式的深色调由 store.js 按同一规则算出 */
-  --p3: #3B409E;   /* 高：深靛蓝 */
-  --p2: #4C87CF;   /* 中：天蓝 */
-  --p1: #C8892A;   /* 低：金黄 */
+  /* 优先级色（色彩心理学）：低 = 冷静、往后退的天蓝；中 = 提醒注意的琥珀金；高 = 紧迫的朱红；无 = 中性灰。
+     冷 → 暖、亮 → 浓，色相和明暗都拉开，色弱也分得清。白字都看得清；深色调由 store.js 按同一规则算出 */
+  --p3: #D4472C;   /* 高：朱红 */
+  --p2: #C98A1E;   /* 中：琥珀金 */
+  --p1: #5B8FD0;   /* 低：天蓝 */
   --p0: #A3A1AD;   /* 无 */
+  /* 红色只用于「现在时间」的线、删除、出错、逾期（和优先级无关）*/
+  --red: #D9453E;
+  --pri-grad: linear-gradient(90deg, var(--p1), var(--p2) 52%, var(--p3));   /* 优先级拖动条：低 → 高 = 冷 → 暖 */
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --kb: 0px;
@@ -67,6 +70,7 @@
   --done-mix: 18%;
 }
 :root[data-theme="dark"] {
+  --red: #F0625A;
   --tile: #2A2A2E;
   --tile-line: rgba(255, 255, 255, .06);
   /* 深色：底色用系统的中性灰（和 macOS / iOS 的深色界面一致，有层次、不是一片死黑）；主色还是柔和的蓝紫 */
@@ -311,7 +315,7 @@ body .weekdays { display: none; }
 .item-title { font-size: 15.5px; line-height: 1.35; word-break: break-word; }
 .item-sub { font-size: 12px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item-sub .due { color: var(--accent-text); font-weight: 600; }
-.item-sub .over { color: var(--p3); font-weight: 600; }
+.item-sub .over { color: var(--red); font-weight: 600; }
 .ttxt {
   background: linear-gradient(currentColor, currentColor) 0 58% / 0 1.5px no-repeat;
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
@@ -340,7 +344,7 @@ body .weekdays { display: none; }
 .swipe-acts { position: absolute; top: 0; right: 0; bottom: 0; width: 148px; display: flex; opacity: 0; pointer-events: none; transition: opacity .15s; }
 .item.swiping .swipe-acts { opacity: 1; pointer-events: auto; }
 .swipe-acts button { flex: 1; font-size: 14px; font-weight: 600; color: #fff; background: var(--text3); }
-.swipe-acts button.del { background: var(--p3); }
+.swipe-acts button.del { background: var(--red); }
 .td-ev .swipe-acts { display: none; }
 /* ---------- 今日：本周日期条 + 全天 + 时间线（参考苹果日历的「日」视图）---------- */
 #todayBody { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
@@ -373,11 +377,11 @@ body .weekdays { display: none; }
 .td-ck { flex: none; width: 20px; height: 20px; margin: 5px 6px 0 0; border-radius: 10px; box-shadow: inset 0 0 0 1.5px var(--c); }
 .td-ev.done .td-ck { background: var(--c); }
 .td-ev.tiny .td-ck { margin-top: auto; margin-bottom: auto; width: 16px; height: 16px; }
-.td-now { position: absolute; left: -4px; right: 0; height: 0; border-top: 1.5px solid var(--p3); z-index: 3; pointer-events: none; }
-.td-now::before { content: ""; position: absolute; left: -1px; top: -4.5px; width: 8px; height: 8px; border-radius: 4px; background: var(--p3); }
-.td-now span { position: absolute; right: calc(100% + 6px); top: -8px; font-size: 10.5px; font-weight: 700; line-height: 15px; padding: 0 4px; border-radius: 5px; background: var(--p3); color: #fff; font-variant-numeric: tabular-nums; }
+.td-now { position: absolute; left: -4px; right: 0; height: 0; border-top: 1.5px solid var(--red); z-index: 3; pointer-events: none; }
+.td-now::before { content: ""; position: absolute; left: -1px; top: -4.5px; width: 8px; height: 8px; border-radius: 4px; background: var(--red); }
+.td-now span { position: absolute; right: calc(100% + 6px); top: -8px; font-size: 10.5px; font-weight: 700; line-height: 15px; padding: 0 4px; border-radius: 5px; background: var(--red); color: #fff; font-variant-numeric: tabular-nums; }
 .sec h3 { font-size: 13px; color: var(--text2); font-weight: 600; margin: 14px 6px 8px; display: flex; justify-content: space-between; }
-.sec h3.over { color: var(--p3); }
+.sec h3.over { color: var(--red); }
 .card { list-style: none; margin: 0; border-radius: var(--r-l); padding: 2px 8px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); }
 .big-empty { text-align: center; color: var(--text2); padding: 64px 20px; font-size: 15px; line-height: 1.7; }
 .big-empty .em-ico { width: 54px; height: 54px; margin: 0 auto 12px; border-radius: 17px; display: grid; place-items: center; background: var(--tile); box-shadow: inset 0 0 0 .5px var(--tile-line); color: var(--accent); }
@@ -405,7 +409,7 @@ body .weekdays { display: none; }
 .status-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 4px 10px 4px 8px; border-radius: 12px; font-size: 12px; color: var(--text2); background: var(--field); }
 .status-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); }
 .status-pill.ok i { background: #5BA77F; }
-.status-pill.err i { background: var(--p3); }
+.status-pill.err i { background: var(--red); }
 .status-pill.busy i { background: var(--accent); animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
 
@@ -430,7 +434,7 @@ button.srow:active, .srow.tap:active { background: var(--field); }
 :is(.sicon, .dr-ico, .em-ico) svg .k2 { fill: var(--tile); }
 .slabel { flex: 1; min-width: 0; }
 .slabel small { display: block; font-size: 12px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.srow.danger .slabel { color: var(--p3); }
+.srow.danger .slabel { color: var(--red); }
 .sval { color: var(--text2); font-size: 14.5px; white-space: nowrap; max-width: 46%; overflow: hidden; text-overflow: ellipsis; }
 .chev { width: 8px; height: 13px; color: var(--text3); flex: none; }
 .chev svg { width: 8px; height: 13px; stroke-width: 2; }
@@ -525,7 +529,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .text-btn { font-size: 16px; color: var(--accent-text); padding: 6px 2px; }
 .text-btn.muted { color: var(--text2); }
 .text-btn.strong { font-weight: 650; }
-.text-btn.danger { color: var(--p3); }
+.text-btn.danger { color: var(--red); }
 .text-btn.small { font-size: 13px; }
 
 /* 添加面板 */
@@ -567,7 +571,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .spacer { flex: 1; }
 .cmp-card { background: var(--surface); border-radius: var(--r-l); padding: 12px 14px 6px; box-shadow: inset 0 0 0 .5px var(--group-line); }
 #cmpTitle { width: 100%; border: 0; background: none; resize: none; outline: none; font-size: 19px; font-weight: 620; line-height: 1.4; padding: 2px 0 6px; max-height: 120px; border-bottom: .5px solid var(--group-line); }
-#cmpTitle.err::placeholder { color: var(--p3); }
+#cmpTitle.err::placeholder { color: var(--red); }
 #cmpNote { width: 100%; border: 0; background: none; resize: none; outline: none; font-size: 15px; line-height: 1.5; color: var(--text); padding: 8px 0 4px; }
 #cmpNote::placeholder, #cmpTitle::placeholder { color: var(--text3); }
 .cmp-sec { margin-top: 16px; }
@@ -615,8 +619,8 @@ body:not([data-page="cal"]) .back-today { display: none; }
 /* 卡片：上面是名称 + 备注（一块），一道细线，下面两行一样高、铺满整行的控件：优先级（分段）/ 时间、提醒、重复。
    比例：内边距 14 / 16，文字块和控件之间 12，控件 30 高、行距 8，圆角 18 / 9（外圆角 = 内圆角 + 内边距的一半，看着同心）。往左滑露出后面的「删除」 */
 .b-card { position: relative; z-index: 1; border-radius: 18px; padding: 12px 16px 14px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); touch-action: pan-y; }
-.brow.err .b-card { box-shadow: inset 0 0 0 1.5px var(--p3); }
-.b-swdel { position: absolute; top: 0; right: 0; bottom: 0; width: 76px; border-radius: 0 18px 18px 0; background: var(--p3); color: #fff; font-size: 15px; font-weight: 600; opacity: 0; transition: opacity .2s; }
+.brow.err .b-card { box-shadow: inset 0 0 0 1.5px var(--red); }
+.b-swdel { position: absolute; top: 0; right: 0; bottom: 0; width: 76px; border-radius: 0 18px 18px 0; background: var(--red); color: #fff; font-size: 15px; font-weight: 600; opacity: 0; transition: opacity .2s; }
 .brow.swiped .b-swdel, .brow:has(.b-card[style*="translateX"]) .b-swdel { opacity: 1; }
 .b-top { display: block; padding-bottom: 12px; margin-bottom: 12px; border-bottom: .5px solid var(--group-line); }
 .b-name { display: flex; flex-direction: column; gap: 3px; }
@@ -707,7 +711,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .pk-card small { display: block; font-size: 12px; color: var(--text2); }
 .pk-card b { display: block; font-size: 16px; color: var(--accent-text); margin: 4px 0 2px; font-weight: 650; }
 .pk-card.dim b { color: var(--text2); }
-.pk-clear { display: block; margin: 18px auto 4px; color: var(--p3); font-size: 15px; padding: 8px 20px; }
+.pk-clear { display: block; margin: 18px auto 4px; color: var(--red); font-size: 15px; padding: 8px 20px; }
 .tz { text-align: center; font-size: 12px; color: var(--text2); margin: 8px 0; }
 .switch {
   appearance: none; -webkit-appearance: none; width: 51px; height: 31px; border-radius: 16px; flex: none;
@@ -740,7 +744,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .field input:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .form-note { font-size: 12.5px; line-height: 1.6; color: var(--text2); margin: 2px 2px 0; }
 .form-note a { color: var(--accent-text); font-weight: 650; text-decoration: none; }
-.form-err { font-size: 13px; color: var(--p3); min-height: 18px; margin: 0 2px; }
+.form-err { font-size: 13px; color: var(--red); min-height: 18px; margin: 0 2px; }
 
 /* 帮助 */
 .help-body { overflow-y: auto; padding: 0 20px 20px; user-select: text; -webkit-user-select: text; }
@@ -780,7 +784,7 @@ html.locked .lock { display: grid; }
 #lockPw { font-size: 17px; text-align: center; border: 0; border-radius: 14px; padding: 14px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); outline: none; }
 #lockPw:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .wide-btn { padding: 14px; border-radius: 14px; font-size: 16px; font-weight: 650; }
-.lock-err { color: var(--p3); font-size: 13px; min-height: 18px; margin: 10px 0 4px; }
+.lock-err { color: var(--red); font-size: 13px; min-height: 18px; margin: 10px 0 4px; }
 .shake { animation: shake .35s; }
 @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
 
@@ -809,11 +813,11 @@ html.locked .lock { display: grid; }
 .cfm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .cfm-btns button { padding: 11px 8px; border-radius: 13px; font-size: 15px; font-weight: 600; background: var(--field); }
 .cfm-btns button.strong { background: var(--accent); color: #fff; }
-.cfm-btns button.danger { background: color-mix(in srgb, var(--p3) 14%, transparent); color: var(--p3); }
+.cfm-btns button.danger { background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); }
 .cfm-btns button:active { opacity: .75; }
 
 /* 弹出菜单里的危险操作 */
-.popover button.danger { color: var(--p3); }
+.popover button.danger { color: var(--red); }
 
 /* 今日：分组标题右侧的小按钮（已逾期 → 全部移到今天） */
 .sec-r { display: inline-flex; align-items: center; gap: 10px; }
@@ -934,7 +938,7 @@ html.locked .lock { display: grid; }
 /* 现在时间：整周一条半透明的线，压在所有课程上面（经过课程时透出课程内容）；左边时间标签是实色的。
    线和标签都以同一个 top 为中心；每分钟往下滑一点；出现时从左往右展开 */
 .sc-nowline { position: absolute; left: 0; right: 0; height: 1.5px; margin-top: -.75px; z-index: 5; pointer-events: none;
-  background: color-mix(in srgb, var(--p3) 50%, transparent); transform-origin: 0 50%;
+  background: color-mix(in srgb, var(--red) 50%, transparent); transform-origin: 0 50%;
   transition: top .8s var(--ease); animation: nowIn .55s var(--ease) both; }
 .sc-col { z-index: 1; }
 @keyframes nowIn { from { transform: scaleX(0); opacity: 0; } }
@@ -950,7 +954,7 @@ html.locked .lock { display: grid; }
 /* 现在时间的标签：一个圆角小方块，贴着时间轴右边缘、和线同一高度居中，右边缘正好接上线；时间长（下午9:36）时向左延伸 */
 .sc-tri { position: absolute; right: 0; z-index: 5; transform: translateY(-50%); pointer-events: none; white-space: nowrap; }
 .sc-tri span { display: block; min-width: calc(var(--hw) - 6px); max-width: calc(var(--hw) - 1px); text-align: center; font-size: 9.5px; font-weight: 700; line-height: 15px; color: #fff;
-  background: var(--p3); padding: 0 2px; border-radius: 4.5px; overflow: hidden; /* 只写时间（不写上午 / 下午），放在左边时间轴里不会被裁掉 */ font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  background: var(--red); padding: 0 2px; border-radius: 4.5px; overflow: hidden; /* 只写时间（不写上午 / 下午），放在左边时间轴里不会被裁掉 */ font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .sc-hr small { font-size: 8px; font-weight: 500; margin-right: 1px; }
 #schedForm textarea { min-height: 130px; }
 #schedForm .steps li { font-size: 14px; padding-bottom: 12px; }
@@ -1348,7 +1352,7 @@ body[data-kind="days"] .dock2, body[data-kind="days"] .dock-scrim { display: non
   --d2-b: max(24px, calc(var(--safe-b) + 10px));   /* 热区底边；视觉圆面再往里收 6px，离屏幕底边约 30px，拇指好按 */
   --d2-side: 10px;
   --d2-hit: 64px;
-  --d2-lift: 18px;   /* 时钟胶囊和 logo 比分页点再高这么多，拇指更好按 */
+  --d2-lift: 40px;   /* 时钟胶囊和 logo 比分页点再高这么多，拇指更好按 */
   --spring-out: cubic-bezier(.3, 1.45, .45, 1);   /* 松手回弹：一点点过冲 */
   --spring-soft: cubic-bezier(.32, .72, 0, 1);    /* 系统面板曲线：快起、长尾 */
   --press-in: cubic-bezier(.2, 0, 0, 1);
@@ -1485,10 +1489,10 @@ body[data-page="set"] .pod-today { opacity: 0; transform: translateY(10px) scale
 /* 菜单打开时：一层很淡的暗角接住点击，不会点穿到日历 */
 .dock-scrim {
   position: absolute; inset: 0; z-index: 15; pointer-events: none; opacity: 0;
-  background: radial-gradient(circle at calc(100% - 44px) calc(100% - 62px), rgba(10, 16, 28, .16), rgba(10, 16, 28, .04) 55%, transparent 75%);
+  background: radial-gradient(circle at calc(100% - 44px) calc(100% - 84px), rgba(10, 16, 28, .16), rgba(10, 16, 28, .04) 55%, transparent 75%);
   transition: opacity .3s ease;
 }
-:root[data-theme="dark"] .dock-scrim { background: radial-gradient(circle at calc(100% - 44px) calc(100% - 62px), rgba(0, 0, 0, .5), rgba(0, 0, 0, .18) 55%, transparent 80%); }
+:root[data-theme="dark"] .dock-scrim { background: radial-gradient(circle at calc(100% - 44px) calc(100% - 84px), rgba(0, 0, 0, .5), rgba(0, 0, 0, .18) 55%, transparent 80%); }
 .dock-scrim.show { opacity: 1; pointer-events: auto; }
 
 /* 回到今天 / 回到本周：和 logo 同一竖线，放在扇形能展开到的范围之上 */
@@ -1616,7 +1620,7 @@ body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { disp
   background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 22%, transparent), color-mix(in srgb, var(--brand-mid) 18%, transparent));
 }
 
-/* ---------- 优先级拖动条：无 → 低 → 中 → 高，暖沙 → 蓝 → 深蓝的渐变填到哪露到哪，越重要越蓝 ---------- */
+/* ---------- 优先级拖动条：无 → 低 → 中 → 高，天蓝 → 琥珀 → 朱红的渐变填到哪露到哪，越重要越暖 ---------- */
 .pbar { --th: 28px; --pad: 3px; position: relative; padding: 2px 0 0; touch-action: pan-y; -webkit-user-select: none; user-select: none; outline: none; }
 .pbar.compact { --th: 24px; }
 .pb-track {
@@ -1624,10 +1628,10 @@ body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { disp
   background: color-mix(in srgb, var(--brand-b) 9%, var(--field));
   box-shadow: inset 0 1px 2px rgba(20, 30, 50, .06);
 }
-/* 渐变铺满整条，用裁切露出到滑块中心：位置固定，所以填得越多，蓝色露得越多 */
+/* 渐变铺满整条，用裁切露出到滑块中心：位置固定，所以填得越多，暖色露得越多 */
 .pb-fill {
   position: absolute; inset: var(--pad); border-radius: 999px;
-  background: linear-gradient(90deg, var(--brand-a), var(--brand-mid) 50%, var(--brand-b));
+  background: var(--pri-grad);
   clip-path: inset(0 calc((1 - var(--f)) * (100% - var(--th)) + var(--th) / 2) 0 0 round 999px);
   transition: clip-path .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1));
 }
@@ -1675,7 +1679,7 @@ body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { disp
 .flag.pmini { width: 18px; height: 6px; border-radius: 3px; position: relative; overflow: hidden; align-self: center;
   background: color-mix(in srgb, var(--text) 12%, transparent); }
 .flag.pmini i { position: absolute; inset: 0; border-radius: inherit;
-  background: linear-gradient(90deg, var(--brand-a), var(--brand-mid) 50%, var(--brand-b));
+  background: var(--pri-grad);
   clip-path: inset(0 calc((1 - var(--f)) * 100%) 0 0 round 3px); }
 .popover .flag.pmini { width: 22px; height: 7px; }
 

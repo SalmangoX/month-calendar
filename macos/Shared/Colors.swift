@@ -146,12 +146,12 @@ struct Pal {
     /// 白字永远不压在实色的白块上
     var glass = false
 
-    var accentV: UInt32 { dark ? 0xFF8B_A8DE : 0xFF4C_6EAC }
+    var accentV: UInt32 { dark ? 0xFF8D_B0EA : 0xFF4F_80C4 }   // 和网页 --accent 一致（天蓝）
     var accent: Color { glass ? .white : Color(argb: accentV) }
     /// 加号这种白字的实色按钮：深色模式下用深一点、饱和一点的蓝（浅蓝配白字发灰）
     /// 课表页加号（添加课程）的绿色
     static let course = Color(argb: 0xFF34_A853)
-    var fab: Color { Color(argb: dark ? 0xFF4F_74C0 : 0xFF4C_6EAC) }
+    var fab: Color { Color(argb: dark ? 0xFF5A_93D6 : 0xFF4F_80C4) }
     /// 玻璃样式下：色条、圆点、彩色的字 → 实色白；色块的底 → 淡淡的白
     func ink(_ v: UInt32) -> Color { glass ? .white : Color(argb: v) }
     func wash(_ v: UInt32) -> Color { glass ? .white.opacity(0.15) : Color(argb: v) }
@@ -169,7 +169,7 @@ struct Pal {
     var text2: Color { glass ? .white.opacity(0.72) : Color(argb: dark ? 0xFF8C_8E97 : 0xFF74_7B83) }
     var live: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(accentV, dark ? 0x3D : 0x29)) }
     /// 与网页一致：--accent-text、--today-dim（今天的淡主色圆）、--sel-bg（当前周的淡底）、--text2
-    var accentText: Color { glass ? .white : Color(argb: dark ? 0xFFAD_C5EF : 0xFF3B_5993) }
+    var accentText: Color { glass ? .white : Color(argb: dark ? 0xFFBC_D2F5 : 0xFF3C_69AE) }
     var todayDim: Color { glass ? .white.opacity(0.2) : Color(argb: withAlpha(accentV, dark ? 0x47 : 0x33)) }
     /// 当前周的底：中性的浅灰（网页 --field），不带蓝
     var weekBand: Color { glass ? .white.opacity(0.07) : Color(argb: dark ? 0x13EC_EEFA : 0x176E_7D91) }
@@ -184,9 +184,12 @@ struct Pal {
     /// 「今天」那个实色圆 / 小标签：玻璃样式下改成半透明的白底，上面的字才看得清
     var todayFill: Color { glass ? .white.opacity(0.3) : accent }
 
-    static let P: [UInt32] = [0xFF97_9CA2, 0xFF3C_7DC2, 0xFFD8_8018, 0xFFD9_453E]
-    static let DARK_FILL: [UInt32] = [0xFF38_3B3F, 0xFF25_5593, 0xFFBB_6800, 0xFFAC_312C]
-    static let DARK_INK: [UInt32] = [0xFFE8_E9EB, 0xFFDD_EBFD, 0xFFFC_E5D3, 0xFFFF_E2DE]
+    /// 优先级色（和网页 --p0…--p3 一致）：无 灰 · 低 天蓝 · 中 琥珀金 · 高 朱红（色彩心理学：冷 → 暖）；深色调按同一个 OKLCH 规则算（和网页 MC.darkTone 一样）
+    static let P: [UInt32] = [0xFFA3_A1AD, 0xFF5B_8FD0, 0xFFC9_8A1E, 0xFFD4_472C]
+    static let DARK_FILL: [UInt32] = P.map { CourseColors.darkTone($0).0 }
+    static let DARK_INK: [UInt32] = P.map { CourseColors.darkTone($0).1 }
+    /// 红色只用于逾期、现在时间的线（和优先级无关）
+    static let RED: UInt32 = 0xFFD9_453E
 
     /// 一个事件的颜色（记录日历没设优先级时用日历颜色）
     func base(_ e: CEvent, _ d: CalData) -> UInt32 { d.calColorOf(e) ?? Pal.P[e.priority] }

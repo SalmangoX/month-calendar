@@ -389,7 +389,7 @@
     document.addEventListener('pointercancel', end, true);
   }
   // ---------- 优先级拖动条：从左到右 = 无 → 低 → 中 → 高 ----------
-  // 条上铺金黄 → 天蓝 → 深靛蓝的渐变，填到哪里就露出多少：越重要越蓝，一眼看出轻重。
+  // 条上铺天蓝 → 琥珀 → 朱红的渐变，填到哪里就露出多少：越重要越暖，一眼看出轻重。
   // 按住拖动连续跟手，松手吸到最近的一档；点下面的字或条上任意位置直接跳过去。和 lgBar 一样发 lgchange
   const PB_N = 4, PB_NAMES = () => MC.PRI_ASC.map(p => p.name), PB_FULL = () => MC.PRI_ASC.map(p => p.full);
   UI.priBar = (cur, opts = {}) => {

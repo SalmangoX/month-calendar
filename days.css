@@ -252,7 +252,7 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 .dd-ph.miss::after { content: "…"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--text3); font-size: 20px; }
 .dd-ph.add { display: grid; place-items: center; color: var(--text2); background: var(--dv-card); }
 .dd-ph.add svg { width: 26px; height: 26px; }
-.dd-del { display: block; margin: 32px auto 4px; padding: 10px 20px; font-size: 15px; color: var(--p3); }
+.dd-del { display: block; margin: 32px auto 4px; padding: 10px 20px; font-size: 15px; color: var(--red); }
 
 /* ---------- 主题图片 ---------- */
 #dayCover { z-index: 35; }
