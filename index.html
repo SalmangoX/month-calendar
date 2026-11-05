@@ -630,11 +630,13 @@
     fans.stat.setAttribute('aria-label', inStat ? '返回' : '统计');
     const order = [fans.add, fans.stat, fans.set].filter(b => !b.hidden);   // 从上到下
     const R = order.length === 3 ? 88 : 84, angles = order.length === 3 ? [100, 145, 190] : [115, 175];   // 整体相对 logo 逆时针转 10°：加号不要太高、太靠右
+    // 像扇子打开：每个按钮都从 logo 出发，先朝第一个（最上面那个）的方向出去，一边往外走一边沿圆弧转到自己的位置，按顺序一个接一个
+    // （rotate → translate → 反向 rotate：CSS 过渡会沿圆弧走；角度是逆时针的，所以取负）【联动:底部悬浮控件】
     order.forEach((b, k) => {
-      const a = angles[k] * Math.PI / 180;
-      b.style.setProperty('--fx', (Math.cos(a) * R).toFixed(1) + 'px');
-      b.style.setProperty('--fy', (-Math.sin(a) * R).toFixed(1) + 'px');
-      b.style.setProperty('--i', order.length - 1 - k);   // 从下往上依次弹出
+      b.style.setProperty('--fa', -angles[k] + 'deg');
+      b.style.setProperty('--fa0', -angles[0] + 'deg');
+      b.style.setProperty('--fr', R + 'px');
+      b.style.setProperty('--i', k);   // 从上往下依次展开
     });
   }
   function setOpen(v) {

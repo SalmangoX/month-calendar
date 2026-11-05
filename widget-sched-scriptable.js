@@ -303,7 +303,7 @@ function gridLayout(w, courses, now, offline) {
     ctx.setFillColor(new Color(P.line)); ctx.fillRect(new Rect(gx, y, gw, 0.6));
     if (h < maxH) text(hourLabel(h), pad, y + 1, axis - 4, 12, Font.systemFont(8.5), P.text2, "r");
   }
-  for (let i = 1; i < days.length; i++) { ctx.setFillColor(new Color(P.line)); ctx.fillRect(new Rect(gx + i * colW, gy, 0.6, gh)); }
+  // 每天之间不画竖线（用户定的），只留每小时的横线【联动:小组件格线】
   // 现在几点（和应用课表一样）：整周一条半透明的线压在课程上面，时间轴上一个时间标签
   const RED = "#D9453E", nmNow = now.getHours() * 60 + now.getMinutes(), tIdx = days.findIndex(x => ymdL(x.date) === todayS);
   const showNow = tIdx >= 0 && nmNow >= minH * 60 && nmNow <= maxH * 60, ny = gy + (nmNow / 60 - minH) * hourH;

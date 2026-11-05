@@ -381,10 +381,7 @@ struct SchedGrid: View {
                     let y = gy + CGFloat(h - minH) * hourH
                     p.move(to: CGPoint(x: gx, y: y)); p.addLine(to: CGPoint(x: W - pad, y: y))
                 }
-                for ci in 1..<max(1, days.count) {
-                    let x = gx + CGFloat(ci) * colW
-                    p.move(to: CGPoint(x: x, y: gy)); p.addLine(to: CGPoint(x: x, y: H - pad))
-                }
+                // 每天之间不画竖线（用户定的），只留每小时的横线【联动:小组件格线】
             }
             .stroke(pal.line, lineWidth: 0.6)
             ForEach(Array(stride(from: minH, to: maxH, by: hourStep)), id: \.self) { h in

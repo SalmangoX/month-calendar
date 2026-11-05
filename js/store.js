@@ -286,6 +286,7 @@
   function normCal(c) {
     const t = Date.now();
     return { id: String(c.id).slice(0, 40), name: String(c.name || '记录').slice(0, 24), color: /^#[0-9a-fA-F]{6}$/.test(c.color || '') ? c.color : MC.CAL_COLORS[0],
+      icon: /^[a-z]{2,12}$/.test(c.icon || '') ? c.icon : '', // 纪念日历自己的图标（js/days.js 的 ICONS 里的名字），空 = 心形【联动:同步数据】
       showInMain: !!c.showInMain, // 事件也显示在主日历里（纪念日历：每个日子出现的那天显示在主日历）
       notify: !!c.notify,         // 这个日历的事件到点提醒
       rateOn: c.kind !== 'days' && !!c.rateOn, // 记录日历：不按优先级，改用 4 个等级给事件评级并统计
@@ -568,7 +569,7 @@
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
       .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, JSON.stringify(e.segs || {}), e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
-    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), JSON.stringify(c.presets || []), c.updatedAt]);
+    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), JSON.stringify(c.presets || []), c.icon || '', c.updatedAt]);
     const ds = [...(d.days || []), ...(d.books || [])].map(x => x.id + ':' + (x.updatedAt || 0)).sort();
     return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, (d.courseRemind || {}).updatedAt || 0, d.coursesAt || 0, cs, ds, (d.album || {}).gist || '']);
   }

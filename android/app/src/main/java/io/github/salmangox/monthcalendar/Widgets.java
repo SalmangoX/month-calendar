@@ -701,7 +701,7 @@ final class Widgets {
             cv.drawLine(gx, y, W - pad, y, lp);
             if (h < maxH) cv.drawText(Data.hourLabel(h, Data.h12(c)), gx - 4 * dp, y + 9 * dp, p);
         }
-        for (int ci = 1; ci < days.size(); ci++) cv.drawLine(gx + ci * colW, gy, gx + ci * colW, H - pad, lp);
+        // 每天之间不画竖线（用户定的），只留每小时的横线【联动:小组件格线】
         p.setTextAlign(Paint.Align.LEFT);
 
         // 现在几点（和应用课表一样）：整周一条半透明的线压在课程上面，时间轴上一个时间标签

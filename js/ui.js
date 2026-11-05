@@ -65,7 +65,8 @@
   UI.anyOpen = () => stack.length > 0;
   function syncBackdrop() {
     // 有面板开着：根元素挂 ui-open，iPhone / Mac / 安卓的注入脚本都在看根元素的 class，原生的底栏控件（时钟、logo、回到今天、分页点）跟着让开【联动:底部悬浮控件】
-    document.documentElement.classList.toggle('ui-open', stack.length > 0);
+    // 新建子日历的介绍卡片浮在屏幕上方，和底栏不重叠：它开着时底栏照常显示，不让路
+    document.documentElement.classList.toggle('ui-open', stack.some(id => id !== 'calKindSheet'));
     if (!stack.length) { backdrop.classList.remove('show'); return; }
     const top = $('#' + stack[stack.length - 1]);
     backdrop.style.zIndex = (parseInt(getComputedStyle(top).zIndex, 10) || 30) - 1;
@@ -232,23 +233,33 @@
   const pop = $('#popover');
   let popCb = null;
   UI.menuOpen = () => pop.classList.contains('show');
-  UI.menu = (anchor, items, cb) => {
+  // opts.center：以按钮为正中心展开（侧拉菜单里子日历的「⋯」），否则挂在按钮上方 / 下方
+  UI.menu = (anchor, items, cb, opts = {}) => {
     popCb = cb;
     pop.innerHTML = items.map((it, i) =>
-      `<button role="menuitem" data-i="${i}" class="${it.on ? 'on' : ''}${it.danger ? ' danger' : ''}">${it.icon || ''}<span>${esc(it.label)}</span>${it.on ? '<span class="tick">✓</span>' : ''}</button>`).join('');
+      // sw：开关类的选项（比如子日历的「在主日历显示」「通知」）画成开关，点了原地切换、菜单不关
+      it.sw ? `<button role="menuitemcheckbox" aria-checked="${!!it.on}" data-i="${i}" class="sw">${it.icon || ''}<span>${esc(it.label)}</span><span class="mi-sw${it.on ? ' on' : ''}" aria-hidden="true"><i class="mi-ck"><svg viewBox="0 0 24 24"><path d="M6.5 12.5l3.8 3.8 7.2-8.3"/></svg></i></span></button>`
+        : `<button role="menuitem" data-i="${i}" class="${it.on ? 'on' : ''}${it.danger ? ' danger' : ''}">${it.icon || ''}<span>${esc(it.label)}</span>${it.on ? '<span class="tick">✓</span>' : ''}</button>`).join('');
+    pop.classList.toggle('grow', !!opts.center);   // 以按钮为中心时：从那一点长出来（更明显的缩放 + 回弹）
     pop.classList.add('show');
+    pop.style.setProperty('--cc', getComputedStyle(anchor).getPropertyValue('--cc').trim() || 'var(--accent)');   // 开关填充用那一行日历的颜色
     const r = anchor.getBoundingClientRect();
     const pw = pop.offsetWidth, ph = pop.offsetHeight;
     let left = Math.min(Math.max(10, r.left + r.width / 2 - pw / 2), window.innerWidth - pw - 10);
     if (r.left < 80) left = Math.max(10, r.left);
     const above = r.top - ph - 8 > 10;
-    const top = above ? r.top - ph - 8 : r.bottom + 8;
+    let top = above ? r.top - ph - 8 : r.bottom + 8;
+    if (opts.center) {
+      left = Math.min(Math.max(10, r.left + r.width / 2 - pw / 2), window.innerWidth - pw - 10);
+      top = Math.min(Math.max(10, r.top + r.height / 2 - ph / 2), window.innerHeight - ph - 10);
+    }
     pop.style.left = left + 'px'; pop.style.top = top + 'px';
     pop.style.setProperty('--ox', (r.left + r.width / 2 - left) + 'px');
-    pop.style.setProperty('--oy', above ? '100%' : '0%');
+    pop.style.setProperty('--oy', opts.center ? (r.top + r.height / 2 - top) + 'px' : above ? '100%' : '0%');
     pop.querySelectorAll('button').forEach(b => b.onclick = ev => {
       ev.stopPropagation();
       const it = items[Number(b.dataset.i)];
+      if (it.sw) { try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(6); } catch (e) {} it.on = !it.on; b.setAttribute('aria-checked', String(it.on)); b.querySelector('.mi-sw').classList.toggle('on', it.on); if (popCb) popCb(it.value, it); return; }
       UI.closeMenu();
       if (popCb) popCb(it.value, it);
     });
@@ -791,7 +802,8 @@
           }
           const tint = el.classList.contains('lgx') ? (el.lgBg || '') : (el.lgBg = cs.backgroundColor); // 网页原来的底色：拿来给玻璃着一点色
           out.push([ids.get(el), n(r.left), n(r.top), n(r.width), n(r.height), n(rad), n(cx), n(cy), n(cx2 - cx), n(cy2 - cy), k,
-            runs, icons, pads, tint, Math.round(vx * 1000) / 1000, Math.round(vy * 1000) / 1000]);
+            runs, icons, pads, tint, Math.round(vx * 1000) / 1000, Math.round(vy * 1000) / 1000,
+            n(Number(cs.opacity) || 0)]);   // 第 18 项：网页里这个控件的透明度（比如滚动时变淡的星期条），原生按它画【联动:原生玻璃】
           shown.add(el);
         });
         // 盖在玻璃上面的网页东西（提示条）：原生的玻璃在这里挖掉，不然会挡住它

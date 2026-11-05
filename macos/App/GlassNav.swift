@@ -13,12 +13,16 @@ import UIKit
 @MainActor
 final class NavModel: ObservableObject {
     struct Tab: Decodable, Identifiable { let page: String; let label: String; let hidden: Bool; var id: String { page } }
-    struct Item: Decodable, Identifiable { let label: String; let value: String; let on: Bool?; let danger: Bool?; var id: String { value } }
+    struct Item: Decodable, Identifiable { let label: String; let value: String; let on: Bool?; let danger: Bool?; let sw: Bool?; var id: String { value } }
     struct Row: Decodable, Identifiable {
         let id: String, name: String, color: String, kind: String, on: Bool, sub: String, inMain: Bool, notify: Bool, menu: [Item]
+        let sf: String?   // 纪念日历自己选的图标（网页给的系统符号名）
         var key: String { id.isEmpty ? "_main" : id }
     }
-    struct Drawer: Decodable { let title, sub, recTitle, recEmpty, daysTitle: String; let main: Row; let recs, days: [Row]; let add: [Item]; let addLabel: String? }
+    /// 新建子日历的介绍卡片用的文字（网页 MC.Drawer.model 的 kinds）
+    struct Kind: Decodable { let name, desc, eg: String; let big, unit, tag: String? }
+    struct Kinds: Decodable { let title, lead, cancel: String; let rec, days: Kind }
+    struct Drawer: Decodable { let title, sub, recTitle, recEmpty, daysTitle: String; let main: Row; let recs, days: [Row]; let add: [Item]; let addLabel: String?; let kinds: Kinds? }
 
     @Published var tabs: [Tab] = []
     @Published var page = "cal"
@@ -35,6 +39,8 @@ final class NavModel: ObservableObject {
         let id: Int; let rect: CGRect; let r: CGFloat; let clip: CGRect; let k: String
         /// 移动速度（点 / 毫秒）：原生按它每一帧往前推算位置
         var vx: CGFloat = 0, vy: CGFloat = 0
+        /// 网页里这个控件的透明度（滚动时变淡的星期条等），原生按它画
+        var alpha: CGFloat = 1
         /// 画在玻璃上面的内容（位置都是网页坐标）：每一段字、每个图标（系统符号）、选中项的浅色底块；玻璃的着色（网页原来的底色）
         var runs: [Run] = [], icons: [Icon] = [], pads: [Pad] = [], tint = ""
         struct Run: Equatable { let rect: CGRect; let t: String; let fs: CGFloat; let fw: Int; let col: String; let ls: CGFloat; let tab: Bool; let round: Bool }
@@ -136,6 +142,7 @@ final class NavModel: ObservableObject {
             it.pads = (x[13] as? [[Any]] ?? []).compactMap { a in a.count >= 5 ? .init(rect: rc(a), r: f(a[4]), col: a.count >= 6 ? (a[5] as? String ?? "") : "") : nil }
             it.tint = x[14] as? String ?? ""
             if x.count >= 17 { it.vx = f(x[15]); it.vy = f(x[16]) }
+            if x.count >= 18 { it.alpha = max(0, min(1, f(x[17]))) }
             return it
         }
         var t = Transaction(); t.disablesAnimations = true
@@ -180,7 +187,11 @@ final class NavModel: ObservableObject {
         }
     }
 
+    /// 侧拉菜单里：新建子日历的介绍卡片开着；某一行的「⋯」小窗口开着（行的 key）
+    @Published var kindsOpen = false
+    @Published var moreRow: String? = nil
     func closeDrawer() {
+        kindsOpen = false; moreRow = nil
         drawerOpen = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in if self?.drawerOpen == false { self?.drawerPull = 0 } }
     }
@@ -469,6 +480,7 @@ struct GlassLayer: View {
                         .macGlassFinish(shape)
                         .position(x: it.rect.midX, y: it.rect.midY)
                 }
+                .opacity(it.alpha)
                 .offset(x: it.vx * dt, y: it.vy * dt)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .mask { Rectangle().frame(width: it.clip.width, height: it.clip.height).position(x: it.clip.midX, y: it.clip.midY) }
@@ -571,6 +583,8 @@ enum DockSize {
     /// 时钟胶囊、logo 的中轴离屏幕左 / 右边多远：日历每行左右各 2，七列等分，取第一条列线
     static func axis(_ w: CGFloat) -> CGFloat { 2 + (w - 4) / 7 }
     /// 扇形按钮沿四分之一圆弧均匀排开：两个时彼此的间距和到 logo 的间距一样；记录日历多一个中间的「统计」
+    /// 扇形按钮的角度（度，逆时针，0 = 正右）和半径：展开动画沿圆弧走要用
+    static func fanArc(_ n: Int) -> (a: [CGFloat], r: CGFloat) { n == 3 ? ([100, 145, 190], 88) : ([115, 175], 84) }
     static func fan(_ n: Int) -> [CGSize] {
         let (r, a): (CGFloat, [CGFloat]) = n == 3 ? (88, [100, 145, 190]) : (84, [115, 175])   // 整体相对 logo 逆时针转 10°：加号不要太高、太靠右
         return a.map { d in CGSize(width: cos(d * .pi / 180) * r, height: -sin(d * .pi / 180) * r) }
@@ -608,6 +622,17 @@ struct LogoMark: View {
 /// 新底栏：左「时钟 / 返回」胶囊 · 中分页点 · 右 logo（点开沿圆弧弹出添加、设置；设置页多一个回到日历）。
 /// 全是系统液态玻璃；扇形按钮和 logo 在同一个玻璃组里，弹出 / 收回时玻璃从 logo 里流出来、再融回去。
 /// 点按交给网页里同名的按钮处理，网页那一份在 App 里只是藏起来（今日页从胶囊位置展开的动画还用它的位置）
+/// 扇形按钮展开的进度 t（0 = 缩在 logo 里，1 = 到位）：沿圆弧从第一个按钮的方向 a0 转到自己的角度 a，半径从 0 长到 r【联动:底部悬浮控件】
+struct FanArc: ViewModifier, Animatable {
+    var t: CGFloat
+    let a: CGFloat, a0: CGFloat, r: CGFloat
+    var animatableData: CGFloat { get { t } set { t = newValue } }
+    func body(content: Content) -> some View {
+        let ang = (a0 + (a - a0) * t) * .pi / 180
+        return content.scaleEffect(0.35 + 0.65 * t).opacity(Double(min(1, max(0, t * 2.5)))).offset(x: cos(ang) * r * t, y: -sin(ang) * r * t)
+    }
+}
+
 @available(macOS 26.0, iOS 26.0, *)
 struct GlassDock: View {
     @ObservedObject var m: NavModel
@@ -715,7 +740,7 @@ struct GlassDock: View {
         let items: [FanItem] = [FanItem(id: "add", icon: "plus", label: "添加事件")]
             + (d.st == true ? [m.page == "rstat" ? FanItem(id: "stat", icon: "chevron.left", label: "返回") : FanItem(id: "stat", icon: "chart.bar", label: "统计")] : [])
             + [d.set ? FanItem(id: "set", icon: "chevron.left", label: "返回") : FanItem(id: "set", icon: "gearshape", label: "设置")]
-        let pos = DockSize.fan(items.count)
+        let arc = DockSize.fanArc(items.count)
         ZStack {
             if m.back {   // 回到今天 / 本周：平时贴在 logo 正上方；扇形弹出时被顶到扇形上方，收起时落回来
                 Button { navTick(); m.goToday() } label: {
@@ -745,8 +770,12 @@ struct GlassDock: View {
                             }
                             .buttonStyle(.plain)
                             .modifier(DockRect(m: m, key: "fan-" + it.id))   // 在 offset 里面量，位置才包含偏移
-                            .glassEffectID(it.id, in: ns)
-                            .offset(pos[k])
+                            // 像扇子打开（和网页一样）：从 logo 出发，先朝第一个按钮的方向，一边往外走一边沿圆弧转到自己的位置，按顺序一个接一个
+                            .transition(.asymmetric(
+                                insertion: .modifier(active: FanArc(t: 0, a: arc.a[k], a0: arc.a[0], r: arc.r), identity: FanArc(t: 1, a: arc.a[k], a0: arc.a[0], r: arc.r))
+                                    .animation(.spring(response: 0.5, dampingFraction: 0.66).delay(Double(k) * 0.055)),
+                                removal: .modifier(active: FanArc(t: 0, a: arc.a[k], a0: arc.a[0], r: arc.r), identity: FanArc(t: 1, a: arc.a[k], a0: arc.a[0], r: arc.r))
+                                    .animation(.easeIn(duration: 0.24))))
                             .accessibilityLabel(Text(it.label))
                         }
                     }
@@ -863,6 +892,8 @@ struct GlassDrawer: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hLock: Bool? // 这次拖动是横着的（拉侧栏）还是竖着的（滚列表）
+    @Namespace private var ns
+    @State private var dots: [String: CGRect] = [:]   // 每一行「⋯」的位置（drawer 坐标）
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -882,8 +913,12 @@ struct GlassDrawer: View {
                     .scaleEffect(x: 1 + stretch / 300, y: 1 - stretch / 1600, anchor: .leading)
                     .offset(x: min(0, m.drawerPull)) // 往回推：整块跟着移动
                     .transition(.move(edge: .leading).combined(with: .opacity))
+                if let key = m.moreRow, let r = ([d.main] + d.recs + d.days).first(where: { $0.key == key }), let a = dots[key] { moreCard(r, at: a) }
+                if m.kindsOpen, let k = d.kinds { kindsCard(k) }
             }
         }
+        .coordinateSpace(name: "drawer")
+        .onPreferenceChange(DotsKey.self) { dots = $0 }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         // 打开时，在窗口任何地方（包括侧栏里面）左右拖都是拉动日历栏；和列表的上下滚动同时识别，
         // 开头先看是横着拖还是竖着拖：竖着拖只滚列表，横着拖才拉动侧栏
@@ -923,7 +958,9 @@ struct GlassDrawer: View {
                 .padding(.horizontal, 10).padding(.bottom, 8)
             }
             // 新建子日历：一颗液态玻璃胶囊（和网页同一个样子），左边是品牌渐变的加号圆；点了打开网页里两种日历的介绍卡片
-            Button { m.addCal("") } label: {
+            ZStack {
+            if !m.kindsOpen {
+            Button { navTick(); withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { m.moreRow = nil; m.kindsOpen = true } } label: {
                 HStack(spacing: 11) {
                     Image(systemName: "plus").font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
                         .frame(width: 36, height: 36)
@@ -935,9 +972,14 @@ struct GlassDrawer: View {
                 .padding(.leading, 8).padding(.trailing, 18)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .contentShape(Capsule())
+                .background { Capsule().fill(Color.clear).matchedGeometryEffect(id: "kinds", in: ns) }   // 介绍卡片从这颗胶囊长出来
                 .glassEffect(NavGlass.chrome(scheme, interactive: true), in: .capsule)
             }
             .buttonStyle(.plain)
+            .transition(.opacity)
+            }
+            }
+            .frame(height: 52)
             .padding(.horizontal, 12).padding(.bottom, 12).padding(.top, 4)
         }
         .frame(width: width)
@@ -949,13 +991,123 @@ struct GlassDrawer: View {
         #endif
     }
 
+    // ---------- 「⋯」小窗口：以三个点为正中心向四周展开（靠边时往里收，不出屏幕），开关类的选项是开关，点了原地切换 ----------
+    @ViewBuilder private func moreCard(_ r: NavModel.Row, at a: CGRect) -> some View {
+        GeometryReader { g in
+            let w: CGFloat = 248, rowH: CGFloat = 46, h = CGFloat(r.menu.count) * rowH + 12
+            let x = min(max(a.midX, w / 2 + 12), g.size.width - w / 2 - 12)
+            let y = min(max(a.midY, h / 2 + 50), g.size.height - h / 2 - 30)
+            ZStack {
+                Color.black.opacity(0.001).contentShape(Rectangle())
+                    .onTapGesture { withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { m.moreRow = nil } }
+                VStack(spacing: 0) {
+                    ForEach(Array(r.menu.enumerated()), id: \.element.id) { i, it in
+                        if i > 0 { Divider().padding(.leading, 16).opacity(0.5) }
+                        if it.sw == true || (it.on != nil && it.danger != true) {
+                            Toggle(isOn: Binding(get: { it.on ?? false }, set: { _ in navTick(); m.act(r.id, it.value) })) {
+                                Text(it.label).font(.system(size: 15, weight: .medium))
+                            }
+                            .toggleStyle(FillToggle())
+                            .padding(.horizontal, 16).frame(height: rowH)
+                        } else {
+                            Button {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) { m.moreRow = nil }
+                                m.act(r.id, it.value)
+                            } label: {
+                                HStack {
+                                    Text(it.label).font(.system(size: 15, weight: .medium)).foregroundStyle(it.danger == true ? Color(argb: Pal.RED) : Color.primary)
+                                    Spacer(minLength: 0)
+                                }
+                                .padding(.horizontal, 16).frame(height: rowH).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.vertical, 6)
+                .frame(width: w)
+                .glassEffect(NavGlass.chrome(scheme), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .shadow(color: .black.opacity(scheme == .dark ? 0.4 : 0.14), radius: 24, y: 10)
+                .position(x: x, y: y)
+                // 从三个点那里向四周长出来：缩放的中心就是三个点的位置
+                .transition(.scale(scale: 0.15, anchor: UnitPoint(x: (a.midX - (x - w / 2)) / w, y: (a.midY - (y - h / 2)) / h)).combined(with: .opacity))
+            }
+        }
+    }
+
+    // ---------- 新建子日历的介绍卡片：浮在侧拉菜单上面、靠屏幕上方，从「新建子日历」胶囊长出来 ----------
+    @ViewBuilder private func kindsCard(_ k: NavModel.Kinds) -> some View {
+        GeometryReader { g in
+            let w = min(420, g.size.width - 24)
+            let close = { withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) { m.kindsOpen = false } }
+            ZStack(alignment: .top) {
+                Color.black.opacity(scheme == .dark ? 0.25 : 0.12).contentShape(Rectangle()).onTapGesture { close() }
+                    .transition(.opacity)
+                VStack(spacing: 12) {
+                    ZStack {
+                        Text(k.title).font(.system(size: 17, weight: .bold))
+                        HStack {
+                            Button { close() } label: {
+                                Text(k.cancel).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.primary)
+                                    .padding(.horizontal, 16).frame(height: 36)
+                                    .glassEffect(NavGlass.chrome(scheme, interactive: true), in: .capsule)
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                        }
+                    }
+                    Text(k.lead).font(.system(size: 13)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    HStack(alignment: .top, spacing: 10) {   // 两张选项卡一样高
+                        kindOption(k.rec, art: AnyView(RecArt(dark: scheme == .dark)), tint: Color(argb: 0xFF5B_8FD0)) { m.kindsOpen = false; m.addCal("rec") }
+                        kindOption(k.days, art: AnyView(DaysArt(k: k.days, dark: scheme == .dark)), tint: Color(argb: 0xFFD4_6A8C)) { m.kindsOpen = false; m.addCal("days") }
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(14)
+                .frame(width: w)
+                .transition(.opacity.animation(.easeOut(duration: 0.2).delay(0.12)))
+                .background {
+                    RoundedRectangle(cornerRadius: 34, style: .continuous).fill(Color.clear)
+                        .matchedGeometryEffect(id: "kinds", in: ns)
+                        .glassEffect(NavGlass.chrome(scheme), in: RoundedRectangle(cornerRadius: 34, style: .continuous))
+                        .shadow(color: .black.opacity(scheme == .dark ? 0.45 : 0.2), radius: 34, y: 16)
+                }
+                #if os(iOS)
+                .padding(.top, g.safeAreaInsets.top + 60)
+                #else
+                .padding(.top, 70)
+                #endif
+            }
+            .frame(width: g.size.width, height: g.size.height)
+        }
+        #if os(iOS)
+        .ignoresSafeArea()
+        #endif
+    }
+
+    private func kindOption(_ k: NavModel.Kind, art: AnyView, tint: Color, pick: @escaping () -> Void) -> some View {
+        Button { navTick(); pick() } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                art.frame(height: 100).clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                Text(k.name).font(.system(size: 16, weight: .bold)).foregroundStyle(Color.primary).padding(.horizontal, 4)
+                Text(k.desc).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true).padding(.horizontal, 4)
+                Text(k.eg).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(tint).padding(.horizontal, 4).padding(.top, 2)
+            }
+            .padding(10).padding(.bottom, 4)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color(argb: scheme == .dark ? 0xFF22_2226 : 0xFFFF_FFFF)).shadow(color: tint.opacity(0.14), radius: 12, y: 5))
+            .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        }
+        .buttonStyle(PressScale())
+    }
+
     private func section(_ t: String) -> some View {
         Text(t).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary).padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 4)
     }
 
     private func row(_ r: NavModel.Row) -> some View {
         let color = Color(hex: r.color) ?? Pal(dark: scheme == .dark).accent
-        let icon = r.kind == "days" ? "heart.fill" : r.kind == "rec" ? "bookmark.fill" : "calendar"
+        let icon = r.kind == "days" ? (r.sf ?? "heart.fill") : r.kind == "rec" ? "bookmark.fill" : "calendar"
         return HStack(spacing: 6) {
             Button { m.pick(r.id) } label: {
                 HStack(spacing: 11) {
@@ -983,21 +1135,13 @@ struct GlassDrawer: View {
             }
             .buttonStyle(.plain)
             if !r.menu.isEmpty {
-                Menu {
-                    ForEach(r.menu) { it in
-                        if let on = it.on {
-                            Toggle(it.label, isOn: Binding(get: { on }, set: { _ in m.act(r.id, it.value) }))
-                        } else {
-                            Button(it.label, role: it.danger == true ? .destructive : nil) { m.act(r.id, it.value) }
-                        }
-                    }
-                } label: { Image(systemName: "ellipsis").frame(width: 24, height: 24) }
-                #if os(macOS)
-                .menuStyle(.button)
-                #endif
-                .menuIndicator(.hidden)
-                .buttonStyle(.borderless)
-                .fixedSize()
+                // 「⋯」：以这三个点为中心展开一个带开关的小窗口（GlassDrawer 的 moreCard）
+                Button { navTick(); withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) { m.moreRow = m.moreRow == r.key ? nil : r.key } } label: {
+                    Image(systemName: "ellipsis").font(.system(size: 15, weight: .semibold)).foregroundStyle(.secondary)
+                        .frame(width: 36, height: 36).contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .background(GeometryReader { g in Color.clear.preference(key: DotsKey.self, value: [r.key: g.frame(in: .named("drawer"))]) })
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 8)
@@ -1005,6 +1149,130 @@ struct GlassDrawer: View {
             if r.on { RoundedRectangle(cornerRadius: 15, style: .continuous).fill(color.opacity(scheme == .dark ? 0.2 : 0.13)) }
         }
         .id(r.key)
+    }
+}
+
+/// 侧拉菜单每一行「⋯」的位置（drawer 坐标），小窗口以它为中心展开
+struct DotsKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) { value.merge(nextValue()) { $1 } }
+}
+/// 「⋯」小窗口里的开关（用户定的样子）：一颗系统的透明液态玻璃水滴。关着时玻璃下面是淡淡凹陷的空底；
+/// 打开后 Cadence logo 的渐变色（淡紫 → 雾紫粉 → 杏）像一团气体在玻璃下面涨开、由模糊变清晰，充满到饱满，被玻璃折射着；
+/// 充满之后一个白色的小勾从左往右「画」出来，浮在玻璃上（带紫调投影）。按下去水滴被压扁一点，松手像果冻一样弹回，切换时轻震一下。
+/// 颜色在玻璃下面、玻璃在最上面：体积感靠系统玻璃的折射和边缘厚度，不手画高光（和网页 .mi-sw 一样）【联动:品牌渐变】
+struct FillToggle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View { FillToggleBody(label: AnyView(configuration.label), isOn: configuration.$isOn) }
+}
+struct CheckShape: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.minX + r.width * 0.18, y: r.minY + r.height * 0.54))
+        p.addLine(to: CGPoint(x: r.minX + r.width * 0.42, y: r.minY + r.height * 0.78))
+        p.addLine(to: CGPoint(x: r.minX + r.width * 0.84, y: r.minY + r.height * 0.26))
+        return p
+    }
+}
+struct FillToggleBody: View {
+    let label: AnyView
+    @Binding var isOn: Bool
+    @GestureState private var pressed = false
+    @Environment(\.colorScheme) private var scheme
+    static let logo = LinearGradient(colors: [Color(argb: 0xFF9E_9AC8), Color(argb: 0xFFC7_B3CF), Color(argb: 0xFFEB_C7A6)], startPoint: .leading, endPoint: .trailing)
+    var body: some View {
+        let dark = scheme == .dark, on = isOn
+        HStack {
+            label
+            Spacer(minLength: 12)
+            ZStack(alignment: .leading) {
+                Capsule().fill(dark ? Color.black.opacity(0.28) : Color.black.opacity(0.07))   // 空的时候：淡淡凹陷的底
+                GeometryReader { g in
+                    Capsule().fill(FillToggleBody.logo)   // 一团彩色的气：从左边涨开、由模糊变清晰
+                        .frame(width: on ? g.size.width : g.size.height * 0.6)
+                        .blur(radius: on ? 0 : 8)
+                        .opacity(on ? 1 : 0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: on)
+                }
+                .clipShape(Capsule())
+                Capsule().fill(Color.clear)   // 最上面：系统的透明液态玻璃，折射下面的颜色，像一颗水滴
+                    .glassEffect(.clear.interactive(), in: Capsule())
+                // 白色小勾：颜色充到一大半时从左往右画出来，底下一层带紫调的柔和投影，像压在水滴表面
+                CheckShape()
+                    .trim(from: 0, to: on ? 1 : 0)
+                    .stroke(Color.white, style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round))
+                    .frame(width: 14, height: 14)
+                    .shadow(color: Color(argb: 0xFF5A_4A80).opacity(0.45), radius: 1.2, y: 1)
+                    .shadow(color: Color(argb: 0xFF5A_4A80).opacity(0.2), radius: 4, y: 2)
+                    .frame(maxWidth: .infinity)
+                    .animation(on ? .easeOut(duration: 0.32).delay(0.24) : .easeIn(duration: 0.12), value: on)
+            }
+            .frame(width: 50, height: 28)
+            // 点击反馈：按下去水滴被压扁一点（横向变宽、纵向变矮），松手像果冻一样弹回
+            .scaleEffect(x: pressed ? 1.1 : 1, y: pressed ? 0.86 : 1)
+            .animation(pressed ? .spring(response: 0.2, dampingFraction: 0.8) : .spring(response: 0.42, dampingFraction: 0.42), value: pressed)
+        }
+        .contentShape(Rectangle())
+        .gesture(DragGesture(minimumDistance: 0)
+            .updating($pressed) { _, st, _ in st = true }
+            .onEnded { v in if abs(v.translation.width) < 30 && abs(v.translation.height) < 30 { isOn.toggle() } })
+    }
+}
+/// 按下去轻轻缩一下（介绍卡片里的两张选项卡）
+struct PressScale: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.scaleEffect(configuration.isPressed ? 0.96 : 1).animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+/// 记录日历的效果图：星期点 + 几条优先级渐变色条 + 右下角等级统计柱（和网页 .ck-rec 一样）
+struct RecArt: View {
+    let dark: Bool
+    var body: some View {
+        let g = { (s: [(CGFloat, UInt32)]) in LinearGradient(stops: s.map { .init(color: Color(argb: $0.1), location: $0.0) }, startPoint: .leading, endPoint: .trailing) }
+        ZStack(alignment: .bottomTrailing) {
+            Color(argb: dark ? 0xFF2C_2C30 : 0xFFF1_F2F5)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 5) { ForEach(0..<7, id: \.self) { _ in Capsule().fill(Color.secondary.opacity(0.35)).frame(width: 12, height: 4) } }.padding(.bottom, 3)
+                GeometryReader { geo in
+                    VStack(alignment: .leading, spacing: 5) {
+                        RoundedRectangle(cornerRadius: 3).fill(g(Pal.GRAD_L[1]!)).frame(width: geo.size.width * 0.62, height: 9)
+                        RoundedRectangle(cornerRadius: 3).fill(g(Pal.GRAD_L[2]!)).frame(width: geo.size.width * 0.44, height: 9)
+                        RoundedRectangle(cornerRadius: 3).fill(g(Pal.GRAD_L[3]!)).frame(width: geo.size.width * 0.8, height: 9)
+                        RoundedRectangle(cornerRadius: 3).fill(Color(argb: 0xFF5B_A86B)).frame(width: geo.size.width * 0.36, height: 9)
+                    }
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            HStack(alignment: .bottom, spacing: 3) {
+                ForEach(Array([(0.4, 0xFF5B_A86B), (0.7, 0xFFC9_8A1E), (0.55, 0xFFE0_7A3C), (0.85, 0xFFD4_472C)].enumerated()), id: \.offset) { _, b in
+                    RoundedRectangle(cornerRadius: 2).fill(Color(argb: UInt32(b.1))).frame(width: 7, height: 34 * b.0)
+                }
+            }
+            .padding(10)
+        }
+    }
+}
+/// 纪念日历的效果图：一张带光的倒数卡（心形、大数字、重复标签，和网页 .ck-days 一样）
+struct DaysArt: View {
+    let k: NavModel.Kind, dark: Bool
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(colors: dark ? [Color(argb: 0xFF8E_4A63), Color(argb: 0xFF7A_3556), Color(argb: 0xFF5C_3A78)] : [Color(argb: 0xFFF4_B3C2), Color(argb: 0xFFD4_6A8C), Color(argb: 0xFFA6_6BBE)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            Image(systemName: "heart.fill").font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
+                .frame(width: 26, height: 26).background(Color.white.opacity(0.28), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(10)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(k.big ?? "").font(.system(size: 11, weight: .semibold))
+                    Text("12").font(.system(size: 34, weight: .heavy)).kerning(-1)
+                    Text(k.unit ?? "").font(.system(size: 11, weight: .semibold))
+                }
+                Text(k.tag ?? "").font(.system(size: 10, weight: .semibold)).padding(.horizontal, 7).padding(.vertical, 1)
+                    .background(Color.white.opacity(0.25), in: Capsule())
+            }
+            .foregroundStyle(.white).padding(.horizontal, 12).padding(.bottom, 8)
+        }
     }
 }
 

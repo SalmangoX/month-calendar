@@ -47,7 +47,12 @@
 - 课程提醒：`data.courseRemind = { on, lead, tz }`（同步），四端各自排：`js/push.js`、`scripts/send-reminders.mjs`、安卓 `Engine.java`、iOS / Mac `Engine.swift`。
 - 小组件里「今天」那一格 / 那一列用品牌渐变淡底（`Pal.todayTint`，和 App 里选中的今天同样的比例），日期圆用 `todayStyle`，都不要再用蓝色或灰色。
 - 纪念日历的图标是实心的（`js/days.js` 的 `FILL`：f 填满、k / d 用 mask 镂空），放在灰底块（`--tile`）里。
-- 侧拉菜单底部是「新建子日历」，点开是两种日历的介绍卡片（左记录日历、右纪念日历，各带一个简单的效果图），不要再改回系统菜单。卡片从「新建子日历」那颗胶囊长出来、收回时缩回胶囊（`js/drawer.js` 的 `morphKinds`，iPhone / Mac 按原生按钮的固定位置算）。网页 / 安卓里侧拉菜单留在卡片下面；iPhone / Mac 的原生侧拉菜单会先收起，没选就取消时再打开回来。纪念日历的示例不要写「考试」。
+- 侧拉菜单里子日历的「⋯」：以三个点为正中心向四周展开一个小窗口（网页 `UI.menu(…, { center: true })`，iPhone / Mac 原生 `GlassDrawer.moreCard`），开关类的选项（`sw: true`）点了原地切换、窗口不关。开关的样子：一颗透明玻璃水滴（原生用系统 `glassEffect(.clear)` 盖在最上面），关着是空的，打开后 Cadence logo 的渐变色（#9E9AC8 → #C7B3CF → #EBC7A6）像气体一样在玻璃下面涨开、由模糊变清晰到饱满，充满后白色小勾从左往右画出来（带紫调投影）；按下去水滴压扁、松手果冻回弹，切换轻震一下；不要手画高光（`FillToggle` / `FillToggleBody`、`.mi-sw`）。
+- 纪念日历自己也能选图标（和日子同一套实心图标，`c.icon`），原生侧拉菜单用对应的系统符号（`drawer.js` 的 `SF_OF`）。
+- logo 扇形展开像扇子打开：从 logo 出发先朝第一个按钮的方向，沿圆弧转到各自位置，按顺序一个接一个（网页 rotate-translate-rotate，原生 `FanArc`，安卓角度插值）。
+- 切换日历有过渡：先淡出微缩下沉，再从略大淡入（`drawer.js` 的 `D.pick`），不用模糊。
+- 月视图滚动时星期条明显变淡（透明度 .42）、往外扩散（横 1.05 / 纵 1.32），停下回弹收回（`calendar.js` 的 `markMoving` + `.weekdays.moving`）；原生玻璃按网页发来的透明度画（`LG` 第 18 项 `alpha`）。
+- 侧拉菜单底部是「新建子日历」，点开是两种日历的介绍卡片（左记录日历、右纪念日历，各带一个简单的效果图），不要再改回系统菜单。卡片从「新建子日历」那颗胶囊长出来、收回时缩回胶囊（`js/drawer.js` 的 `morphKinds`，iPhone / Mac 按原生按钮的固定位置算）。网页 / 安卓里侧拉菜单留在卡片下面；iPhone / Mac 的原生侧拉菜单会先收起，没选就取消时再打开回来。纪念日历的示例不要写「考试」。iPhone / Mac 上介绍卡片是原生画的（`GlassDrawer.kindsCard`，文字来自 `D.model().kinds`），浮在原生侧拉菜单上面、靠屏幕上方，侧拉菜单不收起，从「新建子日历」胶囊长出来（`matchedGeometryEffect`）。网页 / 安卓的卡片浮在上方（离安全区 70），底栏不让路。
 - 有面板开着时根元素挂 `ui-open`（`js/ui.js` 的 `syncBackdrop`），三端的注入脚本靠它把原生底栏控件（时钟、logo、回到今天、分页点）收起来，别再只看某一个面板。
 - 悬浮卡片（`.sheet.fl`）在宽、够高的窗口（≥700 × 520，Mac、iPad）里居中弹出，不贴在底部；手机上从底部弹出（要打字的表单，键盘不挡）。新建子日历的介绍卡片在所有设备上都居中。
 - 纪念日历也能「在主日历显示」：日子到了那一天显示在主日历和小组件里（只读，点开是详情页）。
@@ -85,7 +90,7 @@
 
 ## 联动分组（改一处，同组的都要看一遍）
 
-**规则（用户定的）**：写代码时先判断这次改动属于哪一组，按组增删；改完对照同组每一处，确认都改到了（比如改了色条，已完成、别的月份、跨天横条、小组件都要跟着改）。新增同类的东西时，加进对应的组，并在代码里打上同样的标记。
+**规则（用户定的）**：影响操作体验的地方该用原生就用原生（iPhone / Mac 上盖在网页上的原生层，网页里的东西浮不上去），不要偷工减料。写代码时先判断这次改动属于哪一组，按组增删；改完对照同组每一处，确认都改到了（比如改了色条，已完成、别的月份、跨天横条、小组件都要跟着改）。新增同类的东西时，加进对应的组，并在代码里打上同样的标记。
 
 每组在各处的定义点都有注释标记 `【联动:组名】`，改之前先搜：`grep -rn "联动:组名" js styles.css index.html widget* scripts macos ios android/app/src/main`。
 
@@ -105,6 +110,7 @@
 | 翻译 | 新文字要补四种语言 + 繁体转换表 | `js/i18n.js`（字典 + `CMAP`）、`macos/Shared/I18n.swift`、安卓 `I18n.java` + `res/values-*/strings.xml` |
 | 侧拉菜单 | 日历列表、「更多」菜单（原生直接用网页给的 `menu`）、新建子日历（先弹两种日历的介绍卡片 `#calKindSheet`） | 网页 `js/drawer.js`（`D.model` 给原生用、`D.add('')` 打开介绍卡片）、iOS / Mac `GlassNav.swift` `GlassDrawer`、安卓用网页的（拉出时 `NAV_JS` 的 `cover` 让原生控件让开） |
 | 在主日历显示 | 记录日历的事件、纪念日历的日子（每次出现的那天当成只读事件，id `dayv:`，网页里带 `dv`）出现在主日历和小组件里；计数、完成统计、每日提醒不算纪念日 | 网页 `js/store.js` `MC.reindex` / `dayEvents`、`js/ui.js` `itemHTML`（心形、点开详情）、`js/calendar.js` 预览计数和 `tally`、`js/app.js` 今日页、`js/push.js` 每日提醒；`Model.swift` 建索引处；安卓 `Data.java` `index()` |
+| 小组件格线 | 每周之间（和课表每小时）的横线；每天之间不画竖线（用户定的） | `MonthView.swift` 背景画布、`ListViews.swift` 课表时间轴、安卓 `cell_*.xml` + `Widgets.java` 课表、`widget-ios-scriptable.js` `sep`、`widget-sched-scriptable.js`、`widget.html` `.c` |
 | 记录等级 | 等级顺序 `RATE_ORDER`、名称、颜色、统计 | `js/store.js` `RATE_ORDER`、`js/editor.js` 等级条、`js/app.js` 统计、`js/drawer.js` 等级名称 |
 | 版本号 | 改原生代码就加 build | `version.json`、`ios/version.json`、`macos/version.json` |
 

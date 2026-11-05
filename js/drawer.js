@@ -89,6 +89,16 @@
   const BELL = '<svg viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
   const LAYERS = '<svg viewBox="0 0 24 24"><path d="M12 4l8.5 4.5L12 13 3.5 8.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg>';
   const MORE = '<svg viewBox="0 0 24 24" class="filled"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg>';
+  // 纪念日历自己的图标：和纪念日的日子同一套实心图标（js/days.js 的 svgOf / ICON_GROUPS），空 = 心形
+  const DP = () => (MC.Days && MC.Days.parts) || null;
+  const daysIcon = c => { const P = DP(), ic = c && c.icon; return P && ic && P.ICONS[ic] ? P.svgOf(ic) : ICON_DAYS; };
+  // iPhone / Mac 原生侧拉菜单用系统符号：每个图标配一个最接近的 SF Symbol
+  const SF_OF = { heart: 'heart.fill', ring: 'circle.circle.fill', cake: 'birthday.cake.fill', gift: 'gift.fill', people: 'person.2.fill', smile: 'face.smiling.inverse', home: 'house.fill',
+    star: 'star.fill', plane: 'airplane', train: 'tram.fill', car: 'car.fill', bag: 'suitcase.fill', mountain: 'mountain.2.fill', sea: 'water.waves', pin: 'mappin.circle.fill',
+    cap: 'graduationcap.fill', book: 'book.fill', paper: 'doc.text.fill', case: 'briefcase.fill', clock: 'clock.fill', flag: 'flag.fill', music: 'music.note', mic: 'music.mic',
+    film: 'film.fill', game: 'gamecontroller.fill', camera: 'camera.fill', gym: 'dumbbell.fill', plant: 'leaf.fill', coffee: 'cup.and.saucer.fill', paw: 'pawprint.fill',
+    cat: 'cat.fill', dog: 'dog.fill', lantern: 'lamp.ceiling.fill', tree: 'tree.fill', moon: 'moon.fill', spark: 'sparkles', tent: 'tent.fill', trophy: 'trophy.fill',
+    calendar: 'calendar', syringe: 'syringe.fill', pumpkin: 'leaf.circle.fill', stroller: 'stroller.fill' };
   function row(c, i) {
     const on = c.id === MC.activeCal(), n = MC.countIn(c.id);
     const days = c.kind === 'days';
@@ -96,7 +106,7 @@
     const sub = (days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日页') + (flags ? `<span class="dr-flags">${flags}</span>` : '');
     return `<div class="dr-row${on ? ' on' : ''}" style="--cc:${c.id ? c.color : 'var(--accent-base)'};--i:${i}" data-id="${esc(c.id)}">
       <button class="dr-pick" data-act="pick" aria-pressed="${on}">
-        <span class="dr-ico">${days ? ICON_DAYS : c.id ? ICON_REC : ICON_MAIN}</span>
+        <span class="dr-ico">${days ? daysIcon(c) : c.id ? ICON_REC : ICON_MAIN}</span>
         <span class="dr-txt"><b>${esc(c.name)}</b><small>${sub}</small></span>
         <span class="dr-tick" aria-hidden="true">${TICK}</span>
       </button>
@@ -120,17 +130,34 @@
     const b = e.target.closest('[data-act]'); if (!b || swallow) return;
     const id = b.closest('.dr-row').dataset.id;
     if (b.dataset.act === 'pick') { D.pick(id); setTimeout(D.close, 140); return; }
-    const c = MC.cal(id); if (c) UI.menu(b, menuOf(c), v => D.act(id, v));
+    const c = MC.cal(id); if (c) UI.menu(b, menuOf(c), v => D.act(id, v), { center: true });   // 以「⋯」为正中心展开
   });
+  // 切换日历：不再整页一下子闪过去——先淡出、稍微缩一点往下沉，换好内容后再从略大一点淡入回来（不用模糊：会让里面的液态玻璃失效）
+  let swapping = false;
   D.pick = id => {
-    if (id === MC.activeCal()) return;
-    MC.setActiveCal(id); D.paint(); render(); MC.Cal.render();
+    if (id === MC.activeCal() || swapping) return;
     try { navigator.vibrate && navigator.vibrate(6); } catch (err) {}
+    const host = $('#pages'), swap = () => { MC.setActiveCal(id); D.paint(); render(); MC.Cal.render(); };
+    if (!host || !host.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { swap(); return; }
+    swapping = true;
+    const out = host.animate([{ opacity: 1, transform: 'none' }, { opacity: .3, transform: 'translateY(6px) scale(.985)' }], { duration: 150, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards' });
+    let went = false;
+    setTimeout(() => (swapping = false), 800);   // 兜底：后台时动画事件不一定来，别卡住以后的切换
+    const go = () => {
+      if (went) return; went = true;
+      swap();
+      requestAnimationFrame(() => {
+        out.cancel();
+        const back = host.animate([{ opacity: .3, transform: 'translateY(-4px) scale(1.012)' }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.2,.8,.2,1)' });
+        back.onfinish = back.oncancel = () => { swapping = false; };
+      });
+    };
+    out.onfinish = go; setTimeout(go, 220);
   };
   // 「更多」菜单：记录日历和纪念日历的选项不同
   const menuOf = c => (c.kind === 'days'
-    ? [{ label: '在主日历显示', value: 'main', on: c.showInMain }, { label: T('名称和颜色'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }]
-    : [{ label: '在主日历显示', value: 'main', on: c.showInMain }, { label: '通知', value: 'notify', on: c.notify },
+    ? [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: T('名称、颜色和图标'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }]
+    : [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: '通知', value: 'notify', on: c.notify, sw: true },
       { label: '名称、颜色和等级', value: 'edit' }, { label: '删除这个日历', value: 'del', danger: true }]);
   D.act = async (id, v) => {
     const c = MC.cal(id); if (!c) return;
@@ -152,7 +179,7 @@
     const tr = x => (MC.t ? MC.t(x) : x);
     const item = c => {
       const n = MC.countIn(c.id), days = c.kind === 'days';
-      return { id: c.id, name: c.name, color: c.id ? c.color : '', kind: days ? 'days' : c.id ? 'rec' : 'main', on: c.id === MC.activeCal(),
+      return { id: c.id, name: c.name, color: c.id ? c.color : '', kind: days ? 'days' : c.id ? 'rec' : 'main', on: c.id === MC.activeCal(), sf: days ? SF_OF[c.icon] || 'heart.fill' : '',
         sub: tr(days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日页'),
         inMain: !!c.showInMain, notify: !!c.notify && !days,
         menu: c.id ? menuOf(c).map(m => ({ ...m, label: tr(m.label) })) : [] };
@@ -161,7 +188,11 @@
     return { title: tr('日历'), sub: tr('每个日历的内容分开显示'), main: item(MC.MAIN_CAL),
       recTitle: tr('记录日历'), recs: cals.filter(c => c.kind !== 'days').map(item), recEmpty: tr('记录日历和待办分开显示，可以分别设置是否显示在主日历、是否通知。'),
       daysTitle: tr(T('纪念日历')), days: cals.filter(c => c.kind === 'days').map(item),
-      add: [{ label: tr(T('新建记录日历')), value: 'rec' }, { label: tr(T('新建纪念日历')), value: 'days' }], addLabel: tr('新建子日历') };
+      add: [{ label: tr(T('新建记录日历')), value: 'rec' }, { label: tr(T('新建纪念日历')), value: 'days' }], addLabel: tr('新建子日历'),
+      // iPhone / Mac 原生画的「新建子日历」介绍卡片用的文字（和网页 #calKindSheet 一样）
+      kinds: { title: tr('新建子日历'), lead: tr('子日历和主日历分开记，也可以显示在主日历里。'), cancel: tr('取消'),
+        rec: { name: tr('记录日历'), desc: tr('像主日历一样记一件件事：时间、提醒、完成。可以用 4 个等级评分，看统计。'), eg: tr('适合：运动、学习、日志') },
+        days: { name: tr(T('纪念日历')), desc: tr('记重要的日子：未来的倒数，过去的累计。可以写小纸条、建相册、生成分享图片。'), eg: tr('适合：生日、纪念日、旅行'), big: tr('还有'), unit: tr('天'), tag: tr('每年 · 生日') } } };
   };
   // 新建子日历：先弹出两种日历的介绍卡片（左：记录日历，右：纪念日历），点哪张就新建哪种；原生的侧拉菜单调 MC.Drawer.add('') 也走这里
   D.add = kind => (kind === 'days' || kind === 'rec' ? calForm(null, kind === 'days' ? 'days' : '') : openKinds());
@@ -213,13 +244,18 @@
     const days = kind === 'days';
     const used = new Set(MC.data.cals.map(x => x.color));
     let color = c ? c.color : MC.suggestCalColor([...used]); // 没选颜色时：自动挑和主日历、其他记录日历都不冲突的
-    const sw = () => `<div class="field"><span>颜色</span><div class="dr-swatches" id="calSw">${MC.CAL_COLORS.map(x =>
+    // 纪念日历：先选图标（按大类分好的那几组，去掉重复），颜色在下面
+    let icon = days ? (c && c.icon) || 'heart' : '';
+    const P = DP(), ICS = P ? [...new Set(P.ICON_GROUPS.flatMap(g => g[1]))].filter(k => P.ICONS[k]) : [];
+    const icPick = () => days && ICS.length ? `<div class="field"><span>${T('图标')}</span><div class="cf-icons" id="calIc" style="--cc:${color}">${ICS.map(k =>
+      `<button type="button" class="cf-ic${k === icon ? ' on' : ''}" data-ic="${k}" aria-pressed="${k === icon}">${P.svgOf(k)}</button>`).join('')}</div></div>` : '';
+    const sw = () => icPick() + `<div class="field"><span>颜色</span><div class="dr-swatches" id="calSw">${MC.CAL_COLORS.map(x =>
       `<button type="button" class="dr-sw${x === color ? ' on' : ''}" style="--cc:${x}" data-c="${x}" aria-label="颜色 ${x}" aria-pressed="${x === color}"></button>`).join('')}</div></div>`;
     MC.openForm({
       title: c ? (days ? T('编辑纪念日历') : '编辑日历') : (days ? T('新建纪念日历') : '新建记录日历'),
       submit: c ? '保存' : '新建',
       // 顶上的预览：图标块用选中的颜色，名字跟着输入实时变
-      hero: `<div class="cf-hero" id="cfHero" style="--cc:${color}"><div class="cf-tile">${days ? ICON_DAYS : ICON_REC}</div><div class="cf-name${c ? '' : ' ph'}" id="cfName">${MC.esc(c ? c.name : (days ? T('纪念日历') : '记录日历'))}</div></div>`,
+      hero: `<div class="cf-hero" id="cfHero" style="--cc:${color}"><div class="cf-tile" id="cfTile">${days ? daysIcon({ icon }) : ICON_REC}</div><div class="cf-name${c ? '' : ' ph'}" id="cfName">${MC.esc(c ? c.name : (days ? T('纪念日历') : '记录日历'))}</div></div>`,
       fields: [{ id: 'calName', label: '名称', ph: days ? T('比如：我们、生日、旅行') : '日历名称', val: c ? c.name : '', max: 24 }],
       note: days && !c ? T('纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。') : '',
       extra: sw() + (days ? `<div class="group dr-switches">
@@ -239,8 +275,8 @@
         if (!name) throw new Error('请填写名称');
         const showInMain = $('#calMain').checked, notify = !days && $('#calNotify').checked;   // 纪念日历也能在主日历显示
         const rateOn = !days && $('#calRate').checked, rateLabels = days ? undefined : MC.normRateLabels([0, 1, 2, 3].map(i => $('#calRL' + i).value));
-        if (c) { MC.updateCal(c, days ? { name, color, showInMain, notify } : { name, color, showInMain, notify, rateOn, rateLabels }); MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast('已保存'); return; }
-        const nc = MC.addCal(name, color, { showInMain, notify, rateOn, rateLabels, kind: days ? 'days' : '' });
+        if (c) { MC.updateCal(c, days ? { name, color, showInMain, notify, icon } : { name, color, showInMain, notify, rateOn, rateLabels }); MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast('已保存'); return; }
+        const nc = MC.addCal(name, color, { showInMain, notify, rateOn, rateLabels, icon, kind: days ? 'days' : '' });
         MC.setActiveCal(nc.id); D.paint(); render(); MC.Cal.render();
         UI.toast(`已新建「${name}」，现在显示的就是它`);
         setTimeout(D.close, 260);
@@ -253,9 +289,15 @@
       MC.reverseRates(c); MC.normRateLabels(c.rateLabels).forEach((n, i) => { $('#calRL' + i).value = n; });
       MC.Cal.render(); UI.toast('已反转等级顺序');
     };
+    const icBox = $('#calIc');
+    if (icBox) icBox.addEventListener('click', e => {
+      const b = e.target.closest('.cf-ic'); if (!b) return;
+      icon = b.dataset.ic; $('#cfTile').innerHTML = daysIcon({ icon });
+      icBox.querySelectorAll('.cf-ic').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
+    });
     $('#calSw').addEventListener('click', e => {
       const b = e.target.closest('.dr-sw'); if (!b) return;
-      color = b.dataset.c; $('#cfHero').style.setProperty('--cc', color);
+      color = b.dataset.c; $('#cfHero').style.setProperty('--cc', color); if ($('#calIc')) $('#calIc').style.setProperty('--cc', color);
       $('#calSw').querySelectorAll('.dr-sw').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
     });
     $('#ff_calName').addEventListener('input', e => { const v = e.target.value.trim(), n = $('#cfName'); n.textContent = v || (days ? T('纪念日历') : '记录日历'); n.classList.toggle('ph', !v); });

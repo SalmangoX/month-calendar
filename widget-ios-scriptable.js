@@ -329,7 +329,7 @@ function largeLayout(w, idx, offline) {
   // 每一周按「横带」从上往下搭：日期带 + 若干事件行 + 剩余空白。
   // 跨天事件是横跨几列的一整个 stack（颜色随深浅色自动切换），格子之间的竖线在横条经过处自然断开
   const band = (parent, h) => { const b = parent.addStack(); b.size = new Size(S.mw, h); b.layoutHorizontally(); return b; };
-  const sep = (b, h) => { const x = b.addStack(); x.size = new Size(SEP, h); x.backgroundColor = C.line; };
+  const sep = (b, h) => { const x = b.addStack(); x.size = new Size(SEP, h); };   // 每天之间只留缝，不画竖线（用户定的）【联动:小组件格线】
   const box = (b, w, h) => { const x = b.addStack(); x.size = new Size(w, h); x.layoutVertically(); return x; };
   // 今天：这一列画一块带小圆角的淡主色（四周留一点边），作为这一周的背景，浅色深色都合适
   const todayImage = c => {

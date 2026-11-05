@@ -996,6 +996,7 @@
     "{0}月{1}日–{2}月{3}日": (a,b,c,d)=>L.md(a,b)+'–'+L.md(c,d),
     "周{0}": a=>L.wd(a)+'曜日',
     // 2026-11-05 补的翻译
+    "名称、颜色和图标": "名前・色・アイコン",
     "新建子日历": "新しいサブカレンダー",
     "子日历和主日历分开记，也可以显示在主日历里。": "サブカレンダーはメインとは別に記録します。メインに表示することもできます。",
     "像主日历一样记一件件事：时间、提醒、完成。可以用 4 个等级评分，看统计。": "メインと同じように予定を記録：時間、通知、完了。4 段階で評価して統計も見られます。",
@@ -2002,6 +2003,7 @@
     "点「10 秒后测试」后可以退出节律，10 秒左右收到「后台提醒测试」，就说明退出后也能准时提醒。": "Click “Test in 10 s”, then quit Cadence. If “Background reminder test” arrives about 10 seconds later, reminders work even when the app is closed.",
     "想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。": "To change banners, sounds or how reminders appear in Notification Center, click “Notification style”.",
     // 2026-11-05 补的翻译
+    "名称、颜色和图标": "Name, color and icon",
     "新建子日历": "New sub-calendar",
     "子日历和主日历分开记，也可以显示在主日历里。": "Sub-calendars are kept apart from the main calendar, and can also be shown in it.",
     "像主日历一样记一件件事：时间、提醒、完成。可以用 4 个等级评分，看统计。": "Log things like in the main calendar: times, reminders, done. Rate them on 4 levels and see stats.",
@@ -3008,6 +3010,7 @@
     "点「10 秒后测试」后可以退出节律，10 秒左右收到「后台提醒测试」，就说明退出后也能准时提醒。": "Cliquez sur « Tester dans 10 s », puis quittez Cadence. Si « Test de rappel en arrière-plan » arrive environ 10 secondes plus tard, les rappels fonctionnent app fermée.",
     "想调整横幅、提示音或通知中心里的显示方式，点「通知样式」。": "Pour régler les bannières, les sons ou l’affichage dans le centre de notifications, cliquez sur « Style des notifications ».",
     // 2026-11-05 补的翻译
+    "名称、颜色和图标": "Nom, couleur et icône",
     "新建子日历": "Nouveau sous-calendrier",
     "子日历和主日历分开记，也可以显示在主日历里。": "Les sous-calendriers sont séparés du calendrier principal et peuvent aussi y apparaître.",
     "像主日历一样记一件件事：时间、提醒、完成。可以用 4 个等级评分，看统计。": "Notez des choses comme dans le calendrier principal : heures, rappels, terminé. Évaluez-les sur 4 niveaux et voyez les statistiques.",
@@ -3527,6 +3530,7 @@
     "名称和颜色": "名稱和顏色",
     "删除这个日历": "刪除這個日曆",
     "「{0}」的事件会显示在主日历": "「{0}」的事件會顯示在主日曆",
+    "名称、颜色和图标": "名稱、顏色和圖示",
     "新建子日历": "新建子日曆",
     "子日历和主日历分开记，也可以显示在主日历里。": "子日曆和主日曆分開記，也可以顯示在主日曆裡。",
     "像主日历一样记一件件事：时间、提醒、完成。可以用 4 个等级评分，看统计。": "像主日曆一樣記一件件事：時間、提醒、完成。可以用 4 個等級評分，看統計。",

@@ -30,7 +30,7 @@
   .head span { font-size:9.5px; color:var(--text2); }
   .wd { display:grid; grid-template-columns:repeat(7,1fr); font-size:8.5px; color:var(--text2); text-align:center; padding-bottom:1px; }
   .grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border-top:.5px solid var(--line); overflow:hidden; }
-  .c { border-right:.5px solid var(--line); border-bottom:.5px solid var(--line); overflow:hidden; padding:2px 1px 0; min-width:0; }
+  .c { border-bottom:.5px solid var(--line);   /* 每天之间不画竖线（用户定的）【联动:小组件格线】 */ overflow:hidden; padding:2px 1px 0; min-width:0; }
   .c:nth-child(7n) { border-right:0; }
   .c.last { border-bottom:0; } /* 最后一行（格子后面还跟着横条，不能用 nth-last-child） */
   .n { min-width:18px; height:18px; padding:0 3px; margin:2px 0 2px 3px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; }

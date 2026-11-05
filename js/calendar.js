@@ -308,7 +308,15 @@
     setT(0, TOP - (BUF * rowH + scrollY));
     refreshFocus();
   }
+  // 月视图在动（拖动、滚轮、惯性）：星期条挂 moving，变浅、更透明、往外扩一点；停下 260ms 后收回（用户定的）
+  let mvT = 0, mvY = null;
+  function markMoving() {
+    if (mvY === null || mvY === scrollY) { mvY = scrollY; return; } mvY = scrollY;   // 第一次只记下位置，不算在动
+    const wd = $('#weekdays'); if (!wd || view !== 'month') return;
+    wd.classList.add('moving'); clearTimeout(mvT); mvT = setTimeout(() => wd.classList.remove('moving'), 260);
+  }
   function refreshFocus() {
+    markMoving();
     const before = focus.y * 12 + focus.m;
     computeFocus();
     try { updateBack(); } catch (e) {} // setT 时 focus 还是旧的月份：算完再看一次

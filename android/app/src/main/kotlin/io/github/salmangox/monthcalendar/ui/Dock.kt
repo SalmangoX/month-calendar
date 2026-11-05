@@ -270,11 +270,12 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
         items.forEachIndexed { k, id ->
             val a = remember(id) { Animatable(0f) }
             LaunchedEffect(m.fanOpen) {
-                if (m.fanOpen) { delay((items.size - 1 - k) * 32L); a.animateTo(1f, spring(.62f, 380f)) } else a.animateTo(0f, tween(200))
+                if (m.fanOpen) { delay(k * 55L); a.animateTo(1f, spring(.6f, 300f)) } else a.animateTo(0f, tween(220))   // 从上往下一个接一个展开
             }
             val v = a.value
             if (v > 0.01f) {
-                val rad = Math.toRadians(angles[k])
+                // 像扇子打开（和网页、iPhone 一样）：从 logo 出发，先朝第一个按钮的方向，一边往外走一边沿圆弧转到自己的位置【联动:底部悬浮控件】
+                val rad = Math.toRadians(angles[0] + (angles[k] - angles[0]) * v)
                 Tap(
                     Modifier.align(Alignment.Center)
                         .offset { IntOffset((cos(rad) * r * v * density.density).roundToInt(), (-sin(rad) * r * v * density.density).roundToInt()) }

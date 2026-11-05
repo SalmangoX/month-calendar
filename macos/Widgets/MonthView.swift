@@ -60,19 +60,14 @@ struct MonthView: View {
                         }
                     }
                     .padding(.top, MonthView.sp)
-                    #if os(iOS)
-                    // 格子不铺底色，整个小组件只有一层底（系统的小组件底）；分隔线单独画在格子之间的缝里。
+                    // 格子不铺底色，整个小组件只有一层底（系统的小组件底）；分隔线单独画在格子之间的缝里。只画每周之间的横线，每天之间不画竖线（用户定的）【联动:小组件格线】
                     // 以前每格自己铺底色、缝里露出线的颜色，深色模式下系统给小组件底的颜色和格子的底不一样，上面的标题栏就成了一条色差
                     .background {
                         Canvas { ctx, size in
                             let sp = MonthView.sp
                             for r in 0..<rows { ctx.fill(Path(CGRect(x: 0, y: CGFloat(r) * (rowH + sp), width: size.width, height: sp)), with: .color(pal.line)) }
-                            for k in 1..<7 { ctx.fill(Path(CGRect(x: CGFloat(k) * (cw + sp) - sp, y: 0, width: sp, height: size.height)), with: .color(pal.line)) }
                         }
                     }
-                    #else
-                    .background(pal.line)
-                    #endif
                 }
                 .padding(.top, MonthView.topPad)
             }
