@@ -135,6 +135,9 @@ final class Data {
     final Map<String, int[]> courseTone = new HashMap<>();
     int[] toneOf(String code) { int[] t = courseTone.get(code); return t != null ? t : CourseColors.tone(240); }
     boolean dailyOn;
+    /** 课程提醒：日程里每节课开始前 courseLead 分钟提醒（0 = 开始时），和网页 data.courseRemind 一致 */
+    boolean courseOn;
+    int courseLead = 10;
     LocalTime dailyTime = LocalTime.of(13, 0);
     int version;
     private final Map<LocalDate, List<Event>> byDate = new HashMap<>();
@@ -211,6 +214,11 @@ final class Data {
             d.dailyOn = daily.optBoolean("on");
             String t = daily.optString("time");
             if (TIME.matcher(t).matches()) d.dailyTime = time(t);
+        }
+        JSONObject cr = o.optJSONObject("courseRemind");
+        if (cr != null) {
+            d.courseOn = cr.optBoolean("on");
+            d.courseLead = Math.max(0, Math.min(180, cr.optInt("lead", 10)));
         }
         JSONArray cs = o.optJSONArray("courses");
         if (cs != null) {
@@ -379,6 +387,8 @@ final class Data {
             out.put("deleted", deleted);
             out.put("profile", newer(a.optJSONObject("profile"), b.optJSONObject("profile"), "updatedAt"));
             out.put("daily", newer(a.optJSONObject("daily"), b.optJSONObject("daily"), "updatedAt"));
+            JSONObject crm = newer(a.optJSONObject("courseRemind"), b.optJSONObject("courseRemind"), "updatedAt");
+            if (crm != null) out.put("courseRemind", crm);
             JSONObject nc = b.optLong("coursesAt") > a.optLong("coursesAt") ? b : a;
             JSONArray courses = nc.optJSONArray("courses");
             out.put("courses", courses == null ? new JSONArray() : courses);

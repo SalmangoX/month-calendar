@@ -227,6 +227,11 @@
     return n ? { title: MC.t('查看今日未完成事件'), body: MC.t(`今天还有 ${n} 件事未完成，点开查看。`) }
              : { title: MC.t('今日事件已完成'), body: MC.t('今天的事件都完成了。') };
   };
+  // 课程提醒的文字：标题是课程名，正文是「10 分钟后开始 · 08:30–09:50 · 教室」
+  Push.courseMsg = (c, lead) => ({
+    title: c.code + (c.type ? ' · ' + c.type : ''),
+    body: [lead ? MC.t(`${lead} 分钟后开始`) : MC.t('现在开始'), `${MC.fmtTime(c.start)}–${MC.fmtTime(c.end)}`, c.room].filter(Boolean).join(' · '),
+  });
   Push.bodyFor = e => `${MC.t(MC.dateLabel(e.date))} ${MC.timeLabel(e) || MC.t('全天')}${e.note ? ' · ' + e.note : ''}`;
   async function checkLocal() {
     if (NATIVE) return; // 安卓 App 由原生端提醒
@@ -251,10 +256,26 @@
       const key = 'daily@' + MC.todayStr();
       if (ft <= now && ft > now - 3 * 60000 && !sent[key]) { sent[key] = now; daily = key; }
     }
+    // 课程提醒：今天要上的课，开始前 lead 分钟
+    const cr = MC.data.courseRemind, classes = [];
+    if (cr && cr.on && MC.Sched && MC.Sched.on) {
+      const d = new Date(), ds = MC.todayStr();
+      for (const c of MC.data.courses || []) {
+        if (!MC.Sched.on(c, d)) continue;
+        const [h, m] = c.start.split(':').map(Number);
+        const ft = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).getTime() - (cr.lead || 0) * 60000;
+        const key = `course@${c.id || c.code}@${ds}@${c.start}`;
+        if (ft <= now && ft > now - 3 * 60000 && !sent[key]) { sent[key] = now; classes.push([c, key]); }
+      }
+    }
     for (const k of Object.keys(sent)) if (sent[k] < now - 3 * 864e5) delete sent[k];
     localStorage.setItem(LKEY, JSON.stringify(sent));
-    if (!due.length && !daily) return;
+    if (!due.length && !daily && !classes.length) return;
     const reg = await navigator.serviceWorker.ready;
+    for (const [c, key] of classes) {
+      const p = Push.courseMsg(c, cr.lead || 0);
+      reg.showNotification(p.title, { body: p.body, tag: key, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: './#sched' } });
+    }
     if (daily) {
       const dg = Push.digest(MC.todayStr());
       reg.showNotification(dg.title, { body: dg.body, tag: daily, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: './#today' } });

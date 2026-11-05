@@ -67,11 +67,11 @@ import kotlin.math.sin
  * 底部悬浮控件（和 iPhone / Mac 的 GlassDock 一样）：左时钟胶囊 · 中分页点 · 右 logo 扇形 · 回到今天。
  * 网页里的那一份（#dock2）在 App 里只是 visibility:hidden（今日页展开动画还要用它的位置）；
  * 状态由 NAV_JS 发来（字段和 ios/App/WebShell.swift 的 navJS 一致），点按交给网页里同名的按钮。
- * 纪念日历（body[data-kind="days"]）不画这层，还是网页自己的菜单栏。
+ * 纪念日历也用这层（分页点是 日历 · 纪念日 · 总览 三页）。
  */
 @Stable
 class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit) {
-    class Dock(val t: String, val ap: String, val today: Boolean, val back: String, val pager: Boolean, val p: Float, val set: Boolean,
+    class Dock(val t: String, val ap: String, val today: Boolean, val back: String, val pager: Boolean, val n: Int, val p: Float, val set: Boolean,
                /** 分页点亮着（正在左右切页）；false = 停下后淡下去 */ val lit: Boolean,
                /** 日历里点开某一天的卡片时，时钟和 logo 再抬高多少（dp）；-1 = 没打开 */ val pv: Float)
 
@@ -86,7 +86,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
         val o = runCatching { JSONObject(json) }.getOrNull() ?: return
         val d = o.optJSONObject("dock")?.let {
             Dock(it.optString("t"), it.optString("ap"), it.optBoolean("today"), it.optString("back").ifEmpty { "日历" },
-                it.optBoolean("pager"), it.optDouble("p", 0.0).toFloat(), it.optBoolean("set"),
+                it.optBoolean("pager"), it.optInt("n", 2).coerceIn(2, 5), it.optDouble("p", 0.0).toFloat(), it.optBoolean("set"),
                 it.optBoolean("lit", true), it.optDouble("pv", -1.0).toFloat())
         }
         if (d == null || d.set != dock?.set) fanOpen = false
@@ -129,10 +129,10 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
   }
   function dockState(page){
     var d2 = document.getElementById('dock2'), pt = document.getElementById('ptTime');
-    if (!d2 || !pt || document.body.dataset.kind === 'days') return null;
-    var ap = pt.querySelector('small'), apt = ap ? ap.textContent : '';
+    if (!d2 || !pt) return null;
+    var ap = pt.querySelector('small'), apt = ap ? ap.textContent : ''; var pg = document.getElementById('pager');
     return { t: pt.textContent.replace(apt, '').trim(), ap: apt, today: page === 'today', back: ((document.getElementById('ptBackTxt') || {}).textContent || '').trim(),
-             pager: page === 'cal' || page === 'sched', p: page === 'sched' ? 1 : 0, set: page === 'set',
+             pager: !!pg && !pg.classList.contains('hide'), n: pg ? (+pg.dataset.n || 2) : 2, p: pg ? (+pg.dataset.p || 0) : 0, set: page === 'set',
              lit: !(document.getElementById('pager') || { classList: { contains: function(){ return false; } } }).classList.contains('idle'),
              pv: document.body.classList.contains('dock-pv') ? (parseFloat(document.body.style.getPropertyValue('--d2-pv')) || 0) : -1 };
   }
@@ -152,11 +152,12 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
   var pbt = document.getElementById('ptBackTxt'); if (pbt) new MutationObserver(send).observe(pbt, { childList: true, subtree: true, characterData: true });
   new MutationObserver(send).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['class'] });
   new MutationObserver(send).observe(document.body, { attributes: true, attributeFilter: ['style'] }); // 日卡片打开时底栏挪进卡片（--d2-pv）
+  var pgr = document.getElementById('pager'); if (pgr) new MutationObserver(send).observe(pgr, { attributes: true, attributeFilter: ['data-p', 'data-n'] }); // 拖动时分页点跟着走、页数
   send(); setTimeout(send, 600);
 })();
 """
 
-        /** 页面一开始就藏起网页自己的悬浮控件（等加载完再藏会先闪一下）；纪念日历用的旧菜单栏不受影响 */
+        /** 页面一开始就藏起网页自己的悬浮控件（等加载完再藏会先闪一下） */
         const val HIDE_CSS_JS = """(function(){if(!window.MCNative)return;var s=document.createElement('style');s.textContent='#calBack,#schedBack{display:none!important}#dock2,#dockScrim{visibility:hidden!important;pointer-events:none!important}';(document.head||document.documentElement).appendChild(s);})();"""
     }
 }
@@ -234,8 +235,8 @@ private fun Pager(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
     val dim by animateFloatAsState(if (d.lit) 1f else .3f, tween(350), label = "dim")   // 左右切页时亮起，停下后淡下去（和网页一样）
     Tap(modifier.height(DockModel.HIT.dp).width(84.dp).graphicsLayer { alpha = dim }, label = tr("切换日历 / 日程"), haptic = false, onClick = { m.tapPager() }) { mod ->
         Row(mod.height(22.dp).glass(RoundedCornerShape(50), t).padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (i in 0..1) {
-                val on = if (i == 0) 1 - p else p
+            for (i in 0 until d.n) {   // 几页就几个点（纪念日历是三页）
+                val on = (1 - kotlin.math.abs(p - i)).coerceAtLeast(0f)
                 Box(Modifier.size(width = (6 + 12 * on).dp, height = 6.dp).clip(CircleShape).background(t.accent.copy(alpha = .38f + .62f * on)))
             }
         }

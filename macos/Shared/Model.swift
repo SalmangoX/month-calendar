@@ -195,6 +195,9 @@ final class CalData {
     var courses: [Course] = []
     var courseTone: [String: [UInt32]] = [:]
     var dailyOn = false
+    /// 课程提醒：日程里每节课开始前 courseLead 分钟（0 = 开始时），和网页 data.courseRemind 一致
+    var courseOn = false
+    var courseLead = 10
     var dailyMin = 13 * 60
     var clock = "auto"
     var shownCals = Set<String>()
@@ -262,6 +265,10 @@ final class CalData {
         if let daily = o.obj("daily") {
             d.dailyOn = daily.bool("on")
             let t = daily.str("time"); if isTime(t) { d.dailyMin = minutesOf(t) }
+        }
+        if let cr = o.obj("courseRemind") {
+            d.courseOn = cr.bool("on")
+            d.courseLead = cr["lead"] == nil ? 10 : max(0, min(180, Int(cr.long("lead"))))
         }
         for c in o.arr("courses") {
             var x = Course()
@@ -359,6 +366,7 @@ final class CalData {
         out["deleted"] = deleted
         out["profile"] = mergeProfile(a.obj("profile") ?? [:], b.obj("profile") ?? [:])
         out["daily"] = newer("daily")
+        out["courseRemind"] = newer("courseRemind")
         out["courses"] = nc["courses"] as? [Any] ?? []
         out["coursesAt"] = nc.long("coursesAt")
         out["cals"] = cals

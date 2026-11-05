@@ -648,6 +648,8 @@
   // 图标颜色：中性的灰底块 + 实心、饱和的彩色图形（App 里所有图标底块都是这一套）。[浅色, 深色]
   const SET_TONES = { rose: ['#E04A63', '#FF6F86'], coral: ['#E25B3A', '#FF8366'], apricot: ['#E08A16', '#FFB547'], sage: ['#2FA352', '#58D27C'], jade: ['#109E8C', '#3FD3BE'], teal: ['#1A93B8', '#4CC3E2'], sky: ['#2F7BE0', '#5EA8FF'], periwinkle: ['#5260DB', '#8492FF'], lavender: ['#8A55DB', '#B48CFF'], orchid: ['#BD48BA', '#E27BDD'] };
   const DT = s => (MC.Days ? MC.Days.T(s) : s); // 纪念日历（js/days.js）的文字
+  const COURSE_LEADS = [0, 5, 10, 15, 20, 30, 45, 60];
+  const leadText = m => (m ? `开始前 ${m} 分钟` : '开始时');
   function srow(o) {
     const sub = o.sub ? `<small>${esc(o.sub)}</small>` : '';
     const val = o.val ? `<span class="sval">${esc(o.val)}</span>` : '';
@@ -768,6 +770,10 @@
     const city = (dl.tz || MC.currentTz()).split('/').pop().replace(/_/g, ' ');
     nrows.push(srow({ icon: 'sun', tone: 'apricot', label: '每日未完成提醒', sub: dl.on ? `每天 ${MC.fmtTime(dl.time)} · 按当前时区（${city}）` : '每天提醒查看当天未完成的事件', sw: 'dSwitch', swOn: dl.on }));
     if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', tone: 'periwinkle', label: '每日提醒时间', val: MC.fmtTime(dl.time) }));
+    // 课程（日程）提醒：每节课开始前提醒，提前多久可以选
+    const cr = MC.data.courseRemind || { on: false, lead: 10 };
+    nrows.push(srow({ icon: 'grid', tone: 'jade', label: '课程开始前提醒', sub: cr.on ? `每节课${leadText(cr.lead)}提醒` : '日程里的每节课开始前提醒你', sw: 'cSwitch', swOn: cr.on }));
+    if (cr.on) nrows.push(srow({ act: 'clead', icon: 'clock', tone: 'lavender', label: '提前多久', val: leadText(cr.lead).replace(/^开始前 /, '') }));
     // 始终显示，点进去会自动补齐前置条件（连接 GitHub、通知权限）；安卓 App 由系统提醒，不需要
     if (!Push.native) {
       nrows.splice(1, 0, S.remoteSetup
@@ -921,6 +927,12 @@
       setupForm();
     }
     else if (act === 'dtime') dailyTimeForm();
+    else if (act === 'clead') {
+      const cur = (MC.data.courseRemind || {}).lead;
+      UI.menu(row.querySelector('.sval') || row, COURSE_LEADS.map(m => ({ label: m ? `${m} 分钟` : '开始时', value: m, on: m === cur })), v => {
+        MC.setCourseRemind({ lead: v, tz: MC.currentTz() }); renderSettings(); UI.toast(`每节课${leadText(v)}提醒`);
+      });
+    }
     else if (act === 'boost') openHelp('boost');
     else if (act === 'ics') {
       if (!MC.vault.connected()) { UI.toast('先连接 GitHub，连接后再点一次这里'); connectForm(false); return; }
@@ -954,6 +966,18 @@
     }
   });
   $('#setGroups').addEventListener('change', async e => {
+    if (e.target.id === 'cSwitch') {
+      const sw = e.target; sw.disabled = true;
+      try {
+        if (sw.checked) {
+          if (!Push.enabled()) await Push.enable();
+          MC.setCourseRemind({ on: true, tz: MC.currentTz() });
+          UI.toast(`每节课${leadText(MC.data.courseRemind.lead)}提醒你`);
+        } else { MC.setCourseRemind({ on: false }); UI.toast('已关闭课程提醒'); }
+      } catch (err) { UI.toast(err.message); }
+      renderSettings();
+      return;
+    }
     if (e.target.id === 'dSwitch') {
       const sw = e.target; sw.disabled = true;
       try {

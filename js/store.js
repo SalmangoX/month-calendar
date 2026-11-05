@@ -180,7 +180,7 @@
   MC.timeLabel = e => e.time ? MC.fmtRange(e.time, e.endTime) : '';
 
   // ---------- 数据 ----------
-  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', clock: '', lang: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [], days: [], books: [], album: { gist: '', owner: '' } }; }
+  function blank() { return { version: 3, updatedAt: 0, events: [], deleted: {}, profile: { name: '', avatar: '', clock: '', lang: '', updatedAt: 0 }, daily: { on: false, time: '13:00', tz: '', updatedAt: 0 }, courseRemind: { on: false, lead: 10, tz: '', updatedAt: 0 }, courses: [], coursesAt: 0, cals: [], days: [], books: [], album: { gist: '', owner: '' } }; }
   function normSegs(o) {
     const out = {};
     if (o && typeof o === 'object') for (const k of Object.keys(o).sort()) { const v = Number(o[k]); if (/^\d{2}:\d{2}$/.test(k) && v >= 1 && v <= 4) out[k] = v; }
@@ -236,6 +236,8 @@
     if (Array.isArray(d.books)) out.books = d.books.filter(x => x && x.id).map(normBook);
     if (d.album && d.album.gist) out.album = { gist: String(d.album.gist), owner: String(d.album.owner || '') };
     if (d.daily) out.daily = { on: !!d.daily.on, time: /^\d{2}:\d{2}$/.test(d.daily.time || '') ? d.daily.time : '13:00', tz: d.daily.tz || '', updatedAt: d.daily.updatedAt || 0 };
+    // 课程提醒：每节课开始前 lead 分钟提醒（0 = 开始时），按 tz 所在时区算（和每日提醒一样）
+    if (d.courseRemind) { const r = d.courseRemind, n = Number(r.lead); out.courseRemind = { on: !!r.on, lead: Number.isFinite(n) ? Math.max(0, Math.min(180, Math.round(n))) : 10, tz: r.tz || '', updatedAt: r.updatedAt || 0 }; }
     return out;
   };
   // ---------- 特殊记录日历 ----------
@@ -460,6 +462,7 @@
     MC.commit();
   };
   MC.setDaily = fields => { Object.assign(MC.data.daily, fields, { updatedAt: Date.now() }); MC.commit(); };
+  MC.setCourseRemind = fields => { MC.data.courseRemind = { ...(MC.data.courseRemind || blank().courseRemind), ...fields, updatedAt: Date.now() }; MC.commit(); };
   MC.currentTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; } };
 
   // ---------- 合并 ----------
@@ -485,6 +488,8 @@
     }
     const da = a.daily || {}, db = b.daily || {};
     const daily = (db.updatedAt || 0) > (da.updatedAt || 0) ? { ...db } : { ...(a.daily || blank().daily) };
+    const ra = a.courseRemind || {}, rb = b.courseRemind || {};
+    const courseRemind = (rb.updatedAt || 0) > (ra.updatedAt || 0) ? { ...rb } : { ...(a.courseRemind || blank().courseRemind) };
     const newerCourses = (b.coursesAt || 0) > (a.coursesAt || 0) ? b : a;
     const cmap = new Map();
     for (const c of [...(a.cals || []), ...(b.cals || [])]) {
@@ -503,7 +508,7 @@
     };
     const days = byNewest(a.days, b.days, 'day:'), books = byNewest(a.books, b.books, 'book:');
     const album = (a.album && a.album.gist) ? { ...a.album } : (b.album && b.album.gist) ? { ...b.album } : { gist: '', owner: '' };
-    return { version: 3, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0), events: kept, deleted, profile, daily,
+    return { version: 3, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0), events: kept, deleted, profile, daily, courseRemind,
       courses: (newerCourses.courses || []).map(c => ({ ...c })), coursesAt: newerCourses.coursesAt || 0, cals, days, books, album };
   };
   MC.sameData = (a, b) => signature(a) === signature(b);
@@ -512,7 +517,7 @@
       .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, JSON.stringify(e.segs || {}), e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
     const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), JSON.stringify(c.presets || []), c.updatedAt]);
     const ds = [...(d.days || []), ...(d.books || [])].map(x => x.id + ':' + (x.updatedAt || 0)).sort();
-    return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, d.coursesAt || 0, cs, ds, (d.album || {}).gist || '']);
+    return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, (d.courseRemind || {}).updatedAt || 0, d.coursesAt || 0, cs, ds, (d.album || {}).gist || '']);
   }
 
   // ---------- 加密保存令牌 ----------

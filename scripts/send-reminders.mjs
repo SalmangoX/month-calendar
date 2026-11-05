@@ -83,10 +83,10 @@ function fireTime(e, tz) {
 // ---------- 语言（应用里的设置：同步数据 profile.lang；没设 / 跟随系统时用简体中文） ----------
 let LANG = 'zh-Hans';
 const TXT = {
-  'zh-Hans': { allDay: '全天', openT: '查看今日未完成事件', openB: n => `今天还有 ${n} 件事未完成，点开查看。`, doneT: '今日事件已完成', doneB: '今天的事件都完成了。' },
-  'zh-Hant': { allDay: '全天', openT: '查看今日未完成事件', openB: n => `今天還有 ${n} 件事未完成，點開查看。`, doneT: '今日事件已完成', doneB: '今天的事件都完成了。' },
-  en: { allDay: 'All day', openT: 'Check today’s open events', openB: n => `${n} things are still open today — tap to see them.`, doneT: 'All done today', doneB: 'Everything for today is done.' },
-  fr: { allDay: 'Toute la journée', openT: 'Voir les tâches du jour', openB: n => `Encore ${n} choses à faire aujourd’hui — touchez pour les voir.`, doneT: 'Tout est fait aujourd’hui', doneB: 'Tout est fait pour aujourd’hui.' },
+  'zh-Hans': { cIn: n => `${n} 分钟后开始`, cNow: '现在开始', allDay: '全天', openT: '查看今日未完成事件', openB: n => `今天还有 ${n} 件事未完成，点开查看。`, doneT: '今日事件已完成', doneB: '今天的事件都完成了。' },
+  'zh-Hant': { cIn: n => `${n} 分鐘後開始`, cNow: '現在開始', allDay: '全天', openT: '查看今日未完成事件', openB: n => `今天還有 ${n} 件事未完成，點開查看。`, doneT: '今日事件已完成', doneB: '今天的事件都完成了。' },
+  en: { cIn: n => `Starts in ${n} min`, cNow: 'Starting now', allDay: 'All day', openT: 'Check today’s open events', openB: n => `${n} things are still open today — tap to see them.`, doneT: 'All done today', doneB: 'Everything for today is done.' },
+  fr: { cIn: n => `Commence dans ${n} min`, cNow: 'Commence maintenant', allDay: 'Toute la journée', openT: 'Voir les tâches du jour', openB: n => `Encore ${n} choses à faire aujourd’hui — touchez pour les voir.`, doneT: 'Tout est fait aujourd’hui', doneB: 'Tout est fait pour aujourd’hui.' },
 };
 const L = () => TXT[LANG] || TXT['zh-Hans'];
 const MON = { en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], fr: ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'] };
@@ -168,6 +168,41 @@ if (daily.on) {
       } catch (err) {
         if (err.statusCode === 404 || err.statusCode === 410) dead.add(sub.endpoint);
         else console.log(`每日提醒发送失败 ${err.statusCode || ''}: ${err.body || err.message}`);
+      }
+    }
+  }
+}
+
+// 课程提醒：日程里每节课开始前 lead 分钟（按用户当前所在时区算；晚了 20 分钟以上就不补发，上课提醒过时没用）
+const cr = data.courseRemind || {};
+if (cr.on && Array.isArray(data.courses) && data.courses.length) {
+  const tz = cr.tz || daily.tz || 'UTC', lead = Number(cr.lead) || 0;
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' })
+    .formatToParts(new Date(now)).map(x => [x.type, x.value]));
+  const ds = `${p.year}-${p.month}-${p.day}`;
+  const dow = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }[p.weekday];
+  const dayNum = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 864e5;
+  const monday = n => n - ((new Date(n * 864e5).getUTCDay() + 6) % 7);
+  for (const c of data.courses) {
+    if (!c || c.day !== dow || !/^\d{2}:\d{2}$/.test(c.start || '')) continue;
+    if ((c.from && ds < c.from) || (c.to && ds > c.to)) continue;
+    if (c.every === 2 && c.from && ((monday(dayNum(ds)) - monday(dayNum(c.from))) / 7) % 2) continue;   // 隔周（和应用 Sched.on 一样）
+    const [h, mi] = c.start.split(':').map(Number);
+    const ft = localToUtc(+p.year, +p.month, +p.day, h, mi, tz) - lead * 60000;
+    if (ft > now || ft < now - 20 * 60000) continue;
+    const tag = `course@${c.id || c.code}@${ds}@${c.start}`;
+    const msg = { title: c.code + (c.type ? ' · ' + c.type : ''), body: [lead ? L().cIn(lead) : L().cNow, `${c.start}–${c.end}`, c.room].filter(Boolean).join(' · ') };
+    for (const sub of info.subs) {
+      if (dead.has(sub.endpoint) || ft < (sub.addedAt || 0)) continue;
+      const key = `${tag}|${sub.device || sub.endpoint.slice(-24)}`;
+      if (sent[key]) continue;
+      try {
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys },
+          JSON.stringify({ ...msg, tag, url: (info.subject || './') + '#sched' }), { TTL: 1200, urgency: 'high' });
+        count++; sent[key] = now; changed = true;
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) dead.add(sub.endpoint);
+        else console.log(`课程提醒发送失败 ${err.statusCode || ''}: ${err.body || err.message}`);
       }
     }
   }

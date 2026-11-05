@@ -45,6 +45,7 @@ body[data-kind="days"] .dv { display: flex; }
 /* ---------- 图标：线条 + 很淡的同色填充，颜色跟着大类走 ---------- */
 svg.duo { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 svg.duo .f { fill: currentColor; fill-opacity: .16; }
+svg.duo.solid .f { fill-opacity: 1; }   /* 实心图标：主体填满，细节在 js 里用 mask 镂空 */
 .dv-ico { position: relative; flex: none; width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center;
   color: var(--ic, var(--tone)); background: color-mix(in srgb, var(--ic, var(--tone)) 12%, var(--dv-card)); }
 .dv-ico svg { width: 24px; height: 24px; }
@@ -57,6 +58,13 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 .dv-cover { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; min-height: 164px; margin: 6px 0 2px; padding: 16px;
   border-radius: 28px; overflow: hidden; background: var(--soft); cursor: pointer; box-shadow: var(--dv-shadow); transition: transform .2s var(--ease); isolation: isolate; }
 .dv-cover.photo { min-height: 216px; background: var(--field); }
+/* 没有主题图片、也没选纯色：用这个日子大类的颜色铺一层柔和的光（右上角亮、往左下淡到卡片底色），再压一个很大的实心图标剪影 */
+.dv-cover:not(.photo):not([style*="--pastel"]) {
+  background: radial-gradient(130% 100% at 100% 0%, color-mix(in srgb, var(--ic) 30%, transparent), transparent 62%),
+    linear-gradient(165deg, color-mix(in srgb, var(--ic) 14%, var(--dv-card)), var(--dv-card) 78%); }
+.cv-art { position: absolute; z-index: -1; right: -14px; top: -10px; color: var(--ic); opacity: .16; pointer-events: none; transform: rotate(-12deg); }
+.cv-art svg { width: 148px; height: 148px; stroke-width: 1.2; }
+.dv-cover[style*="--pastel"] .cv-art { opacity: .1; }
 .dv-cover:active { transform: scale(.985); }
 .dv-cover.past { --tone: var(--past); }
 .cv-img { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .3s; }
@@ -102,7 +110,7 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
   background: linear-gradient(to right, transparent, color-mix(in srgb, var(--pastel, var(--ic)) 12%, transparent)); }
 .rw-art.plain[style*="--pastel"] { background: linear-gradient(to right, transparent, var(--pastel) 85%); }
 :root[data-theme="dark"] .rw-art.plain[style*="--pastel"] { background: linear-gradient(to right, transparent, color-mix(in srgb, var(--pastel) 18%, transparent)); }
-.rw-art.plain svg { width: 44px; height: 44px; stroke-width: 1.4; opacity: .2; transform: rotate(-8deg); }
+.rw-art.plain svg { width: 52px; height: 52px; stroke-width: 1.4; opacity: .13; transform: rotate(-10deg) translateX(6px); }   /* 实心图标当水印：比线条图标淡一些，只留一个剪影 */
 .dv-txt { flex: 0 1 auto; min-width: 0; max-width: calc(74% - 46px); }
 .dv-txt b { display: block; font-size: 16px; font-weight: 620; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dv-txt small { display: block; margin-top: 3px; font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -178,9 +186,13 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
   -webkit-backdrop-filter: var(--glass-fx); backdrop-filter: var(--glass-fx); box-shadow: var(--glass-rim), 0 2px 10px rgba(0, 0, 0, .08); }
 .dp-btn svg { width: 21px; height: 21px; stroke-width: 2; }
 .dp-btn.txt { padding: 0 16px; font-size: 15px; font-weight: 600; }
-.dp-setcover { position: absolute; z-index: 2; right: 12px; top: calc(var(--safe-t) + 58px); display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 10px; border-radius: 16px;
-  font-size: 12.5px; font-weight: 600; color: var(--plate-ink); background: var(--plate); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.dp-setcover svg { width: 16px; height: 16px; }
+/* 封面上的大图块就是「换主题图片」的按钮：右下角一个小相片角标 */
+button.dp-glyph { cursor: pointer; transition: transform .25s var(--ease-spring); }
+button.dp-glyph:active { transform: translate(-50%, -50%) scale(.95); }
+.dp-glyph-badge { position: absolute; right: -6px; bottom: -6px; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
+  color: var(--text); background: var(--dv-card); box-shadow: 0 4px 14px rgba(0, 0, 0, .18); }
+.dp-glyph-badge svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.dp-bg img[data-pg] { cursor: pointer; }
 .dp-plate { position: absolute; z-index: 2; left: 14px; right: 14px; bottom: 38px; padding: 16px 20px 14px; border-radius: 26px; display: flex; flex-direction: column; align-items: flex-start;
   background: var(--plate); color: var(--plate-ink); -webkit-backdrop-filter: var(--glass-fx-strong); backdrop-filter: var(--glass-fx-strong); box-shadow: var(--glass-rim), 0 12px 30px -16px rgba(0, 0, 0, .3); }
 /* 照片做封面：不放牌子（玻璃会挡住、扭曲照片），字直接写在照片上；照片底部一层淡淡的渐变暗色，白字带一点阴影（和锁屏、相册「回忆」一样） */
@@ -234,7 +246,18 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 .dd-sec h3 .si { display: inline-grid; color: var(--text2); }
 .dd-sec h3 .si svg { width: 20px; height: 20px; }
 .dd-sec h3 span:last-child { font-size: 13px; font-weight: 500; color: var(--text2); font-variant-numeric: tabular-nums; }
-.dd-sec .chip-btn { background: var(--dv-card); box-shadow: var(--dv-shadow); }
+/* 小节右边的「写一张」「添加照片」：普通按钮（不用玻璃：下面内容区会挡住原生玻璃，玻璃按钮在 App 里会看不见） */
+.dd-add { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 14px 0 10px; border-radius: 17px; font-size: 13.5px; font-weight: 600;
+  color: var(--accent-text); background: color-mix(in srgb, var(--accent) 12%, var(--dv-card)); }
+.dd-add svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.dd-add:active, .dd-empty:active { transform: scale(.97); }
+/* 还没有纸条 / 照片：整块虚线卡片，点哪里都能直接写 / 添加 */
+.dd-empty { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; border-radius: 20px; text-align: left;
+  border: 1.5px dashed color-mix(in srgb, var(--text) 16%, transparent); background: color-mix(in srgb, var(--dv-card) 60%, transparent); transition: transform .2s var(--ease-spring); }
+.dd-empty .ai { flex: none; }
+.dd-empty b { display: block; font-size: 15px; font-weight: 650; }
+.dd-empty small { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.5; color: var(--text2); }
+.dd-note { cursor: pointer; }
 .dd-hint { margin: 0 4px; font-size: 13.5px; line-height: 1.6; color: var(--text2); }
 .dd-notes { display: flex; flex-direction: column; gap: 10px; }
 /* 小纸条：左上角收成小圆角，像一张便签 */
@@ -278,7 +301,8 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 .de-cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .de-cat { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 11px 2px 9px; border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line);
   font-size: 12px; font-weight: 580; color: var(--text); transition: box-shadow .2s, background .2s; }
-.de-cat .e { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: var(--ic); background: color-mix(in srgb, var(--ic) 12%, transparent); }
+/* 类别和图标：外面中性的灰底块、里面实心的彩色图标（和设置里的图标同一种样子） */
+.de-cat .e { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: var(--ic); background: var(--tile); box-shadow: inset 0 0 0 .5px var(--tile-line); }
 .de-cat .e svg { width: 22px; height: 22px; }
 .de-cat.on { background: var(--surface); box-shadow: inset 0 0 0 1.8px var(--accent); }
 .de-subs .qchip { display: inline-flex; align-items: center; gap: 5px; }
@@ -300,14 +324,14 @@ svg.duo .f { fill: currentColor; fill-opacity: .16; }
 .de-ic-g { margin: 14px 2px 6px; font-size: 12px; font-weight: 600; color: var(--text2); }
 .de-ic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; }
 .de-ic { flex: none; width: 100%; min-width: 46px; aspect-ratio: 1; border-radius: 14px; display: grid; place-items: center; color: var(--ic, var(--text2));
-  background: color-mix(in srgb, var(--ic, var(--text2)) 10%, transparent); transition: background .15s; }
+  background: var(--tile); box-shadow: inset 0 0 0 .5px var(--tile-line); transition: background .15s, box-shadow .15s; }
 .de-ic svg { width: 24px; height: 24px; }
 .de-ic-hint { font-size: 12.5px; color: var(--text2); }
 .cmp-label .opt { margin-left: 6px; font-weight: 500; color: var(--text3); }
 .de-ic-row .de-ic { width: 46px; }
 .de-ic.emo span { font-size: 25px; line-height: 1; }
 .de-ic .ini { font-size: 18px; font-weight: 700; }
-.de-ic.on { box-shadow: inset 0 0 0 1.8px var(--ic, var(--accent)); }
+.de-ic.on { box-shadow: inset 0 0 0 2px var(--ic, var(--accent)); background: color-mix(in srgb, var(--ic, var(--accent)) 10%, var(--tile)); }
 .de-hl { padding-left: 4px; }
 .dr-sw.none { background: var(--field); position: relative; overflow: hidden; }
 .dr-sw.none::after { content: ""; position: absolute; left: 50%; top: 6px; bottom: 6px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--text3); transform: rotate(45deg); }

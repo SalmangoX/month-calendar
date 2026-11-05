@@ -43,7 +43,7 @@ final class NavModel: ObservableObject {
     }
     @Published var lg: [LGItem] = []
     /// 新底栏（网页 0.23 起：左时钟胶囊 · 中分页点 · 右 logo 扇形菜单）。网页发来时就画新底栏，旧网页或纪念日历是 nil，仍用旧的菜单栏和加号
-    struct Dock: Decodable, Equatable { let t: String; let ap: String; let today: Bool; let back: String; let pager: Bool; let p: Double; let set: Bool; let lit: Bool?; let pv: Double? }
+    struct Dock: Decodable, Equatable { let t: String; let ap: String; let today: Bool; let back: String; let pager: Bool; let n: Int?; let p: Double; let set: Bool; let lit: Bool?; let pv: Double? }
     @Published var dock: Dock?
     @Published var fanOpen = false
     /// Mac：底栏里各个按钮的位置（窗口坐标），只有点在这些地方才接住，别处的点击漏给后面的网页
@@ -860,8 +860,8 @@ struct GlassDock: View {
         let accent = Pal(dark: scheme == .dark).accent
         Button { m.tapPager() } label: {
             HStack(spacing: 6) {
-                ForEach(0..<2) { i in
-                    let on = (i == 0 ? 1 - d.p : d.p)
+                ForEach(0..<max(2, d.n ?? 2), id: \.self) { i in   // 几页就几个点（纪念日历是三页）
+                    let on = max(0, 1 - abs(d.p - Double(i)))
                     Capsule().fill(accent.opacity(0.38 + 0.62 * on)).frame(width: 6 + 12 * on, height: 6)
                 }
             }

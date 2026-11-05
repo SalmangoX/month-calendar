@@ -29,6 +29,10 @@ final class I18n {
         put("设置", "設定", "Settings", "Réglages");
         ja("设置", "設定");
         put("返回", "返回", "Back", "Retour");
+        put("{0} 分钟后开始", "{0} 分鐘後開始", "Starts in {0} min", "Commence dans {0} min");
+        ja("{0} 分钟后开始", "{0} 分後に開始");
+        put("现在开始", "現在開始", "Starting now", "Commence maintenant");
+        ja("现在开始", "まもなく開始");
         ja("返回", "戻る");
         put("收起", "收起", "Close", "Fermer");
         ja("收起", "閉じる");

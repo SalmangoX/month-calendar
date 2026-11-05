@@ -63,6 +63,17 @@ final class Engine {
                 showEvent(c, e, key, ft);
                 put(sent, key, now);
             }
+            if (d.courseOn) { // 课程提醒：今天要上的课，开始前 courseLead 分钟（晚了 20 分钟以上就不补了）
+                for (Data.Course co : d.courses) {
+                    if (!co.on(today)) continue;
+                    long ft = today.atStartOfDay(z).plusMinutes(co.startMin - d.courseLead).toInstant().toEpochMilli();
+                    String key = "course@" + (co.id.isEmpty() ? co.code : co.id) + "@" + today + "@" + co.start;
+                    if (ft > Math.max(from, now - 20 * 60000L) && ft <= now && !sent.has(key)) {
+                        showCourse(c, co, d.courseLead, key, ft);
+                        put(sent, key, now);
+                    }
+                }
+            }
             if (d.dailyOn) {
                 long ft = ZonedDateTime.of(today, d.dailyTime, z).toInstant().toEpochMilli();
                 String key = "daily@" + today;
@@ -92,6 +103,16 @@ final class Engine {
                 long ft = ZonedDateTime.of(today, d.dailyTime, z).toInstant().toEpochMilli();
                 if (ft <= now) ft = ZonedDateTime.of(today.plusDays(1), d.dailyTime, z).toInstant().toEpochMilli();
                 if (ft < next) next = ft;
+            }
+        }
+        if (notifyOn && d.courseOn) { // 课程提醒：今天和明天的下一节课
+            for (int k = 0; k < 2; k++) {
+                LocalDate day = today.plusDays(k);
+                for (Data.Course co : d.courses) {
+                    if (!co.on(day)) continue;
+                    long ft = day.atStartOfDay(z).plusMinutes(co.startMin - d.courseLead).toInstant().toEpochMilli();
+                    if (ft > now && ft < next) next = ft;
+                }
             }
         }
         int dow = today.getDayOfWeek().getValue();
@@ -201,6 +222,19 @@ final class Engine {
                 .setCategory(Notification.CATEGORY_REMINDER)
                 .setWhen(when)
                 .setContentIntent(openApp(c, "", key.hashCode()))
+                .build();
+        c.getSystemService(NotificationManager.class).notify(key.hashCode(), n);
+    }
+
+    private static void showCourse(Context c, Data.Course co, int lead, String key, long when) {
+        String body = (lead > 0 ? I18n.t("{0} 分钟后开始", lead) : I18n.t("现在开始")) + " · " + co.start + "–" + co.end + (co.room.isEmpty() ? "" : " · " + co.room);
+        Notification n = builder(c, CH_EVENT)
+                .setContentTitle(co.code + (co.type.isEmpty() ? "" : " · " + co.type))
+                .setContentText(body)
+                .setStyle(new Notification.BigTextStyle().bigText(body))
+                .setCategory(Notification.CATEGORY_REMINDER)
+                .setWhen(when)
+                .setContentIntent(openApp(c, "#sched", key.hashCode()))
                 .build();
         c.getSystemService(NotificationManager.class).notify(key.hashCode(), n);
     }

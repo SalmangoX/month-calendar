@@ -197,10 +197,10 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
       }
       function dockState(page){
         var d2 = document.getElementById('dock2'), pt = document.getElementById('ptTime');
-        if (!d2 || !pt || document.body.dataset.kind === 'days') return null;
-        var ap = pt.querySelector('small'), apt = ap ? ap.textContent : '';
+        if (!d2 || !pt) return null;
+        var ap = pt.querySelector('small'), apt = ap ? ap.textContent : ''; var pg = document.getElementById('pager');
         return { t: pt.textContent.replace(apt, '').trim(), ap: apt, today: page === 'today', back: ((document.getElementById('ptBackTxt') || {}).textContent || '').trim() || '日历',
-                 pager: page === 'cal' || page === 'sched', p: page === 'sched' ? 1 : 0, set: page === 'set', lit: !(document.getElementById('pager') || {classList: {contains: function(){ return false; }}}).classList.contains('idle'), pv: document.body.classList.contains('dock-pv') ? (parseFloat(document.body.style.getPropertyValue('--d2-pv')) || 0) : -1 };
+                 pager: !!pg && !pg.classList.contains('hide'), n: pg ? (+pg.dataset.n || 2) : 2, p: pg ? (+pg.dataset.p || 0) : 0, set: page === 'set', lit: !(document.getElementById('pager') || {classList: {contains: function(){ return false; }}}).classList.contains('idle'), pv: document.body.classList.contains('dock-pv') ? (parseFloat(document.body.style.getPropertyValue('--d2-pv')) || 0) : -1 };
       }
       function backShown(page){
         var id = page === 'cal' ? 'calBack' : page === 'sched' ? 'schedBack' : '', b = id && document.getElementById(id);
@@ -219,7 +219,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
       var cb = document.getElementById('calBack'); if (cb) new MutationObserver(send).observe(cb, { attributes: true, attributeFilter: ['hidden'] }); // 「回到今天」出现 / 消失
       var sb = document.getElementById('schedBack'); if (sb) new MutationObserver(send).observe(sb, { attributes: true, attributeFilter: ['hidden'] }); // 日程页「回到本周」
       new MutationObserver(send).observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] }); // 日卡片打开时底栏挪进卡片
-      var pgr = document.getElementById('pager'); if (pgr) new MutationObserver(send).observe(pgr, { attributes: true, attributeFilter: ['class'] }); // 分页点亮起 / 淡下
+      var pgr = document.getElementById('pager'); if (pgr) new MutationObserver(send).observe(pgr, { attributes: true, attributeFilter: ['class', 'data-p', 'data-n'] }); // 分页点亮起 / 淡下、拖动时跟着走、页数
       var ptm = document.getElementById('ptTime'); if (ptm) new MutationObserver(send).observe(ptm, { childList: true, subtree: true, characterData: true }); // 时钟每分钟变一次
       new MutationObserver(send).observe(document.body, { attributes: true, attributeFilter: ['data-kind'] }); // 切到纪念日历：换回旧菜单栏
       var bs = document.getElementById('batchSheet'); if (bs) new MutationObserver(send).observe(bs, { attributes: true, attributeFilter: ['class', 'style'] });

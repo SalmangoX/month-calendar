@@ -233,7 +233,28 @@
   const catOf = x => (CATS.some(c => c.k === x.cat) ? x.cat : x.book ? 'other' : ICON_CAT[iconOf(x)] || 'other');
   const catColor = x => catDef(catOf(x)).c;
   const emojiOf = x => (iconOf(x) ? '' : x.icon || ''); // 自己输入、没有对应图标的表情
-  const svgOf = name => (ICONS[name] ? `<svg viewBox="0 0 24 24" class="duo" aria-hidden="true">${ICONS[name].map((d, i) => `<path d="${d}"${i === DUO[name] ? ' class="f"' : ''}/>`).join('')}</svg>` : '');
+  // 实心图标（像系统的 .fill 符号）：f = 填满的主体；k = 在实心上镂空的线条（真的挖空，放在什么底色上都对）；d = 镂空的小圆点；其余照常描线
+  const FILL = {
+    heart: { f: [0] }, ring: { f: [1] }, cake: { f: [0, 3], k: [1] }, gift: { f: [0, 1, 3], k: [2] }, people: { f: [0, 1, 2, 3] },
+    smile: { f: [0], k: [1], d: [2, 3] }, home: { f: [1], k: [2] }, star: { f: [0] }, plane: { f: [0] }, train: { f: [0], k: [1], d: [3, 4] },
+    car: { f: [0, 1], d: [3, 4] }, bag: { f: [0], k: [2] }, mountain: { f: [0], k: [1] }, sea: { f: [0] }, pin: { f: [0], d: [1] },
+    cap: { f: [0, 1] }, book: { f: [0] }, paper: { f: [0], k: [1] }, case: { f: [0], k: [2] }, clock: { f: [0], k: [1] }, flag: { f: [0] },
+    music: { f: [1, 2] }, mic: { f: [0] }, film: { f: [0], k: [1] }, game: { f: [0], k: [1], d: [2, 3] }, camera: { f: [0], d: [1] },
+    gym: {}, plant: { f: [1, 2] }, coffee: { f: [0] }, paw: { f: [0, 1, 2, 3, 4] }, cat: { f: [0], k: [3], d: [1, 2] },
+    dog: { f: [2], k: [5], d: [3, 4] }, lantern: { f: [2], k: [3] }, tree: { f: [0] }, moon: { f: [0] }, spark: {}, tent: { f: [0], k: [1, 2] },
+    trophy: { f: [0, 3] }, calendar: { f: [0], k: [1, 2] }, syringe: { f: [0], k: [3] }, pumpkin: { f: [0], k: [1] }, stroller: { f: [0, 1, 2, 3] },
+  };
+  let maskSeq = 0;
+  const svgOf = name => {
+    const L = ICONS[name]; if (!L) return '';
+    const S = FILL[name] || {}, f = S.f || [], k = S.k || [], dd = S.d || [];
+    const cut = [...k, ...dd];
+    if (!cut.length) return `<svg viewBox="0 0 24 24" class="duo solid" aria-hidden="true">${L.map((d, i) => `<path d="${d}"${f.includes(i) ? ' class="f"' : ''}/>`).join('')}</svg>`;
+    const id = 'dm' + (++maskSeq);
+    const mask = `<mask id="${id}" maskUnits="userSpaceOnUse" x="-2" y="-2" width="28" height="28"><rect x="-2" y="-2" width="28" height="28" fill="#fff"/>`
+      + cut.map(i => `<path d="${L[i]}" fill="${dd.includes(i) ? '#000' : 'none'}" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`).join('') + '</mask>';
+    return `<svg viewBox="0 0 24 24" class="duo solid" aria-hidden="true"><defs>${mask}</defs><g mask="url(#${id})">${L.map((d, i) => cut.includes(i) ? '' : `<path d="${d}"${f.includes(i) ? ' class="f"' : ''}/>`).join('')}</g></svg>`;
+  };
   const firstChar = s => (Array.from(String(s || '').trim())[0] || '·');
   // 图块里的内容：图标 / 表情 / 标题第一个字
   function glyph(x) {
@@ -271,6 +292,8 @@
     share: '<svg viewBox="0 0 24 24"><path class="f" d="M6.2 10h2.6v2.2H7.4v6.4h9.2v-6.4h-1.4V10h2.6c.7 0 1.2.5 1.2 1.2v8.6c0 .7-.5 1.2-1.2 1.2H6.2c-.7 0-1.2-.5-1.2-1.2v-8.6c0-.7.5-1.2 1.2-1.2z"/><path class="s" d="M12 14.2V4.2M8.6 7.4L12 4l3.4 3.4"/></svg>',
     cam: '<svg viewBox="0 0 24 24"><path class="f" d="M4 8.2c0-1.1.9-2 2-2h2.1l1.4-2.2h5l1.4 2.2H18c1.1 0 2 .9 2 2V18c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2z"/><circle class="k2" cx="12" cy="13" r="4"/><circle class="f" cx="12" cy="13" r="2.4"/></svg>',
     hl: '<svg viewBox="0 0 24 24"><path class="f" d="M14.4 3.7a2 2 0 0 1 2.8 0l2.9 2.9a2 2 0 0 1 0 2.8l-8.9 8.9-5.7-5.7z"/><path class="f" d="M4.6 14l5.1 5.1-1 .9H4.6z"/><path class="s" d="M13.5 20.5h6"/></svg>',
+    note: '<svg viewBox="0 0 24 24"><path class="f" d="M6.5 3.5h11a2 2 0 0 1 2 2v8.6l-6.4 6.4H6.5a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z"/><path class="k2" d="M13.4 20.2v-3.9a1.8 1.8 0 0 1 1.8-1.8h3.9z"/><path class="s" d="M8.4 8.6h7.2" style="stroke:var(--tile);stroke-width:1.8"/><path class="s" d="M8.4 12.2h4.6" style="stroke:var(--tile);stroke-width:1.8"/></svg>',
+    cover: '<svg viewBox="0 0 24 24"><rect class="f" x="3.5" y="4.5" width="17" height="15" rx="3.4"/><circle class="k2" cx="9" cy="9.8" r="1.9"/><path class="k2" d="M5.5 18l5-5.2 3 3 2.2-2.2 3.3 3.4v1z"/></svg>',
     pin: '<svg viewBox="0 0 24 24"><path class="f" d="M8.6 3h6.8c.6 0 1.1.6 1 1.2l-.8 3.7 3 3c.3.2.4.5.4.8V13c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1.3c0-.3.1-.6.4-.8l3-3-.8-3.7C7.5 3.6 8 3 8.6 3z"/><path class="s" d="M12 14v6.6"/></svg>',
   };
   // App 里用原生液态玻璃画按钮时，图标换成对应的系统符号（SF Symbols）
@@ -420,7 +443,7 @@
     } catch (e) { UI.toast(T('照片读取失败')); }
   }
   Days.parts = { T, F, TT, FT, info, amount, stateWord, repLabel, fmtDate, fmtDateTime, clock, milestone, milestonesIn, hits, occurrence, diffDays, t0,
-    toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, firstChar, UI_IC, SOLID, emojiOf, iconOf, catColor, DUO, COVERS, setCover, setCoverFile, CATS, catDef, catOf, subKey, subName, photoURL, addPhotos, removePhoto, PDB, loadImg, DICT, LANG, dark };
+    toneHex, HL, hlTone, hlInk, ICONS, ICON_GROUPS, svgOf, glyph, firstChar, UI_IC, SOLID, emojiOf, iconOf, catColor, DUO, FILL, COVERS, setCover, setCoverFile, CATS, catDef, catOf, subKey, subName, photoURL, addPhotos, removePhoto, PDB, loadImg, DICT, LANG, dark };
 })();
 
 /* ---------- 纪念日历视图：列表 / 日历、详情、编辑、小纸条 ---------- */
@@ -523,8 +546,8 @@
     const inf = info(x, now), a = amount(x, inf), cc = coverColor(x), photo = isPhotoCover(x);
     const pre = inf.state === 'past' && x.from1 && /^zh/.test(P.LANG) ? `<i class="pre">${T('第')}</i>` : '';
     const word = inf.state === 'today' ? T('就是今天') : inf.state === 'fut' ? T('还有') : x.from1 ? T('今天是') : T('已经');
-    return `<div class="dv-cover${photo ? ' photo' : ''}${inf.state === 'past' ? ' past' : ''}" data-id="${x.id}" role="button" tabindex="0" style="${toneVar(x, inf)}${cc ? `;--pastel:${cc}` : ''}">
-      ${photo ? `<img class="cv-img" alt="" data-cover="${x.cover}">` : ''}
+    return `<div class="dv-cover${photo ? ' photo' : ''}${inf.state === 'past' ? ' past' : ''}" data-id="${x.id}" role="button" tabindex="0" style="${toneVar(x, inf)};--ic:${P.catColor(x)}${cc ? `;--pastel:${cc}` : ''}">
+      ${photo ? `<img class="cv-img" alt="" data-cover="${x.cover}">` : `<span class="cv-art" aria-hidden="true">${svgOf(P.iconOf(x)) || ''}</span>`}
       <div class="cv-top"><span class="cv-tile" style="--ic:${P.catColor(x)}">${glyph(x)}</span>${x.pin ? `<span class="cv-pin" title="${T('置顶')}">${UI_IC.pin}</span>` : ''}</div>
       <div class="cv-plate">
         <div class="cv-l"><b data-uc>${esc(x.title || T('（无标题）'))}</b><small>${esc(fmtDateTime(inf.occ, x.time))}${x.rep ? ' · ' + repLabel(x.rep) : ''}</small></div>
@@ -776,8 +799,9 @@
     const cover = $('#dpCover');
     cover.className = 'dp-cover' + (isPhotoCover(x) ? ' photo' : '') + (inf.state === 'past' ? ' past' : '');
     cover.style.cssText = toneVar(x, inf) + (cc ? `;--pastel:${cc}` : '');
-    $('#dpCoverBg').innerHTML = isPhotoCover(x) ? `<img alt="" data-cover="${x.cover}">` : `<span class="dp-glyph" style="--ic:${P.catColor(x)}">${glyph(x)}</span>`;
-    $('#dpSetCover').innerHTML = `${UI_IC.photo}<span>${x.cover ? T('更换主题图片') : T('设置主题图片')}</span>`;
+    // 封面：点大图块 / 照片就能换主题图片（不再单独放一颗悬浮按钮，免得被玻璃、标题栏挡住）
+    $('#dpCoverBg').innerHTML = isPhotoCover(x) ? `<img alt="" data-cover="${x.cover}" data-pg="cover">`
+      : `<button class="dp-glyph" data-pg="cover" style="--ic:${P.catColor(x)}" aria-label="${T('设置主题图片')}">${glyph(x)}<span class="dp-glyph-badge" aria-hidden="true">${UI_IC.photo}</span></button>`;
     $('#dpPlate').innerHTML = `
       <b class="dp-title" data-uc>${esc(x.title || T('（无标题）'))}</b>
       <span class="dp-st">${inf.state === 'today' ? T('就是今天') : stateWord(x, inf)}</span>
@@ -796,7 +820,7 @@
       ${inf.prog !== null ? `<div class="dp-prog" aria-hidden="true"><span style="width:${(inf.prog * 100).toFixed(1)}%;--tone:var(--${inf.state === 'past' ? 'past' : 'fut'})"></span></div>` : ''}
       ${extra.length ? `<div class="dp-ms">${extra.map(t => `<p>${t}</p>`).join('')}</div>` : ''}
       <div class="dd-acts">
-        <button data-dd="share"><span class="ai" style="--ac:#5B8DEF">${SOLID.share}</span><span>${T('分享图片')}</span></button>
+        <button data-dd="cover"><span class="ai" style="--ac:#5B8DEF">${SOLID.cover}</span><span>${T('主题图片')}</span></button>
         <button data-dd="cam"><span class="ai" style="--ac:#8B6FD6">${SOLID.cam}</span><span>${T('透明相机')}</span></button>
         <button data-dd="hl" class="${x.hl ? 'on' : ''}" style="${x.hl ? hlVars(x.hl) : ''}"><span class="ai" style="--ac:${x.hl ? 'var(--hl)' : '#E0869A'}">${SOLID.hl}</span><span>${x.hl ? T('已高亮') : T('高亮')}</span></button>
         <button data-dd="pin" class="${x.pin ? 'on' : ''}"><span class="ai" style="--ac:#E3A048">${SOLID.pin}</span><span>${x.pin ? T('已置顶') : T('置顶')}</span></button>
@@ -806,10 +830,12 @@
         ${x.rep ? `<div class="dd-kv"><span>${T('下一次')}</span><b>${esc(fmtDateTime(inf.occ, x.time))}</b></div><div class="dd-kv"><span>${T('重复')}</span><b>${repLabel(x.rep)}</b></div>` : ''}
         <div class="dd-kv"><span>${T('分类')}</span><b><span class="kv-ic" style="--ic:${cd.c}">${svgOf(cd.i)}</span> ${T(cd.n)}${sn ? ` · <span data-uc>${esc(sn)}</span>` : ''}</b></div>
       </div>
-      <div class="dd-sec"><h3><span class="si">${UI_IC.note}</span>${T('小纸条')}<span>${notes.length || ''}</span></h3><button class="chip-btn glass" data-dd="note">${T('写一张')}</button></div>
-      ${notes.length ? `<div class="dd-notes">${notes.map(n => noteHTML(x, n)).join('')}</div>` : `<p class="dd-hint">${T('记下这一天的期待、心情，或者那天发生的小事。')}</p>`}
-      <div class="dd-sec"><h3><span class="si">${UI_IC.photo}</span>${T('相册')}<span>${x.photos.length || ''}</span></h3><button class="chip-btn glass" data-dd="photo">${T('添加照片')}</button></div>
-      ${x.photos.length ? `<div class="dd-photos">${x.photos.map((p, i) => `<button class="dd-ph" data-ph="${p.id}" data-i="${i}" aria-label="${T('查看照片')}"><img alt="" data-src="${p.id}"></button>`).join('')}<button class="dd-ph add" data-dd="photo" aria-label="${T('添加照片')}">${UI_IC.plus}</button></div>` : `<p class="dd-hint">${T('把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。')}</p>`}
+      <div class="dd-sec"><h3><span class="si">${UI_IC.note}</span>${T('小纸条')}<span>${notes.length || ''}</span></h3><button class="dd-add" data-dd="note">${UI_IC.plus}<span>${T('写一张')}</span></button></div>
+      ${notes.length ? `<div class="dd-notes">${notes.map(n => noteHTML(x, n)).join('')}</div>`
+        : `<button class="dd-empty" data-dd="note"><span class="ai" style="--ac:#E3A048">${SOLID.note}</span><span><b>${T('写一张小纸条')}</b><small>${T('记下这一天的期待、心情，或者那天发生的小事。')}</small></span></button>`}
+      <div class="dd-sec"><h3><span class="si">${UI_IC.photo}</span>${T('相册')}<span>${x.photos.length || ''}</span></h3><button class="dd-add" data-dd="photo">${UI_IC.plus}<span>${T('添加照片')}</span></button></div>
+      ${x.photos.length ? `<div class="dd-photos">${x.photos.map((p, i) => `<button class="dd-ph" data-ph="${p.id}" data-i="${i}" aria-label="${T('查看照片')}"><img alt="" data-src="${p.id}"></button>`).join('')}<button class="dd-ph add" data-dd="photo" aria-label="${T('添加照片')}">${UI_IC.plus}</button></div>`
+        : `<button class="dd-empty" data-dd="photo"><span class="ai" style="--ac:#5B8DEF">${SOLID.cover}</span><span><b>${T('添加照片')}</b><small>${T('把这一天的照片放在一起。照片会同步到你自己的 GitHub（单独的私密 Gist）。')}</small></span></button>`}
       <button class="dd-del" data-dd="del">${T('删除这个日子')}</button>`;
     ddBody.querySelectorAll('img[data-src]').forEach(async img => { const u = await P.photoURL(img.dataset.src); if (u) { img.src = u; img.parentElement.classList.add('ok'); } else img.parentElement.classList.add('miss'); });
   }
@@ -851,9 +877,12 @@
       return;
     }
     const ph = t.closest('[data-ph]'); if (ph) { Days.openViewer(x, Number(ph.dataset.i)); return; }
+    const nc = t.closest('.dd-note');   // 直接点小纸条就能改（选中文字时不算）
+    if (nc && !(getSelection && String(getSelection()).length)) { const n = x.notes.find(y => y.id === nc.dataset.note); if (n) openNote(x, n); return; }
     const b = t.closest('[data-dd]'); if (!b) return;
     const a = b.dataset.dd;
     if (a === 'share') Days.openShare(x);
+    else if (a === 'cover') openCover(x);
     else if (a === 'cam') Days.openCam(x);
     else if (a === 'pin') { MC.updateDay(x, { pin: !x.pin }); UI.toast(x.pin ? T('已置顶，会显示在最上面和小组件里') : T('已取消置顶')); }
     else if (a === 'hl') UI.menu(b, [{ label: T('不高亮'), value: '', on: !x.hl }, ...HL.map(h => ({ label: T(h.n), value: h.c, on: x.hl === h.c, icon: `<span class="hl-dot" style="--c:${hlTone(h.c)}"></span>` }))], v => MC.updateDay(x, { hl: v }));
@@ -1296,8 +1325,15 @@
     ctx.save();
     if (ic) {
       ctx.translate(cx - size / 2, cy - size / 2); ctx.scale(size / 24, size / 24);
-      ctx.strokeStyle = color === '#fff' ? '#fff' : col; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = 1.7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ICONS[ic].forEach((d, i) => { const p2 = new Path2D(d); if (i === P.DUO[ic]) { ctx.globalAlpha = .16; ctx.fill(p2); ctx.globalAlpha = 1; } ctx.stroke(p2); });
+      // 实心图标：先画在一张单独的小画布上（镂空只挖图标自己，不挖到下面的照片 / 底色），再贴过来
+      const S = P.FILL[ic] || {}, f = S.f || [], cut = [...(S.k || []), ...(S.d || [])], px = Math.max(24, Math.ceil(size * 2));
+      const oc = document.createElement('canvas'); oc.width = oc.height = px;
+      const o = oc.getContext('2d'); o.scale(px / 24, px / 24);
+      o.strokeStyle = color === '#fff' ? '#fff' : col; o.fillStyle = o.strokeStyle; o.lineWidth = 1.7; o.lineCap = 'round'; o.lineJoin = 'round';
+      ICONS[ic].forEach((d, i) => { if (cut.includes(i)) return; const p2 = new Path2D(d); if (f.includes(i)) o.fill(p2); o.stroke(p2); });
+      o.globalCompositeOperation = 'destination-out'; o.lineWidth = 1.8;
+      cut.forEach(i => { const p2 = new Path2D(ICONS[ic][i]); if ((S.d || []).includes(i)) o.fill(p2); o.stroke(p2); });
+      ctx.drawImage(oc, 0, 0, 24, 24);   // 已经平移、缩放到 24 × 24 的格子里
     } else {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       if (x.icon) { ctx.font = `${Math.round(size * .9)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`; ctx.fillText(x.icon, cx, cy + size * .05); }

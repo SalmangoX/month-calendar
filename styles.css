@@ -1348,9 +1348,8 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
    左：时钟气泡（今日 ↔ 来源页）· 中：分页点 · 右：logo 扇形菜单
    视觉圆面和点击区域分开：按钮本身是透明的大热区，里面的 .face 才是看得见的玻璃
    ===================================================================== */
-body:not([data-kind="days"]) #fab { display: none; }
-body:not([data-kind="days"]) .dock { display: none; }
-body[data-kind="days"] .dock2, body[data-kind="days"] .dock-scrim { display: none; }
+/* 旧的底部菜单栏和加号已经不用了（纪念日历也换成了新底栏），#fab 留着给扇形里的「添加」点 */
+#fab, .dock { display: none; }
 
 :root {
   --d2-b: max(24px, calc(var(--safe-b) + 10px));   /* 热区底边；视觉圆面再往里收 6px，离屏幕底边约 30px，拇指好按 */
@@ -1451,8 +1450,7 @@ body[data-page="set"] .pod-today { opacity: 0; transform: translateY(10px) scale
 .pager .face { flex-direction: row; display: flex; gap: 6px; height: 22px; padding: 0 9px; }
 .pager i { --w: 6px; width: var(--w); height: 6px; border-radius: 3px; opacity: .38; position: relative; z-index: 1;
   transition: width .45s var(--spring-soft), opacity .3s, background .3s; }
-.pager i:first-child { --w: calc(6px + 12px * (1 - var(--p, 0))); opacity: calc(.38 + .62 * (1 - var(--p, 0))); }
-.pager i:last-child { --w: calc(6px + 12px * var(--p, 0)); opacity: calc(.38 + .62 * var(--p, 0)); }
+.pager i { --w: calc(6px + 12px * var(--on, 0)); opacity: calc(.38 + .62 * var(--on, 0)); }   /* --on 由 js 按离当前页多近算（几页都行） */
 .pager i { background: var(--accent); }
 .pager.dragging i { transition: none; }
 .pager.idle { opacity: .3; }

@@ -199,7 +199,7 @@ final class Engine: ObservableObject {
     /// 把接下来的提醒交给系统预约：App 退出、电脑睡眠后醒来也会弹出
     private func schedule() async {
         let pending = await center.pendingNotificationRequests()
-        let ours = pending.map(\.identifier).filter { $0.hasPrefix("ev:") || $0.hasPrefix("daily@") }
+        let ours = pending.map(\.identifier).filter { $0.hasPrefix("ev:") || $0.hasPrefix("daily@") || $0.hasPrefix("course@") }
         center.removePendingNotificationRequests(withIdentifiers: ours)
         guard prefs.bool(forKey: "notify"), notif == "granted" else { return }
 
@@ -235,6 +235,24 @@ final class Engine: ObservableObject {
                 c.threadIdentifier = "daily"
                 c.userInfo = ["hash": "#today"]
                 reqs.append(UNNotificationRequest(identifier: "daily@" + day.key, content: c, trigger: at(t)))
+            }
+        }
+        if d.courseOn { // 课程提醒：接下来 7 天每节课开始前 courseLead 分钟
+            var n = 0
+            for k in 0..<7 {
+                let day = YMD.today.adding(k)
+                for co in d.courses(on: day) {
+                    let t = day.at(minutes: co.startMin - d.courseLead)
+                    if t <= now || n >= 40 { continue }
+                    let c = UNMutableNotificationContent()
+                    c.title = co.code + (co.type.isEmpty ? "" : " · " + co.type)
+                    c.body = [d.courseLead > 0 ? I18n.t("{0} 分钟后开始", d.courseLead) : I18n.t("现在开始"), co.start + "–" + co.end, co.room].filter { !$0.isEmpty }.joined(separator: " · ")
+                    c.sound = .default
+                    c.threadIdentifier = "course"
+                    c.userInfo = ["hash": "#sched"]
+                    reqs.append(UNNotificationRequest(identifier: "course@\(co.id.isEmpty ? co.code : co.id)@\(day.key)@\(co.start)", content: c, trigger: at(t)))
+                    n += 1
+                }
             }
         }
         for r in reqs { try? await center.add(r) }
