@@ -22,13 +22,15 @@
   // ---------- 尺寸 ----------
   // 打开当天预览时，日历区域变矮：每一周还是原来的高度（不压扁），只是少显示几周，可以照常上下滚动
   let fullH = 0;
-  let TOP = 0;   // 月视图顶部留给悬浮月份气泡的高度（styles.css 的 --cal-top）：内容从它下面开始，往上滚时从气泡下面穿过
+  let TOP = 0;      // 月视图顶部留白（styles.css 的 --cal-top，现在是 0：日历整页铺满）
+  let coverTop = 0; // 顶部悬浮的月份胶囊 + 星期条挡住的高度（相对日历区顶部）
   let firstOpenDone = false;
   function measure() {
     W = vp.clientWidth; H = vp.clientHeight;
     const pv = body.classList.contains('previewing');
     if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
     TOP = parseFloat(getComputedStyle(vp).getPropertyValue('--cal-top')) || 0;
+    { const wd = $('#weekdays'), r = wd && wd.getBoundingClientRect(); coverTop = r && r.height ? Math.max(TOP, r.bottom - vp.getBoundingClientRect().top) : TOP; }
     rowH = Math.max(0, (pv ? fullH : H) - TOP) / 6.5;
     const head = 39 + 3; // 数字区 + 底部留白
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
@@ -63,7 +65,8 @@
       // 本周那一行要整行露在导航栏上面才算看得到：压在导航栏下面、只露一截也给返回
       const off = scrollY - Math.round(scrollY / (rowH || 1)) * rowH;
       const row = Math.round((MC.weekStartOf(n) - top) / (7 * 864e5)), rowTop = TOP + row * rowH - off;
-      away = rowTop < TOP - 2 || rowTop + rowH > H - (body.classList.contains('previewing') ? 0 : barSpace()) + 2 || focus.y !== n.getFullYear() || focus.m !== n.getMonth(); // 看的是别的月份也算
+      away = rowTop < coverTop - 4 ||   // 本周那一行被顶上的月份胶囊 / 星期条挡住（滑到了最上面一行）也算看不到
+         rowTop + rowH > H - (body.classList.contains('previewing') ? 0 : barSpace()) + 2 || focus.y !== n.getFullYear() || focus.m !== n.getMonth(); // 看的是别的月份也算
     }
     if (away === backShown) return;
     backShown = away; $('#calBack').hidden = !away;

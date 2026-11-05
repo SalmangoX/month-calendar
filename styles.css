@@ -11,7 +11,8 @@
   --p0: #A3A1AD;   /* 无 */
   /* 红色只用于「现在时间」的线、删除、出错、逾期（和优先级无关）*/
   --red: #D9453E;
-  --pri-grad: linear-gradient(90deg, var(--p1), var(--p2) 52%, var(--p3));   /* 优先级拖动条：低 → 高 = 冷 → 暖 */
+  /* 优先级渐变：每一档的颜色正好落在它的刻度上（无 0 · 低 1/3 · 中 2/3 · 高 1），选「低」时滑块下面就是低的天蓝 */
+  --pri-grad: linear-gradient(90deg, var(--p0), var(--p1) 33.3%, var(--p2) 66.7%, var(--p3));
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --kb: 0px;
@@ -1498,12 +1499,15 @@ body[data-page="set"] .pod-today { opacity: 0; transform: translateY(10px) scale
 /* 回到今天 / 回到本周：和 logo 同一竖线，放在扇形能展开到的范围之上 */
 .back-today {
   right: calc(var(--d2-side) + var(--d2-hit) / 2 - 23px);
-  bottom: calc(var(--d2-b) + var(--d2-lift) + var(--d2-hit) / 2 + 128px);
+  bottom: calc(var(--d2-b) + var(--d2-lift) + var(--d2-hit) / 2 + 39px);   /* 中心在 logo 中心上方 62px：圆和圆之间留 12px */
   width: 46px; height: 46px; opacity: .9; color: var(--text2);
+  transition: opacity .25s, transform .55s var(--spring-out);
 }
 .back-today::before { content: ""; position: absolute; inset: -9px; border-radius: 50%; }
 .back-today[hidden] { transform: scale(.6) translateY(10px); }
-.pod-open .back-today:not([hidden]) { opacity: .35; }
+/* 扇形弹出时被顶到扇形上方（中心在 logo 上方 151px），带一点回弹；收起时再落回 logo 上方 */
+.pod-open .back-today { transform: translateY(-89px); transition: opacity .25s, transform .5s var(--spring-out) .03s; }
+.pod-open .back-today[hidden] { transform: translateY(-89px) scale(.6); }
 .sched-back { display: none; }
 body[data-page="sched"] .sched-back { display: grid; }
 body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); pointer-events: none; }
@@ -1631,7 +1635,8 @@ body #page-cal .weekdays.hide, body[data-kind="days"] #page-cal .weekdays { disp
 /* 渐变铺满整条，用裁切露出到滑块中心：位置固定，所以填得越多，暖色露得越多 */
 .pb-fill {
   position: absolute; inset: var(--pad); border-radius: 999px;
-  background: var(--pri-grad);
+  background: linear-gradient(90deg, var(--p0) calc(var(--th) / 2), var(--p1) calc(var(--th) / 2 + (100% - var(--th)) / 3),
+    var(--p2) calc(var(--th) / 2 + (100% - var(--th)) * 2 / 3), var(--p3) calc(100% - var(--th) / 2));
   clip-path: inset(0 calc((1 - var(--f)) * (100% - var(--th)) + var(--th) / 2) 0 0 round 999px);
   transition: clip-path .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1));
 }

@@ -883,7 +883,7 @@ struct GlassDock: View {
             + [FanItem(id: "add", icon: "plus", label: "添加事件"), FanItem(id: "set", icon: "gearshape", label: "设置")]
         let pos = DockSize.fan(items.count)
         ZStack {
-            if m.back && !m.fanOpen {   // 回到今天：和 logo 同一竖线，在扇形能展开到的范围之上
+            if m.back {   // 回到今天 / 本周：平时贴在 logo 正上方；扇形弹出时被顶到扇形上方，收起时落回来
                 Button { navTick(); m.goToday() } label: {
                     Image(systemName: "arrow.uturn.backward").font(.system(size: 17, weight: .semibold)).foregroundStyle(Color.primary.opacity(0.7))
                         .frame(width: DockSize.back, height: DockSize.back)
@@ -892,7 +892,8 @@ struct GlassDock: View {
                 }
                 .buttonStyle(.plain)
                 .modifier(DockRect(m: m, key: "back"))
-                .offset(y: -151)
+                .offset(y: m.fanOpen ? -151 : -62)
+                .animation(.spring(response: 0.48, dampingFraction: 0.68), value: m.fanOpen)
                 .transition(.scale(scale: 0.6).combined(with: .opacity))
                 .accessibilityLabel(Text(I18n.t("回到今天")))
             }
@@ -909,9 +910,9 @@ struct GlassDock: View {
                                     .padding(6).contentShape(Circle())
                             }
                             .buttonStyle(.plain)
+                            .modifier(DockRect(m: m, key: "fan-" + it.id))   // 在 offset 里面量，位置才包含偏移
                             .glassEffectID(it.id, in: ns)
                             .offset(pos[k])
-                            .modifier(DockRect(m: m, key: "fan-" + it.id))
                             .accessibilityLabel(Text(it.label))
                         }
                     }
