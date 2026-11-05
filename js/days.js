@@ -21,6 +21,12 @@
     'zh-Hant': { '全屏': '全螢幕', '版式': '版式', '留边': '留邊', '压底': '壓底', '小签': '小籤', '拖动、双指缩放照片；双击复原': '拖動、雙指縮放照片；點兩下復原', '拖动、双指缩放照片；拖动文字换位置；双击复原': '拖動、雙指縮放照片；拖動文字換位置；點兩下復原' },
     ja: { '全屏': 'フル', '版式': 'レイアウト', '留边': 'フレーム', '压底': 'オーバーレイ', '小签': 'タグ', '拖动、双指缩放照片；双击复原': '写真はドラッグ・ピンチで調整 · ダブルタップでリセット', '拖动、双指缩放照片；拖动文字换位置；双击复原': '写真はドラッグ・ピンチ、文字はドラッグで移動 · ダブルタップでリセット' },
   }).forEach(([k, v]) => Object.assign(DICT[k] || (DICT[k] = {}), v));
+  Object.entries({   // 总览里的本月小月历、展开后的月份列表
+    en: { '本月 {0} 个日子': '{0} this month', '本月没有标记的日子': 'Nothing marked this month', '点开看每个月': 'Tap to see every month', '这一天的日子': 'Days on this date' },
+    fr: { '本月 {0} 个日子': '{0} ce mois-ci', '本月没有标记的日子': 'Rien de marqué ce mois-ci', '点开看每个月': 'Touchez pour voir chaque mois', '这一天的日子': 'Jours à cette date' },
+    'zh-Hant': { '本月 {0} 个日子': '本月 {0} 個日子', '本月没有标记的日子': '本月沒有標記的日子', '点开看每个月': '點開看每個月', '这一天的日子': '這一天的日子' },
+    ja: { '本月 {0} 个日子': '今月 {0} 件', '本月没有标记的日子': '今月は記念日なし', '点开看每个月': 'タップして月ごとに見る', '这一天的日子': 'この日の記念日' },
+  }).forEach(([k, v]) => Object.assign(DICT[k] || (DICT[k] = {}), v));
   const T = (Days.T = s => { const d = DICT[LANG]; return d && d[s] != null ? d[s] : s; });
   const F = (s, ...a) => T(s).replace(/\{(\d)\}/g, (m, n) => (a[n] !== undefined ? a[n] : m));
   const TT = s => (MC.t ? MC.t(s) : s);     // 画在图片里的文字（繁体也要转）
@@ -503,20 +509,17 @@
     return `<span class="dv-n">${pre}<b>${a.num}</b><i>${a.unit}</i></span>`;
   }
   // 小条：文字全靠左；右边约 38% 宽放主题照片，从左往右渐变出来。没有照片时右边是一层很淡的大类颜色和一个大图标水印
+  // 列表的一行：左边透明底的实心图标（有主题照片就是照片小图），中间名称和日期，右边大数字——干净的三栏，不再在右边铺渐变和水印
   function rowHTML(x, now) {
-    const inf = info(x, now), a = amount(x, inf), photo = isPhotoCover(x), cc = coverColor(x);
-    const word = inf.state === 'today' ? '' : inf.state === 'fut' ? T('还有') : x.from1 ? '' : T('已经');
-    const pre = inf.state === 'past' && x.from1 && /^zh/.test(P.LANG) ? T('第') : '';
-    const num = a.today ? `<b class="today">${T('就是今天')}</b>` : `${word ? `<em>${word}</em>` : ''}${pre ? `<i class="pre">${pre}</i>` : ''}<b>${a.num}</b><i>${a.unit}</i>`;
-    const art = photo ? `<span class="rw-art"><img alt="" data-cover="${x.cover}"></span>`
-      : `<span class="rw-art plain"${cc ? ` style="--pastel:${cc}"` : ''}>${svgOf(P.iconOf(x)) || ''}</span>`;
-    return `<button class="dv-row${x.hl ? ' hl' : ''}${inf.state === 'past' ? ' past' : ''}${photo ? ' photo' : ''}" data-id="${x.id}" style="${toneVar(x, inf)};--ic:${P.catColor(x)}">
-      ${art}
-      ${tile(x, inf)}
-      <span class="dv-txt">
-        <b data-uc>${esc(x.title || T('（无标题）'))}${x.pin ? `<span class="dv-pin" title="${T('置顶')}">${UI_IC.pin}</span>` : ''}</b>
-        <small><span class="rw-n">${num}</span><i class="dot">·</i>${esc(fmtDateTime(inf.occ, x.time))}${x.rep ? '<i class="dot">·</i>' + repLabel(x.rep) : ''}</small>
-      </span>
+    const inf = info(x, now), a = amount(x, inf), photo = isPhotoCover(x);
+    const word = inf.state === 'today' ? '' : inf.state === 'fut' ? T('还有') : x.from1 ? T('第') : T('已经');
+    const lead = photo ? `<span class="rw-lead photo"><img alt="" data-cover="${x.cover}"></span>` : `<span class="rw-lead">${glyph(x)}</span>`;
+    const num = a.today ? `<b class="today">${T('今天')}</b>` : `<small>${word}</small><b>${a.num}<i>${a.unit}</i></b>`;
+    return `<button class="dv-row v2${x.hl ? ' hl' : ''}${inf.state === 'past' ? ' past' : ''}" data-id="${x.id}" style="${toneVar(x, inf)};--ic:${P.catColor(x)}">
+      ${lead}
+      <span class="dv-txt"><b data-uc>${esc(x.title || T('（无标题）'))}${x.pin ? `<span class="dv-pin" title="${T('置顶')}">${UI_IC.pin}</span>` : ''}</b>
+        <small>${esc(fmtDateTime(inf.occ, x.time))}${x.rep ? '<i class="dot">·</i>' + repLabel(x.rep) : ''}</small></span>
+      <span class="rw-num">${num}</span>
     </button>`;
   }
   const pad = MC.pad;
@@ -547,7 +550,7 @@
     const pre = inf.state === 'past' && x.from1 && /^zh/.test(P.LANG) ? `<i class="pre">${T('第')}</i>` : '';
     const word = inf.state === 'today' ? T('就是今天') : inf.state === 'fut' ? T('还有') : x.from1 ? T('今天是') : T('已经');
     return `<div class="dv-cover${photo ? ' photo' : ''}${inf.state === 'past' ? ' past' : ''}" data-id="${x.id}" role="button" tabindex="0" style="${toneVar(x, inf)};--ic:${P.catColor(x)}${cc ? `;--pastel:${cc}` : ''}">
-      ${photo ? `<img class="cv-img" alt="" data-cover="${x.cover}">` : `<span class="cv-art" aria-hidden="true">${svgOf(P.iconOf(x)) || ''}</span>`}
+      ${photo ? `<img class="cv-img" alt="" data-cover="${x.cover}">` : ''}
       <div class="cv-top"><span class="cv-tile" style="--ic:${P.catColor(x)}">${glyph(x)}</span>${x.pin ? `<span class="cv-pin" title="${T('置顶')}">${UI_IC.pin}</span>` : ''}</div>
       <div class="cv-plate">
         <div class="cv-l"><b data-uc>${esc(x.title || T('（无标题）'))}</b><small>${esc(fmtDateTime(inf.occ, x.time))}${x.rep ? ' · ' + repLabel(x.rep) : ''}</small></div>
@@ -600,21 +603,40 @@
     dvSum.innerHTML = all.length ? sumHTML(now, all) : empty;
     fillCovers(dvSum);
   }
-  // 总览：一眼看到今天、接下来、快到的里程碑、各个类别和最近的小纸条
+  // ---------- 月历格子：总览顶上的「本月」小窗、展开后竖着滑的每个月都用这一份 ----------
+  function monthMarks(list, y, m) {
+    const marks = new Map(), n = new Date(y, m + 1, 0).getDate();
+    const add = (d, o) => { const k = MC.ymd(d); if (!marks.has(k)) marks.set(k, []); marks.get(k).push(o); };
+    for (let i = 1; i <= n; i++) { const d = new Date(y, m, i); for (const x of list) if (P.hits(x, d)) add(d, { x, kind: 'day' }); }
+    for (const x of list) for (const ms of milestonesIn(x, y, m)) add(ms.d, { x, kind: 'ms', label: ms.label });
+    return marks;
+  }
+  const wdRow = () => { const ws = MC.settings.weekStart || 0; return Array.from({ length: 7 }, (_, i) => `<span>${MC.WD[(i + ws) % 7]}</span>`).join(''); };
+  const monthTitle = (y, m) => new Intl.DateTimeFormat(MC.locale ? MC.locale() : 'zh-CN', { year: 'numeric', month: 'long' }).format(new Date(y, m, 1));
+  function monthCells(y, m, today, marks, pick = false) {   // pick：有日子的那天能点（展开的月历里）；小窗里整块点一下就展开
+    const ws = MC.settings.weekStart || 0, lead = (new Date(y, m, 1).getDay() - ws + 7) % 7, n = new Date(y, m + 1, 0).getDate(), tk = MC.ymd(today);
+    let cells = '';
+    for (let i = 0; i < lead; i++) cells += '<span class="mc out"></span>';
+    for (let i = 1; i <= n; i++) {
+      const d = new Date(y, m, i), k = MC.ymd(d), mk = marks.get(k) || [];
+      const dots = mk.slice(0, 3).map(o => `<i class="${o.kind === 'ms' ? 'ms' : ''}" style="--c:${o.x.hl ? hlTone(o.x.hl) : P.catColor(o.x)}"></i>`).join('');
+      cells += `<span class="mc${k === tk ? ' today' : ''}${mk.length ? ' has' : ''}"${mk.length && pick ? ` data-mdate="${k}"` : ''}><b>${i}</b><span class="md">${dots}</span></span>`;
+    }
+    return cells;
+  }
+  // 总览：顶上是本月的小月历（点一下展开，竖着滑看每个月），下面只留今天、接下来和快到的里程碑
   function sumHTML(now, all) {
     const today = t0(now), items = all.map(x => ({ x, inf: info(x, now) }));
     const fut = items.filter(o => o.inf.state === 'fut').sort((a, b) => a.inf.diff - b.inf.diff);
     const past = items.filter(o => o.inf.state === 'past');
     const todays = items.filter(o => o.inf.state === 'today');
-    const thisYear = items.filter(o => o.inf.occ.getFullYear() === today.getFullYear() && o.inf.state !== 'past').length;
-    const notes = all.reduce((n, x) => n + x.notes.length, 0), photos = all.reduce((n, x) => n + x.photos.length, 0);
-    const stat = (n, l, c) => `<div class="sm-stat"${c ? ` style="--c:${c}"` : ''}><b>${n}</b><span>${l}</span></div>`;
-    let h = `<div class="sm-stats">${stat(all.length, T('全部'))}${stat(fut.length + todays.length, T('未来'), 'var(--fut)')}${stat(past.length, T('过去'), 'var(--past)')}${stat(thisYear, T('今年还会到来'))}</div>`;
-    // 今天
-    h += `<p class="dv-sec">${T('今天')}<span>${esc(fmtDate(today))}</span></p>`;
-    h += todays.length ? `<div class="dv-cards">${todays.map(o => rowHTML(o.x, now)).join('')}</div>`
-      : `<div class="sm-quiet">${fut[0] ? F('今天没有纪念日 · 离「{0}」还有 {1} 天', `<b data-uc>${esc(fut[0].x.title)}</b>`, fut[0].inf.diff) : T('今天没有纪念日')}</div>`;
-    // 接下来：横向滑动的小卡片
+    const y = today.getFullYear(), m = today.getMonth(), marks = monthMarks(all, y, m);
+    const cnt = new Set([...marks.values()].flat().map(o => o.x.id)).size;
+    let h = `<div class="sm-month" data-openmonths role="button" tabindex="0" aria-label="${T('点开看每个月')}">
+      <div class="sm-mh"><b>${monthTitle(y, m)}</b><small>${cnt ? F('本月 {0} 个日子', cnt) : T('本月没有标记的日子')}</small><span class="sm-chev">${UI_IC.chev}</span></div>
+      <div class="mc-wd">${wdRow()}</div><div class="mc-grid">${monthCells(y, m, today, marks)}</div>
+    </div>`;
+    if (todays.length) h += `<p class="dv-sec">${T('今天')}</p><div class="dv-cards">${todays.map(o => rowHTML(o.x, now)).join('')}</div>`;
     if (fut.length) h += `<p class="dv-sec">${T('接下来')}<span>${fut.length}</span></p><div class="sm-next dv-noswipe">${fut.slice(0, 8).map(o => {
       const a = amount(o.x, o.inf, 'd'), photo = isPhotoCover(o.x), cc = coverColor(o.x);
       return `<button class="sm-card${photo ? ' photo' : ''}" data-id="${o.x.id}" style="--ic:${P.catColor(o.x)}${cc ? `;--pastel:${cc}` : ''}">
@@ -624,25 +646,34 @@
         <span class="sm-t" data-uc>${esc(o.x.title)}</span>
         <small>${esc(fmtDate(o.inf.occ))}</small>
       </button>`; }).join('')}</div>`;
-    // 快到的里程碑（过去的日子：每 100 天、每满一年），90 天内
     const ms = past.map(o => ({ o, m: milestone(o.x, o.inf) })).filter(z => z.m && z.m.left <= 90).sort((a, b) => a.m.left - b.m.left);
-    if (ms.length) h += `<p class="dv-sec">${T('快到的里程碑')}<span>${ms.length}</span></p><div class="dv-cards">${ms.slice(0, 5).map(({ o, m }) => `
-      <button class="dv-row sm-ms" data-id="${o.x.id}" style="--tone:var(--past);--ic:${P.catColor(o.x)}">${tile(o.x, o.inf)}
+    if (ms.length) h += `<p class="dv-sec">${T('快到的里程碑')}<span>${ms.length}</span></p><div class="dv-cards">${ms.slice(0, 3).map(({ o, m }) => `
+      <button class="dv-row v2 sm-ms" data-id="${o.x.id}" style="--tone:var(--past);--ic:${P.catColor(o.x)}"><span class="rw-lead">${glyph(o.x)}</span>
         <span class="dv-txt"><b data-uc>${esc(o.x.title)}</b><small>${m.label}<i class="dot">·</i>${esc(fmtDate(m.date))}</small></span>
         <span class="dv-n sm"><b>${m.left === 0 ? T('就是今天') : F('还有 {0} 天', m.left)}</b></span></button>`).join('')}</div>`;
-    // 类别
-    const cats = CATS.map(c => ({ c, list: items.filter(o => catOf(o.x) === c.k) })).filter(z => z.list.length);
-    if (cats.length) h += `<p class="dv-sec">${T('类别')}</p><div class="sm-cats">${cats.map(({ c, list }) => {
-      const nx = list.filter(o => o.inf.state !== 'past').sort((a, b) => a.inf.diff - b.inf.diff)[0];
-      return `<button class="sm-cat" data-gocat="${c.k}" style="--ic:${c.c}"><span class="sm-ic">${svgOf(c.i)}</span>
-        <span class="sm-ct"><b>${T(c.n)}</b><small>${nx ? (nx.inf.state === 'today' ? T('今天') : F('还有 {0} 天', nx.inf.diff)) + ' · ' + `<span data-uc>${esc(nx.x.title)}</span>` : F('{0} 个日子', list.length)}</small></span>
-        <em>${list.length}</em></button>`; }).join('')}</div>`;
-    // 最近的小纸条
-    const lastNote = all.flatMap(x => x.notes.map(n => ({ x, n }))).sort((a, b) => b.n.at - a.n.at)[0];
-    h += `<p class="dv-sec">${T('回忆')}<span>${F('{0} 张小纸条 · {1} 张照片', notes, photos)}</span></p>`;
-    h += lastNote ? `<button class="sm-note" data-id="${lastNote.x.id}"><small><span data-uc>${esc(lastNote.x.title)}</span> · ${esc(fmtDate(new Date(lastNote.n.at)))}</small><p data-uc>${esc(lastNote.n.text)}</p></button>`
-      : `<div class="sm-quiet">${T('在日子的主页里写小纸条、放照片，这里会显示最近的一张。')}</div>`;
     return h;
+  }
+  // 展开的月历：从一年前到一年半后，每个月一张，竖着滑；打开时停在本月
+  function openMonths() {
+    const today = t0(new Date()), list = daysOf(calId());
+    let h = '';
+    for (let k = -12; k <= 18; k++) {
+      const d = new Date(today.getFullYear(), today.getMonth() + k, 1), y = d.getFullYear(), m = d.getMonth();
+      h += `<section class="dm-month${k === 0 ? ' now' : ''}"><h3>${monthTitle(y, m)}</h3><div class="mc-wd">${wdRow()}</div><div class="mc-grid">${monthCells(y, m, today, monthMarks(list, y, m), true)}</div></section>`;
+    }
+    const b = $('#dmBody'); b.innerHTML = h;
+    UI.open('dayMonths');
+    const toNow = () => { const n = b.querySelector('.dm-month.now'); if (n) b.scrollTop += n.getBoundingClientRect().top - b.getBoundingClientRect().top - 4; };
+    b.scrollTop = 0; requestAnimationFrame(toNow); setTimeout(toNow, 360);   // 面板弹出动画结束后再对一次
+  }
+  // 点有日子的那一天：只有一个就直接打开它，有几个就让你选
+  function pickDate(el, ds) {
+    const list = daysOf(calId()), d = MC.parse(ds), seen = new Set(), hit = [];
+    for (const x of list) if (P.hits(x, d) && !seen.has(x.id)) { seen.add(x.id); hit.push({ x, label: x.title }); }
+    for (const x of list) for (const ms of milestonesIn(x, d.getFullYear(), d.getMonth())) if (MC.ymd(ms.d) === ds && !seen.has(x.id)) { seen.add(x.id); hit.push({ x, label: `${x.title} · ${ms.label}` }); }
+    const go = x => { if (UI.isOpen('dayMonths')) UI.close('dayMonths', true); setTimeout(() => openPage(x.id), 120); };
+    if (hit.length === 1) go(hit[0].x);
+    else if (hit.length) UI.menu(el, hit.map(o => ({ label: o.label, value: o.x.id })), id => go(find(id)));
   }
   // 年视图：12 个小月历，有日子的那天涂上颜色；下面列出这一年里的日子
   function yearHTML(now) {
@@ -741,10 +772,12 @@
     const dc = t.closest('.dc[data-date]'); if (dc) { st.sel = dc.dataset.date; vib(); render(); return; }
     const row = t.closest('[data-id]'); if (row) openPage(row.dataset.id);
   };
+  $('#dmBody').addEventListener('click', e => { const md = e.target.closest('[data-mdate]'); if (md) pickDate(md, md.dataset.mdate); });
   view.addEventListener('click', onClick);
   listPage.addEventListener('click', onClick);
   sumPage.addEventListener('click', e => {
     if (e.target.closest('.dv-title')) { MC.Drawer.open(); return; }
+    if (e.target.closest('[data-openmonths]')) { openMonths(); return; }
     const gc = e.target.closest('[data-gocat]');
     if (gc) { st.cat = gc.dataset.gocat; st.sub = ''; MC.App.showPage('days'); return; }
     const row = e.target.closest('[data-id]'); if (row) openPage(row.dataset.id);
@@ -1167,7 +1200,7 @@
     if (!on && MC.onCalChange) MC.onCalChange(); // 回到记录日历：按它有没有开等级评分决定显示「统计」还是四象限
     if (!MC.App) return;
     const pg = MC.App.page();
-    if (on && (entering || pg === 'today' || pg === 'quad' || pg === 'sched')) MC.App.showPage('days');
+    if (on && (entering || pg === 'today' || pg === 'quad' || pg === 'sched' || pg === 'cal')) MC.App.showPage('days');   // 纪念日历只有 纪念日 · 总览 两页（月历在总览里）
     else if (!on && (pg === 'days' || pg === 'dsum')) MC.App.showPage('cal');
     else MC.App.placeInd();
   }
@@ -1867,12 +1900,13 @@
       <div class="cam-panel">
         <div class="cam-row"><div class="cam-chips" data-group="style">${CAM_STYLES.map(([v, l], i) => `<button data-style="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
         <div class="cam-row"><div class="cam-fonts cam-chips" data-group="font">${FONT_NAMES.map(([v, l], i) => `<button data-font="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
+        <div class="cam-zoom cam-chips" data-group="zoom" hidden></div>
         <div class="cam-bottom"><button class="cam-btn" data-c="album" aria-label="${T('从相册选择')}">${UI_IC.photo}</button>
           <button class="cam-shutter" data-c="shot" aria-label="${T('拍摄')}"><span></span></button>
           <button class="cam-btn" data-c="flip" aria-label="${T('切换镜头')}">${UI_IC.flip}</button></div>
       </div>`;
     document.body.appendChild(el);
-    camCtx = { id: x.id, el, stream: null, facing: 'environment', style: 'glass', font: 'sans', ratio: 'full', pos: null, scale: 1, bgImg: null, bgFile: null };
+    camCtx = { id: x.id, el, stream: null, facing: 'environment', style: 'glass', font: 'sans', ratio: 'full', pos: null, scale: 1, bgImg: null, bgFile: null, zoom: 1, zMin: 1, zMax: 5, hw: false };
     requestAnimationFrame(() => el.classList.add('show'));
     bindCam(el);
     await startStream();
@@ -1885,15 +1919,40 @@
     if (c.bgImg) return;
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nocam');
-      c.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: c.facing, width: { ideal: 1920 }, height: { ideal: 1920 } }, audio: false });
+      const want = { width: { ideal: 1920 }, height: { ideal: 1920 } };
+      // 先按前 / 后置要；有的设备不认 facingMode，就退一步随便开一个镜头
+      try { c.stream = await navigator.mediaDevices.getUserMedia({ video: { ...want, facingMode: { ideal: c.facing } }, audio: false }); }
+      catch (err) { c.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
       if (camCtx !== c) { c.stream.getTracks().forEach(t => t.stop()); return; }
       v.srcObject = c.stream; v.hidden = false; msg.hidden = true;
-      v.classList.toggle('mirror', c.facing === 'user');
       await v.play().catch(() => {});
+      // 倍率：镜头自己支持变焦（安卓 Chrome 等）就用真的光学 / 传感器变焦，否则在画面上放大（拍出来同样裁切）
+      const tr = c.stream.getVideoTracks()[0], caps = tr && tr.getCapabilities ? tr.getCapabilities() : {};
+      c.hw = !!(caps && caps.zoom && caps.zoom.max > caps.zoom.min);
+      c.zMin = c.hw ? Math.max(.5, caps.zoom.min) : 1; c.zMax = c.hw ? Math.min(10, caps.zoom.max) : 5;
+      c.zoom = Math.max(c.zMin, 1);
+      paintZoom(); applyZoom();
     } catch (e) {
       v.hidden = true; msg.hidden = false;
       msg.innerHTML = `<b>${T('没法打开相机')}</b><span>${T('可以允许使用相机后再试，或者从相册选一张照片当背景。')}</span><button class="chip-btn glass" data-c="album">${T('从相册选择')}</button>`;
     }
+  }
+  const ZOOMS = [.5, 1, 2, 3, 5];
+  function paintZoom() {
+    const c = camCtx; if (!c) return;
+    const box = c.el.querySelector('.cam-zoom'), list = ZOOMS.filter(z => z >= c.zMin - 1e-3 && z <= c.zMax + 1e-3);
+    box.hidden = !!c.bgImg || !c.stream;
+    box.innerHTML = list.map(z => `<button data-zoom="${z}" class="${Math.abs(c.zoom - z) < .05 ? 'on' : ''}">${String(z).replace(/^0/, '')}×</button>`).join('')
+      + (list.some(z => Math.abs(c.zoom - z) < .05) ? '' : `<button class="on cur" data-zoom="${c.zoom}">${c.zoom.toFixed(1)}×</button>`);
+  }
+  function applyZoom() {
+    const c = camCtx; if (!c) return;
+    const v = c.el.querySelector('video'), mir = c.facing === 'user' ? ' scaleX(-1)' : '';
+    if (c.hw) {
+      const tr = c.stream && c.stream.getVideoTracks()[0];
+      if (tr) tr.applyConstraints({ advanced: [{ zoom: c.zoom }] }).catch(() => { c.hw = false; applyZoom(); });
+      v.style.transform = mir.trim();
+    } else v.style.transform = `scale(${c.zoom})${mir}`;   // 数码变焦：画面放大，拍照时按同样比例裁切
   }
   function camUseImage(f) {
     const c = camCtx; if (!c) return;
@@ -1903,6 +1962,7 @@
       if (c.stream) { c.stream.getTracks().forEach(t => t.stop()); c.stream = null; }
       const bg = c.el.querySelector('.cam-bg'); bg.src = u; bg.hidden = false;
       c.el.querySelector('video').hidden = true; c.el.querySelector('.cam-msg').hidden = true;
+      paintZoom();
     }).catch(() => UI.toast(T('照片读取失败')));
   }
   function closeCam() {
@@ -1920,10 +1980,14 @@
       const c = camCtx;
       if (b.dataset.style) { c.style = b.dataset.style; card.className = card.className.replace(/st-\w+/, 'st-' + c.style); b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); return; }
       if (b.dataset.cr) { c.ratio = b.dataset.cr; b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); layoutCam(); return; }
+      if (b.dataset.zoom) { c.zoom = Number(b.dataset.zoom); applyZoom(); paintZoom(); try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} return; }
       if (b.dataset.font) { c.font = b.dataset.font; card.className = card.className.replace(/f-\w+/, 'f-' + c.font); b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); return; }
       const a = b.dataset.c;
       if (a === 'close') closeCam();
-      else if (a === 'flip') { if (c.bgImg) { c.bgImg = null; c.el.querySelector('.cam-bg').hidden = true; } else c.facing = c.facing === 'user' ? 'environment' : 'user'; startStream(); }
+      else if (a === 'flip') {   // 前后镜头切换；正用着相册照片时回到相机
+        if (c.bgImg) { c.bgImg = null; c.el.querySelector('.cam-bg').hidden = true; } else c.facing = c.facing === 'user' ? 'environment' : 'user';
+        c.zoom = 1; b.classList.add('spin'); setTimeout(() => b.classList.remove('spin'), 420); startStream();
+      }
       else if (a === 'album') { $('#dayBgFile').value = ''; $('#dayBgFile').click(); }
       else if (a === 'shot') shoot();
       else if (a === 'retake') { el.querySelector('.cam-res').remove(); el.classList.remove('done'); }
@@ -1946,6 +2010,19 @@
       else { const o = start.pts.get(e.pointerId); if (!o) return; c.pos = { x: Math.max(.08, Math.min(.92, start.p.x + (e.clientX - o[0]) / start.r.width)), y: Math.max(.08, Math.min(.92, start.p.y + (e.clientY - o[1]) / start.r.height)) }; }
       place();
     });
+    // 在画面上（不是卡片上）双指捏合：调相机倍率
+    const zp = new Map(); let z0 = null;
+    view.addEventListener('pointerdown', e => { if (e.target.closest('.cam-card') || !camCtx || camCtx.bgImg) return; zp.set(e.pointerId, [e.clientX, e.clientY]); if (zp.size === 2) { const [a, b] = [...zp.values()]; z0 = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, z: camCtx.zoom }; } });
+    view.addEventListener('pointermove', e => {
+      if (!zp.has(e.pointerId) || !camCtx) return; zp.set(e.pointerId, [e.clientX, e.clientY]);
+      if (zp.size !== 2 || !z0) return;
+      const [a, b] = [...zp.values()], c = camCtx;
+      c.zoom = Math.round(Math.max(c.zMin, Math.min(c.zMax, z0.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / z0.d)) * 10) / 10;
+      applyZoom(); paintZoom();
+    });
+    const zup = e => { zp.delete(e.pointerId); if (zp.size < 2) z0 = null; };
+    view.addEventListener('pointerup', zup); view.addEventListener('pointercancel', zup);
+    view.style.touchAction = 'none';
     const up = e => { pts.delete(e.pointerId); if (camCtx) start = { p: { ...(camCtx.pos || { x: .5, y: .64 }) }, r: view.getBoundingClientRect(), s: camCtx.scale, pts: new Map(pts), d: pts.size > 1 ? dist() : 0 }; };
     card.addEventListener('pointerup', up); card.addEventListener('pointercancel', up);
   }
@@ -1956,7 +2033,8 @@
     const src = c.bgImg || el.querySelector('video');
     const iw = src.naturalWidth || src.videoWidth, ih = src.naturalHeight || src.videoHeight;
     if (!iw || !ih) { UI.toast(T('相机还没准备好')); return; }
-    const k = Math.max(vr.width / iw, vr.height / ih), sw = vr.width / k, sh0 = vr.height / k;
+    const dz = !c.bgImg && !c.hw ? c.zoom : 1;   // 数码变焦：只取画面中间那一块
+    const k = Math.max(vr.width / iw, vr.height / ih) * dz, sw = vr.width / k, sh0 = vr.height / k;
     const s = Math.min(2560 / Math.max(sw, sh0), Math.max(1, 1440 / Math.min(sw, sh0)));
     const cv = document.createElement('canvas'); cv.width = Math.round(sw * s); cv.height = Math.round(sh0 * s);
     const ctx = cv.getContext('2d'), f = cv.width / vr.width;

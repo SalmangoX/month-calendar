@@ -265,6 +265,17 @@
 </section>
 
 <!-- 纪念日：主题图片 -->
+<!-- 纪念日：展开的月历（总览顶上的本月小窗点开），竖着滑看每个月 -->
+<section class="sheet tall" id="dayMonths" aria-label="日历">
+  <div class="handle"></div>
+  <div class="sheet-head">
+    <button class="text-btn muted" data-close>关闭</button>
+    <h2>日历</h2>
+    <span style="width:40px"></span>
+  </div>
+  <div class="list dm-body" id="dmBody"></div>
+</section>
+
 <section class="sheet dcv" id="dayCover" aria-label="主题图片">
   <div class="handle"></div>
   <div class="sheet-head">
@@ -521,8 +532,8 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   const page = () => body.dataset.page || 'cal';
   const pages = { cal: $id('page-cal'), sched: $id('page-sched'), days: $id('page-days'), dsum: $id('page-dsum') };
-  // 分页点能切的几页（从左到右）：主日历 = 日历 · 日程；纪念日历 = 日历 · 纪念日 · 总览
-  const ORDER = () => body.dataset.kind === 'days' ? ['cal', 'days', 'dsum'] : ['cal', 'sched'];
+  // 分页点能切的几页（从左到右）：主日历 = 日历 · 日程；纪念日历 = 纪念日 · 总览（月历放在总览顶上）
+  const ORDER = () => body.dataset.kind === 'days' ? ['days', 'dsum'] : ['cal', 'sched'];
   const idx = pg => ORDER().indexOf(pg);
   const todayEl = $id('page-today');
 
@@ -628,8 +639,9 @@
     lBack.classList.toggle('off', !onToday);
     lTime.setAttribute('aria-hidden', String(onToday));
     lBack.setAttribute('aria-hidden', String(!onToday));
-    lBackTxt.textContent = returnTo === 'sched' ? '日程' : '日历';
-    pill.setAttribute('aria-label', onToday ? (returnTo === 'sched' ? '回到日程' : '回到日历') : `今日 · ${lTime.textContent}`);
+    const backName = { sched: '日程', days: '纪念日', dsum: '总览' }[returnTo] || '日历';
+    lBackTxt.textContent = backName;
+    pill.setAttribute('aria-label', onToday ? '回到' + backName : `今日 · ${lTime.textContent}`);
     sizePill();
     requestAnimationFrame(sizePill);   // 文字可能被翻译成别的语言，下一帧再量一次
   }
@@ -687,7 +699,7 @@
       return;
     }
     const cur = page(), goingIn = cur !== 'today';
-    if (goingIn) returnTo = cur === 'sched' ? 'sched' : 'cal';
+    if (goingIn) returnTo = pages[cur] ? cur : 'cal';
     const other = goingIn ? (pages[cur] ? cur : 'cal') : returnTo;
     const otherEl = $id('page-' + other);
     if (goingIn && cur !== other) { MC.App.showPage('today'); syncPill(); return; }   // 从别的页（不应出现）直接切

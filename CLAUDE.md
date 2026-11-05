@@ -21,7 +21,7 @@
 - **改底部悬浮控件要改四处**：网页（`index.html` 末尾的 dock2 脚本 + `styles.css`「悬浮控件」一节）、iOS / Mac 的 `GlassNav.swift`、两份 `navJS`（`ios/App/WebShell.swift`、`macos/App/MainWindow.swift`）、安卓的 `Dock.kt`（含它自己的 `NAV_JS`）。状态字段四处要一致：`t ap today back pager n p set lit pv`（`n` 是页数，`p` 是停在第几页，拖动时是小数）。
 - **iPhone / Mac 的底部悬浮控件**（时钟胶囊 · 分页点 · logo 扇形 · 回到今天）是 `GlassNav.swift` 里的 `GlassDock`，用系统 Liquid Glass 画；点按交给网页里同名的按钮（`#bubbleToday` `#pager` `#fanAdd` `#fanSet` `#calBack` `#schedBack`），网页那一份在 App 里只是 `visibility:hidden`（今日页展开动画还要用它的位置）。状态由注入脚本 `navJS`（`ios/App/WebShell.swift`、`macos/App/MainWindow.swift` 各一份，两份要一起改）发给原生。
 - **iPhone / Mac 上网页里的玻璃控件**：`js/ui.js` 的 `LG_SEL` 里列出的元素，由原生在同样位置画系统液态玻璃（`MC.LG`）。
-- **纪念日历**（`body[data-kind="days"]`）也用新底栏：分页点三页 日历 · 纪念日 · 总览（`ORDER()`），日历页左右滑是翻月、不切页。旧的 `#dock` / `#tabbar` / `#fab` 都藏起来了，`#fab` 只留给扇形里的「添加」点。
+- **纪念日历**（`body[data-kind="days"]`）也用新底栏：分页点两页 纪念日 · 总览（`ORDER()`）。月历放在总览顶上的「本月」小窗里，点开是竖着滑的月历面板（`#dayMonths`）。列表每行是 透明底实心图标 · 名称日期 · 右边大数字（`.dv-row.v2`），不再铺渐变和水印。透明相机的控件由网页自己画（不进 `LG_SEL`），有倍率和前后镜头。旧的 `#dock` / `#tabbar` / `#fab` 都藏起来了，`#fab` 只留给扇形里的「添加」点。
 
 ## 设计规范（用户逐条确认过的，别改回去）
 

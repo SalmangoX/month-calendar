@@ -183,6 +183,13 @@ struct Pal {
     var dim: Color { glass ? .white.opacity(0.42) : Color(argb: 0x8088_8890) }
     /// 「今天」那个实色圆 / 小标签：玻璃样式下改成半透明的白底，上面的字才看得清
     var todayFill: Color { glass ? .white.opacity(0.3) : accent }
+    /// 今天的日期圆、「还有几项」小标签：品牌渐变 金黄 → 天蓝 → 亮蓝（和 App 里选中的今天、安卓小组件一样）；玻璃样式下还是半透明白
+    var todayStyle: AnyShapeStyle {
+        if glass { return AnyShapeStyle(Color.white.opacity(0.3)) }
+        let c: [UInt32] = dark ? [0xFFE4_B96B, 0xFF80_B1EC, 0xFF6A_99E2] : [0xFFE2_B562, 0xFF74_A8E6, 0xFF5A_8DDA]
+        return AnyShapeStyle(LinearGradient(stops: [.init(color: Color(argb: c[0]), location: 0.06), .init(color: Color(argb: c[1]), location: 0.52), .init(color: Color(argb: c[2]), location: 0.96)],
+                                            startPoint: .topLeading, endPoint: .bottomTrailing))
+    }
 
     /// 优先级色（和网页 --p0…--p3 一致）：无 灰 · 低 天蓝 · 中 琥珀金 · 高 朱红（色彩心理学：冷 → 暖）；深色调按同一个 OKLCH 规则算（和网页 MC.darkTone 一样）
     static let P: [UInt32] = [0xFFA3_A1AD, 0xFF5B_8FD0, 0xFFC9_8A1E, 0xFFD4_472C]

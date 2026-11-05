@@ -58,6 +58,13 @@ function dyn(light, dark) {
 }
 const hex = (h, a) => (a == null ? new Color(h) : new Color(h, a));
 const ACCENT = dyn(hex(ACCENT_HEX[0]), hex(ACCENT_HEX[1]));
+// 今天的日期、「还有几项」小标签：品牌渐变 金黄 → 天蓝 → 亮蓝（和 App 里选中的今天一样）
+function brandGrad() {
+  const g = new LinearGradient();
+  g.colors = [dyn(hex("#E2B562"), hex("#E4B96B")), dyn(hex("#74A8E6"), hex("#80B1EC")), dyn(hex("#5A8DDA"), hex("#6A99E2"))];
+  g.locations = [0.06, 0.52, 0.96]; g.startPoint = new Point(0, 0); g.endPoint = new Point(1, 1);
+  return g;
+}
 const C = {
   bg: dyn(hex("#ECF2F5"), hex("#1B1C21")), // 浅色用柔和的灰白，不刺眼（横条的实色按这两个底色算，改这里要一起改 BG_L / BG_D）
   text: dyn(hex("#171B20"), hex("#EEEEF1")),
@@ -250,7 +257,7 @@ function dayBadge(parent, d, size, fs, isToday, out) {
   b.size = new Size(size, size);
   b.cornerRadius = size / 2;
   b.centerAlignContent();
-  if (isToday) b.backgroundColor = ACCENT;
+  if (isToday) b.backgroundGradient = brandGrad();
   addText(b, String(d.getDate()), isToday ? Font.boldSystemFont(fs) : Font.mediumSystemFont(fs),
     isToday ? Color.white() : (out ? C.text3 : C.text));
 }
@@ -345,7 +352,7 @@ function largeLayout(w, idx, offline) {
         nr.addSpacer(1.5);
         const badge = nr.addStack();
         badge.size = new Size(numH + 3, numH);
-        badge.backgroundColor = ACCENT; badge.cornerRadius = numH / 2; badge.centerAlignContent();
+        badge.backgroundGradient = brandGrad(); badge.cornerRadius = numH / 2; badge.centerAlignContent();
         addText(badge, String(d.getDate()), Font.boldSystemFont(10.5), Color.white());
       } else {
         nr.addSpacer(3.5);
@@ -354,7 +361,7 @@ function largeLayout(w, idx, offline) {
       nr.addSpacer();
       if (hidden[c]) { // 放不下的事件数，放在日期右边；今天用主色小标签，更醒目
         if (isToday) {
-          const pill = nr.addStack(); pill.backgroundColor = ACCENT; pill.cornerRadius = 3; pill.setPadding(0, 3, 0, 3); pill.centerAlignContent();
+          const pill = nr.addStack(); pill.backgroundGradient = brandGrad(); pill.cornerRadius = 3; pill.setPadding(0, 3, 0, 3); pill.centerAlignContent();
           addText(pill, `+${hidden[c]}`, Font.boldSystemFont(8), Color.white());
         } else addText(nr, `+${hidden[c]}`, Font.mediumSystemFont(7.5), C.text2);
         nr.addSpacer(2);

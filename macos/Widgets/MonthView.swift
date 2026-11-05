@@ -208,7 +208,7 @@ struct MonthView: View {
                     .foregroundStyle(isToday ? Color.white : inMonth ? pal.text : pal.dim)
                     .padding(.horizontal, 3)
                     .frame(minWidth: MonthView.dateH, minHeight: MonthView.dateH, maxHeight: MonthView.dateH)
-                    .background { if isToday { RoundedRectangle(cornerRadius: MonthView.dateH / 2).fill(pal.todayFill).widgetAccentable() } }
+                    .background { if isToday { RoundedRectangle(cornerRadius: MonthView.dateH / 2).fill(pal.todayStyle).widgetAccentable() } }
                     .padding(.leading, 2)
                 Spacer(minLength: 0)
                 if hidden > 0 {
@@ -216,7 +216,7 @@ struct MonthView: View {
                     Text(isToday ? " +\(hidden) " : "+\(hidden)")
                         .font(.system(size: MonthView.chipFS - 1, weight: isToday ? .bold : .medium))
                         .foregroundStyle(isToday ? Color.white : pal.text2)
-                        .background { if isToday { RoundedRectangle(cornerRadius: 5).fill(pal.todayFill) } }
+                        .background { if isToday { RoundedRectangle(cornerRadius: 5).fill(pal.todayStyle) } }
                         .padding(.trailing, 2)
                         .lineLimit(1)
                 }
