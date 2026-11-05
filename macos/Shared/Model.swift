@@ -97,6 +97,8 @@ struct CEvent {
     var priority = 0, days = 1
     var done = false
     var remind: Int64? = nil
+    /// 所有提醒（提前几分钟，去重、从小到大）：remind 是第一个，remindMore 是另外加的（和网页 MC.remindsOf 一样）【联动:提醒】
+    var reminds: [Int64] = []
     var createdAt: Int64 = 0
 
     var end: YMD { days > 1 ? date.adding(days - 1) : date }
@@ -105,10 +107,12 @@ struct CEvent {
         time.isEmpty ? "" : endTime.isEmpty ? fmtTime(time, h12, false) : fmtRange(time, endTime, h12)
     }
     /// 提醒时间：带时间的事件以开始时间为准，全天事件以当天 9:00 为准
-    var fireTime: Date? {
-        guard let r = remind else { return nil }
+    var fireTime: Date? { fireTimes.last }
+    /// 每个提醒的时间（一个事件可以有好几个提醒）
+    var fireTimes: [Date] {
         let mins = time.isEmpty ? 9 * 60 : minutesOf(time)
-        return date.at(minutes: mins).addingTimeInterval(-Double(r) * 60)
+        let t0 = date.at(minutes: mins)
+        return reminds.map { t0.addingTimeInterval(-Double($0) * 60) }
     }
 }
 
@@ -205,6 +209,7 @@ final class CalData {
     /// 课程提醒：日程里每节课开始前 courseLead 分钟（0 = 开始时），和网页 data.courseRemind 一致
     var courseOn = false
     var courseLead = 10
+    var courseLeads = [10]
     var dailyMin = 13 * 60
     var clock = "auto"
     var shownCals = Set<String>()
@@ -279,6 +284,9 @@ final class CalData {
         if let cr = o.obj("courseRemind") {
             d.courseOn = cr.bool("on")
             d.courseLead = cr["lead"] == nil ? 10 : max(0, min(180, Int(cr.long("lead"))))
+            var ls = Set([d.courseLead])   // 另外加的几个提前量（可以多选）
+            for v in (cr["leadMore"] as? [Any]) ?? [] { if let n = (v as? NSNumber)?.intValue, n >= 0, n <= 180, ls.count < 6 { ls.insert(n) } }
+            d.courseLeads = ls.sorted()
         }
         for c in o.arr("courses") {
             var x = Course()
@@ -321,6 +329,9 @@ final class CalData {
         let et = e.str("endTime"); x.endTime = !x.time.isEmpty && isTime(et) ? et : ""
         if let n = e["remind"] as? NSNumber { x.remind = n.int64Value }
         else if let s = e["remind"] as? String, let n = Int64(s) { x.remind = n }
+        var rs = Set<Int64>(); if let r = x.remind, r >= 0 { rs.insert(r) }
+        for v in (e["remindMore"] as? [Any]) ?? [] { if let n = (v as? NSNumber)?.int64Value, n >= 0, rs.count < 6 { rs.insert(n) } }
+        x.reminds = rs.sorted()
         x.days = x.time.isEmpty ? max(1, min(60, e.int("days", 1))) : 1
         x.createdAt = e.long("createdAt")
         if x.id.isEmpty { x.id = "\(x.date.key)|\(x.title)|\(x.createdAt)" }

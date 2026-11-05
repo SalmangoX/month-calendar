@@ -115,7 +115,7 @@ object CalMerge {
     @JvmStatic
     fun signature(d: JSONObject): String {
         val ev = d.arr("events").sortedBy { it.optString("id") }.map { e ->
-            listOf("id", "cal", "date", "days", "title", "priority", "rate", "segs", "done", "note", "time", "endTime", "remind", "updatedAt")
+            listOf("id", "cal", "date", "days", "title", "priority", "rate", "segs", "done", "note", "time", "endTime", "remind", "remindMore", "updatedAt")
                 .joinToString("\u0001") { canon(e.opt(it)) } + "\u0001" + canon(e.optJSONObject("rep")?.opt("forever"))
         }
         val cs = d.arr("cals").sortedBy { it.optString("id") }.map { canon(it) }

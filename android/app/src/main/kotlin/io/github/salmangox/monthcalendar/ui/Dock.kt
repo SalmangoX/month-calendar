@@ -15,6 +15,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +38,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,6 +55,9 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -63,6 +69,9 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.json.JSONObject
 import kotlin.math.cos
+import kotlin.math.exp
+import kotlin.math.hypot
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -85,6 +94,17 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
     var cover by mutableStateOf(false); private set
     var back by mutableStateOf(false); private set
     var fanOpen by mutableStateOf(false); private set
+    /** 按住 logo 拖动（和网页 index.html、iPhone 的 GlassDock 一样）：手指在哪（屏幕坐标，px；null = 没在拖）、拖到了哪个扇形按钮上【联动:底部悬浮控件】 */
+    var drag by mutableStateOf<Offset?>(null)
+    var hot by mutableStateOf<String?>(null)
+    var dragEndedAt = 0L
+    /** logo 中心、底栏这一层左上角（屏幕坐标，px） */
+    var logoC = Offset.Zero
+    var origin = Offset.Zero
+    val fx = FanFX()
+    /** 拖动时后面的网页虚下去（景深）：网页的 body.fan-drag 让 .dock-scrim 带上模糊 */
+    fun depth(on: Boolean) = eval("document.body.classList.toggle('fan-drag',$on)")
+    fun hapticTick() = tick()
     var page = ""; private set
 
     /** 网页发来的状态（MCNative.nav） */
@@ -107,6 +127,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
     fun tapClock() { tick(); fanOpen = false; click("bubbleToday") }
     fun tapPager() { tick(); click("pager") }
     fun setFan(open: Boolean) { if (open != fanOpen) { tick(); fanOpen = open } }
+    fun forceOpen() { fanOpen = true }
     fun fan(id: String) {
         fanOpen = false; tick()
         if (id == "add") click("fab") else if (id == "stat") click("fanStat") else click("fanSet")   // 设置页里它是「返回」，由网页决定回到哪一页
@@ -185,7 +206,7 @@ fun DockOverlay(m: DockModel) {
     // 安卓的 WebView 在导航条上面、日历行高也跟着变：固定抬 40 会压到最下面那一行。按网页量的那条行线（fl）再抬，底边离线 6dp
     val base = maxOf(DockModel.LIFT.toFloat(), if (d.fl > 0f) d.fl + 6f - b else 0f)
     val lift by animateDpAsState((base + maxOf(0f, d.pv)).dp, spring(.85f, 300f), label = "lf")
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize().onGloballyPositioned { m.origin = it.positionInRoot() }) {
         val cx = 2f + (maxWidth.value - 4f) / 7f
         // 扇形打开时：右下角一层很淡的暗角接住点击，不会点穿到日历
         AnimatedVisibility(m.fanOpen && !m.cover, enter = fadeIn(), exit = fadeOut()) {
@@ -200,6 +221,7 @@ fun DockOverlay(m: DockModel) {
                     .pointerInput(Unit) { detectTapGestures { m.setFan(false) } },
             )
         }
+        FanTrail(m)   // 按住 logo 拖动：线 + 粒子（画在按钮下面）
         Box(Modifier.fillMaxSize().offset(y = coverY).graphicsLayer { alpha = coverA }) {
             if (!m.cover) {
                 if (d.pager) Pager(m, d, Modifier.align(Alignment.BottomCenter).padding(bottom = b.dp))
@@ -277,13 +299,14 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
                 if (m.fanOpen) { delay(k * 35L); a.animateTo(1f, spring(.7f, 700f)) } else a.animateTo(0f, tween(160))   // 要干脆（用户嫌慢）   // 从上往下一个接一个展开
             }
             val v = a.value
+            val hs by animateFloatAsState(if (m.hot == id) 1.26f else 1f, spring(.55f, 700f), label = "hot")   // 拖到它上面：变大
             if (v > 0.01f) {
                 // 像扇子打开（和网页、iPhone 一样）：从 logo 出发，先朝第一个按钮的方向，一边往外走一边沿圆弧转到自己的位置【联动:底部悬浮控件】
                 val rad = Math.toRadians(angles[0] + (angles[k] - angles[0]) * v)
                 Tap(
                     Modifier.align(Alignment.Center)
                         .offset { IntOffset((cos(rad) * r * v * density.density).roundToInt(), (-sin(rad) * r * v * density.density).roundToInt()) }
-                        .size((DockModel.FAN + 12).dp).graphicsLayer { alpha = v.coerceIn(0f, 1f); val s = .35f + .65f * v; scaleX = s; scaleY = s },
+                        .size((DockModel.FAN + 12).dp).graphicsLayer { alpha = v.coerceIn(0f, 1f); val s = (.35f + .65f * v) * hs; scaleX = s; scaleY = s },
                     label = if (id == "add") tr("添加事件") else if (id == "stat") (if (inStat) tr("返回") else tr("统计")) else if (d.set) tr("返回") else tr("设置"), haptic = false, onClick = { m.fan(id) },
                 ) { mod ->
                     val face = if (id == "add") mod.size(DockModel.FAN.dp).clip(CircleShape).background(t.brand)
@@ -295,7 +318,35 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
             }
         }
         val rot by animateFloatAsState(if (m.fanOpen) 1f else 0f, spring(.6f, 400f), label = "lg")
-        Tap(Modifier.fillMaxSize(), label = if (m.fanOpen) tr("收起") else tr("更多"), haptic = false, onClick = { m.setFan(!m.fanOpen) }) { mod ->
+        // 按住拖：拖起来就打开扇形、后面虚下去；手指离哪个按钮中心 46dp 以内就是它（变大、冒粒子、轻震）；松手选中它，没在按钮上就收起
+        val hotR = with(density) { 46.dp.toPx() }
+        fun centers(): List<Pair<String, Offset>> = items.mapIndexed { k, id ->
+            val rad = Math.toRadians(angles[k]); val px = r * density.density
+            id to Offset(m.logoC.x + (cos(rad) * px).toFloat(), m.logoC.y - (sin(rad) * px).toFloat())
+        }
+        Tap(Modifier.fillMaxSize()
+            .onGloballyPositioned { val p = it.positionInRoot(); m.logoC = Offset(p.x + it.size.width / 2f, p.y + it.size.height / 2f) }
+            .pointerInput(items) {
+                detectDragGestures(
+                    onDragStart = { at -> m.forceOpen(); m.hapticTick(); m.depth(true); m.drag = m.logoC + at - Offset(size.width / 2f, size.height / 2f) },
+                    onDrag = { ch, _ ->
+                        ch.consume()
+                        val f = m.logoC + ch.position - Offset(size.width / 2f, size.height / 2f)
+                        m.drag = f
+                        val near = centers().map { (id, c) -> Triple(id, c, hypot(c.x - f.x, c.y - f.y)) }.filter { it.third < hotR }.minByOrNull { it.third }
+                        if (near?.first != m.hot) {
+                            m.hot = near?.first
+                            if (near != null) { m.fx.burst(near.second, 18, 2.4f * density.density); m.hapticTick() }
+                        }
+                    },
+                    onDragEnd = {
+                        val h = m.hot
+                        m.drag = null; m.hot = null; m.depth(false); m.dragEndedAt = System.currentTimeMillis()
+                        if (h != null) m.fan(h) else m.setFan(false)
+                    },
+                    onDragCancel = { m.drag = null; m.hot = null; m.depth(false); m.setFan(false) },
+                )
+            }, label = if (m.fanOpen) tr("收起") else tr("更多"), haptic = false, onClick = { if (System.currentTimeMillis() - m.dragEndedAt > 350) m.setFan(!m.fanOpen) }) { mod ->
             Box(mod.size(DockModel.LOGO.dp).glass(CircleShape, t), contentAlignment = Alignment.Center) {
                 Image(painterResource(R.drawable.logo), null, Modifier.size(34.dp).graphicsLayer {
                     alpha = 1f - rot; rotationZ = 90f * rot; scaleX = 1f - .5f * rot; scaleY = 1f - .5f * rot
@@ -360,3 +411,71 @@ private fun BackIcon(c: Color) = Canvas(Modifier.size(19.dp)) {
 
 /** 原生悬浮控件的文字：原文是简体中文，按同步数据里的语言翻译（I18n.java） */
 fun tr(s: String): String = I18n.t(s)
+
+
+/** 按住 logo 拖动时的粒子：从按钮中心往外散开、越来越慢、淡掉（和网页 burst 一样）【联动:底部悬浮控件】 */
+class FanFX {
+    class P(val x: Float, val y: Float, val vx: Float, val vy: Float, val r: Float, val t: Long, val life: Float, val c: Int)
+    val ps = ArrayList<P>()
+    fun burst(at: Offset, n: Int, speed: Float) {
+        val now = System.nanoTime()
+        repeat(n) {
+            val a = Math.random() * Math.PI * 2; val v = speed * (0.5f + Math.random().toFloat() * 1.5f)
+            ps.add(P(at.x, at.y, (cos(a) * v).toFloat(), (sin(a) * v).toFloat(), (1.4f + Math.random().toFloat() * 2.4f), now, 0.38f + Math.random().toFloat() * 0.42f, (Math.random() * 3).toInt()))
+        }
+        while (ps.size > 220) ps.removeAt(0)
+    }
+    companion object { val COLS = listOf(Color(0xFF9E9AC8), Color(0xFFC7B3CF), Color(0xFFEBC7A6)) }   // Cadence logo 的雾紫 → 丁香 → 暖沙
+}
+
+/** 线 + 粒子：线从 logo 中心出发、带一点弧度，线头被按钮吸过去一点；停在按钮上时一直冒一点粒子 */
+@Composable
+private fun FanTrail(m: DockModel) {
+    val frame = remember { mutableLongStateOf(0L) }
+    val active = m.drag != null
+    LaunchedEffect(active) {
+        var lastEmit = 0L
+        while (m.drag != null || m.fx.ps.isNotEmpty()) {
+            withFrameNanos { now ->
+                frame.longValue = now
+                val h = m.hot
+                if (m.drag != null && h != null && now - lastEmit > 80_000_000L) {
+                    lastEmit = now
+                    m.fx.burst(hotCenter(m, h), 2, 0.9f * android.content.res.Resources.getSystem().displayMetrics.density)   // 停在按钮上：一直冒一点
+                }
+            }
+        }
+    }
+    Canvas(Modifier.fillMaxSize()) {
+        frame.longValue   // 每一帧重画
+        val o = m.origin
+        val now = System.nanoTime()
+        val f = m.drag
+        if (f != null) {
+            val l = m.logoC - o
+            var t = f - o
+            m.hot?.let { h -> val c = hotCenter(m, h) - o; t = Offset(t.x + (c.x - t.x) * .55f, t.y + (c.y - t.y) * .55f) }
+            val dx = t.x - l.x; val dy = t.y - l.y; val len = maxOf(1f, hypot(dx, dy)); val bend = min(24.dp.toPx(), len * .16f)
+            val c = Offset((l.x + t.x) / 2 - dy / len * bend, (l.y + t.y) / 2 + dx / len * bend)
+            val path = Path().apply { moveTo(l.x, l.y); quadraticTo(c.x, c.y, t.x, t.y) }
+            drawPath(path, Brush.linearGradient(FanFX.COLS.map { it.copy(alpha = .35f) }, l, t), style = Stroke(9.dp.toPx(), cap = StrokeCap.Round))   // 柔光
+            drawPath(path, Brush.linearGradient(FanFX.COLS, l, t), style = Stroke(3.2.dp.toPx(), cap = StrokeCap.Round))
+            drawCircle(FanFX.COLS[2], (if (m.hot != null) 6f else 4.5f).dp.toPx(), t)
+        }
+        m.fx.ps.removeAll { (now - it.t) / 1e9f > it.life }
+        for (q in m.fx.ps) {
+            val e = (now - q.t) / 1e9f; val k = e / q.life; val tau = .36f
+            val d = tau * (1 - exp(-e / tau)) * 60f   // 越走越慢（速度按每帧算）
+            drawCircle(FanFX.COLS[q.c].copy(alpha = (1 - k) * .9f), q.r.dp.toPx() * (1 - k * .5f), Offset(q.x + q.vx * d, q.y + q.vy * d) - o)
+        }
+    }
+}
+
+/** 扇形按钮展开到位后的中心（屏幕坐标，px）：和 LogoCluster 里的角度、半径一样 */
+private fun hotCenter(m: DockModel, id: String): Offset {
+    val items = if (m.dock?.st == true) listOf("add", "stat", "set") else listOf("add", "set")
+    val k = items.indexOf(id).coerceAtLeast(0)
+    val r = if (items.size == 3) 88f else 84f; val angles = if (items.size == 3) listOf(100.0, 145.0, 190.0) else listOf(115.0, 175.0)
+    val rad = Math.toRadians(angles[k]); val dens = android.content.res.Resources.getSystem().displayMetrics.density
+    return Offset(m.logoC.x + (cos(rad) * r * dens).toFloat(), m.logoC.y - (sin(rad) * r * dens).toFloat())
+}

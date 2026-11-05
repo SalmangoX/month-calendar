@@ -210,10 +210,7 @@ final class Engine: ObservableObject {
             UNCalendarNotificationTrigger(dateMatching: YMD.cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: t), repeats: false)
         }
         let due = d.events.filter { !$0.done && d.notifies($0) }
-            .compactMap { e -> (Date, CEvent)? in
-                guard let t = e.fireTime, t > now else { return nil }
-                return (t, e)
-            }
+            .flatMap { e in e.fireTimes.filter { $0 > now }.map { ($0, e) } }   // 每个提醒各排一个
             .sorted { $0.0 < $1.0 }
         for (t, e) in due.prefix(48) { // 系统对预约数量有上限，只排最近的，数据一变就重排
             let c = UNMutableNotificationContent()
@@ -270,16 +267,18 @@ final class Engine: ObservableObject {
             for k in 0..<7 {
                 let day = YMD.today.adding(k)
                 for co in d.courses(on: day) {
-                    let t = day.at(minutes: co.startMin - d.courseLead)
-                    if t <= now || n >= 40 { continue }
-                    let c = UNMutableNotificationContent()
-                    c.title = co.code + (co.type.isEmpty ? "" : " · " + co.type)
-                    c.body = [d.courseLead > 0 ? I18n.t("{0} 分钟后开始", d.courseLead) : I18n.t("现在开始"), co.start + "–" + co.end, co.room].filter { !$0.isEmpty }.joined(separator: " · ")
-                    c.sound = .default
-                    c.threadIdentifier = "course"
-                    c.userInfo = ["hash": "#sched"]
-                    reqs.append(UNNotificationRequest(identifier: "course@\(co.id.isEmpty ? co.code : co.id)@\(day.key)@\(co.start)", content: c, trigger: at(t)))
-                    n += 1
+                    for (li, lead) in d.courseLeads.enumerated() {   // 可以有好几个提前量
+                        let t = day.at(minutes: co.startMin - lead)
+                        if t <= now || n >= 40 { continue }
+                        let c = UNMutableNotificationContent()
+                        c.title = co.code + (co.type.isEmpty ? "" : " · " + co.type)
+                        c.body = [lead > 0 ? I18n.t("{0} 分钟后开始", lead) : I18n.t("现在开始"), co.start + "–" + co.end, co.room].filter { !$0.isEmpty }.joined(separator: " · ")
+                        c.sound = .default
+                        c.threadIdentifier = "course"
+                        c.userInfo = ["hash": "#sched"]
+                        reqs.append(UNNotificationRequest(identifier: "course@\(co.id.isEmpty ? co.code : co.id)@\(day.key)@\(co.start)" + (li > 0 ? "@\(lead)" : ""), content: c, trigger: at(t)))
+                        n += 1
+                    }
                 }
             }
         }

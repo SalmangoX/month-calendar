@@ -158,12 +158,28 @@
     const o = MC.remindOptions(hasTime).find(x => x.v === v);
     return o ? o.label : `提前 ${v} 分钟`;
   };
-  MC.fireTime = e => {
-    if (e.remind === null || e.remind === undefined) return null;
+  // 多个提醒（【联动:提醒】【联动:同步数据】）：remind 是第一个（老版本只认它），remindMore 是另外加的几个；两个合起来、去重、从早到晚
+  MC.remindsOf = e => {
+    const l = [e.remind, ...(Array.isArray(e.remindMore) ? e.remindMore : [])].filter(v => v !== null && v !== undefined && v !== '').map(Number).filter(n => Number.isFinite(n) && n >= 0);
+    return [...new Set(l)].sort((a, b) => a - b).slice(0, 6);
+  };
+  MC.withReminds = l => { l = MC.remindsOf({ remindMore: l }); return { remind: l.length ? l[0] : null, remindMore: l.slice(1) }; };
+  MC.remindsLabel = (l, hasTime) => {
+    l = MC.remindsOf({ remindMore: l });
+    if (!l.length) return MC.remindLabel(null, hasTime);
+    return l.length > 2 ? `${MC.remindLabel(l[0], hasTime)} 等 ${l.length} 个` : l.map(v => MC.remindLabel(v, hasTime)).join('、');
+  };
+  // 课程提醒的所有提前量（分钟，去重、从小到大）【联动:提醒】
+  MC.leadsOf = cr => [...new Set([cr && cr.lead, ...((cr && Array.isArray(cr.leadMore)) ? cr.leadMore : [])].filter(v => v !== null && v !== undefined && v !== '').map(Number).filter(n => Number.isFinite(n) && n >= 0 && n <= 180))].sort((a, b) => a - b).slice(0, 6);
+  // 每个提醒的触发时间（毫秒）
+  MC.fireTimes = e => {
+    const l = MC.remindsOf(e); if (!l.length) return [];
     const [y, m, d] = e.date.split('-').map(Number);
     const [h, mi] = (e.time || '09:00').split(':').map(Number);
-    return new Date(y, m - 1, d, h, mi).getTime() - e.remind * 60000;
+    const t0 = new Date(y, m - 1, d, h, mi).getTime();
+    return l.map(v => t0 - v * 60000);
   };
+  MC.fireTime = e => { const l = MC.fireTimes(e); return l.length ? l[l.length - 1] : null; };
   MC.endDate = e => (e.days > 1 ? ymd(MC.addDays(parse(e.date), e.days - 1)) : e.date);
   // ---------- 12 / 24 小时制 ----------
   // 默认按设备所在地区（比如加拿大、美国用 12 小时制，中国大陆、欧洲大部分用 24 小时制），设置里可以改
@@ -236,7 +252,7 @@
       done: !!e.done, note: String(e.note || ''),
       time: /^\d{2}:\d{2}$/.test(e.time || '') ? e.time : '',
       endTime: /^\d{2}:\d{2}$/.test(e.endTime || '') && e.time ? e.endTime : '',
-      remind: e.remind === null || e.remind === undefined || e.remind === '' ? null : Number(e.remind),
+      ...MC.withReminds([e.remind, ...(Array.isArray(e.remindMore) ? e.remindMore : [])]),
       days: /^\d{2}:\d{2}$/.test(e.time || '') ? 1 : Math.max(1, Math.min(60, parseInt(e.days, 10) || 1)),
       series: e.series || '',
       cal: typeof e.cal === 'string' ? e.cal.slice(0, 40) : '', // 所属日历：'' = 主日历，其余为特殊记录日历的 id
@@ -264,7 +280,7 @@
     if (d.album && d.album.gist) out.album = { gist: String(d.album.gist), owner: String(d.album.owner || '') };
     if (d.daily) out.daily = { on: !!d.daily.on, time: /^\d{2}:\d{2}$/.test(d.daily.time || '') ? d.daily.time : '13:00', tz: d.daily.tz || '', updatedAt: d.daily.updatedAt || 0 };
     // 课程提醒：每节课开始前 lead 分钟提醒（0 = 开始时），按 tz 所在时区算（和每日提醒一样）
-    if (d.courseRemind) { const r = d.courseRemind, n = Number(r.lead); out.courseRemind = { on: !!r.on, lead: Number.isFinite(n) ? Math.max(0, Math.min(180, Math.round(n))) : 10, tz: r.tz || '', updatedAt: r.updatedAt || 0 }; }
+    if (d.courseRemind) { const r = d.courseRemind, n = Number(r.lead); out.courseRemind = { on: !!r.on, lead: Number.isFinite(n) ? Math.max(0, Math.min(180, Math.round(n))) : 10, leadMore: MC.leadsOf({ lead: null, leadMore: r.leadMore }), tz: r.tz || '', updatedAt: r.updatedAt || 0 }; }   // leadMore：另外加的几个提前量（可以多选，lead 是第一个，老版本只认它）
     return out;
   };
   // ---------- 特殊记录日历 ----------
@@ -289,6 +305,7 @@
       icon: /^[a-z]{2,12}$/.test(c.icon || '') ? c.icon : '', // 纪念日历自己的图标（js/days.js 的 ICONS 里的名字），空 = 心形【联动:同步数据】
       showInMain: !!c.showInMain, // 事件也显示在主日历里（纪念日历：每个日子出现的那天显示在主日历）
       notify: !!c.notify,         // 这个日历的事件到点提醒
+      remindDef: c.kind === 'days' ? [] : MC.remindsOf({ remindMore: c.remindDef }), // 记录日历的统一提醒（提前几分钟，可以几个）：新加的事件默认带上【联动:提醒】
       rateOn: c.kind !== 'days' && !!c.rateOn, // 记录日历：不按优先级，改用 4 个等级给事件评级并统计
       rateLabels: MC.normRateLabels(c.rateLabels), // 4 个等级的名称（可自定义，整个日历通用），从低到高
       presets: normPresets(c.presets), // 常用事件：存好名称，添加时一点就填上（time / endTime 记住上次用的时段）
@@ -350,7 +367,7 @@
       for (const ds of MC.repeatDates(e.date, e.rep.freq, ymd(MC.addDays(today, h))).slice(1)) {
         const id = `${sid}-${ds}`;
         if (have.has(id) || MC.data.deleted[id]) continue;
-        add.push(MC.makeEvent({ id, cal: e.cal, date: ds, title: e.title, note: e.note, priority: e.priority, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, series: sid, rep: e.rep, done: false }));
+        add.push(MC.makeEvent({ id, cal: e.cal, date: ds, title: e.title, note: e.note, priority: e.priority, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, remindMore: e.remindMore || [], series: sid, rep: e.rep, done: false }));
       }
     }
     if (add.length) MC.addEvents(add);
@@ -568,7 +585,7 @@
   MC.sameData = (a, b) => signature(a) === signature(b);
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
-      .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, JSON.stringify(e.segs || {}), e.done, e.note, e.time, e.endTime, e.remind, e.updatedAt]);
+      .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, JSON.stringify(e.segs || {}), e.done, e.note, e.time, e.endTime, e.remind, (e.remindMore || []).join(','), e.updatedAt]);
     const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), JSON.stringify(c.presets || []), c.icon || '', c.updatedAt]);
     const ds = [...(d.days || []), ...(d.books || [])].map(x => x.id + ':' + (x.updatedAt || 0)).sort();
     return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, (d.courseRemind || {}).updatedAt || 0, d.coursesAt || 0, cs, ds, (d.album || {}).gist || '']);
@@ -786,7 +803,8 @@
     const stamp = stampOf(Date.now());
     const alarm = (trigger, text) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(text), 'TRIGGER:' + trigger, 'END:VALARM'];
     for (const e of d.events) {
-      if (e.done || e.remind === null || e.remind === undefined || e.date < from || e.date > to) continue;
+      const rl = MC.remindsOf(e);
+      if (e.done || !rl.length || e.date < from || e.date > to) continue;
       L.push('BEGIN:VEVENT', `UID:${e.id}@mcal`, 'DTSTAMP:' + stamp, 'SUMMARY:' + icsEsc(e.title));
       if (e.note) L.push('DESCRIPTION:' + icsEsc(e.note));
       if (e.time) {
@@ -794,10 +812,10 @@
         let en = e.endTime;
         if (!en) { const [h, m] = e.time.split(':').map(Number); const t = h * 60 + m + 30; en = t >= 1440 ? '23:59' : `${pad(Math.floor(t / 60))}:${pad(t % 60)}`; }
         L.push('DTSTART:' + st, 'DTEND:' + icsDate(e.date) + 'T' + en.replace(':', '') + '00'); // 浮动时间 = 手机当前所在时区
-        L.push(...alarm(dur(-e.remind), e.title));
+        rl.forEach(v => L.push(...alarm(dur(-v), e.title)));
       } else {
         L.push('DTSTART;VALUE=DATE:' + icsDate(e.date), 'DTEND;VALUE=DATE:' + icsDate(ymd(MC.addDays(parse(e.date), 1))));
-        L.push(...alarm(dur(9 * 60 - e.remind), e.title)); // 全天事件：以当天 9:00 为准
+        rl.forEach(v => L.push(...alarm(dur(9 * 60 - v), e.title))); // 全天事件：以当天 9:00 为准
       }
       L.push('END:VEVENT');
     }

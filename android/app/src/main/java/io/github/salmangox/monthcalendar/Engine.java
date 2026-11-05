@@ -57,21 +57,25 @@ final class Engine {
         if (notifyOn && canNotify(c)) {
             for (Data.Event e : d.events) {
                 if (e.done || !d.notifies(e)) continue;
-                long ft = Data.fireTime(e, z);
-                if (ft <= from || ft > now) continue;
-                String key = e.id + "@" + ft;
-                if (sent.has(key)) continue;
-                showEvent(c, e, key, ft);
-                put(sent, key, now);
+                for (long ft : Data.fireTimes(e, z)) {   // 每个提醒各响一次
+                    if (ft <= from || ft > now) continue;
+                    String key = e.id + "@" + ft;
+                    if (sent.has(key)) continue;
+                    showEvent(c, e, key, ft);
+                    put(sent, key, now);
+                }
             }
             if (d.courseOn) { // 课程提醒：今天要上的课，开始前 courseLead 分钟（晚了 20 分钟以上就不补了）
                 for (Data.Course co : d.courses) {
                     if (!co.on(today)) continue;
-                    long ft = today.atStartOfDay(z).plusMinutes(co.startMin - d.courseLead).toInstant().toEpochMilli();
-                    String key = "course@" + (co.id.isEmpty() ? co.code : co.id) + "@" + today + "@" + co.start;
-                    if (ft > Math.max(from, now - 20 * 60000L) && ft <= now && !sent.has(key)) {
-                        showCourse(c, co, d.courseLead, key, ft);
-                        put(sent, key, now);
+                    for (int li = 0; li < d.courseLeads.length; li++) {   // 可以有好几个提前量
+                        int lead = d.courseLeads[li];
+                        long ft = today.atStartOfDay(z).plusMinutes(co.startMin - lead).toInstant().toEpochMilli();
+                        String key = "course@" + (co.id.isEmpty() ? co.code : co.id) + "@" + today + "@" + co.start + (li > 0 ? "@" + lead : "");
+                        if (ft > Math.max(from, now - 20 * 60000L) && ft <= now && !sent.has(key)) {
+                            showCourse(c, co, lead, key, ft);
+                            put(sent, key, now);
+                        }
                     }
                 }
             }
@@ -112,8 +116,7 @@ final class Engine {
         if (notifyOn) {
             for (Data.Event e : d.events) {
                 if (e.done || !d.notifies(e)) continue;
-                long ft = Data.fireTime(e, z);
-                if (ft > now && ft < next) next = ft;
+                for (long ft : Data.fireTimes(e, z)) if (ft > now && ft < next) next = ft;
             }
             if (d.dailyOn) {
                 long ft = ZonedDateTime.of(today, d.dailyTime, z).toInstant().toEpochMilli();
@@ -142,8 +145,10 @@ final class Engine {
                 LocalDate day = today.plusDays(k);
                 for (Data.Course co : d.courses) {
                     if (!co.on(day)) continue;
-                    long ft = day.atStartOfDay(z).plusMinutes(co.startMin - d.courseLead).toInstant().toEpochMilli();
-                    if (ft > now && ft < next) next = ft;
+                    for (int lead : d.courseLeads) {
+                        long ft = day.atStartOfDay(z).plusMinutes(co.startMin - lead).toInstant().toEpochMilli();
+                        if (ft > now && ft < next) next = ft;
+                    }
                 }
             }
         }

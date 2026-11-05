@@ -609,6 +609,19 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .ck-name { font-size: 16px; font-weight: 700; letter-spacing: -.01em; color: var(--text); padding: 0 4px; }
 .ck-desc { font-size: 12px; line-height: 1.45; color: var(--text2); padding: 0 4px; }
 .ck-eg { font-size: 11.5px; font-weight: 600; color: color-mix(in srgb, var(--cc) 75%, var(--text)); padding: 2px 4px 0; }
+/* 卡片收在侧拉菜单里（用户定的：不超出菜单的范围）：宽度和菜单一样，从「新建子日历」胶囊上方往上长；
+   两种日历上下排，每张左边是缩小的效果图（原样缩小，不重画）、右边是名称和说明 */
+#calKindSheet.in-drawer { left: var(--kx) !important; right: auto !important; width: var(--kw) !important; top: auto !important; bottom: var(--kb) !important;
+  translate: none !important; max-height: var(--kh); border-radius: 26px; padding-bottom: 10px; }
+#calKindSheet.in-drawer:not(.show) { transform: translateY(14px) scale(.97); }
+#calKindSheet.in-drawer .sheet-head h2 { font-size: 16px; }
+.in-drawer .ck-lead { margin: -6px 14px 10px; font-size: 12px; }
+.in-drawer .ck-grid { grid-template-columns: 1fr; gap: 8px; padding: 0 8px; }
+.in-drawer .ck-card { display: grid; grid-template-columns: 93px 1fr; grid-template-rows: auto auto 1fr; column-gap: 11px; row-gap: 3px; align-items: start; padding: 9px 12px 10px 9px; border-radius: 20px; }
+.in-drawer .ck-art { grid-row: 1 / span 3; width: 160px; height: 104px; transform: scale(.58); transform-origin: 0 0; margin: 0 -67px -43.5px 0; border-radius: 22px; }
+.in-drawer .ck-name { font-size: 15px; padding: 1px 0 0; }
+.in-drawer .ck-desc { font-size: 11.5px; line-height: 1.4; padding: 0; }
+.in-drawer .ck-eg { font-size: 11px; padding: 1px 0 0; }
 /* 记录日历的效果图：一小块月历（星期点 + 几条渐变色条）+ 右下角等级统计柱 */
 .ck-rec { background: var(--field); padding: 10px; }
 .ck-wk { display: flex; gap: 5px; margin-bottom: 8px; }
@@ -897,6 +910,14 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .popover button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border-radius: 14px; font-size: 15px; text-align: left; }
 .popover button:active, .popover button.on { background: var(--field); }
 .popover button .tick { margin-left: auto; color: var(--accent-text); font-weight: 700; }
+/* 多选的一项（提醒可以选好几个）：打勾用正文色，不铺底色；最后一项「应用」是一颗胶囊按钮 */
+.popover.multi button .tick { color: var(--text); }
+.popover button.mi-ok { justify-content: center; margin-top: 6px; font-weight: 650; background: color-mix(in srgb, var(--text) 8%, transparent); border-radius: 999px; }
+.popover button.mi-ok:active { background: color-mix(in srgb, var(--text) 14%, transparent); }
+.popover button.ck .tick { color: var(--text); opacity: 0; transform: scale(.6); transition: opacity .15s, transform .2s cubic-bezier(.3,1.5,.5,1); }
+.popover button.ck.on { background: transparent; }
+.popover button.ck.on .tick { opacity: 1; transform: none; }
+.popover button.ck:active { background: var(--field); }
 .popover .flag { width: 18px; height: 18px; }
 
 /* 锁屏 */
@@ -1704,6 +1725,14 @@ body.dock-pv { --d2-lift: calc(var(--d2-lift-base, 40px) + var(--d2-pv, 0px)); }
 .fan-add .face::after { opacity: .35; }
 :root[data-theme="dark"] .fan-add .face { background: var(--fab-fill, var(--accent)); }
 
+/* 按住 logo 拖动（index.html 的 logo 拖动）：后面的页面虚下去，像相机的景深；拖到的按钮变大、带一圈 logo 色调的光【联动:底部悬浮控件】 */
+.pod-logo { touch-action: none; }   /* 按住拖动时浏览器别抢去滚动 */
+.fan-trail { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 15; pointer-events: none; }
+body.fan-drag .dock-scrim { opacity: 1; -webkit-backdrop-filter: blur(7px) saturate(1.15); backdrop-filter: blur(7px) saturate(1.15);
+  background: radial-gradient(circle at calc(100% - var(--d2-cx)) calc(100% - 84px), rgba(10, 16, 28, .22), rgba(10, 16, 28, .1) 60%, rgba(10, 16, 28, .06)); }
+:root[data-theme="dark"] body.fan-drag .dock-scrim { background: radial-gradient(circle at calc(100% - var(--d2-cx)) calc(100% - 84px), rgba(0, 0, 0, .55), rgba(0, 0, 0, .3) 60%, rgba(0, 0, 0, .22)); }
+.fan .face { transition: transform .3s cubic-bezier(.3, 1.6, .5, 1), box-shadow .25s, background .25s; }
+.fan.hot .face { transform: scale(1.26); box-shadow: 0 0 0 5px rgba(199, 179, 207, .28), 0 12px 28px rgba(158, 154, 200, .45), var(--lg-shadow); }
 /* 菜单打开时：一层很淡的暗角接住点击，不会点穿到日历 */
 .dock-scrim {
   position: absolute; inset: 0; z-index: 15; pointer-events: none; opacity: 0;

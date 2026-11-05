@@ -19,8 +19,10 @@
   const newHeading = () => (newCal && MC.cal(newCal) ? `添加到「${MC.cal(newCal).name}」` : '新建事件');
   const draft = {};
   function resetDraft(date) {
-    Object.assign(draft, { title: '', note: '', priority: 0, rate: 0, segs: {}, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', done: false });
+    Object.assign(draft, { title: '', note: '', priority: 0, rate: 0, segs: {}, date, days: 1, time: '', endTime: '', remind: null, remindMore: [], repeat: 'none', until: '', done: false, ...calReminds() });
   }
+  // 子日历设了统一提醒：新加的事件默认带上（还能在这个事件里改）
+  function calReminds() { const c = newCal && MC.cal(newCal); return c && c.remindDef && c.remindDef.length ? MC.withReminds(c.remindDef) : {}; }
   function paintFlag(btn, p) {
     const c = MC.rateOn(newCal) ? `var(--lv${p || 1})` : MC.priOf(p).color; // 开了等级评分的日历：标记用等级颜色
     btn.style.setProperty('--pc', p ? c : 'var(--text2)');
@@ -114,7 +116,7 @@
     if (draft.time) extra.push(MC.timeLabel(draft));
     else if (draft.days > 1) extra.push(`${MC.dateLabel(draft.date)}–${MC.dateLabel(MC.ymd(MC.addDays(MC.parse(draft.date), draft.days - 1)))}`);
     if (draft.repeat && draft.repeat !== 'none') extra.push(MC.repeatLabel(draft.repeat));
-    if (draft.remind !== null && draft.remind !== undefined) extra.push('提醒');
+    if (MC.remindsOf(draft).length) extra.push(MC.remindsOf(draft).length > 1 ? `${MC.remindsOf(draft).length} 个提醒` : '提醒');
     $('#cmpDateLabel').textContent = extra.length ? extra.join(' · ') : '时间 · 提醒 · 重复';
   }
   // ---- 常用事件（记录日历）：点一下填好名称，再决定要不要设时段 ----
@@ -223,8 +225,8 @@
       return;
     }
     if (!editing || !MC.data.events.includes(editing)) return;
-    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, segs: MC.pruneSegs(draft.segs, draft.time, draft.endTime), date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, done: draft.done };
-    const changed = Object.keys(fields).some(k => (k === 'segs' ? JSON.stringify(fields.segs) !== JSON.stringify(editing.segs || {}) : (fields[k] ?? null) !== (editing[k] ?? null)));
+    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, segs: MC.pruneSegs(draft.segs, draft.time, draft.endTime), date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, remindMore: draft.remindMore || [], done: draft.done };
+    const changed = Object.keys(fields).some(k => (k === 'segs' ? JSON.stringify(fields.segs) !== JSON.stringify(editing.segs || {}) : k === 'remindMore' ? JSON.stringify(fields.remindMore) !== JSON.stringify(editing.remindMore || []) : (fields[k] ?? null) !== (editing[k] ?? null)));
     if (!changed) return;
     if (!title) { UI.toast('名称为空，修改没有保存'); return; }
     MC.updateEvent(editing, fields);
@@ -260,7 +262,7 @@
   Editor.openEdit = e => {
     mode = 'edit'; editing = e;
     segSel = 0;
-    Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, rate: e.rate || 0, segs: { ...(e.segs || {}) }, date: e.date, days: e.days || 1, time: e.time, endTime: e.endTime, remind: e.remind, repeat: 'none', until: '', done: e.done });
+    Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, rate: e.rate || 0, segs: { ...(e.segs || {}) }, date: e.date, days: e.days || 1, time: e.time, endTime: e.endTime, remind: e.remind, remindMore: [...(e.remindMore || [])], repeat: 'none', until: '', done: e.done });
     $('#cmpTitle').value = e.title; $('#cmpNote').value = e.note;
     $('#cmpHeading').textContent = '编辑事件';
     $('#cmpClear').hidden = true;
@@ -334,7 +336,7 @@
       setTimeout(() => (t.placeholder = '准备做什么？'), 1800);
       return;
     }
-    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, segs: MC.pruneSegs(draft.segs, draft.time, draft.endTime), date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind };
+    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, segs: MC.pruneSegs(draft.segs, draft.time, draft.endTime), date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, remindMore: draft.remindMore || [] };
     if (mode === 'edit') {
       MC.updateEvent(editing, { ...fields, done: draft.done });
       closeComposer(false);
@@ -344,7 +346,7 @@
     const { dates, rep, events } = buildEvents(fields, draft.repeat, draft.until);
     MC.addEvents(events);
     MC.touchPreset(newCal, title, fields.time, fields.endTime);
-    const quiet = draft.remind !== null && draft.remind !== undefined && newCal && !MC.notifies({ cal: newCal });
+    const quiet = MC.remindsOf(draft).length && newCal && !MC.notifies({ cal: newCal });
     UI.toast((rep ? (rep.forever ? `已添加，${MC.repeatLabel(rep.freq)}重复` : `已添加 ${dates.length} 个重复事件`) : `已添加到${MC.dayDiff(draft.date) === 0 ? '今天' : ' ' + MC.dateLabel(draft.date)}`)
       + (quiet ? `。「${MC.cal(newCal).name}」的通知没有打开，不会提醒` : ''));
     $('#cmpTitle').value = ''; $('#cmpNote').value = '';
@@ -363,7 +365,7 @@
   const useCtx = c => { pk = c.pk; PB = c.host; PT = c.tabs; pkInline = c.inline; };
   const newPk = opts => { const d = MC.parse(opts.date); return {
       date: opts.date, days: opts.days || 1, time: opts.time || '', endTime: opts.endTime || '',
-      remind: opts.remind === undefined ? null : opts.remind,
+      remind: opts.remind === undefined ? null : opts.remind, remindMore: opts.remindMore || [],
       repeat: opts.repeat || 'none', until: opts.until || '',
       allowRepeat: !!opts.allowRepeat, dateOnly: !!opts.dateOnly,
       tab: opts.endTime ? 'range' : 'date',
@@ -400,7 +402,7 @@
   function commitInline() {
     if (!pkInline) return;
     const endTime = pk.tab === 'range' && pk.endTime && pk.endTime > pk.time ? pk.endTime : '';
-    Object.assign(draft, { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime, remind: pk.remind, repeat: pk.repeat, until: pk.until && pk.until >= pk.date ? pk.until : '' });
+    Object.assign(draft, { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime, remind: pk.remind, remindMore: pk.remindMore || [], repeat: pk.repeat, until: pk.until && pk.until >= pk.date ? pk.until : '' });
     paintPresets(); paintSegs();
   }
   function paintTabs() { PT.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === pk.tab)); }
@@ -417,7 +419,7 @@
   $('#pkOk').onclick = () => {
     useCtx(sheetCtx);
     if (pk.until && pk.until < pk.date) pk.until = '';
-    const out = { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime: pk.tab === 'range' ? pk.endTime : '', remind: pk.remind, repeat: pk.repeat, until: pk.until };
+    const out = { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime: pk.tab === 'range' ? pk.endTime : '', remind: pk.remind, remindMore: pk.remindMore || [], repeat: pk.repeat, until: pk.until };
     if (out.endTime && out.endTime <= out.time) out.endTime = '';
     UI.close('datePicker');
     pkCb && pkCb(out);
@@ -501,7 +503,7 @@
     `<button class="pk-row" data-act="${act}">${icon}<span>${label}</span><span class="grow-val${on ? ' on' : ''}" data-bind="${act}">${esc(val)}</span></button>`;
   function extraRows() {
     const hasTime = !!pk.time;
-    let h = row('remind', SVG_BELL, '提醒', MC.remindLabel(pk.remind, hasTime), pk.remind !== null);
+    let h = row('remind', SVG_BELL, '提醒', MC.remindsLabel(MC.remindsOf(pk), hasTime), MC.remindsOf(pk).length > 0);
     if (pk.allowRepeat) {
       h += row('repeat', SVG_REPEAT, '重复', MC.repeatLabel(pk.repeat), pk.repeat !== 'none');
       if (pk.repeat !== 'none') {
@@ -554,7 +556,7 @@
   function refreshLabels() {
     const set = (k, v) => { const el = PB.querySelector(`[data-bind="${k}"]`); if (el) el.textContent = v; };
     set('time', pk.time ? MC.timeLabel(pk) : '无');
-    set('remind', MC.remindLabel(pk.remind, !!pk.time));
+    set('remind', MC.remindsLabel(MC.remindsOf(pk), !!pk.time));
     set('until', pk.until ? MC.dateLabel(pk.until) + ' ' + MC.parse(pk.until).getFullYear() : '不设，一直重复');
     set('cardDate', `${MC.dateLabel(pk.date)}，周${MC.WD[MC.parse(pk.date).getDay()]}`);
     set('cardRel', MC.relLabel(pk.date));
@@ -637,11 +639,14 @@
     }
     else if (act === 'remind') {
       const ctx = pkInline ? inlineCtx : sheetCtx;
-      UI.menu(a, MC.remindOptions(!!pk.time).map(o => ({ label: o.label, value: o.v, on: o.v === pk.remind })), v => {
+      // 可以选好几个提醒（多选，菜单不关；点「无」清空）
+      let warned = false;
+      UI.multiMenu(a, MC.remindOptions(!!pk.time).filter(o => o.v !== null), MC.remindsOf(pk), l => {
         useCtx(ctx);
-        pk.remind = v; refreshLabels();
-        a.querySelector('.grow-val').classList.toggle('on', v !== null);
-        if (v !== null && MC.Push && !MC.Push.enabled()) UI.toast('提醒需要在「设置 → 提醒通知」中开启');
+        Object.assign(pk, MC.withReminds(l)); refreshLabels();
+        a.querySelector('.grow-val').classList.toggle('on', l.length > 0);
+        if (!l.length) UI.closeMenu();
+        if (l.length && !warned && MC.Push && !MC.Push.enabled()) { warned = true; UI.toast('提醒需要在「设置 → 提醒通知」中开启'); }
       });
     }
     else if (act === 'repeat') {
@@ -651,7 +656,7 @@
         pk.repeat = v; pk.until = ''; pk.expanded = null; pk.chooser = null; renderPicker();
       });
     }
-    else if (act === 'clear') { pk.time = ''; pk.endTime = ''; pk.days = 1; pk.remind = null; pk.repeat = 'none'; pk.until = ''; pk.expanded = null; renderPicker(); }
+    else if (act === 'clear') { pk.time = ''; pk.endTime = ''; pk.days = 1; pk.remind = null; pk.remindMore = []; pk.repeat = 'none'; pk.until = ''; pk.expanded = null; renderPicker(); }
   };
   for (const id of ['#pkBody', '#cmpPkBody']) { $(id).addEventListener('change', onBodyChange); $(id).addEventListener('click', onBodyClick); }
 
@@ -816,7 +821,7 @@
   let rows = [];
   // 草稿：随时自动保存在本机，关掉再打开会恢复；添加成功或选择清空后删除
   const BATCH_KEY = 'mcal.batchDraft';
-  const rowHasContent = r => !!(r.title.trim() || r.note.trim() || r.priority || r.rate || r.time || (r.remind !== null && r.remind !== undefined) || (r.repeat && r.repeat !== 'none'));
+  const rowHasContent = r => !!(r.title.trim() || r.note.trim() || r.priority || r.rate || r.time || MC.remindsOf(r).length || (r.repeat && r.repeat !== 'none'));
   const batchHasContent = () => rows.some(rowHasContent);
   function saveBatchDraft() {
     try {
@@ -839,7 +844,7 @@
       else { rows = []; localStorage.removeItem(BATCH_KEY); proceed(); }
     });
   });
-  const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, rate: 0, date, days: 1, time: '', endTime: '', remind: null, repeat: 'none', until: '', ...extra });
+  const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, rate: 0, date, days: 1, time: '', endTime: '', remind: null, remindMore: [], repeat: 'none', until: '', ...calReminds(), ...extra });
   // 行里日期按钮上的摘要：日期 + 时间，有提醒 / 重复时各加一个小图标
   const I_BELL = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="有提醒"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
   const I_REP = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="重复"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"/></svg>';
@@ -849,7 +854,7 @@
     return `<span>${esc(d)}${t}</span>`;
   };
   // 第三行的「提醒」「重复」两个小框：没设时是灰的「提醒」「重复」，设了就显示选的是什么
-  const remindHTML = r => { const on = r.remind !== null && r.remind !== undefined; return `${I_BELL}<span>${on ? esc(shortRemind(r.remind, !!r.time)) : '提醒'}</span>`; };
+  const remindHTML = r => { const l = MC.remindsOf(r); return `${I_BELL}<span>${l.length ? esc(shortRemind(l[0], !!r.time) + (l.length > 1 ? ` +${l.length - 1}` : '')) : '提醒'}</span>`; };
   // 小框里放不下完整的「提前 15 分钟」「提前 1 天 09:00」：用短的写法（菜单里还是完整的）
   const shortRemind = (v, hasTime) => v === 0 ? (hasTime ? '准时' : '当天') : v % 10080 === 0 ? `前 ${v / 10080} 周` : v % 1440 === 0 ? `前 ${v / 1440} 天` : v % 60 === 0 ? `前 ${v / 60} 小时` : `前 ${v} 分钟`;
   const repeatHTML = r => { const on = r.repeat && r.repeat !== 'none'; return `${I_REP}<span>${on ? esc(MC.repeatLabel(r.repeat)) : '重复'}</span>`; };
@@ -857,7 +862,7 @@
     const q = s => el.querySelector(s);
     q('[data-act=date]').innerHTML = whenHTML(r);
     const rm = q('[data-act=remind]'), rp = q('[data-act=repeat]');
-    rm.innerHTML = remindHTML(r); rm.classList.toggle('on', r.remind !== null && r.remind !== undefined);
+    rm.innerHTML = remindHTML(r); rm.classList.toggle('on', MC.remindsOf(r).length > 0);
     rp.innerHTML = repeatHTML(r); rp.classList.toggle('on', !!r.repeat && r.repeat !== 'none');
   }
   function openBatch() {
@@ -920,7 +925,7 @@
           <div class="b-pri">${priChips(r)}</div>
           <div class="b-tools">
             <button class="b-when" data-act="date" aria-label="日期和时间">${whenHTML(r)}</button>
-            <button class="b-opt${r.remind !== null && r.remind !== undefined ? ' on' : ''}" data-act="remind" aria-label="提醒">${remindHTML(r)}</button>
+            <button class="b-opt${MC.remindsOf(r).length ? ' on' : ''}" data-act="remind" aria-label="提醒">${remindHTML(r)}</button>
             <button class="b-opt${r.repeat && r.repeat !== 'none' ? ' on' : ''}" data-act="repeat" aria-label="重复">${repeatHTML(r)}</button>
           </div>
         </div>
@@ -993,7 +998,7 @@
     }
     else if (a.dataset.act === 'remind') {
       document.activeElement && document.activeElement.blur();
-      UI.menu(a, MC.remindOptions(!!r.time).map(o => ({ label: o.label, value: o.v, on: o.v === (r.remind ?? null) })), v => { r.remind = v; paintBatchTools(el, r); saveBatchDraft(); });
+      UI.multiMenu(a, MC.remindOptions(!!r.time).filter(o => o.v !== null), MC.remindsOf(r), l => { Object.assign(r, MC.withReminds(l)); paintBatchTools(el, r); saveBatchDraft(); if (!l.length) UI.closeMenu(); });
     }
     else if (a.dataset.act === 'repeat') {
       document.activeElement && document.activeElement.blur();
@@ -1053,7 +1058,7 @@
     for (const l of lines) { const x = MC.parseEventLine(l); if (x.title && x.date) ok.push(x); else bad.push(l); }
     if (!ok.length) { UI.toast('没认出事件：每行需要名称和日期'); return; }
     const first = rows.filter(rowHasContent).length;
-    rows = rows.filter(rowHasContent).concat(ok.map(x => blankRow(x.date, { title: x.title, priority: x.priority, days: x.days, time: x.time, endTime: x.endTime, remind: x.remind })));
+    rows = rows.filter(rowHasContent).concat(ok.map(x => blankRow(x.date, { title: x.title, priority: x.priority, days: x.days, time: x.time, endTime: x.endTime, remind: x.remind, remindMore: x.remindMore || [] })));
     paste.value = bad.join('\n'); fitPaste();
     if (!bad.length) paste.blur();
     renderBatch();
@@ -1074,13 +1079,13 @@
     if (!valid.length) { UI.toast('至少填写一个名称'); return; }
     let all = [], repeated = 0;
     for (const r of valid) {
-      const fields = { title: r.title.trim(), note: r.note.trim(), priority: r.priority, rate: MC.rateOn(newCal) ? (r.rate || 0) : 0, date: r.date, days: r.time ? 1 : (r.days || 1), time: r.time, endTime: r.endTime, remind: r.remind };
+      const fields = { title: r.title.trim(), note: r.note.trim(), priority: r.priority, rate: MC.rateOn(newCal) ? (r.rate || 0) : 0, date: r.date, days: r.time ? 1 : (r.days || 1), time: r.time, endTime: r.endTime, remind: r.remind, remindMore: r.remindMore || [] };
       const b = buildEvents(fields, r.repeat, r.until);
       if (b.rep) repeated++;
       all = all.concat(b.events);
     }
     MC.addEvents(all);
-    const quiet = newCal && !MC.notifies({ cal: newCal }) && valid.some(r => r.remind !== null && r.remind !== undefined);
+    const quiet = newCal && !MC.notifies({ cal: newCal }) && valid.some(r => MC.remindsOf(r).length);
     rows = []; localStorage.removeItem(BATCH_KEY);
     UI.close('batchSheet', true);
     localStorage.removeItem(DRAFT_KEY);

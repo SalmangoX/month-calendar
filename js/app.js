@@ -764,6 +764,8 @@
   const DT = s => (MC.Days ? MC.Days.T(s) : s); // 纪念日历（js/days.js）的文字
   const COURSE_LEADS = [0, 5, 10, 15, 20, 30, 45, 60];
   const leadText = m => (m ? `开始前 ${m} 分钟` : '开始时');
+  // 课程提醒可以有好几个提前量：「开始前 10 分钟、开始时」
+  const leadsText = cr => { const l = MC.leadsOf(cr).slice().reverse(); return l.length > 2 ? `${leadText(l[0])}等 ${l.length} 个时间` : l.map(leadText).join('、'); };
   function srow(o) {
     const sub = o.sub ? `<small>${esc(o.sub)}</small>` : '';
     const val = o.val ? `<span class="sval">${esc(o.val)}</span>` : '';
@@ -903,8 +905,8 @@
     if (dl.on) nrows.push(srow({ act: 'dtime', icon: 'clock', tone: 'periwinkle', label: '每日提醒时间', val: MC.fmtTime(dl.time) }));
     // 课程（日程）提醒：每节课开始前提醒，提前多久可以选
     const cr = MC.data.courseRemind || { on: false, lead: 10 };
-    nrows.push(srow({ icon: 'grid', tone: 'jade', label: '日程开始前提醒', sub: cr.on ? `每项日程${leadText(cr.lead)}提醒` : '日程里的每一项开始前提醒你', sw: 'cSwitch', swOn: cr.on }));
-    if (cr.on) nrows.push(srow({ act: 'clead', icon: 'clock', tone: 'lavender', label: '提前多久', val: leadText(cr.lead).replace(/^开始前 /, '') }));
+    nrows.push(srow({ icon: 'grid', tone: 'jade', label: '日程开始前提醒', sub: cr.on ? `每项日程${leadsText(cr)}提醒` : '日程里的每一项开始前提醒你', sw: 'cSwitch', swOn: cr.on }));
+    if (cr.on) nrows.push(srow({ act: 'clead', icon: 'clock', tone: 'lavender', label: '提前多久', val: MC.leadsOf(cr).slice().reverse().map(m => (m ? `${m} 分钟` : '开始时')).join('、') }));
     const gRemind = group('提醒', nrows);
     if (MC.Native.mac) {
       const I = MC.Native.info;
@@ -1061,10 +1063,13 @@
     }
     else if (act === 'dtime') dailyTimeForm();
     else if (act === 'clead') {
-      const cur = (MC.data.courseRemind || {}).lead;
-      UI.menu(row.querySelector('.sval') || row, COURSE_LEADS.map(m => ({ label: m ? `${m} 分钟` : '开始时', value: m, on: m === cur })), v => {
-        MC.setCourseRemind({ lead: v, tz: MC.currentTz() }); renderSettings(); UI.toast(`每项日程${leadText(v)}提醒`);
-      });
+      // 可以选好几个（多选，菜单不关）；至少留一个，全取消就回到「开始前 10 分钟」
+      UI.multiMenu(row.querySelector('.sval') || row, COURSE_LEADS.map(m => ({ label: m ? `${m} 分钟` : '开始时', v: m })), MC.leadsOf(MC.data.courseRemind || {}), l => {
+        const v = l.length ? [...l].sort((a, b) => a - b) : [10];
+        MC.setCourseRemind({ lead: v[0], leadMore: v.slice(1), tz: MC.currentTz() });
+        renderSettings();   // 菜单浮在上面，重画设置页不影响它
+        if (!l.length) UI.closeMenu();
+      }, { none: '默认（10 分钟）' });
     }
     else if (act === 'boost') openHelp('boost');
     else if (act === 'ics') {
@@ -1116,7 +1121,7 @@
         if (sw.checked) {
           if (!Push.enabled()) await Push.enable();
           MC.setCourseRemind({ on: true, tz: MC.currentTz() });
-          UI.toast(`每项日程${leadText(MC.data.courseRemind.lead)}提醒你`);
+          UI.toast(`每项日程${leadsText(MC.data.courseRemind)}提醒你`);
         } else { MC.setCourseRemind({ on: false }); UI.toast('已关闭课程提醒'); }
       } catch (err) { UI.toast(err.message); }
       renderSettings();

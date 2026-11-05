@@ -66,7 +66,7 @@
   function syncBackdrop() {
     // 有面板开着：根元素挂 ui-open，iPhone / Mac / 安卓的注入脚本都在看根元素的 class，原生的底栏控件（时钟、logo、回到今天、分页点）跟着让开【联动:底部悬浮控件】
     // 新建子日历的介绍卡片浮在屏幕上方，和底栏不重叠：它开着时底栏照常显示，不让路
-    document.documentElement.classList.toggle('ui-open', stack.some(id => id !== 'calKindSheet'));
+    document.documentElement.classList.toggle('ui-open', stack.some(id => id !== 'calKindSheet') || !!document.querySelector('#pvDoc.show'));
     if (!stack.length) { backdrop.classList.remove('show'); return; }
     const top = $('#' + stack[stack.length - 1]);
     backdrop.style.zIndex = (parseInt(getComputedStyle(top).zIndex, 10) || 30) - 1;
@@ -239,9 +239,11 @@
     popCb = cb;
     pop.innerHTML = items.map((it, i) =>
       // sw：开关类的选项（比如子日历的「在主日历显示」「通知」）画成开关，点了原地切换、菜单不关
-      it.sw ? `<button role="menuitemcheckbox" aria-checked="${!!it.on}" data-i="${i}" class="sw">${it.icon || ''}<span>${esc(it.label)}</span><span class="mi-sw${it.on ? ' on' : ''}" aria-hidden="true"><i class="mi-base"></i><i class="mi-ck"><svg viewBox="0 0 24 24"><path d="M6.5 12.5l3.8 3.8 7.2-8.3"/></svg></i></span></button>`
-        : `<button role="menuitem" data-i="${i}" class="${it.on ? 'on' : ''}${it.danger ? ' danger' : ''}">${it.icon || ''}<span>${esc(it.label)}</span>${it.on ? '<span class="tick">✓</span>' : ''}</button>`).join('');
+      it.ck ? `<button role="menuitemcheckbox" aria-checked="${!!it.on}" data-i="${i}" class="ck${it.on ? ' on' : ''}">${it.icon || ''}<span>${esc(it.label)}</span><span class="tick" aria-hidden="true">✓</span></button>`   // ck：可以多选的一项，点了打勾 / 取消，菜单不关
+      : it.sw ? `<button role="menuitemcheckbox" aria-checked="${!!it.on}" data-i="${i}" class="sw">${it.icon || ''}<span>${esc(it.label)}</span><span class="mi-sw${it.on ? ' on' : ''}" aria-hidden="true"><i class="mi-base"></i><i class="mi-ck"><svg viewBox="0 0 24 24"><path d="M6.5 12.5l3.8 3.8 7.2-8.3"/></svg></i></span></button>`
+        : `<button role="menuitem" data-i="${i}" class="${it.on ? 'on' : ''}${it.danger ? ' danger' : ''}${it.cls ? ' ' + it.cls : ''}">${it.icon || ''}<span>${esc(it.label)}</span>${it.on ? '<span class="tick">✓</span>' : ''}</button>`).join('');
     if (dropA) { dropA.cancel(); dropA = null; }
+    pop.classList.toggle('multi', !!opts.multi);   // 多选菜单：打勾用正文色
     pop.classList.toggle('grow', !!opts.center);   // 以按钮为中心时：从那一点长出来（更明显的缩放 + 回弹）
     pop.classList.add('show');
     pop.style.setProperty('--cc', getComputedStyle(anchor).getPropertyValue('--cc').trim() || 'var(--accent)');   // 开关填充用那一行日历的颜色
@@ -262,10 +264,25 @@
     pop.querySelectorAll('button').forEach(b => b.onclick = ev => {
       ev.stopPropagation();
       const it = items[Number(b.dataset.i)];
+      if (it.ck) { try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(6); } catch (e) {} it.on = !it.on; b.setAttribute('aria-checked', String(it.on)); b.classList.toggle('on', it.on); if (popCb) popCb(it.value, it); return; }
       if (it.sw) { try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(6); } catch (e) {} it.on = !it.on; b.setAttribute('aria-checked', String(it.on)); b.querySelector('.mi-sw').classList.toggle('on', it.on); if (popCb) popCb(it.value, it); return; }
       UI.closeMenu();
       if (popCb) popCb(it.value, it);
     });
+  };
+  // 多选菜单（提醒可以选好几个）：一直用网页的菜单——App 里 UI.menu 换成了原生菜单，原生菜单点一下就关，没法多选
+  const webMenu = UI.menu;
+  UI.multiMenu = (anchor, options, selected, onChange, opts = {}) => {
+    let cur = [...selected];
+    const items = [{ label: opts.none || '无', value: '__none', on: !cur.length }, ...options.map(o => ({ label: o.label, value: o.v, ck: true, on: cur.includes(o.v) }))];
+    if (opts.done) items.push({ label: opts.done, value: '__done', cls: 'mi-ok' });   // 选好后点它才生效（比如给整个日历设提醒）
+    webMenu(anchor, items, (v, it) => {
+      if (v === '__done') { opts.onDone && opts.onDone(cur); return; }
+      if (v === '__none') { cur = []; if (opts.done) { opts.onDone && opts.onDone(cur); return; } onChange(cur); return; }
+      cur = it.on ? [...new Set([...cur, v])] : cur.filter(x => x !== v);
+      const nb = pop.querySelector('[data-i="0"]'); if (nb) { nb.classList.toggle('on', !cur.length); const t = nb.querySelector('.tick'); if (t) t.remove(); }
+      onChange(cur);
+    }, { ...opts, multi: true });
   };
   // 以三个点为中心的小窗口：玻璃是一颗水滴，从三个点上 30px 的小圆一口气拉伸成窗口（带一点果冻回弹），收起时缩回小圆
   let dropA = null, dropO = null;
@@ -732,7 +749,7 @@
   const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .lgn, .dv-cover.photo .cv-tile'
     + ', .pod-today .face, .fan:not(.fan-add) .face, .set-back .face, .pb-thumb';   // 顶部标题板（月份、星期）是网页自己画的半透明板，不再走原生玻璃   // 星期条也是一条原生液态玻璃 // 日历页的悬浮控件（时钟胶囊、扇形按钮、设置页返回、月份胶囊）；logo 和分页点里是图片 / 圆点，原生画不了，留给网页
   const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips, .lgn-dark, .cv-plate, .cv-tile, .dp-plate, .cam-pill'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
-  const LAYERS = '.sheet.show, .dp.show, .cam.show, .cam-res, .confirm.show, .popover.show';
+  const LAYERS = '.sheet.show, .dp.show, .cam.show, .cam-res, .confirm.show, .popover.show, #pvDoc.show';   // #pvDoc：隐私政策整页盖上去时，下面设置页的玻璃返回键不画（不然两个返回键）
   // 自定义 SVG 图标转成 PNG（data URL）：把 CSS 里的线宽、颜色写进图标本身，按 3 倍大小画到画布上；同样的图标只转一次
   const rasterCache = new Map();
   function rasterIcon(sv) {

@@ -242,11 +242,12 @@
     const due = [];
     for (const e of MC.data.events) {
       if (e.done || !MC.notifies(e)) continue; // 记录日历没开通知就不提醒
-      const ft = MC.fireTime(e);
-      if (ft === null || ft > now || ft < now - 3 * 60000) continue;
-      const key = `${e.id}@${ft}`;
-      if (sent[key]) continue;
-      sent[key] = now; due.push([e, key]);
+      for (const ft of MC.fireTimes(e)) {   // 一个事件可以有好几个提醒，每个各发一次
+        if (ft > now || ft < now - 3 * 60000) continue;
+        const key = `${e.id}@${ft}`;
+        if (sent[key]) continue;
+        sent[key] = now; due.push([e, key]);
+      }
     }
     let daily = null;
     const dl = MC.data.daily;
@@ -264,9 +265,11 @@
       for (const c of MC.data.courses || []) {
         if (!MC.Sched.on(c, d)) continue;
         const [h, m] = c.start.split(':').map(Number);
-        const ft = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).getTime() - (cr.lead || 0) * 60000;
-        const key = `course@${c.id || c.code}@${ds}@${c.start}`;
-        if (ft <= now && ft > now - 3 * 60000 && !sent[key]) { sent[key] = now; classes.push([c, key]); }
+        MC.leadsOf(cr).forEach((lead, i) => {   // 可以有好几个提前量，每个各提醒一次
+          const ft = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).getTime() - lead * 60000;
+          const key = `course@${c.id || c.code}@${ds}@${c.start}` + (i ? '@' + lead : '');
+          if (ft <= now && ft > now - 3 * 60000 && !sent[key]) { sent[key] = now; classes.push([c, key, lead]); }
+        });
       }
     }
     // 纪念日提醒：每个日子可以选提前几天（0 = 当天），在 remindAt 钟点提醒；重复的日子按下一次算
@@ -300,8 +303,8 @@
     for (const [x, k, occ, key] of dayHits) {
       reg.showNotification(x.title || MC.t('纪念日'), { body: `${k < 0 ? MC.t(`还有 ${-k} 小时`) : k ? MC.t(`还有 ${k} 天`) : MC.t('就是今天')} · ${MC.t(MC.dateLabel(MC.ymd(occ)))}${x.time ? ' ' + MC.fmtTime(x.time) : ''}`, tag: key, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: `./#days-${x.id}` } });
     }
-    for (const [c, key] of classes) {
-      const p = Push.courseMsg(c, cr.lead || 0);
+    for (const [c, key, lead] of classes) {
+      const p = Push.courseMsg(c, lead);
       reg.showNotification(p.title, { body: p.body, tag: key, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: './#sched' } });
     }
     if (daily) {

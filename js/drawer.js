@@ -158,24 +158,47 @@
   const menuOf = c => (c.kind === 'days'
     ? [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: T('名称、颜色和图标'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }]
     : [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: '通知', value: 'notify', on: c.notify, sw: true },
+      { label: '统一提醒…', value: 'remindAll' },   // 一键给这个日历里所有事件设提醒（可以几个），新加的也默认带上
       { label: '名称、颜色和等级', value: 'edit' },
       { label: '并入…', value: 'merge' },
       { label: '删除这个日历', value: 'del', danger: true }]);
+  // 从「⋯」菜单里再弹出的菜单挂在哪：网页侧拉菜单里的那一行；iPhone / Mac 上网页的侧拉菜单藏在屏幕外面，那一行的位置不能用（原生菜单会弹到屏幕外，看起来像什么都没有），改用屏幕中间
+  function anchorFor(c) {
+    const row = document.querySelector(`#drawerList [data-id="${CSS.escape(c.id)}"]`), rr = row && row.getBoundingClientRect();
+    if (!nativeDrawer() && rr && rr.width && rr.right > 0 && rr.left < innerWidth) return { el: row, done() {} };
+    const tmp = document.createElement('div'); tmp.style.cssText = 'position:fixed;left:50%;top:45%;width:1px;height:1px'; document.body.appendChild(tmp);
+    setTimeout(() => tmp.remove(), 60000);
+    return { el: tmp, done() { tmp.remove(); } };
+  }
   D.act = async (id, v) => {
     const c = MC.cal(id); if (!c) return;
     if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? (c.kind === 'days' ? `「${c.name}」的日子会显示在主日历` : `「${c.name}」的事件会显示在主日历`) : `「${c.name}」不再显示在主日历`); }
     else if (v === 'notify') { MC.updateCal(c, { notify: !c.notify }); render(); UI.toast(c.notify ? `已打开「${c.name}」的通知` : `已关闭「${c.name}」的通知`); }
     else if (v === 'edit') calForm(c);
+    else if (v === 'remindAll') {
+      // 统一提醒：选好几个提前量，点「应用」后这个日历里的事件全部换成这几个提醒；以后新加的事件也默认带上
+      const n = MC.countIn(c.id), a = anchorFor(c);
+      UI.multiMenu(a.el, MC.remindOptions(true).filter(o => o.v !== null), c.remindDef || [], () => {}, {
+        center: true, none: '全部不提醒', done: n ? `应用到全部 ${n} 条事件` : '设为新事件的默认提醒',
+        onDone: l => {
+          a.done();
+          const t = Date.now(), r = MC.withReminds(l);
+          MC.data.events.forEach(e => { if (e.cal === c.id) { Object.assign(e, r); e.updatedAt = t; } });
+          const turnOn = l.length && !c.notify;
+          MC.updateCal(c, { remindDef: MC.remindsOf(r), ...(turnOn ? { notify: true } : {}) });
+          MC.reindex && MC.reindex(); render(); MC.Cal.render();
+          if (l.length && MC.Push && !MC.Push.enabled()) MC.Push.enable().catch(() => {});
+          UI.toast(l.length ? `「${c.name}」的事件都会${MC.remindsLabel(l, true)}提醒${turnOn ? '，已打开这个日历的通知' : ''}` : `「${c.name}」的事件都不再提醒`);
+        },
+      });
+    }
     else if (v === 'merge') {
       // 并入…：选并到主日历还是另一个子日历；当前子日历的事件全部转移过去，然后删掉它（不可逆，要说清楚）
       const others = MC.data.cals.filter(x => x.kind !== 'days' && x.id !== c.id);
       const items = [{ label: '主日历', value: '' }, ...others.map(x => ({ label: `「${x.name}」`, value: x.id, icon: `<span class="cs-dot" style="--c:${x.color}"></span>` }))];
-      // 从原生侧拉菜单点进来时网页的那一行不在屏幕上：菜单以屏幕中间为中心弹出
-      const row = document.querySelector(`#drawerList [data-id="${CSS.escape(c.id)}"]`);
-      let anchor = row && row.getBoundingClientRect().width ? row : null, tmp = null;
-      if (!anchor) { tmp = document.createElement('div'); tmp.style.cssText = 'position:fixed;left:50%;top:45%;width:1px;height:1px'; document.body.appendChild(tmp); anchor = tmp; }
-      UI.menu(anchor, items, async to => {
-        if (tmp) tmp.remove();
+      const a = anchorFor(c);
+      UI.menu(a.el, items, async to => {
+        a.done();
         if (to === undefined) return;
         const n = MC.countIn(c.id), dest = to ? `「${MC.cal(to).name}」` : '主日历';
         if (!(await UI.confirm(`把「${c.name}」的 ${n} 条事件全部转移到${dest}，然后删掉「${c.name}」？\n这一步不能撤销：转过去以后分不出哪些原来属于「${c.name}」。`, { ok: `并入${dest}`, danger: true }))) return;
@@ -185,7 +208,6 @@
         if (MC.settings.activeCal === c.id) { MC.settings.activeCal = to; MC.saveSettings(); }
         MC.commit(); MC.reindex && MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast(`已把「${c.name}」并入${dest}`);
       }, { center: true });
-      setTimeout(() => { if (tmp && !UI.menuOpen()) tmp.remove(); }, 4000);
     }
     else if (v === 'del') {
       const n = MC.countIn(c.id), days = c.kind === 'days';
@@ -284,6 +306,13 @@
       morphKinds(false);   // 收起：先量好卡片的位置，卡片换成一滴玻璃缩回胶囊
       proceed();
     });
+    // 卡片收在侧拉菜单里：和菜单一样宽，底边落在「新建子日历」胶囊上方（菜单没拉出来时照旧居中）
+    const dr = el.getBoundingClientRect(), pr = pillRect(), inD = dr.width > 0 && dr.right > 0 && el.classList.contains('vis');
+    KS.classList.toggle('in-drawer', inD);
+    if (inD) {
+      KS.style.setProperty('--kx', dr.left + 8 + 'px'); KS.style.setProperty('--kw', dr.width - 16 + 'px');
+      KS.style.setProperty('--kb', innerHeight - pr.top + 10 + 'px'); KS.style.setProperty('--kh', pr.top - 10 - dr.top - 8 + 'px');
+    }
     UI.open('calKindSheet', () => { UI.guard('calKindSheet'); if (!picked && nativeDrawer()) D.open(); });
     KS.classList.add('morph'); void KS.offsetWidth;   // 先没有过渡地放到最终位置（藏着），再由一滴玻璃从胶囊分离出去、长成卡片
     morphKinds(true);

@@ -40,6 +40,8 @@ final class Data {
         int priority, days = 1;
         boolean done, hasRemind;
         long remind, createdAt;
+        /** 所有提醒（提前几分钟，去重、从小到大）：remind 是第一个，remindMore 是另外加的（和网页 MC.remindsOf 一样）【联动:提醒】 */
+        long[] reminds = new long[0];
 
         LocalDate end() { return days > 1 ? date.plusDays(days - 1) : date; }
 
@@ -145,6 +147,7 @@ final class Data {
     /** 课程提醒：日程里每节课开始前 courseLead 分钟提醒（0 = 开始时），和网页 data.courseRemind 一致 */
     boolean courseOn;
     int courseLead = 10;
+    int[] courseLeads = { 10 };
     LocalTime dailyTime = LocalTime.of(13, 0);
     int version;
     private final Map<LocalDate, List<Event>> byDate = new HashMap<>();
@@ -239,6 +242,10 @@ final class Data {
         if (cr != null) {
             d.courseOn = cr.optBoolean("on");
             d.courseLead = Math.max(0, Math.min(180, cr.optInt("lead", 10)));
+            java.util.TreeSet<Integer> ls = new java.util.TreeSet<>(); ls.add(d.courseLead);
+            JSONArray lm = cr.optJSONArray("leadMore");   // 另外加的几个提前量（可以多选）
+            if (lm != null) for (int i = 0; i < lm.length() && ls.size() < 6; i++) { int v = lm.optInt(i, -1); if (v >= 0 && v <= 180) ls.add(v); }
+            d.courseLeads = ls.stream().mapToInt(Integer::intValue).toArray();
         }
         JSONArray cs = o.optJSONArray("courses");
         if (cs != null) {
@@ -296,6 +303,12 @@ final class Data {
         } else if (r instanceof String && !((String) r).isEmpty()) {
             try { x.remind = Long.parseLong((String) r); x.hasRemind = true; } catch (NumberFormatException ignored) { }
         }
+        java.util.TreeSet<Long> rs = new java.util.TreeSet<>();
+        if (x.hasRemind && x.remind >= 0) rs.add(x.remind);
+        JSONArray rm = e.optJSONArray("remindMore");
+        if (rm != null) for (int i = 0; i < rm.length() && rs.size() < 6; i++) { long v = rm.optLong(i, -1); if (v >= 0) rs.add(v); }
+        x.reminds = rs.stream().mapToLong(Long::longValue).toArray();
+        x.hasRemind = x.reminds.length > 0;
         x.days = x.time.isEmpty() ? Math.max(1, Math.min(60, e.optInt("days", 1))) : 1;
         x.createdAt = e.optLong("createdAt", 0);
         return x;
@@ -348,9 +361,16 @@ final class Data {
 
     /** 提醒时间：带时间的事件以开始时间为准，全天事件以当天 9:00 为准；没有提醒返回 Long.MIN_VALUE */
     static long fireTime(Event e, ZoneId z) {
-        if (!e.hasRemind) return Long.MIN_VALUE;
+        long[] l = fireTimes(e, z);
+        return l.length == 0 ? Long.MIN_VALUE : l[l.length - 1];
+    }
+    /** 每个提醒的时间（一个事件可以有好几个提醒） */
+    static long[] fireTimes(Event e, ZoneId z) {
         LocalTime t = e.time.isEmpty() ? LocalTime.of(9, 0) : time(e.time);
-        return ZonedDateTime.of(e.date, t, z).toInstant().toEpochMilli() - e.remind * 60000L;
+        long t0 = ZonedDateTime.of(e.date, t, z).toInstant().toEpochMilli();
+        long[] out = new long[e.reminds.length];
+        for (int i = 0; i < out.length; i++) out[i] = t0 - e.reminds[i] * 60000L;
+        return out;
     }
 
     // ---------- 合并（与网页 MC.merge 相同的规则） ----------

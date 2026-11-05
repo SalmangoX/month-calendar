@@ -74,11 +74,14 @@ function localToUtc(y, m, d, h, mi, tz) {
   ts = guess - tzOffset(ts, tz);
   return ts;
 }
-function fireTime(e, tz) {
-  if (e.remind === null || e.remind === undefined || e.remind === '') return null;
+// 一个事件可以有好几个提醒：remind 是第一个，remindMore 是另外加的（【联动:提醒】）
+function fireTimes(e, tz) {
+  const l = [...new Set([e.remind, ...(Array.isArray(e.remindMore) ? e.remindMore : [])].filter(v => v !== null && v !== undefined && v !== '').map(Number).filter(n => Number.isFinite(n) && n >= 0))];
+  if (!l.length) return [];
   const [y, m, d] = e.date.split('-').map(Number);
   const [h, mi] = (e.time || '09:00').split(':').map(Number);
-  return localToUtc(y, m, d, h, mi, tz) - Number(e.remind) * 60000;
+  const t0 = localToUtc(y, m, d, h, mi, tz);
+  return l.map(v => t0 - v * 60000);
 }
 // ---------- 语言（应用里的设置：同步数据 profile.lang；没设 / 跟随系统时用简体中文） ----------
 let LANG = 'zh-Hans';
@@ -122,24 +125,25 @@ const dead = new Set();
 let count = 0, changed = false;
 for (const sub of info.subs) {
   const tz = sub.tz || 'UTC';
-  for (const e of data.events || []) {
+  evLoop: for (const e of data.events || []) {
     if (e.done || (e.cal && !notifyCals.has(e.cal))) continue; // 记录日历只有打开通知才提醒
-    const ft = fireTime(e, tz);
-    if (ft === null || ft > now || ft < now - LOOKBACK || ft < (sub.addedAt || 0)) continue;
-    const tag = `${e.id}@${ft}`;
-    const key = `${tag}|${sub.device || sub.endpoint.slice(-24)}`;
-    if (sent[key]) continue;
-    try {
-      await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys },
-        JSON.stringify({ title: e.title, body: body(e, !!sub.h12), tag, url: info.subject || './' }),
-        { TTL: 3600, urgency: 'high' });
-      count++;
-    } catch (err) {
-      if (err.statusCode === 404 || err.statusCode === 410) { dead.add(sub.endpoint); break; }
-      console.log(`发送失败 ${err.statusCode || ''}: ${err.body || err.message}`);
-      continue;
+    for (const ft of fireTimes(e, tz)) {   // 每个提醒各发一次
+      if (ft > now || ft < now - LOOKBACK || ft < (sub.addedAt || 0)) continue;
+      const tag = `${e.id}@${ft}`;
+      const key = `${tag}|${sub.device || sub.endpoint.slice(-24)}`;
+      if (sent[key]) continue;
+      try {
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys },
+          JSON.stringify({ title: e.title, body: body(e, !!sub.h12), tag, url: info.subject || './' }),
+          { TTL: 3600, urgency: 'high' });
+        count++;
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) { dead.add(sub.endpoint); break evLoop; }
+        console.log(`发送失败 ${err.statusCode || ''}: ${err.body || err.message}`);
+        continue;
+      }
+      sent[key] = now; changed = true;
     }
-    sent[key] = now; changed = true;
   }
 }
 // 每日提醒：按用户当前所在时区，在设定时间提示查看当天未完成的事件（不列出具体事件）
@@ -177,7 +181,10 @@ if (daily.on) {
 // 【联动:提醒】见 CLAUDE.md「联动分组」
 const cr = data.courseRemind || {};
 if (cr.on && Array.isArray(data.courses) && data.courses.length) {
-  const tz = cr.tz || daily.tz || 'UTC', lead = Number(cr.lead) || 0;
+  const tz = cr.tz || daily.tz || 'UTC';
+  // 可以有好几个提前量：lead 是第一个，leadMore 是另外加的
+  const leads = [...new Set([cr.lead, ...(Array.isArray(cr.leadMore) ? cr.leadMore : [])].filter(v => v !== null && v !== undefined && v !== '').map(Number).filter(n => Number.isFinite(n) && n >= 0))].sort((a, b) => a - b);
+  if (!leads.length) leads.push(0);
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' })
     .formatToParts(new Date(now)).map(x => [x.type, x.value]));
   const ds = `${p.year}-${p.month}-${p.day}`;
@@ -189,21 +196,23 @@ if (cr.on && Array.isArray(data.courses) && data.courses.length) {
     if ((c.from && ds < c.from) || (c.to && ds > c.to)) continue;
     if (c.every === 2 && c.from && ((monday(dayNum(ds)) - monday(dayNum(c.from))) / 7) % 2) continue;   // 隔周（和应用 Sched.on 一样）
     const [h, mi] = c.start.split(':').map(Number);
-    const ft = localToUtc(+p.year, +p.month, +p.day, h, mi, tz) - lead * 60000;
-    if (ft > now || ft < now - 20 * 60000) continue;
-    const tag = `course@${c.id || c.code}@${ds}@${c.start}`;
-    const msg = { title: c.code + (c.type ? ' · ' + c.type : ''), body: [lead ? L().cIn(lead) : L().cNow, `${c.start}–${c.end}`, c.room].filter(Boolean).join(' · ') };
-    for (const sub of info.subs) {
-      if (dead.has(sub.endpoint) || ft < (sub.addedAt || 0)) continue;
-      const key = `${tag}|${sub.device || sub.endpoint.slice(-24)}`;
-      if (sent[key]) continue;
-      try {
-        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys },
-          JSON.stringify({ ...msg, tag, url: (info.subject || './') + '#sched' }), { TTL: 1200, urgency: 'high' });
-        count++; sent[key] = now; changed = true;
-      } catch (err) {
-        if (err.statusCode === 404 || err.statusCode === 410) dead.add(sub.endpoint);
-        else console.log(`课程提醒发送失败 ${err.statusCode || ''}: ${err.body || err.message}`);
+    for (const [li, lead] of leads.entries()) {
+      const ft = localToUtc(+p.year, +p.month, +p.day, h, mi, tz) - lead * 60000;
+      if (ft > now || ft < now - 20 * 60000) continue;
+      const tag = `course@${c.id || c.code}@${ds}@${c.start}` + (li ? '@' + lead : '');
+      const msg = { title: c.code + (c.type ? ' · ' + c.type : ''), body: [lead ? L().cIn(lead) : L().cNow, `${c.start}–${c.end}`, c.room].filter(Boolean).join(' · ') };
+      for (const sub of info.subs) {
+        if (dead.has(sub.endpoint) || ft < (sub.addedAt || 0)) continue;
+        const key = `${tag}|${sub.device || sub.endpoint.slice(-24)}`;
+        if (sent[key]) continue;
+        try {
+          await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys },
+            JSON.stringify({ ...msg, tag, url: (info.subject || './') + '#sched' }), { TTL: 1200, urgency: 'high' });
+          count++; sent[key] = now; changed = true;
+        } catch (err) {
+          if (err.statusCode === 404 || err.statusCode === 410) dead.add(sub.endpoint);
+          else console.log(`课程提醒发送失败 ${err.statusCode || ''}: ${err.body || err.message}`);
+        }
       }
     }
   }

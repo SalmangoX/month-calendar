@@ -53,6 +53,12 @@ final class NavModel: ObservableObject {
     struct Dock: Decodable, Equatable { let t: String; let ap: String; let today: Bool; let back: String; let pager: Bool; let n: Int?; let p: Double; let set: Bool; let st: Bool?; let lit: Bool?; let pv: Double? }   // st：扇形里有「统计」（开了等级评分的记录日历）
     @Published var dock: Dock?
     @Published var fanOpen = false
+    /// 按住 logo 拖动：手指在哪（nil = 没在拖）、拖到了哪个扇形按钮上（和网页 index.html 的 logo 拖动一样）【联动:底部悬浮控件】
+    @Published var logoDrag: CGPoint? = nil
+    @Published var fanHot: String? = nil
+    var dragEndedAt = Date.distantPast
+    /// 拖动时后面的网页虚下去（景深）：网页的 body.fan-drag 让 .dock-scrim 带上模糊
+    func dragDepth(_ on: Bool) { eval("document.body.classList.toggle('fan-drag',\(on))", nil) }
     /// Mac：底栏里各个按钮的位置（窗口坐标），只有点在这些地方才接住，别处的点击漏给后面的网页
     var dockRects: [String: CGRect] = [:]
     struct Hole: Equatable { let rect: CGRect; let r: CGFloat }
@@ -646,6 +652,58 @@ struct FanBack: ViewModifier, Animatable {
     }
 }
 
+/// 按住 logo 拖动时的粒子（和网页 burst 一样：从按钮中心往外散开、越来越慢、淡掉）【联动:底部悬浮控件】
+final class FanFX {
+    struct P { let x, y, vx, vy, r: CGFloat; let t: Date; let life: Double; let c: Int }
+    var ps: [P] = []
+    static let cols: [Color] = [Color(argb: 0xFF9E_9AC8), Color(argb: 0xFFC7_B3CF), Color(argb: 0xFFEB_C7A6)]   // Cadence logo 的雾紫 → 丁香 → 暖沙
+    func burst(at c: CGPoint, n: Int, speed: CGFloat) {
+        let now = Date()
+        for _ in 0..<n {
+            let a = CGFloat.random(in: 0..<(2 * .pi)), v = speed * CGFloat.random(in: 0.5...2)
+            ps.append(P(x: c.x, y: c.y, vx: cos(a) * v, vy: sin(a) * v, r: CGFloat.random(in: 1.4...3.8), t: now, life: Double.random(in: 0.38...0.8), c: Int.random(in: 0..<3)))
+        }
+        if ps.count > 220 { ps.removeFirst(ps.count - 220) }
+    }
+}
+
+/// 线 + 粒子：线从 logo 中心出发、带一点弧度，线头被按钮吸过去一点；停在按钮上时一直冒一点粒子
+@available(macOS 26.0, iOS 26.0, *)
+struct FanTrail: View {
+    @ObservedObject var m: NavModel
+    let fx: FanFX, logoC: CGPoint, hotC: CGPoint?
+    @State private var lastEmit = Date.distantPast
+    var body: some View {
+        TimelineView(.animation(paused: m.logoDrag == nil && fx.ps.isEmpty)) { tl in
+            Canvas { ctx, _ in
+                let now = tl.date
+                if let f = m.logoDrag {
+                    var t = f
+                    if let h = hotC { t = CGPoint(x: f.x + (h.x - f.x) * 0.55, y: f.y + (h.y - f.y) * 0.55) }
+                    let dx = t.x - logoC.x, dy = t.y - logoC.y, len = max(1, hypot(dx, dy)), bend = min(24, len * 0.16)
+                    let c = CGPoint(x: (logoC.x + t.x) / 2 - dy / len * bend, y: (logoC.y + t.y) / 2 + dx / len * bend)
+                    var p = Path(); p.move(to: logoC); p.addQuadCurve(to: t, control: c)
+                    ctx.drawLayer { l in
+                        l.addFilter(.shadow(color: Color(argb: 0x999E_9AC8), radius: 6))
+                        l.stroke(p, with: .linearGradient(Gradient(colors: FanFX.cols), startPoint: logoC, endPoint: t), style: StrokeStyle(lineWidth: 3.2, lineCap: .round))
+                        let r: CGFloat = hotC == nil ? 4.5 : 6
+                        l.fill(Path(ellipseIn: CGRect(x: t.x - r, y: t.y - r, width: r * 2, height: r * 2)), with: .color(FanFX.cols[2]))
+                    }
+                    if let h = hotC, now.timeIntervalSince(lastEmit) > 0.08 { DispatchQueue.main.async { lastEmit = now; fx.burst(at: h, n: 2, speed: 55) } }
+                }
+                fx.ps.removeAll { now.timeIntervalSince($0.t) > $0.life }
+                for q in fx.ps {
+                    let e = now.timeIntervalSince(q.t), k = e / q.life, tau = 0.36
+                    let d = CGFloat(tau * (1 - exp(-e / tau)))   // 越走越慢
+                    let x = q.x + q.vx * d, y = q.y + q.vy * d, r = q.r * CGFloat(1 - k * 0.5)
+                    ctx.opacity = (1 - k) * 0.9
+                    ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(FanFX.cols[q.c]))
+                }
+            }
+        }
+    }
+}
+
 @available(macOS 26.0, iOS 26.0, *)
 struct GlassDock: View {
     @ObservedObject var m: NavModel
@@ -666,6 +724,9 @@ struct GlassDock: View {
                         .transition(.opacity)
                         .ignoresSafeArea()
                 }
+                // 按住 logo 拖动：一根从 logo 拉出来的线跟着手指，拖到按钮上冒出 logo 色调的粒子（画在按钮下面）
+                FanTrail(m: m, fx: fx, logoC: logoC, hotC: hotCenter(d))
+                    .allowsHitTesting(false).ignoresSafeArea()
                 if d.pager { pager(d).padding(.bottom, b).transition(.opacity) }
                 // 时钟胶囊、logo 按中轴放：左边对准周日 / 周一之间那条线，右边对准周五 / 周六之间那条线（和网页 --d2-cx 一样）。
                 // 各自放在宽 2 × 中轴的框里居中，胶囊多宽中轴都不变。日历里点开某一天的卡片时（pv ≥ 0）只往上挪
@@ -683,6 +744,7 @@ struct GlassDock: View {
                 .animation(.spring(response: 0.45, dampingFraction: 0.85), value: d.pv)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .coordinateSpace(name: "dock")
             .offset(y: m.cover ? 160 : 0)
             .opacity(m.cover ? 0 : 1)
             .allowsHitTesting(!m.cover)
@@ -747,6 +809,34 @@ struct GlassDock: View {
     }
 
     private struct FanItem: Identifiable { let id: String; let icon: String; let label: String }
+    @State private var logoC: CGPoint = .zero   // logo 中心（"dock" 坐标）
+    @State private var fx = FanFX()
+
+    private func fanIDs(_ d: NavModel.Dock) -> [String] { ["add"] + (d.st == true ? ["stat"] : []) + ["set"] }
+    /// 扇形按钮的中心（展开到位后的位置）
+    private func fanCenters(_ d: NavModel.Dock) -> [(String, CGPoint)] {
+        let ids = fanIDs(d), offs = DockSize.fan(ids.count)
+        return ids.enumerated().map { k, id in (id, CGPoint(x: logoC.x + offs[k].width, y: logoC.y + offs[k].height)) }
+    }
+    private func hotCenter(_ d: NavModel.Dock) -> CGPoint? { m.fanHot.flatMap { h in fanCenters(d).first { $0.0 == h }?.1 } }
+    /// 按住 logo 拖：拖起来就打开扇形、后面虚下去；手指离哪个按钮中心 46 以内就是它（变大、冒粒子、轻震）；松手选中它，没在按钮上就收起
+    private func logoDragGesture(_ d: NavModel.Dock) -> some Gesture {
+        DragGesture(minimumDistance: 10, coordinateSpace: .named("dock"))
+            .onChanged { v in
+                if m.logoDrag == nil { if !m.fanOpen { m.setFan(true) } else { navTick() }; m.dragDepth(true) }
+                m.logoDrag = v.location
+                let near = fanCenters(d).map { ($0.0, $0.1, hypot($0.1.x - v.location.x, $0.1.y - v.location.y)) }.filter { $0.2 < 46 }.min { $0.2 < $1.2 }
+                if near?.0 != m.fanHot {
+                    m.fanHot = near?.0
+                    if let c = near?.1 { fx.burst(at: c, n: 18, speed: 150); navTick() }
+                }
+            }
+            .onEnded { _ in
+                let h = m.fanHot
+                m.logoDrag = nil; m.fanHot = nil; m.dragDepth(false); m.dragEndedAt = Date()
+                if let h { m.fan(h) } else { m.setFan(false) }
+            }
+    }
 
     // logo + 扇形菜单 + 回到今天
     @ViewBuilder private func logoCluster(_ d: NavModel.Dock, dark: Bool) -> some View {
@@ -774,9 +864,12 @@ struct GlassDock: View {
                     if m.fanOpen {
                         ForEach(Array(items.enumerated()), id: \.element.id) { k, it in
                             Button { m.fan(it.id) } label: {
-                                Image(systemName: it.icon).font(.system(size: it.id == "add" ? 21 : 19, weight: .semibold))
+                                let hot = m.fanHot == it.id   // 拖到它上面：变大（改尺寸，不用 scaleEffect：玻璃不跟着缩放走）
+                                Image(systemName: it.icon).font(.system(size: (it.id == "add" ? 21 : 19) * (hot ? 1.22 : 1), weight: .semibold))
                                     .foregroundStyle(it.id == "add" ? Color.white : Color.primary)
-                                    .frame(width: DockSize.fan, height: DockSize.fan)
+                                    .frame(width: DockSize.fan * (hot ? 1.26 : 1), height: DockSize.fan * (hot ? 1.26 : 1))
+                                    .shadow(color: Color(argb: 0xFF9E_9AC8).opacity(hot ? 0.5 : 0), radius: 14, y: 6)
+                                    .animation(.spring(response: 0.28, dampingFraction: 0.62), value: hot)
                                     .background { if it.id == "add" { Circle().fill(Brand.grad(dark)) } }
                                     .glassEffect(it.id == "add" ? Glass.clear.interactive() : NavGlass.chrome(scheme, interactive: true), in: .circle)
                                     .padding(6).contentShape(Circle())
@@ -792,7 +885,7 @@ struct GlassDock: View {
                             .accessibilityLabel(Text(it.label))
                         }
                     }
-                    Button { m.setFan(!m.fanOpen) } label: {
+                    Button { if Date().timeIntervalSince(m.dragEndedAt) > 0.35 { m.setFan(!m.fanOpen) } } label: {   // 刚拖完松手的那一下不算点按
                         ZStack {
                             LogoMark().frame(width: 34, height: 34)
                                 .opacity(m.fanOpen ? 0 : 1).scaleEffect(m.fanOpen ? 0.5 : 1).rotationEffect(.degrees(m.fanOpen ? 90 : 0))
@@ -804,6 +897,8 @@ struct GlassDock: View {
                         .padding((DockSize.hit - DockSize.logo) / 2).contentShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .simultaneousGesture(logoDragGesture(d))
+                    .onGeometryChange(for: CGPoint.self) { g in let f = g.frame(in: .named("dock")); return CGPoint(x: f.midX, y: f.midY) } action: { logoC = $0 }
                     .glassEffectID("logo", in: ns)
                     .modifier(DockRect(m: m, key: "logo"))
                     .accessibilityLabel(Text(m.fanOpen ? "收起" : "更多"))
@@ -1073,9 +1168,10 @@ struct GlassDrawer: View {
         GeometryReader { g in
             let open = m.kindsOpen
             let close = { navTick(); m.kindsOpen = false }
-            let w = min(420, g.size.width - 24), h = kindsH
-            let cardY = min(max(g.size.height * 0.58 - h / 2, 60), g.size.height - h - 24)
-            let r: CGRect = kPhase == 2 ? CGRect(x: (g.size.width - w) / 2, y: cardY, width: w, height: h)
+            // 收在侧拉菜单里（用户定的：不超出菜单的范围）：和胶囊一样宽，底边落在胶囊上方，往上长
+            let w = pf.width + 8, h = min(kindsH, pf.minY - 70)
+            let cardY = max(pf.minY - 10 - h, 60)
+            let r: CGRect = kPhase == 2 ? CGRect(x: pf.midX - w / 2, y: cardY, width: w, height: h)
                 : kPhase == 1 ? CGRect(x: pf.midX - 46, y: pf.minY - 92, width: 92, height: 80)
                 : pf.insetBy(dx: 18, dy: 4)
             let rad: CGFloat = kPhase == 2 ? 34 : r.height / 2
@@ -1151,9 +1247,9 @@ struct GlassDrawer: View {
     }
 
     private func kindsContent(_ k: NavModel.Kinds, close: @escaping () -> Void) -> some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             ZStack {
-                Text(k.title).font(.system(size: 17, weight: .bold))
+                Text(k.title).font(.system(size: 16, weight: .bold))
                 HStack {
                     Button { close() } label: {
                         Text(k.cancel).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.primary)
@@ -1164,30 +1260,35 @@ struct GlassDrawer: View {
                     Spacer()
                 }
             }
-            Text(k.lead).font(.system(size: 13)).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            HStack(alignment: .top, spacing: 10) {   // 两张选项卡一样高
+            Text(k.lead).font(.system(size: 12)).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal, 4)
+            VStack(spacing: 8) {   // 菜单里窄：两种日历上下排
                 kindOption(k.rec, art: AnyView(RecArt(dark: scheme == .dark)), tint: Color(argb: 0xFF5B_8FD0)) { m.kindsOpen = false; m.addCal("rec") }
                 kindOption(k.days, art: AnyView(DaysArt(k: k.days, dark: scheme == .dark)), tint: Color(argb: 0xFFD4_6A8C)) { m.kindsOpen = false; m.addCal("days") }
             }
             .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(14)
+        .padding(10)
         .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.16).delay(0.1)),   // 内容等玻璃放大得差不多了再出来
                                 removal: .opacity.animation(.easeIn(duration: 0.08))))           // 收起时先把字收掉，再缩回水滴
     }
 
     private func kindOption(_ k: NavModel.Kind, art: AnyView, tint: Color, pick: @escaping () -> Void) -> some View {
         Button { navTick(); pick() } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                art.frame(height: 100).clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                Text(k.name).font(.system(size: 16, weight: .bold)).foregroundStyle(Color.primary).padding(.horizontal, 4)
-                Text(k.desc).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true).padding(.horizontal, 4)
-                Text(k.eg).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(tint).padding(.horizontal, 4).padding(.top, 2)
+            HStack(alignment: .top, spacing: 11) {
+                // 效果图原样缩小（不重画）：按原来的 160 × 104 画好再缩到 0.58
+                art.frame(width: 160, height: 104).clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .scaleEffect(0.58, anchor: .topLeading).frame(width: 93, height: 60, alignment: .topLeading)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(k.name).font(.system(size: 15, weight: .bold)).foregroundStyle(Color.primary)
+                    Text(k.desc).font(.system(size: 11.5)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text(k.eg).font(.system(size: 11, weight: .semibold)).foregroundStyle(tint).padding(.top, 1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(10).padding(.bottom, 4)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color(argb: scheme == .dark ? 0xFF22_2226 : 0xFFFF_FFFF)).shadow(color: tint.opacity(0.14), radius: 12, y: 5))
-            .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .padding(.leading, 9).padding(.trailing, 12).padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Color(argb: scheme == .dark ? 0xFF22_2226 : 0xFFFF_FFFF)).shadow(color: tint.opacity(0.14), radius: 12, y: 5))
+            .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
         .buttonStyle(PressScale())
     }
