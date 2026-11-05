@@ -19,6 +19,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -176,10 +177,10 @@ fun DockOverlay(m: DockModel) {
     val coverA by animateFloatAsState(if (m.cover) 0f else 1f, if (m.cover) tween(120) else spring(.86f, 420f), label = "ca")
     val b = 24 // 热区底边离 WebView 底边（WebView 已经在导航条上面）
     // 日历里点开某一天的卡片时：时钟和 logo 往上、往里挪，整个落在卡片底部里面（和网页、iPhone 一样）
-    val inCard = d.pv >= 0
-    val side by animateDpAsState(if (inCard) 16.dp else DockModel.SIDE.dp, spring(.85f, 300f), label = "sd")
+    // 时钟胶囊、logo 按中轴放：左边对准周日 / 周一之间那条线，右边对准周五 / 周六之间那条线（和网页 --d2-cx、iPhone 一样），卡片打开时只往上挪
     val lift by animateDpAsState((DockModel.LIFT + maxOf(0f, d.pv)).dp, spring(.85f, 300f), label = "lf")
-    Box(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val cx = 2f + (maxWidth.value - 4f) / 7f
         // 扇形打开时：右下角一层很淡的暗角接住点击，不会点穿到日历
         AnimatedVisibility(m.fanOpen && !m.cover, enter = fadeIn(), exit = fadeOut()) {
             Box(
@@ -196,8 +197,8 @@ fun DockOverlay(m: DockModel) {
         Box(Modifier.fillMaxSize().offset(y = coverY).graphicsLayer { alpha = coverA }) {
             if (!m.cover) {
                 if (d.pager) Pager(m, d, Modifier.align(Alignment.BottomCenter).padding(bottom = b.dp))
-                if (!d.set) Clock(m, d, Modifier.align(Alignment.BottomStart).padding(start = side, bottom = b.dp + lift))
-                LogoCluster(m, d, Modifier.align(Alignment.BottomEnd).padding(end = side, bottom = b.dp + lift))
+                if (!d.set) Box(Modifier.align(Alignment.BottomStart).padding(bottom = b.dp + lift).width((cx * 2).dp), contentAlignment = Alignment.BottomCenter) { Clock(m, d, Modifier) }
+                LogoCluster(m, d, Modifier.align(Alignment.BottomEnd).padding(end = (cx - DockModel.HIT / 2f).dp, bottom = b.dp + lift))
             }
         }
     }

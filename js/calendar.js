@@ -43,8 +43,18 @@
     // 再加 --cal-shift（用户在效果图里调的整体上移，灵动岛那一段也露出日期）
     const rs = getComputedStyle(document.documentElement), px = k => parseFloat(rs.getPropertyValue(k)) || 0;
     TOP = base + (view === 'month' ? px('--cal-drop') + px('--cal-shift') : 0);
-    { const wd = $('#weekdays'), r = wd && wd.getBoundingClientRect(); coverTop = r && r.height ? Math.max(TOP, r.bottom - vp.getBoundingClientRect().top) : TOP; }
     rowH = Math.max(0, (pv ? fullH : H) - base) / 6.5;
+    // 吸附线 = 默认状态下本周那一行的顶边（月视图打开时当月第一行停在第二行的位置：TOP + rowH）。
+    // 月份胶囊、星期条整体跟着它走：星期条的底边在吸附线上方 4px，胶囊在星期条上方 6px（格子大小、行的位置都不变）
+    if (view === 'month' && !pv) {
+      const pc = $('#page-cal'), snap = vp.getBoundingClientRect().top - pc.getBoundingClientRect().top + TOP + rowH;
+      const wkY = Math.round(snap - 4 - 24), pillY = wkY - 6 - 38;
+      if (pc.style.getPropertyValue('--wk-y') !== wkY + 'px') {
+        pc.style.setProperty('--wk-y', wkY + 'px'); pc.style.setProperty('--pill-y', pillY + 'px');
+        requestAnimationFrame(() => { try { paintMood(); } catch (e) {} });   // 光心跟着星期条走
+      }
+    }
+    { const wd = $('#weekdays'), r = wd && wd.getBoundingClientRect(); coverTop = r && r.height ? Math.max(TOP, r.bottom - vp.getBoundingClientRect().top) : TOP; }
     const head = 39 + 3; // 数字区 + 底部留白
     maxChips = Math.max(1, Math.floor((rowH - head + 2) / 17));
     withMore = Math.floor((rowH - head - 12 + 2) / 17);

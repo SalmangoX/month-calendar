@@ -1409,6 +1409,8 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 :root {
   --d2-b: max(24px, calc(var(--safe-b) + 10px));   /* 热区底边；视觉圆面再往里收 6px，离屏幕底边约 30px，拇指好按 */
   --d2-side: 10px;
+  /* 时钟胶囊、logo 的中轴：左边对准周日 / 周一之间那条线，右边对准周五 / 周六之间那条线（日历每行左右各 2px，七列等分） */
+  --d2-cx: calc(2px + (100vw - 4px) / 7);
   --d2-hit: 64px;
   --d2-lift: 40px;   /* 时钟胶囊和 logo 比分页点再高这么多，拇指更好按 */
   --spring-out: cubic-bezier(.3, 1.45, .45, 1);   /* 松手回弹：一点点过冲 */
@@ -1472,15 +1474,15 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 /* ---------- 底部一排 ---------- */
 .dock2 {
   position: absolute; left: 0; right: 0; bottom: var(--d2-b); z-index: 16;
-  height: var(--d2-hit); padding: 0 var(--d2-side);
-  display: flex; align-items: center; justify-content: space-between;
+  height: var(--d2-hit); padding: 0 calc(var(--d2-cx) - var(--d2-hit) / 2) 0 0;
+  display: flex; align-items: center; justify-content: flex-end;
   pointer-events: none;
 }
 .dock2.hide { display: none; }
 .dock2 > * { pointer-events: auto; }
 
 /* 时钟气泡：热区 64 高，圆面 52 高；宽度由 js 按内容平滑过渡 */
-.pod-today { position: relative; top: calc(-1 * var(--d2-lift)); height: var(--d2-hit); padding: 6px; display: flex; align-items: center; transition: opacity .3s, transform .45s var(--spring-soft), top .45s var(--spring-soft); }
+.pod-today { position: absolute; left: var(--d2-cx); translate: -50% 0; top: calc(-1 * var(--d2-lift));   /* 按中轴放：多宽都对准列线 */ height: var(--d2-hit); padding: 6px; display: flex; align-items: center; transition: opacity .3s, transform .45s var(--spring-soft), top .45s var(--spring-soft); }
 .pod-today .face { height: 52px; min-width: 52px; padding: 0; transition: transform .55s var(--spring-out), width .5s var(--spring-soft), background .25s; }
 .pod-today.pressed .face { transition: transform .14s var(--press-in), width .5s var(--spring-soft), background .25s; }
 .pt-lbl {
@@ -1515,7 +1517,7 @@ body[data-page="set"] .pod-today { opacity: 0; transform: translateY(10px) scale
 .pod-menu { position: relative; top: calc(-1 * var(--d2-lift)); width: var(--d2-hit); height: var(--d2-hit); transition: top .45s var(--spring-soft); }
 .dock2 { transition: padding .45s var(--spring-soft); }
 /* 日历里点开某一天的卡片时：时钟和 logo 往上、往里挪，整个落在卡片底部里面（--d2-pv 由 js 按卡片位置算） */
-body.dock-pv { --d2-lift: calc(40px + var(--d2-pv, 0px)); --d2-side: 16px; }
+body.dock-pv { --d2-lift: calc(40px + var(--d2-pv, 0px)); }   /* 中轴本来就在第一、最后一列里，只往上挪 */
 .pod-logo { width: 100%; height: 100%; display: grid; place-items: center; }
 .pod-logo .face { width: 54px; height: 54px; }
 .pod-logo img, .pod-logo .x {
@@ -1553,15 +1555,15 @@ body.dock-pv { --d2-lift: calc(40px + var(--d2-pv, 0px)); --d2-side: 16px; }
 /* 菜单打开时：一层很淡的暗角接住点击，不会点穿到日历 */
 .dock-scrim {
   position: absolute; inset: 0; z-index: 15; pointer-events: none; opacity: 0;
-  background: radial-gradient(circle at calc(100% - 44px) calc(100% - 84px), rgba(10, 16, 28, .16), rgba(10, 16, 28, .04) 55%, transparent 75%);
+  background: radial-gradient(circle at calc(100% - var(--d2-cx)) calc(100% - 84px), rgba(10, 16, 28, .16), rgba(10, 16, 28, .04) 55%, transparent 75%);
   transition: opacity .3s ease;
 }
-:root[data-theme="dark"] .dock-scrim { background: radial-gradient(circle at calc(100% - 44px) calc(100% - 84px), rgba(0, 0, 0, .5), rgba(0, 0, 0, .18) 55%, transparent 80%); }
+:root[data-theme="dark"] .dock-scrim { background: radial-gradient(circle at calc(100% - var(--d2-cx)) calc(100% - 84px), rgba(0, 0, 0, .5), rgba(0, 0, 0, .18) 55%, transparent 80%); }
 .dock-scrim.show { opacity: 1; pointer-events: auto; }
 
 /* 回到今天 / 回到本周：和 logo 同一竖线，放在扇形能展开到的范围之上 */
 .back-today {
-  right: calc(var(--d2-side) + var(--d2-hit) / 2 - 23px);
+  right: calc(var(--d2-cx) - 23px);   /* 和 logo 同一条中轴 */
   bottom: calc(var(--d2-b) + var(--d2-lift) + var(--d2-hit) / 2 + 39px);   /* 中心在 logo 中心上方 62px：圆和圆之间留 12px */
   width: 46px; height: 46px; opacity: .9; color: var(--text2);
   transition: opacity .25s, transform .55s var(--spring-out);
@@ -1597,12 +1599,12 @@ body[data-page="sched"] .sched-back[hidden] { opacity: 0; transform: scale(.6); 
 /* 月视图：日历区从屏幕最顶上开始（灵动岛后面也有日历），calendar.js 把行往下让开安全区 */
 body.cal-m #page-cal { padding-top: 0; }
 /* 周视图：每列顶上先让开悬浮的月份胶囊（胶囊底在安全区下 50px），再写星期、日期；只影响周视图 */
-body.cal-w .wcol { padding-top: 56px; }
+body.cal-w .wcol { padding-top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 44px - var(--safe-t)); }   /* 胶囊底边下面 6px */
 .wwd { font-size: 11px; color: var(--text2); text-align: center; line-height: 1; margin-bottom: 2px; }
 .wcol.today .wwd { color: var(--accent-text); font-weight: 650; }
-body.cal-w .wbar { top: calc(107px + var(--s) * 23px); }   /* 56 + 星期 13 + 日期 38 */
+body.cal-w .wbar { top: calc(var(--pill-y, calc(var(--safe-t) + 12px)) + 95px - var(--safe-t) + var(--s) * 23px); }   /* 列顶留白 + 星期 13 + 日期 38 */
 #page-cal .topbar {
-  position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 6px + var(--cal-drop)); z-index: 6;   /* 比侧拉菜单的顶（安全区下 10px）再低一点：菜单拉出来能整个盖住胶囊 */
+  position: absolute; left: 0; right: 0; top: var(--pill-y, calc(var(--safe-t) + 6px + var(--cal-drop))); z-index: 6;   /* --pill-y：calendar.js 按吸附线算 */   /* 比侧拉菜单的顶（安全区下 10px）再低一点：菜单拉出来能整个盖住胶囊 */
   padding: 0; display: flex; justify-content: center; pointer-events: none;
 }
 #page-cal .topbar .title-wrap { pointer-events: none; }
@@ -1633,7 +1635,7 @@ body.cal-w .wbar { top: calc(107px + var(--s) * 23px); }   /* 56 + 星期 13 + �
 /* 左右边距和下面日历的每一行（.wrow 左右各 2px）完全一样：七个字正好对准七列，不会越往两边越歪。
    玻璃和月份胶囊、底部按钮是同一种（iPhone / Mac 上同一种原生液态玻璃，深色模式不发白） */
 body #page-cal .weekdays {
-  display: grid; position: absolute; left: 2px; right: 2px; top: calc(var(--safe-t) + 50px + var(--cal-drop)); z-index: 6;
+  display: grid; position: absolute; left: 2px; right: 2px; top: var(--wk-y, calc(var(--safe-t) + 50px + var(--cal-drop))); z-index: 6;   /* --wk-y：底边在吸附线（默认本周那一行的顶边）上方 4px */
   height: 24px; padding: 0; align-items: center; pointer-events: none; border-radius: 12px;
   font-size: 11px; font-weight: 650; letter-spacing: .04em; color: var(--text);
   background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .05) 60%, rgba(255, 255, 255, .12));

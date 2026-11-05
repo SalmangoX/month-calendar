@@ -755,6 +755,8 @@ enum DockSize {
     static let pill: CGFloat = 52, logo: CGFloat = 54, fan: CGFloat = 50, back: CGFloat = 46
     /// 热区底边离屏幕底：至少 24，有 Home 条时再让 10
     static func bottom(_ safe: CGFloat) -> CGFloat { max(24, safe + 10) }
+    /// 时钟胶囊、logo 的中轴离屏幕左 / 右边多远：日历每行左右各 2，七列等分，取第一条列线
+    static func axis(_ w: CGFloat) -> CGFloat { 2 + (w - 4) / 7 }
     /// 扇形按钮沿四分之一圆弧均匀排开：两个时彼此的间距和到 logo 的间距一样；记录日历多一个中间的「统计」
     static func fan(_ n: Int) -> [CGSize] {
         let (r, a): (CGFloat, [CGFloat]) = n == 3 ? (88, [100, 145, 190]) : (84, [115, 175])   // 整体相对 logo 逆时针转 10°：加号不要太高、太靠右
@@ -813,13 +815,18 @@ struct GlassDock: View {
                         .ignoresSafeArea()
                 }
                 if d.pager { pager(d).padding(.bottom, b).transition(.opacity) }
-                HStack(alignment: .bottom, spacing: 0) {
-                    if !d.set { clock(d).transition(.scale(scale: 0.86).combined(with: .opacity)) }
-                    Spacer(minLength: 0)
-                    logoCluster(d, dark: dark)
+                // 时钟胶囊、logo 按中轴放：左边对准周日 / 周一之间那条线，右边对准周五 / 周六之间那条线（和网页 --d2-cx 一样）。
+                // 各自放在宽 2 × 中轴的框里居中，胶囊多宽中轴都不变。日历里点开某一天的卡片时（pv ≥ 0）只往上挪
+                GeometryReader { g in
+                    let cx = DockSize.axis(g.size.width)
+                    HStack(alignment: .bottom, spacing: 0) {
+                        ZStack { if !d.set { clock(d).transition(.scale(scale: 0.86).combined(with: .opacity)) } }
+                            .frame(width: cx * 2)
+                        Spacer(minLength: 0)
+                        logoCluster(d, dark: dark).frame(width: cx * 2)
+                    }
+                    .frame(width: g.size.width, height: g.size.height, alignment: .bottom)
                 }
-                // 日历里点开某一天的卡片时（pv ≥ 0）：往上、往里挪，整个落在卡片底部里面（和网页一样）
-                .padding(.horizontal, (d.pv ?? -1) >= 0 ? 16 : DockSize.side)
                 .padding(.bottom, b + DockSize.lift + CGFloat(max(0, d.pv ?? 0)))
                 .animation(.spring(response: 0.45, dampingFraction: 0.85), value: d.pv)
             }
