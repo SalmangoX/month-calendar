@@ -1368,7 +1368,7 @@
   const prevBack = MC.back;
   MC.back = () => (UI.confirmOpen() ? (UI.closeConfirm(), true) : false) || (Days.closeOverlay && Days.closeOverlay()) || (!UI.anyOpen() && closePage()) || prevBack();
   // 只在本机调试：localhost/#camtest 直接打开纪念相机（模拟器里检查原生相机界面用）
-  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && location.hash === '#camtest') setTimeout(() => {
+  if (/^(localhost|127\.0\.0\.1|10\.0\.2\.2)$/.test(location.hostname) && location.hash === '#camtest') setTimeout(() => {
     let c = MC.data.cals.find(k => k.kind === 'days'); if (!c) c = MC.addCal('测试', '#D46A8C', { kind: 'days' });
     let x = MC.data.days.find(d => d.cal === c.id); if (!x) x = MC.addDay({ cal: c.id, title: '生日', date: MC.ymd(MC.addDays(new Date(), 45)), rep: 'year' });
     Days.openCam(x);

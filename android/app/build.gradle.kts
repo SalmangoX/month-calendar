@@ -91,6 +91,10 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     // 网页一开始就注入脚本（藏起网页自己的悬浮控件，换成原生的）
     implementation("androidx.webkit:webkit:1.12.1")
+    // 纪念相机（原生）：CameraX 取景、拍照
+    implementation("androidx.camera:camera-core:1.4.1")
+    implementation("androidx.camera:camera-camera2:1.4.1")
+    implementation("androidx.camera:camera-lifecycle:1.4.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // 合并规则的对照测试（JVM 上没有安卓自带的 org.json）

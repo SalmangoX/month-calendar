@@ -19,7 +19,7 @@ import org.json.JSONObject;
 final class Bridge {
     static final int BRIDGE = 1;
     private static final String[] FEATURES = {
-            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update", "nativeDock", "getData", "autoBackup", "sysCal"
+            "data", "prefs", "token", "notify", "exact", "battery", "test", "widgets", "pin", "saveFile", "openUrl", "sync", "feedback", "saveImage", "camera", "daysWidget", "http", "wx", "chrome", "update", "nativeDock", "getData", "autoBackup", "sysCal", "nativeCam"
     };
 
     private final MainActivity a;
@@ -29,6 +29,10 @@ final class Bridge {
         this.a = a;
         this.c = a.getApplicationContext();
     }
+
+    /** 纪念相机：原生全屏打开（NativeCam.kt）；拍好的照片由网页 Days.addShot 收进相册 */
+    @JavascriptInterface
+    public void openCam(String json) { a.openNativeCam(json); }
 
     /** 网页把当前页的背景色告诉原生，状态栏那条就跟着页面走，不再是一条系统白 */
     @JavascriptInterface

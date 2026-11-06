@@ -48,7 +48,16 @@ import java.util.regex.Pattern;
  */
 public class MainActivity extends androidx.activity.ComponentActivity {
     static final String EXTRA_HASH = "hash";
-    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_PERM = 13, REQ_CAM = 14, REQ_TREE = 15, REQ_CAL = 16;
+    private static final int REQ_FILE = 11, REQ_SAVE = 12, REQ_PERM = 13, REQ_CAM = 14, REQ_TREE = 15, REQ_CAL = 16, REQ_NCAM = 17;
+    private String ncamJson;
+    /** 纪念相机（原生）：先拿到相机权限再打开 */
+    void openNativeCam(String json) {
+        runOnUiThread(() -> {
+            if (checkSelfPermission(android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) { dock.getCam().start(json); return; }
+            ncamJson = json;
+            requestPermissions(new String[]{android.Manifest.permission.CAMERA}, REQ_NCAM);
+        });
+    }
     private String calJson, calCb;   // 导入系统日历：等权限回来再读
     private android.webkit.PermissionRequest camReq;
 
@@ -315,6 +324,7 @@ public class MainActivity extends androidx.activity.ComponentActivity {
 
     // ---------- 返回键：先收起原生的扇形菜单，再关网页里的面板，回到月历页，最后才退到后台 ----------
     private void goBack() {
+        if (dock != null && dock.back()) return;   // 纪念相机开着：先关相机
         if (dock != null && dock.getModel().back()) return;
         web.evaluateJavascript("(function(){try{return !!(window.MC&&MC.back&&MC.back())}catch(e){return false}})()",
                 v -> { if (!"true".equals(v)) moveTaskToBack(true); });
@@ -324,6 +334,7 @@ public class MainActivity extends androidx.activity.ComponentActivity {
     private static String hash(Intent i) {
         String h = i == null ? null : i.getStringExtra(EXTRA_HASH);
         if (h != null && h.matches("#days(-[A-Za-z0-9]{1,40})?")) return h; // 纪念日小组件：打开纪念日历（或某个日子）
+        if (BuildConfig.DEBUG && "#camtest".equals(h)) return h;   // 只在调试版：直接打开纪念相机（检查原生相机界面）
         return "#today".equals(h) || "#sched".equals(h) ? h : "";
     }
 
@@ -468,6 +479,11 @@ public class MainActivity extends androidx.activity.ComponentActivity {
             String cb = calCb, js = calJson; calCb = null; calJson = null;
             if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) doReadSysCal(js, cb);
             else { JSONObject o = new JSONObject(); try { o.put("ok", false); o.put("error", "denied"); } catch (Exception ignored) { } callback(cb, o); }
+            return;
+        }
+        if (req == REQ_NCAM && ncamJson != null) {
+            String j = ncamJson; ncamJson = null;
+            if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) dock.getCam().start(j);
             return;
         }
         if (req == REQ_CAM && camReq != null) {
