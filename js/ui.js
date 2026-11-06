@@ -132,14 +132,23 @@
   }
   function popMorph(el, g, opening) {
     if (!document.body.animate || reduceMo()) return;
-    const blob = document.createElement('div'); blob.className = 'ks-blob pop-blob'; document.body.appendChild(blob);
-    // 打开：被拉长的一滴先从那一条伸出去，再一口气展开；收起：卡片整块连着缩回那一条（不再变成细长的一滴，用户嫌怪），最后融进去
+    const blob = document.createElement('div'); blob.className = 'ks-blob pop-blob';
+    // 收起时卡片沉到下面一层：放进那一组所在的页面里、垫在那一组下面（那一组临时抬高一层），缩回去时是钻到那一条底下，不是盖在上面（用户定的）
+    const grp = !opening && g.from && (g.from.closest('.sgroup, .group, .pk-rows') || g.from);
+    let ox = 0, oy = 0;
+    if (grp && grp.parentNode) {
+      blob.classList.add('under'); grp.parentNode.insertBefore(blob, grp); grp.classList.add('pop-over');
+      blob.style.left = blob.style.top = '0px'; const r0 = blob.getBoundingClientRect(); ox = r0.left; oy = r0.top;   // 祖先有 transform 时 fixed 的原点不在屏幕左上角，按实际量的减回去
+    } else document.body.appendChild(blob);
+    const at = r => ({ ...r, x: r.x - ox, y: r.y - oy });
+    // 打开：被拉长的一滴先从那一条伸出去，再一口气展开；收起：卡片整块连着缩回那一条（不再变成细长的一滴，用户嫌怪），最后沉到它下面
     const kf = opening ? [px(g.src, g.rad), { ...px(popMid(g), popMid(g).w / 2), offset: .34 }, px(g.dst, 30)]
-      : [px(g.dst, 30), px(g.src, g.rad)];
+      : [px(at(g.dst), 30), px(at(g.src), g.rad)];
     el.style.opacity = '0';
     const a = blob.animate(kf, { duration: opening ? 320 : 240, easing: opening ? 'cubic-bezier(.3, .72, .3, 1)' : 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
     let done = false;
-    const fin = () => { if (done) return; done = true; blob.animate([{ opacity: 1 }, { opacity: 0 }], { duration: opening ? 120 : 90 }).onfinish = () => blob.remove(); setTimeout(() => blob.remove(), 300); };
+    const gone = () => { blob.remove(); if (grp) grp.classList.remove('pop-over'); };
+    const fin = () => { if (done) return; done = true; blob.animate([{ opacity: 1 }, { opacity: 0 }], { duration: opening ? 120 : 90 }).onfinish = gone; setTimeout(gone, 300); };
     if (opening) setTimeout(() => { el.style.opacity = ''; el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, easing: 'ease-out' }); }, 320 * .55);   // 拉到一半多就看得到里面的东西
     a.onfinish = fin; setTimeout(fin, (opening ? 320 : 260) + 80);
   }
@@ -170,7 +179,7 @@
     const pe = $('#' + id);
     if (pe._pop && pe.classList.contains('show')) {   // 缩回点的那一条（那一条还在屏幕上的话）
       const { from, g } = pe._pop, fr = from.getBoundingClientRect();
-      if (document.contains(from) && fr.width > 0) popMorph(pe, { ...g, src: { x: fr.left, y: fr.top, w: fr.width, h: fr.height }, dst: { ...g.dst, h: Math.min(pe.offsetHeight, g.dst.h) } }, false);
+      if (document.contains(from) && fr.width > 0) popMorph(pe, { ...g, from, src: { x: fr.left, y: fr.top, w: fr.width, h: fr.height }, dst: { ...g.dst, h: Math.min(pe.offsetHeight, g.dst.h) } }, false);
     }
     pe.classList.remove('show');
     setTimeout(() => { if (!pe.classList.contains('show')) pe.style.opacity = ''; }, 300);

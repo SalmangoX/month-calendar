@@ -702,7 +702,7 @@
   function setOpen(v) {
     if (v === open) return;
     open = v;
-    if (v) layoutFans();
+    if (v) { layoutFans(); spot(); }
     menu.classList.toggle('open', v);
     scrim.classList.toggle('show', v);
     body.classList.toggle('pod-open', v);
@@ -712,6 +712,12 @@
     tick();
   }
   const closeMenu = () => setOpen(false);
+  // 扇形打开时整个界面暗一点，只有 logo 和扇形这一块亮着（聚光的圆心是 logo 中心），一眼看得出正在这里交互【联动:底部悬浮控件】
+  function spot() {
+    const r = logo.getBoundingClientRect(), o = scrim.getBoundingClientRect();
+    scrim.style.setProperty('--sx', (r.left + r.width / 2 - o.left) + 'px');
+    scrim.style.setProperty('--sy', (r.top + r.height / 2 - o.top) + 'px');
+  }
   let lastDragEnd = 0;   // 刚拖完页面的那一下，不要顺手把菜单点开
   logo.addEventListener('click', e => {
     e.stopPropagation();
@@ -720,10 +726,12 @@
   });
   scrim.addEventListener('click', closeMenu);
 
-  // ---------- 按住 logo 拖动：后面的页面虚下去（景深），一根从 logo 拉出来的线跟着手指；拖到按钮上它变大、冒出 logo 色调的粒子，松手就选中它 ----------
-  // 【联动:底部悬浮控件】iPhone / Mac 在 GlassNav.swift（GlassDock 的 logoDrag），安卓在 Dock.kt；三处的样子、距离一样
+  // ---------- 按住 logo 拖动：logo 外面那圈透明玻璃被手指拉过去（图标不动），一条细颈连着手指下面的一小滴玻璃；扇形这一块放大一点、周围暗下去；
+  // 拖到按钮上它变大、冒出 logo 色调的粒子，松手就选中它 ----------
+  // 【联动:底部悬浮控件】iPhone / Mac 在 GlassNav.swift（GlassDock 的 logoDrag / FanGlassDrop），安卓在 Dock.kt（FanDrop）；三处的样子、距离一样
   const LOGO_COLS = ['#9E9AC8', '#C7B3CF', '#EBC7A6'];   // Cadence logo 的雾紫 → 丁香 → 暖沙
   const HOT_R = 46;   // 手指离按钮中心多近算「拖到上面」
+  const DROP = { base: 27, tip: 12, tipHot: 15, neck: 2.2 };   // 水滴：根就是 logo 的玻璃圆、指尖那一滴、颈最细时的半宽
   let pd = null, fd = null, fdCv = null, fdCtx = null, parts = [], fdRaf = 0;
   const centerOf = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
   const buzz = () => { try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(8); } catch (e) {} };
@@ -734,6 +742,21 @@
     }
     if (parts.length > 220) parts.splice(0, parts.length - 220);
   }
+  // 两个圆连成一滴水：根在 (x1, y1, r1)，水滴在 (x2, y2, r2)，中间的颈半宽 w；两边各两段二次曲线，在颈的正中相切（三端同一个算法）
+  function dropPath(g, x1, y1, r1, x2, y2, r2, w) {
+    const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, u = Math.atan2(dy, dx);
+    const ux = dx / d, uy = dy / d, nx = -uy, ny = ux, a1 = .42, a2 = Math.PI - .95;
+    const s1 = (r1 + d / 2) / 2, s2 = d - (r2 + d / 2) / 2, mx = x1 + ux * d / 2, my = y1 + uy * d / 2;
+    g.beginPath();
+    g.moveTo(x1 + Math.cos(u + a1) * r1, y1 + Math.sin(u + a1) * r1);
+    g.quadraticCurveTo(x1 + ux * s1 + nx * w, y1 + uy * s1 + ny * w, mx + nx * w, my + ny * w);
+    g.quadraticCurveTo(x1 + ux * s2 + nx * w, y1 + uy * s2 + ny * w, x2 + Math.cos(u + a2) * r2, y2 + Math.sin(u + a2) * r2);
+    g.arc(x2, y2, r2, u + a2, u - a2, true);
+    g.quadraticCurveTo(x1 + ux * s2 - nx * w, y1 + uy * s2 - ny * w, mx - nx * w, my - ny * w);
+    g.quadraticCurveTo(x1 + ux * s1 - nx * w, y1 + uy * s1 - ny * w, x1 + Math.cos(u - a1) * r1, y1 + Math.sin(u - a1) * r1);
+    g.arc(x1, y1, r1, u - a1, u + a1 - Math.PI * 2, true);
+    g.closePath();
+  }
   function fdFrame(now) {
     fdRaf = 0;
     if (!fdCv) return;
@@ -743,15 +766,18 @@
     if (fd) {
       const [lx, ly] = centerOf(logo);
       let tx = fd.x, ty = fd.y;
-      if (fd.hot) { const [hx, hy] = centerOf(fd.hot); tx += (hx - tx) * .55; ty += (hy - ty) * .55; }   // 线头被按钮吸过去一点
-      const dx = tx - lx, dy = ty - ly, len = Math.hypot(dx, dy) || 1, bend = Math.min(24, len * .16);
-      const cx = (lx + tx) / 2 - dy / len * bend, cy = (ly + ty) / 2 + dx / len * bend;   // 带一点弧度，像被拉出来的线
-      const gr = g.createLinearGradient(lx, ly, tx, ty);
-      gr.addColorStop(0, LOGO_COLS[0]); gr.addColorStop(.55, LOGO_COLS[1]); gr.addColorStop(1, LOGO_COLS[2]);
-      g.lineCap = 'round'; g.strokeStyle = gr; g.lineWidth = 3.2; g.shadowColor = 'rgba(158, 154, 200, .6)'; g.shadowBlur = 10;
-      g.beginPath(); g.moveTo(lx, ly); g.quadraticCurveTo(cx, cy, tx, ty); g.stroke();
-      g.fillStyle = LOGO_COLS[2]; g.shadowBlur = 14; g.beginPath(); g.arc(tx, ty, fd.hot ? 6 : 4.5, 0, Math.PI * 2); g.fill();
-      g.shadowBlur = 0;
+      if (fd.hot) { const [hx, hy] = centerOf(fd.hot); tx += (hx - tx) * .55; ty += (hy - ty) * .55; }   // 水滴被按钮吸过去一点
+      const r2 = fd.hot ? DROP.tipHot : DROP.tip, d = Math.hypot(tx - lx, ty - ly);
+      if (d > DROP.base + r2 * .4) {
+        const dark = document.documentElement.dataset.theme === 'dark';
+        dropPath(g, lx, ly, DROP.base, tx, ty, r2, Math.max(DROP.neck, 4.2 - d * .012));   // 拉得越远颈越细，但不会断
+        g.shadowColor = 'rgba(0, 0, 0, .14)'; g.shadowBlur = 12; g.shadowOffsetY = 3;
+        g.fillStyle = dark ? 'rgba(255, 255, 255, .08)' : 'rgba(255, 255, 255, .22)'; g.fill();   // 透明玻璃：几乎全透
+        g.shadowBlur = 0; g.shadowOffsetY = 0;
+        g.strokeStyle = dark ? 'rgba(255, 255, 255, .26)' : 'rgba(255, 255, 255, .75)'; g.lineWidth = 1; g.stroke();   // 玻璃的亮边
+        g.fillStyle = dark ? 'rgba(255, 255, 255, .22)' : 'rgba(255, 255, 255, .6)';   // 水滴上的一点高光
+        g.beginPath(); g.ellipse(tx - r2 * .32, ty - r2 * .36, r2 * .32, r2 * .2, -.6, 0, Math.PI * 2); g.fill();
+      }
       if (fd.hot && now - (fd.emit || 0) > 80) { fd.emit = now; const [hx, hy] = centerOf(fd.hot); burst(hx, hy, 2, .9); }   // 停在按钮上：一直冒一点
     }
     parts = parts.filter(p => now - p.t < p.life);
@@ -766,7 +792,7 @@
     else { fdCv.remove(); fdCv = null; }
   }
   const fdKick = () => {
-    if (!fdCv) { fdCv = document.createElement('canvas'); fdCv.className = 'fan-trail'; fdCv.setAttribute('aria-hidden', 'true'); document.body.appendChild(fdCv); fdCtx = fdCv.getContext('2d'); }
+    if (!fdCv) { fdCv = document.createElement('canvas'); fdCv.className = 'fan-trail'; fdCv.setAttribute('aria-hidden', 'true'); scrim.parentNode.insertBefore(fdCv, scrim.nextSibling); fdCtx = fdCv.getContext('2d'); }
     if (!fdRaf) fdRaf = requestAnimationFrame(fdFrame);
   };
   function fdEnd(pick) {
@@ -783,7 +809,7 @@
     if (!fd) {
       if (Math.hypot(e.clientX - pd.x0, e.clientY - pd.y0) < 10) return;
       fd = { x: e.clientX, y: e.clientY, hot: null };   // 拖起来了：打开扇形、后面的页面虚下去
-      setOpen(true); body.classList.add('fan-drag'); buzz();
+      setOpen(true); spot(); body.classList.add('fan-drag'); buzz();
       try { logo.setPointerCapture(pd.id); } catch (err) {}
       fdKick();
     }

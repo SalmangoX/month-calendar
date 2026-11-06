@@ -1730,22 +1730,29 @@ body.dock-pv { --d2-lift: calc(var(--d2-lift-base, 40px) + var(--d2-pv, 0px)); }
 .fan-add .face::after { opacity: .35; }
 :root[data-theme="dark"] .fan-add .face { background: var(--fab-fill, var(--accent)); }
 
-/* 按住 logo 拖动（index.html 的 logo 拖动）：后面的页面虚下去，像相机的景深；拖到的按钮变大、带一圈 logo 色调的光【联动:底部悬浮控件】 */
+/* 按住 logo 拖动（index.html 的 logo 拖动）：logo 外面那圈透明玻璃被拉成一滴水（画布 .fan-trail 在按钮下面，图标不动），扇形这一块放大一点，
+   周围暗下去、虚一点（聚光中心是 logo，--sx / --sy 由 spot() 算）；拖到的按钮变大、带一圈 logo 色调的光【联动:底部悬浮控件】 */
 .pod-logo { touch-action: none; }   /* 按住拖动时浏览器别抢去滚动 */
 .fan-trail { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 15; pointer-events: none; }
-body.fan-drag .dock-scrim { opacity: 1; -webkit-backdrop-filter: blur(7px) saturate(1.15); backdrop-filter: blur(7px) saturate(1.15);
-  background: radial-gradient(circle at calc(100% - var(--d2-cx)) calc(100% - 84px), rgba(10, 16, 28, .22), rgba(10, 16, 28, .1) 60%, rgba(10, 16, 28, .06)); }
-:root[data-theme="dark"] body.fan-drag .dock-scrim { background: radial-gradient(circle at calc(100% - var(--d2-cx)) calc(100% - 84px), rgba(0, 0, 0, .55), rgba(0, 0, 0, .3) 60%, rgba(0, 0, 0, .22)); }
+body.fan-drag .pod-menu.open .fan { transform: rotate(var(--fa, 0deg)) translateX(calc(var(--fr, 84px) * 1.12)) rotate(calc(-1 * var(--fa, 0deg))) scale(1.12);
+  transition: transform .28s cubic-bezier(.3, 1.2, .45, 1); }
 .fan .face { transition: transform .3s cubic-bezier(.3, 1.6, .5, 1), box-shadow .25s, background .25s; }
 .fan.hot .face { transform: scale(1.26); box-shadow: 0 0 0 5px rgba(199, 179, 207, .28), 0 12px 28px rgba(158, 154, 200, .45), var(--lg-shadow); }
-/* 菜单打开时：一层很淡的暗角接住点击，不会点穿到日历 */
+/* 扇形打开时：除了 logo 和扇形这一块，整个界面都暗一点（也接住点击，不会点穿到日历、拉不出侧拉菜单时看得出是这里开着） */
 .dock-scrim {
   position: absolute; inset: 0; z-index: 15; pointer-events: none; opacity: 0;
-  background: radial-gradient(circle at calc(100% - var(--d2-cx)) calc(100% - 84px), rgba(10, 16, 28, .16), rgba(10, 16, 28, .04) 55%, transparent 75%);
-  transition: opacity .3s ease;
+  --sx: calc(100% - var(--d2-cx)); --sy: calc(100% - 84px);
+  background: radial-gradient(circle at var(--sx) var(--sy), transparent 120px, rgba(12, 14, 20, .12) 210px, rgba(12, 14, 20, .15));
+  transition: opacity .22s ease;
 }
-:root[data-theme="dark"] .dock-scrim { background: radial-gradient(circle at calc(100% - var(--d2-cx)) calc(100% - 84px), rgba(0, 0, 0, .5), rgba(0, 0, 0, .18) 55%, transparent 80%); }
+:root[data-theme="dark"] .dock-scrim { background: radial-gradient(circle at var(--sx) var(--sy), transparent 120px, rgba(0, 0, 0, .32) 210px, rgba(0, 0, 0, .36)); }
 .dock-scrim.show { opacity: 1; pointer-events: auto; }
+body.fan-drag .dock-scrim { opacity: 1;
+  background: radial-gradient(circle at var(--sx) var(--sy), transparent 130px, rgba(12, 14, 20, .17) 220px, rgba(12, 14, 20, .21));
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  -webkit-mask-image: radial-gradient(circle at var(--sx) var(--sy), transparent 110px, #000 210px); mask-image: radial-gradient(circle at var(--sx) var(--sy), transparent 110px, #000 210px); }
+:root[data-theme="dark"] body.fan-drag .dock-scrim { background: radial-gradient(circle at var(--sx) var(--sy), transparent 130px, rgba(0, 0, 0, .4) 220px, rgba(0, 0, 0, .46)); }
+/* App 里网页这层藏起来了（#dockScrim visibility:hidden），暗下去由原生画：iPhone / Mac GlassDock、安卓 Dock.kt */
 
 /* 回到今天 / 回到本周：和 logo 同一竖线，放在扇形能展开到的范围之上 */
 .back-today {
@@ -2073,6 +2080,8 @@ body #page-cal .weekdays.hide { display: none; }
 .sheet.fl.pop .handle { display: none; }
 .sheet.fl.pop .sheet-head { padding-top: 14px; }
 .pop-blob { z-index: 95; }
+.pop-blob.under { z-index: 0; }   /* 收起时沉到那一组下面（ui.js 的 popMorph） */
+.pop-over { position: relative; z-index: 1; }
 #chooseSheet { z-index: 60; }
 #chooseSheet.act .ch-tick { display: none; }
 #chooseSheet.act .ch-row { justify-content: flex-start; }

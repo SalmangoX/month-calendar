@@ -678,39 +678,99 @@ final class FanFX {
     }
 }
 
-/// 线 + 粒子：线从 logo 中心出发、带一点弧度，线头被按钮吸过去一点；停在按钮上时一直冒一点粒子
+/// 按住 logo 拖动的样子（几处共用）：扇形这一块放大多少、logo 被拉过去多少、水滴的尺寸【联动:底部悬浮控件】（和网页 DROP、安卓 Dock.kt 一样）
+enum FanDropSize {
+    static let zoom: CGFloat = 1.12, tip: CGFloat = 12, tipHot: CGFloat = 15, neck: CGFloat = 2.2
+    /// 两个圆连成一滴水：根 (c1, r1)，水滴 (c2, r2)，颈半宽 w；两边各两段二次曲线，在颈的正中相切（和网页 dropPath 同一个算法）
+    static func path(_ c1: CGPoint, _ r1: CGFloat, _ c2: CGPoint, _ r2: CGFloat, _ w: CGFloat) -> Path {
+        let dx = c2.x - c1.x, dy = c2.y - c1.y, d = max(1, hypot(dx, dy)), u = atan2(dy, dx)
+        let ux = dx / d, uy = dy / d, nx = -uy, ny = ux, a1: CGFloat = 0.42, a2: CGFloat = .pi - 0.95
+        let s1 = (r1 + d / 2) / 2, s2 = d - (r2 + d / 2) / 2
+        func at(_ s: CGFloat, _ k: CGFloat) -> CGPoint { CGPoint(x: c1.x + ux * s + nx * w * k, y: c1.y + uy * s + ny * w * k) }
+        func on(_ c: CGPoint, _ r: CGFloat, _ a: CGFloat) -> CGPoint { CGPoint(x: c.x + cos(a) * r, y: c.y + sin(a) * r) }
+        var p = Path()
+        p.move(to: on(c1, r1, u + a1))
+        p.addQuadCurve(to: at(d / 2, 1), control: at(s1, 1))
+        p.addQuadCurve(to: on(c2, r2, u + a2), control: at(s2, 1))
+        p.addArc(center: c2, radius: r2, startAngle: .radians(u + a2), endAngle: .radians(u - a2), clockwise: true)
+        p.addQuadCurve(to: at(d / 2, -1), control: at(s2, -1))
+        p.addQuadCurve(to: on(c1, r1, u - a1), control: at(s1, -1))
+        p.addArc(center: c1, radius: r1, startAngle: .radians(u - a1), endAngle: .radians(u + a1 - 2 * .pi), clockwise: true)
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// 拖到按钮上冒出的粒子（停在按钮上时一直冒一点）。坐标都是 "dock" 坐标，画的时候减掉这块画布在 "dock" 里的原点
 @available(macOS 26.0, iOS 26.0, *)
-struct FanTrail: View {
+struct FanSparks: View {
     @ObservedObject var m: NavModel
     let fx: FanFX, logoC: CGPoint, hotC: CGPoint?
     @State private var lastEmit = Date.distantPast
     var body: some View {
-        TimelineView(.animation(paused: m.logoDrag == nil && fx.ps.isEmpty)) { tl in
-            Canvas { ctx, _ in
-                let now = tl.date
-                if let f = m.logoDrag {
-                    var t = f
-                    if let h = hotC { t = CGPoint(x: f.x + (h.x - f.x) * 0.55, y: f.y + (h.y - f.y) * 0.55) }
-                    let dx = t.x - logoC.x, dy = t.y - logoC.y, len = max(1, hypot(dx, dy)), bend = min(24, len * 0.16)
-                    let c = CGPoint(x: (logoC.x + t.x) / 2 - dy / len * bend, y: (logoC.y + t.y) / 2 + dx / len * bend)
-                    var p = Path(); p.move(to: logoC); p.addQuadCurve(to: t, control: c)
-                    ctx.drawLayer { l in
-                        l.addFilter(.shadow(color: Color(argb: 0x999E_9AC8), radius: 6))
-                        l.stroke(p, with: .linearGradient(Gradient(colors: FanFX.cols), startPoint: logoC, endPoint: t), style: StrokeStyle(lineWidth: 3.2, lineCap: .round))
-                        let r: CGFloat = hotC == nil ? 4.5 : 6
-                        l.fill(Path(ellipseIn: CGRect(x: t.x - r, y: t.y - r, width: r * 2, height: r * 2)), with: .color(FanFX.cols[2]))
+        GeometryReader { g in
+            let o = g.frame(in: .named("dock")).origin
+            TimelineView(.animation(paused: m.logoDrag == nil && fx.ps.isEmpty)) { tl in
+                Canvas { ctx, _ in
+                    ctx.translateBy(x: -o.x, y: -o.y)
+                    let now = tl.date
+                    if m.logoDrag != nil, let h = hotC, now.timeIntervalSince(lastEmit) > 0.08 { DispatchQueue.main.async { lastEmit = now; fx.burst(at: h, n: 2, speed: 55) } }   // 停在按钮上：一直冒一点
+                    fx.ps.removeAll { now.timeIntervalSince($0.t) > $0.life }
+                    for q in fx.ps {
+                        let e = now.timeIntervalSince(q.t), k = e / q.life, tau = 0.36
+                        let d = CGFloat(tau * (1 - exp(-e / tau)))   // 越走越慢
+                        let x = q.x + q.vx * d, y = q.y + q.vy * d, r = q.r * CGFloat(1 - k * 0.5)
+                        ctx.opacity = (1 - k) * 0.9
+                        ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(FanFX.cols[q.c]))
                     }
-                    if let h = hotC, now.timeIntervalSince(lastEmit) > 0.08 { DispatchQueue.main.async { lastEmit = now; fx.burst(at: h, n: 2, speed: 55) } }
-                }
-                fx.ps.removeAll { now.timeIntervalSince($0.t) > $0.life }
-                for q in fx.ps {
-                    let e = now.timeIntervalSince(q.t), k = e / q.life, tau = 0.36
-                    let d = CGFloat(tau * (1 - exp(-e / tau)))   // 越走越慢
-                    let x = q.x + q.vx * d, y = q.y + q.vy * d, r = q.r * CGFloat(1 - k * 0.5)
-                    ctx.opacity = (1 - k) * 0.9
-                    ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(FanFX.cols[q.c]))
                 }
             }
+        }
+    }
+}
+
+/// 按住 logo 拖动：logo 外面那圈透明玻璃被手指拉过去（根就是 logo 的玻璃圆，一条细颈连着手指下面的一小滴玻璃），图标不动、不变形；
+/// 拖着时 logo 自己的玻璃换成这一块（不然叠两层），水滴被按钮吸过去一点【联动:底部悬浮控件】
+@available(macOS 26.0, iOS 26.0, *)
+struct FanGlassDrop: View {
+    @ObservedObject var m: NavModel
+    let logoC: CGPoint, hotC: CGPoint?
+    @Environment(\.colorScheme) private var scheme
+    var body: some View {
+        GeometryReader { g in
+            let o = g.frame(in: .named("dock")).origin
+            if let f = m.logoDrag {
+                let t0 = hotC.map { CGPoint(x: f.x + ($0.x - f.x) * 0.55, y: f.y + ($0.y - f.y) * 0.55) } ?? f
+                Color.clear
+                    .glassEffect(NavGlass.chrome(scheme), in: DropShape(c1: CGPoint(x: logoC.x - o.x, y: logoC.y - o.y), r1: DockSize.logo / 2,
+                                                                         c2: CGPoint(x: t0.x - o.x, y: t0.y - o.y), r2: hotC == nil ? FanDropSize.tip : FanDropSize.tipHot))
+            }
+        }
+    }
+}
+
+/// logo 的玻璃圆连着一小滴玻璃（离得太近时就只是圆）
+struct DropShape: Shape {
+    var c1: CGPoint, r1: CGFloat, c2: CGPoint, r2: CGFloat
+    func path(in rect: CGRect) -> Path {
+        let d = hypot(c2.x - c1.x, c2.y - c1.y)
+        guard d > r1 + r2 * 0.4 else { return Path(ellipseIn: CGRect(x: c1.x - r1, y: c1.y - r1, width: r1 * 2, height: r1 * 2)) }
+        return FanDropSize.path(c1, r1, c2, r2, max(FanDropSize.neck, 4.2 - d * 0.012))   // 拉得越远颈越细，但不会断
+    }
+}
+
+/// 扇形打开时：除了 logo 和扇形这一块，整个界面都暗一点（聚光的圆心是 logo），按住拖动时再暗一点；也接住点击，点空白处收起【联动:底部悬浮控件】
+@available(macOS 26.0, iOS 26.0, *)
+struct FanSpot: View {
+    let logoC: CGPoint, dragging: Bool, dark: Bool
+    var body: some View {
+        GeometryReader { g in
+            let o = g.frame(in: .named("dock")).origin, w = max(1, g.size.width), h = max(1, g.size.height)
+            let a: Double = dragging ? (dark ? 0.4 : 0.17) : (dark ? 0.32 : 0.12), R: CGFloat = 420
+            Rectangle().fill(RadialGradient(stops: [.init(color: .clear, location: 0), .init(color: .clear, location: (dragging ? 130 : 120) / R),
+                                                    .init(color: .black.opacity(a), location: (dragging ? 220 : 210) / R), .init(color: .black.opacity(a * 1.15), location: 1)],
+                                            center: UnitPoint(x: (logoC.x - o.x) / w, y: (logoC.y - o.y) / h), startRadius: 0, endRadius: R))
+                .animation(.easeOut(duration: 0.22), value: dragging)
         }
     }
 }
@@ -727,16 +787,16 @@ struct GlassDock: View {
         if let d = m.dock {
             let dark = scheme == .dark, b = DockSize.bottom(safeBottom)
             ZStack(alignment: .bottom) {
-                if m.fanOpen {   // 打开菜单时：一层很淡的暗角接住点击，不会点穿到日历
-                    RadialGradient(colors: [.black.opacity(dark ? 0.45 : 0.14), .black.opacity(dark ? 0.15 : 0.03), .clear],
-                                   center: UnitPoint(x: 1, y: 1), startRadius: 0, endRadius: 420)
+                if m.fanOpen {   // 打开菜单时：除了扇形这一块整个界面暗一点（看得出正在这里交互），也接住点击，不会点穿到日历
+                    FanSpot(logoC: logoC, dragging: m.logoDrag != nil, dark: dark)
                         .contentShape(Rectangle())
                         .onTapGesture { m.setFan(false) }
                         .transition(.opacity)
                         .ignoresSafeArea()
                 }
-                // 按住 logo 拖动：一根从 logo 拉出来的线跟着手指，拖到按钮上冒出 logo 色调的粒子（画在按钮下面）
-                FanTrail(m: m, fx: fx, logoC: logoC, hotC: hotCenter(d))
+                // 按住 logo 拖动：logo 外面那圈玻璃被拉成一滴水跟着手指，拖到按钮上冒出 logo 色调的粒子（画在按钮下面）
+                FanGlassDrop(m: m, logoC: logoC, hotC: hotCenter(d)).allowsHitTesting(false).ignoresSafeArea()
+                FanSparks(m: m, fx: fx, logoC: logoC, hotC: hotCenter(d))
                     .allowsHitTesting(false).ignoresSafeArea()
                 if d.pager { pager(d).padding(.bottom, b).transition(.opacity) }
                 // 时钟胶囊、logo 按中轴放：左边对准周日 / 周一之间那条线，右边对准周五 / 周六之间那条线（和网页 --d2-cx 一样）。
@@ -826,8 +886,8 @@ struct GlassDock: View {
     private func fanIDs(_ d: NavModel.Dock) -> [String] { ["add"] + (d.st == true ? ["stat"] : []) + ["set"] }
     /// 扇形按钮的中心（展开到位后的位置）
     private func fanCenters(_ d: NavModel.Dock) -> [(String, CGPoint)] {
-        let ids = fanIDs(d), offs = DockSize.fan(ids.count)
-        return ids.enumerated().map { k, id in (id, CGPoint(x: logoC.x + offs[k].width, y: logoC.y + offs[k].height)) }
+        let ids = fanIDs(d), offs = DockSize.fan(ids.count), z = m.logoDrag != nil ? FanDropSize.zoom : 1   // 拖着时扇形放大了
+        return ids.enumerated().map { k, id in (id, CGPoint(x: logoC.x + offs[k].width * z, y: logoC.y + offs[k].height * z)) }
     }
     private func hotCenter(_ d: NavModel.Dock) -> CGPoint? { m.fanHot.flatMap { h in fanCenters(d).first { $0.0 == h }?.1 } }
     /// 按住 logo 拖：拖起来就打开扇形、后面虚下去；手指离哪个按钮中心 46 以内就是它（变大、冒粒子、轻震）；松手选中它，没在按钮上就收起
@@ -855,6 +915,7 @@ struct GlassDock: View {
             + (d.st == true ? [m.page == "rstat" ? FanItem(id: "stat", icon: "chevron.left", label: "返回") : FanItem(id: "stat", icon: "chart.bar", label: "统计")] : [])
             + [d.set ? FanItem(id: "set", icon: "chevron.left", label: "返回") : FanItem(id: "set", icon: "gearshape", label: "设置")]
         let arc = DockSize.fanArc(items.count)
+        let zoomed = m.logoDrag != nil, z: CGFloat = zoomed ? FanDropSize.zoom : 1   // 按住拖动时扇形这一块放大一点（改尺寸、加位移，不用 scaleEffect：玻璃不跟着缩放走）
         ZStack {
             if m.back {   // 回到今天 / 本周：平时贴在 logo 正上方；扇形弹出时被顶到扇形上方，收起时落回来
                 Button { navTick(); m.goToday() } label: {
@@ -878,7 +939,7 @@ struct GlassDock: View {
                                 let hot = m.fanHot == it.id   // 拖到它上面：变大（改尺寸，不用 scaleEffect：玻璃不跟着缩放走）
                                 Image(systemName: it.icon).font(.system(size: (it.id == "add" ? 21 : 19) * (hot ? 1.22 : 1), weight: .semibold))
                                     .foregroundStyle(it.id == "add" ? Color.white : Color.primary)
-                                    .frame(width: DockSize.fan * (hot ? 1.26 : 1), height: DockSize.fan * (hot ? 1.26 : 1))
+                                    .frame(width: DockSize.fan * (hot ? 1.26 : 1) * z, height: DockSize.fan * (hot ? 1.26 : 1) * z)
                                     .shadow(color: Color(argb: 0xFF9E_9AC8).opacity(hot ? 0.5 : 0), radius: 14, y: 6)
                                     .animation(.spring(response: 0.28, dampingFraction: 0.62), value: hot)
                                     .background { if it.id == "add" { Circle().fill(Brand.grad(dark)) } }
@@ -886,6 +947,8 @@ struct GlassDock: View {
                                     .padding(6).contentShape(Circle())
                             }
                             .buttonStyle(.plain)
+                            .offset(x: cos(arc.a[k] * .pi / 180) * arc.r * (z - 1), y: -sin(arc.a[k] * .pi / 180) * arc.r * (z - 1))
+                            .animation(.spring(response: 0.28, dampingFraction: 0.8), value: zoomed)
                             .modifier(DockRect(m: m, key: "fan-" + it.id))   // 在 offset 里面量，位置才包含偏移
                             // 像扇子打开（和网页一样）：从 logo 出发，先朝第一个按钮的方向，一边往外走一边沿圆弧转到自己的位置，按顺序一个接一个
                             .transition(.asymmetric(
@@ -904,7 +967,7 @@ struct GlassDock: View {
                                 .opacity(m.fanOpen ? 0.85 : 0).scaleEffect(m.fanOpen ? 1 : 0.5).rotationEffect(.degrees(m.fanOpen ? 0 : -90))
                         }
                         .frame(width: DockSize.logo, height: DockSize.logo)
-                        .glassEffect(NavGlass.chrome(scheme, interactive: true), in: .circle)
+                        .glassEffect(zoomed ? Glass.identity : NavGlass.chrome(scheme, interactive: true), in: .circle)   // 拖着时玻璃交给 FanGlassDrop（被拉长的那一块）
                         .padding((DockSize.hit - DockSize.logo) / 2).contentShape(Circle())
                     }
                     .buttonStyle(.plain)
