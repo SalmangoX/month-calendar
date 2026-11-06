@@ -42,6 +42,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 struct RootView: View {
     let c: WebController
     @ObservedObject var m: NavModel
+    @ObservedObject var cam = NativeCamModel.shared
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -67,6 +68,7 @@ struct RootView: View {
             .ignoresSafeArea()
             GlassMenu(m: m).ignoresSafeArea().allowsHitTesting(m.menu != nil)
             GlassDrawer(m: m).allowsHitTesting(m.drawerOpen)
+            if cam.req != nil { NativeCamView(m: cam).transition(.opacity).zIndex(10) }   // 纪念相机（原生全屏）
         }
         .background(Color(uiColor: WebController.appBg))
     }

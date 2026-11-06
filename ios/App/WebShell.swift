@@ -14,7 +14,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
     static let shared = WebController()
     static let bridgeVersion = 1
     static let features = ["data", "prefs", "token", "notify", "test", "sync", "feedback", "saveFile", "openUrl", "camera",
-                           "http", "icloud", "glassDrawer", "sysCal"]
+                           "http", "icloud", "glassDrawer", "sysCal", "nativeCam"]
 
     let web: WKWebView
     let nav = NavModel()
@@ -185,7 +185,8 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
             icloudRead: function (tag, cb) { post('icloudRead', [String(tag || ''), String(cb)]); },
             icloudWrite: function (body, cb) { post('icloudWrite', [String(body), String(cb)]); },
             sysCalRead: function (j, cb) { post('sysCalRead', [String(j), String(cb)]); },
-            devRot: function (on) { post('devRot', [!!on]); }   // 纪念相机：开着时原生报手机横竖（App 只竖屏，网页自己收不到）
+            devRot: function (on) { post('devRot', [!!on]); },
+            openCam: function (j) { post('openCam', [String(j)]); }   // 纪念相机：原生全屏打开（NativeCam.swift）   // 纪念相机：开着时原生报手机横竖（App 只竖屏，网页自己收不到）
           };
         })();
         """
@@ -305,6 +306,10 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         case "sysCalRead": let cb = s(1), j = s(0); Task { callback(cb, await SysCal.read(j)) }   // 导入：读系统日历
         case "drawer": nav.openDrawer()
         case "devRot": watchRotation(b(0))
+        case "openCam":
+            let cam = NativeCamModel.shared
+            cam.eval = { [weak self] js in self?.web.evaluateJavaScript(js) }
+            withAnimation(.easeOut(duration: 0.22)) { cam.open(s(0)) }
         case "drawerPull": // 手指从网页里拉侧栏：开始 / 拉到哪 / 松手时的速度
             switch s(0) { case "begin": nav.pullBegin(); case "move": nav.pullMove(d(1)); default: nav.pullEnd(d(2)) }
         default: break

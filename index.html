@@ -1089,6 +1089,7 @@
     const pg = page();
     if (idx(pg) < 0 || !pages[pg] || open || pv) return;
     if (blockedBy(e.target)) return;
+    if (e.target.closest && e.target.closest('.dp.show, .cam, .pv')) return;   // 纪念日详情页、相机、看大图浮在上面：它们自己的左右滑（返回）不能翻到别的页
     if (e.touches[0].clientX < 26 && idx(pg) === 0) return;   // 第一页的左边缘留给侧栏；后面几页从边上往右滑也是翻回上一页
     dg = { pg, x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: performance.now(), active: false };
   }, { capture: true, passive: true });
@@ -1197,7 +1198,8 @@
     sg = null;
     if (e.touches.length !== 1) return;
     const sw = swipeOf(); if (!sw) return;
-    if (e.target.closest && e.target.closest(SWIPE_BLOCK)) return;   // 开关、分段、滑块、能左右滑的卡片这些自己要左右拖
+    if (e.target.closest && e.target.closest(SWIPE_BLOCK)) return;
+    if (e.target.closest && e.target.closest('.dp.show, .cam, .pv')) return;   // 浮在上面的详情页、相机：只是关掉它，回到原来那一页   // 开关、分段、滑块、能左右滑的卡片这些自己要左右拖
     sg = { ...sw, x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: performance.now(), on: false };
   }, { capture: true, passive: true });
   document.addEventListener('touchmove', e => {
@@ -1228,6 +1230,7 @@
     if (!wg) {
       const sw = swipeOf(); if (!sw) return;
       if (e.target.closest && e.target.closest(SWIPE_BLOCK)) return;
+      if (e.target.closest && e.target.closest('.dp.show, .cam, .pv')) return;
       if (-e.deltaX * sw.dir <= 0) return;
       wg = { ...sw, dx: 0, t0: performance.now(), on: false }; swipeBegin(wg);
     }

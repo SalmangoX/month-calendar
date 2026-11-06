@@ -1367,6 +1367,12 @@
   MC.onChange = () => { prevChange(); Days.refresh(); };
   const prevBack = MC.back;
   MC.back = () => (UI.confirmOpen() ? (UI.closeConfirm(), true) : false) || (Days.closeOverlay && Days.closeOverlay()) || (!UI.anyOpen() && closePage()) || prevBack();
+  // 只在本机调试：localhost/#camtest 直接打开纪念相机（模拟器里检查原生相机界面用）
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && location.hash === '#camtest') setTimeout(() => {
+    let c = MC.data.cals.find(k => k.kind === 'days'); if (!c) c = MC.addCal('测试', '#D46A8C', { kind: 'days' });
+    let x = MC.data.days.find(d => d.cal === c.id); if (!x) x = MC.addDay({ cal: c.id, title: '生日', date: MC.ymd(MC.addDays(new Date(), 45)), rep: 'year' });
+    Days.openCam(x);
+  }, 1500);
   const prevHash = MC.openHash;
   MC.openHash = h => {
     const m = /^#days(?:-(.+))?$/.exec(h || '');
@@ -2187,13 +2193,28 @@ void main(){vec3 o=texture2D(tex,uv).rgb;vec3 c=o;
   // opts.edit：在相册里改一张纪念相机拍的照片的文字效果（底图是当时加了滤镜、还没放卡片的那张；不再套滤镜）
   Days.openCam = async (x, opts = {}) => {
     closeCam();
+    // iPhone：原生相机（NativeCam.swift，系统液态玻璃 + Core Image 滤镜 + 人脸关键点）；拍好的照片由 Days.addShot 交回来存进相册
+    if (!opts.edit && MC.Native && MC.Native.has && MC.Native.has('nativeCam') && window.MCNative && window.MCNative.openCam) {
+      const inf = info(x), a = amount(x, inf);
+      const head = a.today ? x.title : (zh ? x.title + stateWord(x, inf) : `${x.title} · ${stateWord(x, inf)}`);
+      const words = ['返回', '调整', '相册', '拍摄', '切换镜头', '美颜', '滤镜', '文字', '画幅', '磨皮', '美白', '红润', '瘦脸', '大眼', '滤镜强度', '亮度', '色温', '颗粒',
+        '玻璃', '透明', '浅色', '深色', '默认', '圆体', '衬线', '等宽', '全屏', '还原这个方案'];
+      let roll = '';
+      const p0 = x.photos[0];
+      if (p0) { try { const u = await P.photoURL(p0.id), im = u && await P.loadImg(u); if (im) { const k = 160 / Math.max(im.naturalWidth, im.naturalHeight), c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); roll = c.toDataURL('image/jpeg', .7); } } catch (e) {} }
+      window.MCNative.openCam(JSON.stringify({
+        id: x.id, head, num: a.today ? T('今天') : String(a.num), unit: a.today ? '' : a.unit, date: P.fmtDateTime(inf.occ, x.time), today: !!a.today,
+        looks: CAM_LOOKS.map(l => ({ id: l.id, name: T(l.name), style: l.style, font: l.font, f: l.f })),
+        t: Object.fromEntries(words.map(w => [w, T(w)])), roll,
+      }));
+      return;
+    }
     const el = document.createElement('div');
     el.className = 'cam cam2'; el.id = 'dayCam';
     el.innerHTML = `<div class="cam-view"><video playsinline muted autoplay></video><img class="cam-bg" alt="" hidden><canvas class="cam-gl"></canvas><div class="cam-msg" hidden></div>
         <div class="cam-look-flash" aria-hidden="true"></div>
         <div class="cam-card f-sans st-clear" role="img">${camCardHTML(x)}</div></div>
-      <div class="cam-top"><button class="cam-ic" data-c="close" aria-label="${T('返回')}">${UI_IC.back}</button>
-        <button class="cam-ic" data-c="adjust" aria-label="${T('调整')}" aria-pressed="false">${IC_ADJ}</button></div>
+      <div class="cam-top"><button class="cam-ic" data-c="close" aria-label="${T('返回')}">${UI_IC.back}</button></div>
       <div class="cam-panel">
         <div class="cam-dots" aria-hidden="true">${CAM_LOOKS.map(l => `<i data-dot="${l.id}"></i>`).join('')}</div>
         <div class="cam-adj" hidden>
@@ -2203,7 +2224,8 @@ void main(){vec3 o=texture2D(tex,uv).rgb;vec3 c=o;
         <div class="cam-zoom" hidden></div>
         <div class="cam-bottom"><button class="cam-roll" data-c="roll" aria-label="${T('相册')}"></button>
           <button class="cam-shutter" data-c="shot" aria-label="${T('拍摄')}"><span></span><svg class="cam-done" viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4"/></svg></button>
-          <button class="cam-ic big" data-c="flip" aria-label="${T('切换镜头')}">${UI_IC.flip}</button></div>
+          <span class="cam-rc"><button class="cam-ic" data-c="adjust" aria-label="${T('调整')}" aria-pressed="false">${IC_ADJ}</button>
+          <button class="cam-ic big" data-c="flip" aria-label="${T('切换镜头')}">${UI_IC.flip}</button></span></div>
       </div>`;
     document.body.appendChild(el);
     camCtx = { id: x.id, el, stream: null, facing: 'user', look: 'portrait', tune: {}, tab: 'beauty', style: 'glass', font: 'sans', ratio: 'full', pos: null, scale: 1, bgImg: null, bgFile: null, zoom: 1, zMin: 1, zMax: 5, hw: false, draw: null, raf: 0, edit: null };
@@ -2481,6 +2503,19 @@ void main(){vec3 o=texture2D(tex,uv).rgb;vec3 c=o;
     flyToRoll(c, out);
     storeShot(c, out, base, meta).catch(() => UI.toast(T('保存失败')));
   }
+  // 原生相机拍好的一张：放好卡片的 + 没放卡片的底图（base64 JPEG），和网页拍的一样存进相册
+  Days.addShot = async (id, comp, base, meta) => {
+    const x = find(id); if (!x) return false;
+    const blobOf = b64 => fetch('data:image/jpeg;base64,' + b64).then(r => r.blob());
+    const [cb, bb] = await Promise.all([blobOf(comp), blobOf(base)]);
+    const pid = 'p' + MC.uid(), bid = 'b' + MC.uid();
+    await P.PDB.put(pid, cb); await P.PDB.put(bid, bb);
+    const nx = find(id); if (!nx) return false;
+    MC.updateDay(nx, { photos: [{ id: pid, at: Date.now(), w: meta.cw, h: meta.ch, cam: { base: bid, ...meta } }, ...nx.photos] });
+    Days.Album.enqueue('up', bid); Days.Album.enqueue('up', pid);
+    if (Days.albumRefresh) Days.albumRefresh();
+    return true;
+  };
   // 存进这个日子的相册：一张放好卡片的（相册里看的、分享的），一张没放卡片的底图（以后改文字效果用，不在相册里列出来）
   async function storeShot(c, out, base, meta) {
     const toBlob = cv => new Promise(r => cv.toBlob(r, 'image/jpeg', .9));

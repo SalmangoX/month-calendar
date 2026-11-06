@@ -728,3 +728,11 @@ button.dp-glyph:active { transform: translate(-50%, -50%) scale(.95); }
 #dayViewer .pv-slide { padding-bottom: calc(var(--safe-b) + 84px); }
 .pv-bar svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .cam2.editing .cam-adj-tabs { display: none; }
+/* 「调整」放在右下、翻转镜头上面（用户定的） */
+.cam2 .cam-bottom { align-items: flex-end; }
+.cam-rc { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.cam2 .cam-bottom > .cam-roll { margin-bottom: 12px; }   /* 和快门、翻转的中线对齐 */
+.cam2.editing .cam-rc { visibility: hidden; }
+/* 胶卷卡片：有主题照片时，数字下面压一层由下往上的暗渐变 + 更重的投影，什么照片上都看得清（用户发现浅色照片上看不见） */
+.fl-card.photo .fl-pic::after { content: ""; position: absolute; inset: 40% 0 0; background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .55)); pointer-events: none; }
+.fl-n { z-index: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, .55), 0 2px 12px rgba(0, 0, 0, .45); }
