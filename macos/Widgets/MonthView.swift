@@ -79,16 +79,16 @@ struct MonthView: View {
     private func header(_ ym: YMD, _ pal: Pal) -> some View {
         let st = monthStats(ym)
         return ZStack {
-            Text(I18n.mon(ym.m)).font(.system(size: 12.5, weight: .bold)).foregroundStyle(pal.accent).widgetAccentable()
+            Text(I18n.mon(ym.m)).font(.system(size: 12.5, weight: .bold)).foregroundStyle(pal.text).accentable()
             HStack(spacing: 0) {
                 Text(String(ym.y)).font(.system(size: 9, weight: .medium)).foregroundStyle(pal.text2)
                 Spacer(minLength: 0)
                 if entry.moff != 0 {
                     Button(intent: ShiftMonthIntent(delta: 0)) {
-                        Text(I18n.t("本月")).font(.system(size: 9, weight: .bold)).foregroundStyle(pal.accent)
+                        Text(I18n.t("本月")).font(.system(size: 9, weight: .bold)).foregroundStyle(pal.text)
                             .padding(.horizontal, 5).frame(height: MonthView.headH).contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain).widgetAccentable()
+                    .buttonStyle(.plain).accentable()
                 } else if st.1 > 0 {
                     Text("\(st.0)/\(st.1)").font(.system(size: 9, weight: .medium)).monospacedDigit().foregroundStyle(pal.text2).padding(.trailing, 3)
                 }
@@ -119,15 +119,15 @@ struct MonthView: View {
     #else
     private func header(_ ym: YMD, _ pal: Pal) -> some View {
         HStack(spacing: 0) {
-            Text(I18n.mon(ym.m)).font(.system(size: 14, weight: .bold)).foregroundStyle(pal.accent).widgetAccentable()
+            Text(I18n.mon(ym.m)).font(.system(size: 14, weight: .bold)).foregroundStyle(pal.text).accentable()
             Text(String(ym.y)).font(.system(size: 10.5)).foregroundStyle(pal.text2).padding(.leading, 5)
             Spacer(minLength: 0)
             if entry.moff != 0 {
                 Button(intent: ShiftMonthIntent(delta: 0)) {
-                    Text(I18n.t("本月")).font(.system(size: 11, weight: .bold)).foregroundStyle(pal.accent)
+                    Text(I18n.t("本月")).font(.system(size: 11, weight: .bold)).foregroundStyle(pal.text)
                         .padding(.leading, 8).padding(.trailing, 6).frame(height: MonthView.headH).contentShape(Rectangle())
                 }
-                .buttonStyle(.plain).widgetAccentable()
+                .buttonStyle(.plain).accentable()
             }
             ForEach([-1, 1], id: \.self) { k in
                 Button(intent: ShiftMonthIntent(delta: k)) {
@@ -203,7 +203,7 @@ struct MonthView: View {
                     .foregroundStyle(isToday ? Color.white : inMonth ? pal.text : pal.dim)
                     .padding(.horizontal, 3)
                     .frame(minWidth: MonthView.dateH, minHeight: MonthView.dateH, maxHeight: MonthView.dateH)
-                    .background { if isToday { RoundedRectangle(cornerRadius: MonthView.dateH / 2).fill(pal.todayStyle).widgetAccentable() } }
+                    .background { if isToday { RoundedRectangle(cornerRadius: MonthView.dateH / 2).fill(pal.todayStyle).accentable() } }
                     .padding(.leading, 2)
                 Spacer(minLength: 0)
                 if hidden > 0 {
@@ -294,7 +294,7 @@ struct MonthView: View {
             }
             .background(RoundedRectangle(cornerRadius: MonthView.chipR).fill(pal.chipFill(e, entry.data, soft: soft, out: out)))
             .padding(.horizontal, 1)
-            .widgetAccentable()
+            .accentable()
     }
 
     /// 跨天横条：和格子里的色条同样的颜色、圆角、字号；延续到上一周 / 下一周的一端是平的
@@ -317,7 +317,7 @@ struct MonthView: View {
             .mask(MonthView.fade(max(1, x1 - x0 - (s.openR ? 0 : 1.5))))
             .frame(width: max(0, x1 - x0), height: MonthView.chipH, alignment: .leading)
             .background(UnevenRoundedRectangle(topLeadingRadius: rl, bottomLeadingRadius: rl, bottomTrailingRadius: rr, topTrailingRadius: rr).fill(pal.chipFill(s.e, entry.data, soft: s.e.done || out, out: out)))
-            .widgetAccentable()
+            .accentable()
             .offset(x: x0, y: y)
     }
 }

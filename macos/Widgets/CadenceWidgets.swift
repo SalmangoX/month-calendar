@@ -131,3 +131,15 @@ struct WidgetShell<Content: View>: View {
             .widgetURL(Shared.openURL(hash))
     }
 }
+
+extension View {
+    /// 着色 / 透明样式下哪些部分算「强调色」。Mac 上不分：系统会把强调的那组画成系统强调色（多彩时就是蓝色），
+    /// 整个小组件就变成一片蓝；不分组时全部画成中性的白 / 灰。iPhone 照旧分组（着色是用户自己挑的颜色）
+    @ViewBuilder func accentable() -> some View {
+        #if os(macOS)
+        self
+        #else
+        self.widgetAccentable()
+        #endif
+    }
+}

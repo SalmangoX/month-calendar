@@ -103,7 +103,7 @@ struct DaysView: View {
         let a = amount(i), col = tone(i, pal)
         return VStack(alignment: .leading, spacing: 0) {
             Text(i.x.named).font(.system(size: big ? 15 : 14, weight: .semibold)).foregroundStyle(pal.text).lineLimit(1)
-            Text(state(i)).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(col).lineLimit(1).padding(.top, big ? 8 : 6).widgetAccentable()
+            Text(state(i)).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(col).lineLimit(1).padding(.top, big ? 8 : 6).accentable()
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(a.0).font(.system(size: i.diff == 0 ? 30 : (big ? 52 : 42), weight: .bold, design: .rounded)).monospacedDigit()
                     .foregroundStyle(i.diff == 0 ? col : pal.text).lineLimit(1).minimumScaleFactor(0.5)
@@ -117,7 +117,7 @@ struct DaysView: View {
         let a = amount(i), col = tone(i, pal)
         return Link(destination: Shared.openURL("days-" + i.x.id)) {
             HStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: 2).fill(col).frame(width: 3.5, height: 26).widgetAccentable()
+                RoundedRectangle(cornerRadius: 2).fill(col).frame(width: 3.5, height: 26).accentable()
                 VStack(alignment: .leading, spacing: 0) {
                     Text(i.x.named).font(.system(size: 12.5)).foregroundStyle(pal.text).lineLimit(1)
                     Text(state(i) + " · " + dateLine(i)).font(.system(size: 10)).foregroundStyle(pal.text2).lineLimit(1)

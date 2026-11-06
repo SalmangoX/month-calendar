@@ -86,7 +86,7 @@ struct TodayView: View {
         let t = entry.today, left = entry.data.on(t).filter { !$0.done }.count
         return HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 0) {
-                Text(I18n.wk(t.jsDay)).font(.system(size: 12, weight: .semibold)).foregroundStyle(pal.accent).widgetAccentable()
+                Text(I18n.wk(t.jsDay)).font(.system(size: 12, weight: .semibold)).foregroundStyle(pal.text).accentable()
                 Text("\(t.d)").font(.system(size: 40, weight: .bold, design: .rounded)).foregroundStyle(pal.text).minimumScaleFactor(0.7).lineLimit(1)
                 Text(I18n.mon(t.m)).font(.system(size: 10, weight: .medium)).foregroundStyle(pal.text2)
                 Spacer(minLength: 0)
@@ -105,7 +105,7 @@ struct TodayView: View {
         return VStack(alignment: .leading, spacing: 0) {
                 if header {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(I18n.t("今天")).font(.system(size: WS.head, weight: .bold)).foregroundStyle(pal.text).widgetAccentable()
+                    Text(I18n.t("今天")).font(.system(size: WS.head, weight: .bold)).foregroundStyle(pal.text).accentable()
                     Text(I18n.full(entry.today)).font(.system(size: WS.headSub)).foregroundStyle(pal.text2).lineLimit(1)
                 }
                 .padding(.leading, 3).padding(.bottom, 4)
@@ -140,7 +140,7 @@ struct TodayView: View {
         if e.days > 1 { sub += " · " + I18n.t("{0} 天", e.days) }
         if !e.note.isEmpty { sub += " · " + e.note.replacingOccurrences(of: "\n", with: " ") }
         return HStack(spacing: WS.gap) {
-            Capsule().fill(pal.ink(col).opacity(e.done ? 0.25 : 1)).frame(width: WS.barW, height: WS.barH).widgetAccentable()
+            Capsule().fill(pal.ink(col).opacity(e.done ? 0.25 : 1)).frame(width: WS.barW, height: WS.barH).accentable()
             VStack(alignment: .leading, spacing: 0) {
                 Text(e.displayTitle).font(.system(size: WS.title, weight: WS.titleW)).strikethrough(e.done).foregroundStyle(e.done ? pal.text2 : pal.text).lineLimit(1)
                 Text(sub).font(.system(size: WS.sub)).foregroundStyle(pal.text2).lineLimit(1)
@@ -188,7 +188,7 @@ struct SchedDay: View {
         }
         return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(label ?? I18n.t("课表")).font(.system(size: WS.head, weight: .bold)).foregroundStyle(pal.text).widgetAccentable()
+                Text(label ?? I18n.t("课表")).font(.system(size: WS.head, weight: .bold)).foregroundStyle(pal.text).accentable()
                 Text(label == nil ? "" : sub).font(.system(size: WS.headSub)).foregroundStyle(pal.text2)
             }
             .padding(.leading, 3).padding(.bottom, 4)
@@ -214,13 +214,13 @@ struct SchedDay: View {
     private func courseRow(_ c: Course, state: String, live: Bool) -> some View {
         let t = entry.data.toneOf(c.code)
         return HStack(spacing: 0) {
-            Capsule().fill(pal.ink(t[pal.dark ? CourseColors.BAR_D : CourseColors.BASE])).frame(width: WS.barW, height: WS.courseBarH).widgetAccentable()
+            Capsule().fill(pal.ink(t[pal.dark ? CourseColors.BAR_D : CourseColors.BASE])).frame(width: WS.barW, height: WS.courseBarH).accentable()
             let time = fmtRange(c.start, c.end, entry.data.h12) + (c.room.isEmpty ? "" : " · " + c.room)
             VStack(alignment: .leading, spacing: 0) {
                 #if os(iOS)
                 // iPhone 小号很窄：标题只写课程代码，「下一节」「上课中」用主色写在时间前面，课程代码就不会被挤成省略号
                 Text(c.code).font(.system(size: WS.title, weight: .semibold)).foregroundStyle(pal.text).lineLimit(1)
-                (state.isEmpty ? Text("") : Text(state + " · ").foregroundColor(pal.accent).fontWeight(.semibold))
+                (state.isEmpty ? Text("") : Text(state + " · ").foregroundColor(pal.text).fontWeight(.semibold))
                     .font(.system(size: WS.sub)) + Text(time).font(.system(size: WS.sub)).foregroundColor(pal.text2)
                 #else
                 Text(c.type.isEmpty ? c.code : c.code + "  " + I18n.t(c.type)).font(.system(size: WS.title, weight: .semibold)).foregroundStyle(pal.text).lineLimit(1)
@@ -232,7 +232,7 @@ struct SchedDay: View {
             Spacer(minLength: 0)
             #if os(macOS)
             if !state.isEmpty {
-                Text(state).font(.system(size: WS.state, weight: .bold)).foregroundStyle(pal.accent).padding(.leading, 6).widgetAccentable()
+                Text(state).font(.system(size: WS.state, weight: .bold)).foregroundStyle(pal.text).padding(.leading, 6).accentable()
             }
             #endif
         }
@@ -253,7 +253,7 @@ struct SchedWeek: View {
         }
         return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(I18n.t("本周课表")).font(.system(size: 11.5, weight: .bold)).foregroundStyle(pal.accent).widgetAccentable()
+                Text(I18n.t("本周课表")).font(.system(size: 11.5, weight: .bold)).foregroundStyle(pal.text).accentable()
                 Text("\(mon.m)/\(mon.d) – \(sun.m)/\(sun.d)").font(.system(size: 9.5)).foregroundStyle(pal.text2)
             }
             .padding(.leading, 6).frame(height: 15)
@@ -276,7 +276,7 @@ struct SchedWeek: View {
         return VStack(spacing: 0) {
             Text(I18n.wk(day.jsDay) + " \(day.d)").font(.system(size: 8.5, weight: isToday ? .bold : .regular))
                 .lineLimit(1).minimumScaleFactor(0.7)
-                .foregroundStyle(isToday ? pal.accent : pal.text2)
+                .foregroundStyle(isToday ? pal.text : pal.text2)
                 .frame(height: 14)
             ForEach(0..<shown, id: \.self) { k in
                 let c = l[k]
@@ -295,7 +295,7 @@ struct SchedWeek: View {
                         RoundedRectangle(cornerRadius: 5).fill(pal.wash(t[pal.dark ? CourseColors.FILL_D : CourseColors.FILL_L]))
                         UnevenRoundedRectangle(topLeadingRadius: 5, bottomLeadingRadius: 5).fill(pal.ink(t[pal.dark ? CourseColors.BAR_D : CourseColors.BASE])).frame(width: 3)
                     }
-                    .widgetAccentable()
+                    .accentable()
                 }
                 .padding(.horizontal, 1.5).padding(.top, 2)
                 #else
@@ -307,7 +307,7 @@ struct SchedWeek: View {
                 .font(.system(size: fs)).foregroundStyle(chip.1)
                 .padding(.leading, 3).padding(.trailing, 2)
                 .frame(maxWidth: .infinity, alignment: .leading).frame(height: slotH)
-                .background(RoundedRectangle(cornerRadius: 5).fill(chip.0).widgetAccentable())
+                .background(RoundedRectangle(cornerRadius: 5).fill(chip.0).accentable())
                 .padding(.horizontal, 1.5).padding(.top, 2)
                 #endif
             }
@@ -356,15 +356,15 @@ struct SchedGrid: View {
         let red = pal.ink(Pal.RED)
 
         return ZStack(alignment: .topLeading) {
-            // 今天那一列：淡淡的主色底
+            // 今天那一列：品牌渐变淡底（和 App、其他小组件一样，不用蓝色）
             if let ci = todayCol {
-                RoundedRectangle(cornerRadius: 9).fill(pal.accent.opacity(pal.dark ? 0x38 / 255.0 : 0x24 / 255.0))
+                RoundedRectangle(cornerRadius: 9).fill(pal.todayTint)
                     .frame(width: colW - 2, height: H - pad - (pad + headH))
                     .offset(x: gx + CGFloat(ci) * colW + 1, y: pad + headH)
-                    .widgetAccentable()
+                    .accentable()
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(I18n.t("本周课表")).font(.system(size: 11.5, weight: .bold)).foregroundStyle(pal.accent).widgetAccentable()
+                Text(I18n.t("本周课表")).font(.system(size: 11.5, weight: .bold)).foregroundStyle(pal.text).accentable()
                 Text("\(mon.m)/\(mon.d) – \(sun.m)/\(sun.d)").font(.system(size: 9.5)).foregroundStyle(pal.text2)
             }
             .offset(x: pad + 3, y: pad)
@@ -372,7 +372,7 @@ struct SchedGrid: View {
                 let dd = mon.adding(i)
                 let isT = dd == today
                 Text(I18n.wk(dd.jsDay) + " \(dd.d)").font(.system(size: 8.5, weight: isT ? .bold : .regular))
-                    .foregroundStyle(isT ? pal.accent : pal.text2).lineLimit(1).minimumScaleFactor(0.7)
+                    .foregroundStyle(isT ? pal.text : pal.text2).lineLimit(1).minimumScaleFactor(0.7)
                     .frame(width: colW).offset(x: gx + CGFloat(ci) * colW, y: pad + headH + 1)
             }
             // 时间轴和横线、竖线
@@ -462,7 +462,7 @@ struct SchedGrid: View {
         return ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 6).fill(pal.wash(t[pal.dark ? CourseColors.FILL_D : CourseColors.FILL_L]))
             RoundedRectangle(cornerRadius: 1.5).fill(pal.ink(t[pal.dark ? CourseColors.BAR_D : CourseColors.BASE]))
-                .frame(width: 3).widgetAccentable()
+                .frame(width: 3).accentable()
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(fit.enumerated()), id: \.offset) { _, ln in
                     Text(ln.0).font(.system(size: ln.1, weight: ln.2)).foregroundStyle(ln.3).lineLimit(1)
