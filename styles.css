@@ -1801,6 +1801,9 @@ body:not(.cal-m) #page-cal .topbar { height: calc(var(--safe-t) + 52px); }
 body:not(.cal-m) #page-cal .topbar .title-wrap { bottom: 10px; right: 18px; }
 .cal-eyebrow { margin: 0 0 7px 2px; font-size: 11px; font-weight: 650; letter-spacing: .16em; color: var(--text2); white-space: nowrap; font-variant-numeric: tabular-nums; }
 body:not(.cal-m) .cal-eyebrow, body:not(.cal-m) .cal-today { display: none; }
+/* Mac App：网页铺到标题栏下面，左上角是红黄绿三个窗口按钮，眉题会被它们压住——「年份　第几周」挪到大号月份右边，和月份同一条底线 */
+.in-mac #page-cal .topbar .title-wrap { flex-direction: row; align-items: baseline; gap: 16px; }
+.in-mac .cal-eyebrow { order: 2; margin: 0; }
 #page-cal .topbar .title {
   pointer-events: auto; position: relative; min-width: 0; max-width: 100%;
   display: inline-flex; align-items: baseline; gap: 10px; cursor: pointer; transform-origin: 0 80%;
