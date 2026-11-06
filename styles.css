@@ -2079,3 +2079,9 @@ body #page-cal .weekdays.hide { display: none; }
 #chooseSheet .ch-row.danger .slabel { color: var(--red); }
 .sheet.fl.pop .ncard, .sheet.fl.pop .help-body { padding-bottom: 8px; }
 .sheet.fl.pop { padding-bottom: 12px; }
+
+/* 开关统一成侧拉菜单「⋯」里那种透明水滴开关（ui.js 的 skinSwitches）：样子用 .mi-sw，原来的 checkbox 透明盖在上面接点按 */
+.sw-skin { margin-left: auto; }
+input.switch[data-sk] { opacity: 0; width: 50px; height: 28px; margin: 0 0 0 -50px; position: relative; z-index: 3; background: none; }
+input.switch[data-sk]::after { display: none; }
+.sw-skin:has(+ input.switch:active) { transform: scale(1.1, .86); transition: transform .16s cubic-bezier(.2, .8, .3, 1); }

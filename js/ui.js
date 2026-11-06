@@ -72,6 +72,25 @@
     backdrop.style.zIndex = (parseInt(getComputedStyle(top).zIndex, 10) || 30) - 1;
     backdrop.classList.add('show');
   }
+  // ====== 开关统一（用户定的）：所有 input.switch 都换成侧拉菜单「⋯」里那种透明水滴开关（.mi-sw：一点先铺一层 logo 渐变 + 小勾，
+  // 那团气再涨开补满层次）。原来的 checkbox 留着接点按（透明盖在上面），状态跟着它变；之后新画出来的也自动换 ======
+  const SW_SKIN = '<i class="mi-base"></i><i class="mi-ck"><svg viewBox="0 0 24 24"><path d="M6.5 12.5l3.8 3.8 7.2-8.3"/></svg></i>';
+  function skinSwitches(root) {
+    (root.querySelectorAll ? root.querySelectorAll('input.switch:not([data-sk])') : []).forEach(inp => {
+      inp.dataset.sk = '1';
+      const k = document.createElement('span'); k.className = 'mi-sw sw-skin' + (inp.checked ? ' on' : ''); k.setAttribute('aria-hidden', 'true'); k.innerHTML = SW_SKIN;
+      inp.before(k);
+    });
+  }
+  const syncSkin = inp => { const k = inp.previousElementSibling; if (k && k.classList.contains('sw-skin')) k.classList.toggle('on', inp.checked); };
+  document.addEventListener('change', e => { if (e.target.matches && e.target.matches('input.switch')) syncSkin(e.target); }, true);
+  skinSwitches(document);
+  new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) { if (n.matches('input.switch')) skinSwitches(n.parentNode); else skinSwitches(n); } }))).observe(document.body, { childList: true, subtree: true });
+  // 代码里直接改 checked（不触发 change）时也跟上
+  const ckDesc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'checked');
+  Object.defineProperty(HTMLInputElement.prototype, 'checked', { configurable: true, enumerable: ckDesc.enumerable, get() { return ckDesc.get.call(this); },
+    set(v) { ckDesc.set.call(this, v); if (this.dataset && this.dataset.sk) syncSkin(this); } });
+
   // ====== 从点的那一条拉伸出来的小卡片（用户定的：选择、动作菜单、提醒通知、帮助、表单……都这样，不再从底部滑上来）======
   // 和新建子日历的水滴一样：一滴液态玻璃从点的那一条（同样的位置、大小、圆角）被拉长、一口气展开成卡片，内容紧跟着出来；
   // 收起倒过来缩回那一条。卡片放在那一条下面（放不下就上面），宽度跟那一组一样；要打字的表单放在屏幕上方，键盘不挡。不回弹。
