@@ -148,6 +148,9 @@
     if (draft.repeat && draft.repeat !== 'none') extra.push(MC.repeatLabel(draft.repeat));
     if (MC.remindsOf(draft).length) extra.push(MC.remindsOf(draft).length > 1 ? `${MC.remindsOf(draft).length} 个提醒` : '提醒');
     $('#cmpDateLabel').textContent = extra.length ? extra.join(' · ') : '时间 · 提醒 · 重复';
+    // 标题旁边写上是哪一天（新建、草稿时；编辑时不写）
+    const hd = $('#cmpHeadDate');
+    if (hd) { const d = MC.parse(draft.date); hd.textContent = mode === 'new' && draft.date ? `${MC.dateLabel(draft.date)} ${MC.isZh ? '周' + MC.WD[d.getDay()] : ''}`.trim() : ''; }
   }
   // ---- 常用事件（记录日历）：点一下填好名称，再决定要不要设时段 ----
   const presetCal = () => (mode === 'new' && newCal && MC.cal(newCal) && MC.cal(newCal).kind !== 'days' ? MC.cal(newCal) : null);
@@ -417,12 +420,20 @@
   function openMid() {
     const c = $('#composer'), touch = matchMedia('(pointer: coarse)').matches;
     c.classList.toggle('mid', touch); UI.setDetent(c, null); $('#composer .cmp-scroll').scrollTop = 0;
+    // 手机上新建事件：一张悬浮在中间偏下的卡片（四角圆、不贴底），顶边落在那一天所在那一周的下面，那一天露在上面（用户定的）
+    c.classList.toggle('float', touch && mode === 'new');
   }
   // 手机上打开后：日历里这一周（新建的那天所在的周）如果会被面板挡住，就滚到面板上面看得见的地方
   function revealAbove(sheet, ds) {
     if (!sheet.classList.contains('mid') || document.body.dataset.page !== 'cal' || !MC.Cal.revealWeek) return;
-    const P = sheet.parentElement.getBoundingClientRect(), f = parseFloat(getComputedStyle(sheet).getPropertyValue('--sh-def')) || .56;
-    MC.Cal.revealWeek(ds || MC.todayStr(), P.bottom - P.height * f - 8);
+    const cs = getComputedStyle(sheet), P = sheet.parentElement.getBoundingClientRect(), f = parseFloat(cs.getPropertyValue('--sh-def')) || .56;
+    const gap = sheet.classList.contains('float') ? parseFloat(cs.bottom) || 0 : 0;   // 悬浮卡片离底边的那一截
+    if (gap) {   // 悬浮卡片：顶边直接落在那一天所在那一周的下面（高度在 .4–.8 之间就不动日历）
+      const cell = document.querySelector(`#calTrack [data-date="${ds || MC.todayStr()}"]`), r = cell && cell.getBoundingClientRect();
+      const k = r ? (P.bottom - gap - (r.bottom + 8)) / P.height : 0;
+      if (k >= .4 && k <= .8) { UI.setDetent(sheet, k); return; }
+    }
+    MC.Cal.revealWeek(ds || MC.todayStr(), P.bottom - gap - P.height * f - 10);
   }
   function mountInline() {
     inlineCtx.host = $('#cmpPkBody'); inlineCtx.tabs = $('#cmpPkTabs');

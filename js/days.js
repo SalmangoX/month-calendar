@@ -632,11 +632,11 @@
       </div>` : ''}
     </div>` : '';
     const empty = `<div class="dv-empty"><span class="dv-empty-ico">${svgOf('heart')}</span><b>${T('还没有日子')}</b><p>${T('点右下角 ＋ 记下第一个重要的日子：未来的倒数，过去的累计。')}</p></div>`;
-    dvList.innerHTML = h + (all.length ? listHTML(now) : empty);
-    fillCovers(dvList);
+    // 内容没变就不重画：切到总览时会连着 render 好几次，每画一次胶片就重新挂一遍、封面图重新加载（闪两下、动两下）
+    const lh = h + (all.length ? listHTML(now) : empty), sh = all.length ? sumHTML(now, all) : empty;
+    if (lh !== dvList._html) { dvList._html = lh; dvList.innerHTML = lh; fillCovers(dvList); }
     // 总览
-    dvSum.innerHTML = all.length ? sumHTML(now, all) : empty;
-    fillCovers(dvSum);
+    if (sh !== dvSum._html) { dvSum._html = sh; dvSum.innerHTML = sh; fillCovers(dvSum); }
   }
   function listHTML(now) {
     const items = filtered(now);
@@ -1353,6 +1353,12 @@
     else MC.App.placeInd();
   }
   Days.paint = () => { syncTabs(); if (isOn()) render(); };
+  // 切到总览时胶片挂一遍（只一遍：切页时 showPage 会连着来几次，1 秒内不再重播）
+  let filmT = 0;
+  Days.replayFilm = () => {
+    if (Date.now() - filmT < 1000) return; filmT = Date.now();
+    dvSum.querySelectorAll('.fl-card').forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
+  };
   Days.render = render;
   Days.refresh = () => { if (isOn()) render(); if (cur && Days.pageOpen()) { const s = pgScroll.scrollTop; renderPage(); pgScroll.scrollTop = s; } if (Days.refreshShare) Days.refreshShare(); };
   // 每秒更新精确时间；过了午夜重画

@@ -132,25 +132,29 @@
   }
   function popMorph(el, g, opening) {
     if (!document.body.animate || reduceMo()) return;
-    const blob = document.createElement('div'); blob.className = 'ks-blob pop-blob';
-    // 收起时卡片沉到下面一层：放进那一组所在的页面里、垫在那一组下面（那一组临时抬高一层），缩回去时是钻到那一条底下，不是盖在上面（用户定的）
-    const grp = !opening && g.from && (g.from.closest('.sgroup, .group, .pk-rows') || g.from);
-    let ox = 0, oy = 0;
-    if (grp && grp.parentNode) {
-      blob.classList.add('under'); grp.parentNode.insertBefore(blob, grp); grp.classList.add('pop-over');
-      blob.style.left = blob.style.top = '0px'; const r0 = blob.getBoundingClientRect(); ox = r0.left; oy = r0.top;   // 祖先有 transform 时 fixed 的原点不在屏幕左上角，按实际量的减回去
-    } else document.body.appendChild(blob);
-    const at = r => ({ ...r, x: r.x - ox, y: r.y - oy });
-    // 打开：被拉长的一滴先从那一条伸出去，再一口气展开；收起：卡片整块连着缩回那一条（不再变成细长的一滴，用户嫌怪），最后沉到它下面
-    const kf = opening ? [px(g.src, g.rad), { ...px(popMid(g), popMid(g).w / 2), offset: .34 }, px(g.dst, 30)]
-      : [px(at(g.dst), 30), px(at(g.src), g.rad)];
+    if (!opening) {
+      // 收起：卡片自己（不另画一层玻璃外框）一口气缩回点的那一条，边缩边暗、淡掉，像沉回下面那一层（用户定的：不要外框闪一下就没了）
+      const r = el.getBoundingClientRect(), s0 = g.src;
+      if (!r.width || !r.height) return;
+      el.style.setProperty('--ptx', (s0.x + s0.w / 2 - (r.left + r.width / 2)) + 'px');
+      el.style.setProperty('--pty', (s0.y + s0.h / 2 - (r.top + r.height / 2)) + 'px');
+      el.style.setProperty('--psx', Math.min(1, s0.w / r.width));
+      el.style.setProperty('--psy', Math.max(.08, Math.min(1, s0.h / r.height)));
+      void el.offsetWidth;
+      el.classList.add('pop-out');
+      clearTimeout(el._popOut);
+      el._popOut = setTimeout(() => { if (!el.classList.contains('show')) el.classList.remove('pop-out'); }, 340);
+      return;
+    }
+    const blob = document.createElement('div'); blob.className = 'ks-blob pop-blob'; document.body.appendChild(blob);
+    // 打开：被拉长的一滴先从那一条伸出去，再一口气展开
+    const kf = [px(g.src, g.rad), { ...px(popMid(g), popMid(g).w / 2), offset: .34 }, px(g.dst, 30)];
     el.style.opacity = '0';
-    const a = blob.animate(kf, { duration: opening ? 320 : 240, easing: opening ? 'cubic-bezier(.3, .72, .3, 1)' : 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
+    const a = blob.animate(kf, { duration: 320, easing: 'cubic-bezier(.3, .72, .3, 1)', fill: 'forwards' });
     let done = false;
-    const gone = () => { blob.remove(); if (grp) grp.classList.remove('pop-over'); };
-    const fin = () => { if (done) return; done = true; blob.animate([{ opacity: 1 }, { opacity: 0 }], { duration: opening ? 120 : 90 }).onfinish = gone; setTimeout(gone, 300); };
-    if (opening) setTimeout(() => { el.style.opacity = ''; el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, easing: 'ease-out' }); }, 320 * .55);   // 拉到一半多就看得到里面的东西
-    a.onfinish = fin; setTimeout(fin, (opening ? 320 : 260) + 80);
+    const fin = () => { if (done) return; done = true; blob.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120 }).onfinish = () => blob.remove(); setTimeout(() => blob.remove(), 300); };
+    setTimeout(() => { el.style.opacity = ''; el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, easing: 'ease-out' }); }, 320 * .55);   // 拉到一半多就看得到里面的东西
+    a.onfinish = fin; setTimeout(fin, 400);
   }
   UI.open = (id, closeCb, opts = {}) => {
     if (!stack.includes(id)) stack.push(id);
@@ -158,6 +162,7 @@
     const el = $('#' + id);
     const from = opts.from || (performance.now() - lastTapT < 900 ? lastTap : null);
     if (POP.has(id) && from && document.contains(from) && !el.contains(from) && from.getBoundingClientRect().width > 0) {
+      el.classList.remove('pop-out'); clearTimeout(el._popOut);
       const g = popPlace(el, from); el._pop = { from, g };
       el.classList.add('show'); syncBackdrop();
       popMorph(el, g, true);

@@ -680,11 +680,18 @@ final class FanFX {
 
 /// 按住 logo 拖动的样子（几处共用）：扇形这一块放大多少、logo 被拉过去多少、水滴的尺寸【联动:底部悬浮控件】（和网页 DROP、安卓 Dock.kt 一样）
 enum FanDropSize {
-    static let zoom: CGFloat = 1.12, tip: CGFloat = 12, tipHot: CGFloat = 15, neck: CGFloat = 2.2
+    static let zoom: CGFloat = 1.12, tip: CGFloat = 12, tipHot: CGFloat = 15, snap: CGFloat = 150, hot: CGFloat = 58   // snap：离 logo 中心多远断开成独立的一滴；hot：手指离按钮中心多近算拖到上面（放宽，手小也点得准）
+    /// 像水的表面张力：刚拉出来时颈很粗、根部张得开，越拉越细（不会细成一根线），拉到 snap 就断开（和网页 dropGeom 一样）
+    static func geom(_ d: CGFloat, _ r1: CGFloat, _ r2: CGFloat) -> (free: Bool, w: CGFloat, a1: CGFloat, a2: CGFloat)? {
+        if d <= r1 + r2 * 0.2 { return nil }
+        if d >= snap { return (true, 0, 0, 0) }
+        let t = min(1, max(0, (d - r1 - r2 * 0.2) / (snap - r1 - r2 * 0.2))), e = pow(t, 1.3)
+        return (false, r2 * (0.92 - 0.5 * e), 1.05 - 0.5 * t, .pi - (1.3 - 0.35 * t))
+    }
     /// 两个圆连成一滴水：根 (c1, r1)，水滴 (c2, r2)，颈半宽 w；两边各两段二次曲线，在颈的正中相切（和网页 dropPath 同一个算法）
-    static func path(_ c1: CGPoint, _ r1: CGFloat, _ c2: CGPoint, _ r2: CGFloat, _ w: CGFloat) -> Path {
+    static func path(_ c1: CGPoint, _ r1: CGFloat, _ c2: CGPoint, _ r2: CGFloat, _ w: CGFloat, _ a1: CGFloat, _ a2: CGFloat) -> Path {
         let dx = c2.x - c1.x, dy = c2.y - c1.y, d = max(1, hypot(dx, dy)), u = atan2(dy, dx)
-        let ux = dx / d, uy = dy / d, nx = -uy, ny = ux, a1: CGFloat = 0.42, a2: CGFloat = .pi - 0.95
+        let ux = dx / d, uy = dy / d, nx = -uy, ny = ux
         let s1 = (r1 + d / 2) / 2, s2 = d - (r2 + d / 2) / 2
         func at(_ s: CGFloat, _ k: CGFloat) -> CGPoint { CGPoint(x: c1.x + ux * s + nx * w * k, y: c1.y + uy * s + ny * w * k) }
         func on(_ c: CGPoint, _ r: CGFloat, _ a: CGFloat) -> CGPoint { CGPoint(x: c.x + cos(a) * r, y: c.y + sin(a) * r) }
@@ -753,9 +760,10 @@ struct FanGlassDrop: View {
 struct DropShape: Shape {
     var c1: CGPoint, r1: CGFloat, c2: CGPoint, r2: CGFloat
     func path(in rect: CGRect) -> Path {
-        let d = hypot(c2.x - c1.x, c2.y - c1.y)
-        guard d > r1 + r2 * 0.4 else { return Path(ellipseIn: CGRect(x: c1.x - r1, y: c1.y - r1, width: r1 * 2, height: r1 * 2)) }
-        return FanDropSize.path(c1, r1, c2, r2, max(FanDropSize.neck, 4.2 - d * 0.012))   // 拉得越远颈越细，但不会断
+        let circle = { (c: CGPoint, r: CGFloat) in Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)) }
+        guard let g = FanDropSize.geom(hypot(c2.x - c1.x, c2.y - c1.y), r1, r2) else { return circle(c1, r1) }
+        if g.free { var p = circle(c1, r1); p.addPath(circle(c2, r2)); return p }   // 出了扇形这一块：断开成独立的一滴
+        return FanDropSize.path(c1, r1, c2, r2, g.w, g.a1, g.a2)
     }
 }
 
@@ -896,7 +904,7 @@ struct GlassDock: View {
             .onChanged { v in
                 if m.logoDrag == nil { if !m.fanOpen { m.setFan(true) } else { navTick() }; m.dragDepth(true) }
                 m.logoDrag = v.location
-                let near = fanCenters(d).map { ($0.0, $0.1, hypot($0.1.x - v.location.x, $0.1.y - v.location.y)) }.filter { $0.2 < 46 }.min { $0.2 < $1.2 }
+                let near = fanCenters(d).map { ($0.0, $0.1, hypot($0.1.x - v.location.x, $0.1.y - v.location.y)) }.filter { $0.2 < FanDropSize.hot }.min { $0.2 < $1.2 }
                 if near?.0 != m.fanHot {
                     m.fanHot = near?.0
                     if let c = near?.1 { fx.burst(at: c, n: 18, speed: 150); navTick() }

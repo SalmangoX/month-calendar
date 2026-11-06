@@ -238,27 +238,31 @@
     }
 
     track.style.cssText = '';
-    track.innerHTML = h + `<svg class="mframe${moving ? ' moving' : ''}" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true"><path id="mframePath"/></svg>`;
+    track.innerHTML = h + `<svg class="mframe${moving ? ' moving' : ''}" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true">${MF_DEFS}<path id="mframePath"/></svg>`;
     setT(0, TOP - (BUF * rowH + scrollY));
     monthTitle();
     drawFrame();
   }
-  // 当前主要月份：用一圈虚线把这个月的所有日期框起来（交界处自然呈阶梯形）
+  // 月份交替的地方：一根 Cadence logo 色（雾紫 → 丁香 → 暖沙）缓缓流动的细线，沿着交界呈阶梯形；两侧不画（用户定的：只留月份交替那一条）
+  // 本月开头那条（和上个月的交界）、本月结尾那条（和下个月的交界）
+  const MF_DEFS = '<defs><linearGradient id="mfGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="160" y2="0" spreadMethod="reflect">'
+    + '<stop offset="0" stop-color="#9E9AC8"/><stop offset=".5" stop-color="#C7B3CF"/><stop offset="1" stop-color="#EBC7A6"/>'
+    + '<animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="320 0" dur="7s" repeatCount="indefinite"/></linearGradient></defs>';
   function drawFrame() {
     const path = document.getElementById('mframePath');
     if (!path || view !== 'month') return;
     const start = MC.addDays(anchor, -BUF * 7);
     const idx = d => Math.round((d - start) / 864e5);
-    const a = idx(new Date(focus.y, focus.m, 1)), b = idx(new Date(focus.y, focus.m + 1, 0));
-    const r1 = Math.floor(a / 7), c1 = a % 7, r2 = Math.floor(b / 7), c2 = b % 7;
-    const cw = (W - 4) / 7, X = c => 2 + c * cw, Y = r => r * rowH, i = 1.5; // 向内收 1.5px，避开格子线
-    const pts = [[X(c1) + i, Y(r1) + i], [X(7) - i, Y(r1) + i]];
-    if (c2 === 6) pts.push([X(7) - i, Y(r2 + 1) - i]);
-    else pts.push([X(7) - i, Y(r2) - i], [X(c2 + 1) - i, Y(r2) - i], [X(c2 + 1) - i, Y(r2 + 1) - i]);
-    pts.push([X(0) + i, Y(r2 + 1) - i]);
-    if (c1 === 0) pts.push([X(0) + i, Y(r1) + i]);
-    else pts.push([X(0) + i, Y(r1 + 1) + i], [X(c1) + i, Y(r1 + 1) + i]);
-    path.setAttribute('d', 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L') + ' Z');
+    const a = idx(new Date(focus.y, focus.m, 1)), b = idx(new Date(focus.y, focus.m + 1, 0)) + 1;   // b：下个月 1 号
+    const cw = (W - 4) / 7, X = c => 2 + c * cw, Y = r => r * rowH;
+    // 第 k 天（从 start 数）之前的那条交界：这一行从它往右的顶边，加上一级台阶、下一行它左边的顶边
+    const seam = k => {
+      const r = Math.floor(k / 7), c = k % 7;
+      if (c === 0) return [[X(0), Y(r)], [X(7), Y(r)]];
+      return [[X(0), Y(r + 1)], [X(c), Y(r + 1)], [X(c), Y(r)], [X(7), Y(r)]];
+    };
+    const d = [seam(a), seam(b)].map(ps => 'M' + ps.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L')).join(' ');
+    path.setAttribute('d', d);
   }
   // 统计某段日期里的事件：跨好几天的事件只算一个
   function tally(prefix) {

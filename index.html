@@ -190,7 +190,7 @@
 <section class="sheet composer" id="composer" aria-label="添加事件">
   <div class="handle"></div>
   <div class="cmp-head">
-    <h2 id="cmpHeading">新建事件</h2>
+    <h2 class="cmp-h2"><span id="cmpHeading">新建事件</span><small class="cmp-hdate" id="cmpHeadDate"></small></h2>
     <span class="spacer"></span>
     <div class="cmp-edit" id="cmpEditBar">
       <button class="cmp-check" id="cmpDone" aria-pressed="false"><i></i><span>已完成</span></button>
@@ -730,8 +730,8 @@
   // 拖到按钮上它变大、冒出 logo 色调的粒子，松手就选中它 ----------
   // 【联动:底部悬浮控件】iPhone / Mac 在 GlassNav.swift（GlassDock 的 logoDrag / FanGlassDrop），安卓在 Dock.kt（FanDrop）；三处的样子、距离一样
   const LOGO_COLS = ['#9E9AC8', '#C7B3CF', '#EBC7A6'];   // Cadence logo 的雾紫 → 丁香 → 暖沙
-  const HOT_R = 46;   // 手指离按钮中心多近算「拖到上面」
-  const DROP = { base: 27, tip: 12, tipHot: 15, neck: 2.2 };   // 水滴：根就是 logo 的玻璃圆、指尖那一滴、颈最细时的半宽
+  const HOT_R = 58;   // 手指离按钮中心多近算「拖到上面」（放宽一点：手小也点得准）
+  const DROP = { base: 27, tip: 12, tipHot: 15, snap: 150 };   // 水滴：根就是 logo 的玻璃圆、指尖那一滴、离 logo 中心多远就断开成独立的一滴（出了扇形这一块）
   let pd = null, fd = null, fdCv = null, fdCtx = null, parts = [], fdRaf = 0;
   const centerOf = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
   const buzz = () => { try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(8); } catch (e) {} };
@@ -742,10 +742,18 @@
     }
     if (parts.length > 220) parts.splice(0, parts.length - 220);
   }
-  // 两个圆连成一滴水：根在 (x1, y1, r1)，水滴在 (x2, y2, r2)，中间的颈半宽 w；两边各两段二次曲线，在颈的正中相切（三端同一个算法）
-  function dropPath(g, x1, y1, r1, x2, y2, r2, w) {
+  // 像水的表面张力：刚拉出来时颈很粗、根部张得开，越拉越细（不会细成一根线），拉到 snap 就断开；
+  // 返回 null = 还在 logo 里，{ free } = 已经断开，否则是颈的半宽 w 和两头接上去的角度（三端同一个算法）
+  function dropGeom(d, r1, r2) {
+    if (d <= r1 + r2 * .2) return null;
+    if (d >= DROP.snap) return { free: true };
+    const t = Math.min(1, Math.max(0, (d - r1 - r2 * .2) / (DROP.snap - r1 - r2 * .2))), e = Math.pow(t, 1.3);
+    return { w: r2 * (.92 - .5 * e), a1: 1.05 - .5 * t, a2: Math.PI - (1.3 - .35 * t) };
+  }
+  // 两个圆连成一滴水：根在 (x1, y1, r1)，水滴在 (x2, y2, r2)，颈半宽 w；两边各两段二次曲线，在颈的正中相切
+  function dropPath(g, x1, y1, r1, x2, y2, r2, w, a1, a2) {
     const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, u = Math.atan2(dy, dx);
-    const ux = dx / d, uy = dy / d, nx = -uy, ny = ux, a1 = .42, a2 = Math.PI - .95;
+    const ux = dx / d, uy = dy / d, nx = -uy, ny = ux;
     const s1 = (r1 + d / 2) / 2, s2 = d - (r2 + d / 2) / 2, mx = x1 + ux * d / 2, my = y1 + uy * d / 2;
     g.beginPath();
     g.moveTo(x1 + Math.cos(u + a1) * r1, y1 + Math.sin(u + a1) * r1);
@@ -768,9 +776,12 @@
       let tx = fd.x, ty = fd.y;
       if (fd.hot) { const [hx, hy] = centerOf(fd.hot); tx += (hx - tx) * .55; ty += (hy - ty) * .55; }   // 水滴被按钮吸过去一点
       const r2 = fd.hot ? DROP.tipHot : DROP.tip, d = Math.hypot(tx - lx, ty - ly);
-      if (d > DROP.base + r2 * .4) {
+      const geo = dropGeom(d, DROP.base, r2);
+      if (fd.free !== !!(geo && geo.free)) { if (fd.free === false && geo && geo.free) buzz(); fd.free = !!(geo && geo.free); }   // 断开的那一下轻震
+      if (geo) {
         const dark = document.documentElement.dataset.theme === 'dark';
-        dropPath(g, lx, ly, DROP.base, tx, ty, r2, Math.max(DROP.neck, 4.2 - d * .012));   // 拉得越远颈越细，但不会断
+        if (geo.free) { g.beginPath(); g.arc(tx, ty, r2, 0, Math.PI * 2); }   // 出了扇形这一块：独立的一滴
+        else dropPath(g, lx, ly, DROP.base, tx, ty, r2, geo.w, geo.a1, geo.a2);
         g.shadowColor = 'rgba(0, 0, 0, .14)'; g.shadowBlur = 12; g.shadowOffsetY = 3;
         g.fillStyle = dark ? 'rgba(255, 255, 255, .08)' : 'rgba(255, 255, 255, .22)'; g.fill();   // 透明玻璃：几乎全透
         g.shadowBlur = 0; g.shadowOffsetY = 0;
@@ -808,7 +819,7 @@
     if (!pd || e.pointerId !== pd.id) return;
     if (!fd) {
       if (Math.hypot(e.clientX - pd.x0, e.clientY - pd.y0) < 10) return;
-      fd = { x: e.clientX, y: e.clientY, hot: null };   // 拖起来了：打开扇形、后面的页面虚下去
+      fd = { x: e.clientX, y: e.clientY, hot: null, free: false };   // 拖起来了：打开扇形、后面的页面虚下去
       setOpen(true); spot(); body.classList.add('fan-drag'); buzz();
       try { logo.setPointerCapture(pd.id); } catch (err) {}
       fdKick();

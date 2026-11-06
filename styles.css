@@ -213,8 +213,8 @@ body .weekdays { display: none; }
 .mframe { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 4; overflow: visible; transition: opacity .5s cubic-bezier(.25, .1, .25, 1); }
 /* 滑动中月框淡下去，停下时和星期条同一条曲线一起回来（calendar.js 的 markMoving / endMoving） */
 .mframe.moving { opacity: 0; transition: opacity .25s ease-out; }
-.mframe path { fill: none; stroke: var(--accent); stroke-opacity: .55; stroke-width: 1.4; stroke-dasharray: 5 4; stroke-linejoin: round; stroke-linecap: round; }
-:root[data-theme="dark"] .mframe path { stroke: var(--accent-text); stroke-opacity: .62; }
+/* 月份交替那一条：logo 渐变色缓缓流动的细实线（calendar.js 的 drawFrame / MF_DEFS），两侧不画 */
+.mframe path { fill: none; stroke: url(#mfGrad); stroke-opacity: .95; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
 
 .wrow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 0 2px; contain: layout paint style; }
 .cell { position: relative; overflow: hidden; min-width: 0; padding-top: 6px; cursor: pointer; border-top: .5px solid var(--line); }
@@ -679,6 +679,14 @@ body:not([data-page="cal"]) .back-today { display: none; }
 #batchSheet { --sh-def: .56; } /* 和单个一样高：切换时大小不变 */
 #schedSheet { --sh-def: .74; } /* 添加 / 编辑课程：先停在四分之三高，往下还能停在 .56、.4 两档 */
 .composer.mid, .sheet.tall.mid { height: var(--sh, calc(var(--sh-def) * 100%)); max-height: none; }
+/* 手机上新建事件：悬浮在中间偏下的卡片（editor.js 的 openMid），四角圆、离两边 8、离底一截，顶边落在那一天所在那一周下面（revealAbove） */
+.composer.float { left: 8px; right: 8px; bottom: calc(var(--lift, 0px) + max(18px, var(--safe-b) + 6px)); border-radius: 30px; padding-bottom: 0;
+  box-shadow: inset 0 1px 0 var(--rim-hi), inset 0 0 0 .5px var(--frost-edge), 0 18px 50px rgba(14, 24, 40, .22), 0 2px 8px rgba(14, 24, 40, .08); }
+.composer.float:not(.show) { transform: translateY(calc(100% + 60px)); }
+.composer.float .cmp-scroll { padding-bottom: 16px; }
+.cmp-h2 { display: flex; flex-direction: column; gap: 1px; line-height: 1.15; }   /* 标题下面一行小字写日期（标题行放不下并排） */
+.cmp-hdate { font-size: 12px; font-weight: 500; color: var(--text2); letter-spacing: .01em; }
+.cmp-hdate:empty { display: none; }
 /* 新建事件里的日历紧凑一点 */
 .cmp-pk .pk-grid { grid-auto-rows: 32px; }   /* 行数跟着这个月实际占几周走 */
 .cmp-pk .pk-d { font-size: 14px; }
@@ -2080,8 +2088,10 @@ body #page-cal .weekdays.hide { display: none; }
 .sheet.fl.pop .handle { display: none; }
 .sheet.fl.pop .sheet-head { padding-top: 14px; }
 .pop-blob { z-index: 95; }
-.pop-blob.under { z-index: 0; }   /* 收起时沉到那一组下面（ui.js 的 popMorph） */
-.pop-over { position: relative; z-index: 1; }
+/* 收起：卡片自己缩回那一条，边缩边暗、淡掉，像沉回下面一层（ui.js 的 popMorph，--ptx / --pty / --psx / --psy 由 js 算） */
+.sheet.fl.pop.pop-out { visibility: visible !important; opacity: 0 !important; pointer-events: none;
+  transform: translate(var(--ptx), var(--pty)) scale(var(--psx), var(--psy)) !important; filter: brightness(.82) blur(1px);
+  transition: transform .28s cubic-bezier(.4, 0, .2, 1), opacity .2s ease .08s, filter .28s ease, visibility 0s !important; }
 #chooseSheet { z-index: 60; }
 #chooseSheet.act .ch-tick { display: none; }
 #chooseSheet.act .ch-row { justify-content: flex-start; }

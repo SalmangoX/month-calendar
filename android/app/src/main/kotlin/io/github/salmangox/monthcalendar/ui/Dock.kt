@@ -322,7 +322,7 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
         }
         val rot by animateFloatAsState(if (m.fanOpen) 1f else 0f, spring(.6f, 400f), label = "lg")
         // 按住拖：拖起来就打开扇形、后面虚下去；手指离哪个按钮中心 46dp 以内就是它（变大、冒粒子、轻震）；松手选中它，没在按钮上就收起
-        val hotR = with(density) { 46.dp.toPx() }
+        val hotR = with(density) { FAN_HOT.dp.toPx() }
         fun centers(): List<Pair<String, Offset>> = items.mapIndexed { k, id ->
             val rad = Math.toRadians(angles[k]); val px = r * ZOOM * density.density   // 拖着时扇形放大了
             id to Offset(m.logoC.x + (cos(rad) * px).toFloat(), m.logoC.y - (sin(rad) * px).toFloat())
@@ -433,12 +433,22 @@ class FanFX {
 
 /** 按住 logo 拖动：扇形放大多少；水滴的尺寸（和网页 DROP、GlassNav.swift 的 FanDropSize 一样）【联动:底部悬浮控件】 */
 private const val ZOOM = 1.12f
-private const val DROP_TIP = 12f; private const val DROP_TIP_HOT = 15f; private const val DROP_NECK = 2.2f
+private const val DROP_TIP = 12f; private const val DROP_TIP_HOT = 15f
+/** 离 logo 中心多远断开成独立的一滴（出了扇形这一块）；手指离按钮中心多近算拖到上面（放宽，手小也点得准） */
+private const val DROP_SNAP = 150f; const val FAN_HOT = 58f
+
+/** 像水的表面张力：刚拉出来时颈很粗、根部张得开，越拉越细（不会细成一根线），拉到 snap 就断开（和网页 dropGeom 一样）；null = 还在 logo 里，FloatArray(0) = 已断开，否则 [w, a1, a2] */
+private fun dropGeom(d: Float, r1: Float, r2: Float, snap: Float): FloatArray? {
+    if (d <= r1 + r2 * .2f) return null
+    if (d >= snap) return FloatArray(0)
+    val t = ((d - r1 - r2 * .2f) / (snap - r1 - r2 * .2f)).coerceIn(0f, 1f); val e = Math.pow(t.toDouble(), 1.3).toFloat()
+    return floatArrayOf(r2 * (.92f - .5f * e), 1.05f - .5f * t, Math.PI.toFloat() - (1.3f - .35f * t))
+}
 
 /** 两个圆连成一滴水：根 (c1, r1)，水滴 (c2, r2)，颈半宽 w；两边各两段二次曲线，在颈的正中相切（和网页 dropPath 同一个算法） */
-private fun dropPath(c1: Offset, r1: Float, c2: Offset, r2: Float, w: Float): Path {
+private fun dropPath(c1: Offset, r1: Float, c2: Offset, r2: Float, w: Float, a1: Float, a2: Float): Path {
     val dx = c2.x - c1.x; val dy = c2.y - c1.y; val d = maxOf(1f, hypot(dx, dy)); val u = kotlin.math.atan2(dy, dx)
-    val ux = dx / d; val uy = dy / d; val nx = -uy; val ny = ux; val a1 = .42f; val a2 = Math.PI.toFloat() - .95f
+    val ux = dx / d; val uy = dy / d; val nx = -uy; val ny = ux
     val s1 = (r1 + d / 2) / 2; val s2 = d - (r2 + d / 2) / 2
     fun at(s: Float, k: Float) = Offset(c1.x + ux * s + nx * w * k, c1.y + uy * s + ny * w * k)
     fun on(c: Offset, r: Float, a: Float) = Offset(c.x + cos(a) * r, c.y + sin(a) * r)
@@ -484,9 +494,10 @@ private fun FanTrail(m: DockModel) {
             var t = f - o
             m.hot?.let { h -> val c = hotCenter(m, h) - o; t = Offset(t.x + (c.x - t.x) * .55f, t.y + (c.y - t.y) * .55f) }
             val r1 = (DockModel.LOGO / 2f).dp.toPx(); val r2 = (if (m.hot != null) DROP_TIP_HOT else DROP_TIP).dp.toPx()
-            val d = hypot(t.x - l.x, t.y - l.y)
-            if (d > r1 + r2 * .4f) {
-                val path = dropPath(l, r1, t, r2, maxOf(DROP_NECK.dp.toPx(), 4.2.dp.toPx() - d * .012f))   // 拉得越远颈越细，但不会断
+            val g = dropGeom(hypot(t.x - l.x, t.y - l.y), r1, r2, DROP_SNAP.dp.toPx())
+            if (g != null) {
+                val path = if (g.isEmpty()) Path().apply { addOval(androidx.compose.ui.geometry.Rect(t, r2)) }   // 出了扇形这一块：独立的一滴
+                           else dropPath(l, r1, t, r2, g[0], g[1], g[2])
                 drawPath(path, Color.White.copy(alpha = if (dark) .08f else .22f))   // 透明玻璃：几乎全透
                 drawPath(path, Color.White.copy(alpha = if (dark) .26f else .75f), style = Stroke(1.dp.toPx()))   // 玻璃的亮边
                 drawOval(Color.White.copy(alpha = if (dark) .22f else .6f), Offset(t.x - r2 * .64f, t.y - r2 * .56f), androidx.compose.ui.geometry.Size(r2 * .64f, r2 * .4f))   // 一点高光
