@@ -635,3 +635,96 @@ button.dp-glyph:active { transform: translate(-50%, -50%) scale(.95); }
 .cam2.rot .cam-ic.spin svg { transform: rotate(calc(var(--cam-rot) + 180deg)); }
 .cam2 .cam-look-flash { transition: rotate .35s ease; }
 .cam2.rot .cam-look-flash { rotate: var(--cam-rot); }
+
+/* 纪念日一行往左滑：露出 隐藏 · 编辑 · 删除（和事件列表同一种淡色圆键） */
+.dv-sw { position: relative; }
+.dv-sw > .dv-row { position: relative; z-index: 1; width: 100%; transform: translateX(var(--sx, 0px)); }
+.dv-sw.sw-anim > .dv-row { transition: transform .26s var(--ease); }
+.dv-acts { position: absolute; top: 0; right: 0; bottom: 0; width: 176px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding-right: 10px; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.dv-sw.swiping .dv-acts { opacity: 1; pointer-events: auto; }
+.dv-acts button { width: 52px; height: 100%; display: grid; place-items: center; }
+.dv-acts i { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--text); background: color-mix(in srgb, var(--text) 8%, transparent);
+  transform: scale(.7); opacity: 0; transition: transform .22s var(--ease), opacity .15s; }
+.dv-sw.swiping .dv-acts i { transform: none; opacity: 1; }
+.dv-acts button.del i { color: var(--red); background: color-mix(in srgb, var(--red) 13%, transparent); }
+.dv-acts svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dv-sw.hidden > .dv-row { opacity: .62; }   /* 总览里：隐藏了的（纪念日列表里看不到）淡一点 */
+
+/* 总览「接下来」：像洗好的胶卷一张张挂在绳子上（从左到右、从上到下按时间），右上角一颗键换成一条一条的 */
+.dv-view { margin-left: 8px; width: 30px; height: 26px; border-radius: 999px; display: grid; place-items: center; color: var(--text2); background: color-mix(in srgb, var(--text) 7%, transparent); align-self: center; }
+.dv-view svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fl-wrap { display: flex; flex-direction: column; gap: 8px; padding: 0 2px; }
+.fl-row { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 14px 10px 6px; }
+.fl-row::before { content: ""; position: absolute; left: -6px; right: -6px; top: 0; height: 9px; border-bottom: 1.5px solid color-mix(in srgb, var(--text) 26%, transparent);
+  border-radius: 0 0 50% 50% / 0 0 100% 100%; pointer-events: none; }   /* 微微下垂的一根绳 */
+.fl-card { position: relative; display: block; text-align: left; transform-origin: 50% 0; rotate: var(--tilt, 0deg); animation: flHang .7s cubic-bezier(.3, 1.35, .45, 1) both; animation-delay: var(--d, 0ms); }
+.fl-card:active { scale: .97; }
+@keyframes flHang { from { opacity: 0; rotate: calc(var(--tilt) * -3); translate: 0 -10px; } to { opacity: 1; rotate: var(--tilt); translate: 0 0; } }
+.fl-clip { position: absolute; z-index: 2; left: 50%; top: -12px; width: 14px; height: 22px; margin-left: -7px; border-radius: 3px;
+  background: linear-gradient(180deg, #d9c3a5, #b8996f); box-shadow: 0 1px 2px rgba(0, 0, 0, .25), inset 0 0 0 .5px rgba(0, 0, 0, .15); }
+:root[data-theme="dark"] .fl-clip { background: linear-gradient(180deg, #9c8a73, #786752); }
+.fl-frame { display: flex; flex-direction: column; gap: 4px; padding: 13px 8px 10px; border-radius: 6px; background: #1d1a18; color: #f3efe8;
+  box-shadow: 0 10px 22px -8px rgba(0, 0, 0, .45), 0 2px 5px rgba(0, 0, 0, .2);
+  /* 胶片上下两排齿孔 */
+  background-image: radial-gradient(circle, rgba(255, 255, 255, .16) 1.6px, transparent 2.1px), radial-gradient(circle, rgba(255, 255, 255, .16) 1.6px, transparent 2.1px);
+  background-size: 10px 8px, 10px 8px; background-repeat: repeat-x; background-position: 3px 2px, 3px calc(100% - 2px); }
+.fl-pic { position: relative; display: block; aspect-ratio: 4 / 3; border-radius: 3px; overflow: hidden;
+  background: linear-gradient(145deg, var(--pastel, color-mix(in srgb, var(--ic) 32%, #fff)), color-mix(in srgb, var(--ic) 60%, #2a2622)); }
+.fl-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(.92) contrast(1.04) sepia(.08); }
+.fl-ic { position: absolute; left: 8px; top: 8px; width: 24px; height: 24px; color: #fff; opacity: .9; }
+.fl-ic svg { width: 100%; height: 100%; }
+.fl-n { position: absolute; right: 8px; bottom: 6px; display: flex; align-items: baseline; gap: 2px; color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, .35); }
+.fl-n b { font-size: 30px; font-weight: 760; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.fl-n i { font-style: normal; font-size: 12px; font-weight: 650; }
+.fl-t { font-size: 13.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 2px 0; }
+.fl-frame small { font-size: 11px; color: rgba(243, 239, 232, .62); padding: 0 2px; }
+
+/* 纪念相机「调整」面板：苹果那种透明液态玻璃——几乎全透，看得见后面的画面，靠高光边、内发光和一点折射看出是一块玻璃 */
+.cam2 .cam-adj { background: linear-gradient(160deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04) 40%, rgba(255, 255, 255, .02) 70%, rgba(255, 255, 255, .1));
+  -webkit-backdrop-filter: blur(3px) saturate(170%) brightness(1.04); backdrop-filter: blur(3px) saturate(170%) brightness(1.04);
+  box-shadow: inset 1.2px 1.2px 0 rgba(255, 255, 255, .55), inset -1px -1px 0 rgba(255, 255, 255, .22), inset 0 0 26px rgba(255, 255, 255, .1), 0 14px 36px rgba(0, 0, 0, .22);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
+.lg-refract .cam2 .cam-adj { -webkit-backdrop-filter: blur(1.5px) saturate(170%) brightness(1.04) url(#lg-refract); backdrop-filter: blur(1.5px) saturate(170%) brightness(1.04) url(#lg-refract); }
+.cam2 .cam-adj-tabs, .cam2 .cam-seg { background: rgba(0, 0, 0, .18); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .14); }
+.cam2 .cam-adj-tabs button.on, .cam2 .cam-seg button.on { background: rgba(255, 255, 255, .88); color: #111; text-shadow: none; }
+/* 左下角的相册小图：拍完的照片缩成小图飞进来 */
+.cam-roll { width: 50px; height: 50px; border-radius: 12px; background: rgba(255, 255, 255, .12) center / cover no-repeat; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .85), 0 4px 12px rgba(0, 0, 0, .3); }
+.cam-roll:not(.has) { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .35); }
+.cam-fly { position: fixed; z-index: 9; pointer-events: none; transform-origin: 50% 50%; will-change: transform, clip-path; }
+.cam-flash { position: absolute; inset: 0; z-index: 8; background: #fff; pointer-events: none; }
+.cam-shutter .cam-done { display: none; width: 30px; height: 30px; fill: none; stroke: #111; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+/* 在相册里改文字效果：没有相机、翻转、相册小图，快门换成「完成」 */
+.cam2.editing [data-c="flip"], .cam2.editing .cam-roll, .cam2.editing .cam-dots, .cam2.editing .cam-zoom, .cam2.editing [data-c="adjust"] { visibility: hidden; }
+.cam2.editing .cam-shutter { background: #fff; }
+.cam2.editing .cam-shutter span { display: none; }
+.cam2.editing .cam-shutter .cam-done { display: block; }
+.cam2.rot .cam-roll { rotate: var(--cam-rot); transition: rotate .35s ease; }
+/* 相册：喜欢、只看喜欢的、选几张一起删 */
+.alb-bar { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.alb-chip { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text2); background: color-mix(in srgb, var(--text) 7%, transparent); }
+.alb-chip svg { width: 14px; height: 14px; fill: currentColor; }
+.alb-chip.on { color: #fff; background: #E8506A; }
+.alb-chip.danger { color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+.alb-chip:disabled { opacity: .45; }
+.dd-add.icon { width: 30px; height: 30px; padding: 0; justify-content: center; }
+.dd-add.icon span { display: none; }
+.dd-ph { position: relative; }
+.ph-like { position: absolute; right: 5px; bottom: 5px; width: 18px; height: 18px; color: #fff; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .45)); pointer-events: none; }
+.ph-like svg { width: 100%; height: 100%; fill: #FF5C7A; }
+.ph-ck { position: absolute; right: 6px; top: 6px; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #fff, 0 1px 3px rgba(0, 0, 0, .35); background: rgba(0, 0, 0, .15); pointer-events: none; }
+.dd-ph.sel .ph-ck { background: var(--text) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 12.5l3.8 3.8 7.2-8.3' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 15px no-repeat; }
+.dd-photos.selecting .dd-ph img { transition: transform .18s ease; }
+.dd-photos.selecting .dd-ph.sel img { transform: scale(.9); border-radius: 10px; }
+/* 大图：左上返回，右上喜欢、更多；纪念相机拍的下面多「编辑文字」 */
+.pv-r { display: flex; gap: 8px; }
+.pv .cam-ic svg { width: 21px; height: 21px; }
+.pv-like.on { color: #FF5C7A; }
+.pv-like.on svg, .pv-like svg { fill: none; stroke: currentColor; stroke-width: 2; }
+.pv-like.on svg { fill: currentColor; }
+.pv-bar { position: absolute; z-index: 2; left: 0; right: 0; bottom: calc(var(--safe-b) + 18px); display: flex; justify-content: center; gap: 10px; }
+.pv-bar [hidden] { display: none; }
+.pv-bar { padding: 0 20px; }
+.pv-bar .cam-pill { max-width: 200px; }
+#dayViewer .pv-slide { padding-bottom: calc(var(--safe-b) + 84px); }
+.pv-bar svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cam2.editing .cam-adj-tabs { display: none; }

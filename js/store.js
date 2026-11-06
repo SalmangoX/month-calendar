@@ -333,6 +333,7 @@
       cover: /^(p[a-z0-9]{4,40}|c:#[0-9a-fA-F]{6}|g:[a-z]{2,12})$/.test(x.cover || '') ? x.cover : '', // 主题图片：照片 id、g:内置背景（js/days.js 的 SCENES）或旧的 c:#颜色
       cat: String(x.cat || '').slice(0, 16), sub: String(x.sub || '').slice(0, 40), // 大类、细分（细分是内置的 cat.xxx 或自定义细分 book 的 id）
       hl: /^#[0-9a-fA-F]{6}$/.test(x.hl || '') ? x.hl : '', pin: !!x.pin,
+      hide: !!x.hide,   // 隐藏：纪念日那一页不列出来，只在总览里显示【联动:同步数据】
       unit: DAY_UNITS.includes(x.unit) ? x.unit : 'd', from1: !!x.from1,
       // 提醒：提前几天（0 = 当天），每个在 remindAt 这个钟点提醒；重复的日子每次都会提醒
       reminds: [...new Set((Array.isArray(x.reminds) ? x.reminds : []).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n <= 60))].sort((a, b) => a - b).slice(0, 6),
@@ -341,7 +342,11 @@
       notes: (Array.isArray(x.notes) ? x.notes : []).filter(n => n && n.id).slice(0, 300)
         .map(n => ({ id: String(n.id).slice(0, 40), text: String(n.text || '').slice(0, 2000), at: Number(n.at) || t })),
       photos: (Array.isArray(x.photos) ? x.photos : []).filter(p => p && p.id).slice(0, 300)
-        .map(p => ({ id: String(p.id).slice(0, 40), at: Number(p.at) || t, w: Number(p.w) || 0, h: Number(p.h) || 0 })),
+        .map(p => ({ id: String(p.id).slice(0, 40), at: Number(p.at) || t, w: Number(p.w) || 0, h: Number(p.h) || 0,
+          ...(p.like ? { like: true } : {}),   // 喜欢
+          // 纪念相机拍的：base 是加了滤镜、还没放卡片的原图（不在相册里列出来），其余是卡片的样式、字体、位置、大小——在相册里还能改文字效果
+          ...(p.cam && p.cam.base ? { cam: { base: String(p.cam.base).slice(0, 40), style: String(p.cam.style || 'clear').slice(0, 10), font: String(p.cam.font || 'sans').slice(0, 10),
+            x: Number(p.cam.x) || .5, y: Number(p.cam.y) || .62, s: Number(p.cam.s) || 1, cw: Number(p.cam.cw) || 0, ch: Number(p.cam.ch) || 0 } } : {}) })),
       createdAt: x.createdAt || t, updatedAt: x.updatedAt || x.createdAt || t,
     };
   }
