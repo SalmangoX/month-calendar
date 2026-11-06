@@ -809,6 +809,7 @@
   // ---------- 提醒：在信息下面、小纸条上面；可以选好几个（当天、提前 1 / 3 / 7 / 30 天），都在同一个钟点提醒 ----------
   const REMIND_OPTS = [0, 1, 3, 7, 30], REMIND_H = [1, 12];
   const remindLabel = n => (n ? F('提前 {0} 天', n) : T('当天'));
+  let freshRm = null;   // 刚点上的那颗提醒胶囊：重画时播一次灌满的动画（别的已选的不再播）
   const remindHLabel = h => F('提前 {0} 小时', h);
   function remindHTML(x, inf) {
     const on = x.reminds || [], onH = x.remindH || [], push = MC.Push && MC.Push.enabled && MC.Push.enabled();
@@ -816,7 +817,7 @@
     const over = inf.state === 'past' && !x.rep;   // 不重复、已经过去的日子：不会再到来，提醒没意义
     return `<div class="dd-sec"><h3><span class="si">${UI_IC.bell}</span>${T('提醒')}<span>${all.length ? esc(all.join('、')) : ''}</span></h3></div>
       ${over ? `<p class="dd-hint">${T('这个日子已经过去，不会再提醒。设成每年重复，就能每年提前提醒你。')}</p>` : `<div class="group dd-remind">
-        <div class="cmp-chips dd-rm-opts">${REMIND_H.map(h => `<button class="qchip${onH.includes(h) ? ' on' : ''}" data-rmh="${h}">${remindHLabel(h)}</button>`).join('')}${REMIND_OPTS.map(n => `<button class="qchip${on.includes(n) ? ' on' : ''}" data-rmd="${n}">${remindLabel(n)}</button>`).join('')}</div>
+        <div class="cmp-chips dd-rm-opts">${REMIND_H.map(h => `<button class="qchip${onH.includes(h) ? ' on' + (freshRm === 'h' + h ? ' fill' : '') : ''}" data-rmh="${h}">${remindHLabel(h)}</button>`).join('')}${REMIND_OPTS.map(n => `<button class="qchip${on.includes(n) ? ' on' + (freshRm === 'd' + n ? ' fill' : '') : ''}" data-rmd="${n}">${remindLabel(n)}</button>`).join('')}</div>
         ${onH.length && !x.time ? `<p class="dd-rm-note">${T('这个日子没设精确时间：提前几小时按当天 0 点往前算。')}</p>` : ''}
         ${on.length ? `<button class="dd-kv dd-rm-time" data-rmtime><span>${T('提醒时间')}</span><b>${esc(MC.fmtTime ? MC.fmtTime(x.remindAt || '09:00') : x.remindAt)}</b></button>` : ''}
       </div>${all.length && !push ? `<p class="dd-hint warn">${T('还没打开提醒通知：到「设置 → 提醒」打开后才会收到。')}</p>` : ''}`}`;
@@ -861,6 +862,7 @@
     const rh = t.closest('[data-rmh]');
     if (rh) {
       const h = Number(rh.dataset.rmh), cur = x.remindH || [], next = cur.includes(h) ? cur.filter(v => v !== h) : [...cur, h].sort((a, b) => a - b);
+      freshRm = 'h' + h; setTimeout(() => (freshRm = null), 400);
       MC.updateDay(x, { remindH: next, remindTz: MC.currentTz() }); vib();
       if (next.length > cur.length) { if (MC.Push && !MC.Push.enabled()) { try { await MC.Push.enable(); } catch (err) {} } UI.toast(F('会在{0}提醒你', remindHLabel(h))); }
       return;
@@ -868,6 +870,7 @@
     const rm = t.closest('[data-rmd]');
     if (rm) {
       const n = Number(rm.dataset.rmd), cur = x.reminds || [], next = cur.includes(n) ? cur.filter(v => v !== n) : [...cur, n].sort((a, b) => a - b);
+      freshRm = 'd' + n; setTimeout(() => (freshRm = null), 400);
       MC.updateDay(x, { reminds: next, remindTz: MC.currentTz() }); vib();
       if (next.length > cur.length) {
         if (MC.Push && !MC.Push.enabled()) { try { await MC.Push.enable(); } catch (err) {} }
@@ -907,27 +910,47 @@
   function pickPhotos(x) { photoFor = x.id; photoIn.value = ''; photoIn.click(); }
   photoIn.addEventListener('change', async () => { const x = photoFor && find(photoFor); if (x && photoIn.files.length) await P.addPhotos(x, photoIn.files); });
 
-  // 从左边缘往右滑返回（和系统的返回手势一样）
+  // 从左往右滑返回（用户定的：整页哪里都能滑，不只是左边缘；和设置页、统计页一样）。能左右滑的东西、开关、输入框上不触发；
+  // 手机跟手指（快速一甩也算），Mac 跟触控板两指往右扫
+  const noSwipe = t => {
+    for (let e = t; e && e !== page; e = e.parentElement) {
+      if (e.matches && e.matches('input, textarea, select, .lgbar, .mi-sw, .sw, [data-noswipe], .cam')) return true;
+      if (e.scrollWidth > e.clientWidth + 4 && /auto|scroll/.test(getComputedStyle(e).overflowX)) return true;
+    }
+    return false;
+  };
+  const swDone = (dx, v) => {
+    page.style.transition = '';
+    if (dx > page.offsetWidth * .32 || (v > .5 && dx > 40)) { page.style.transform = `translate3d(${page.offsetWidth}px,0,0)`; setTimeout(closePage, 220); }
+    else page.style.transform = '';
+  };
   let sw = null;
   page.addEventListener('touchstart', e => {
     const t = e.touches[0];
-    sw = e.touches.length === 1 && t.clientX < 28 && !UI.anyOpen() ? { x0: t.clientX, y0: t.clientY, on: false, w: page.offsetWidth } : null;
+    sw = e.touches.length === 1 && !UI.anyOpen() && !noSwipe(e.target) ? { x0: t.clientX, y0: t.clientY, on: false, s: [[performance.now(), t.clientX]] } : null;
   }, { passive: true });
   page.addEventListener('touchmove', e => {
     if (!sw) return;
     const t = e.touches[0], dx = t.clientX - sw.x0, dy = t.clientY - sw.y0;
-    if (!sw.on) { if (Math.abs(dx) < 8) return; if (dx < 0 || Math.abs(dy) > dx) { sw = null; return; } sw.on = true; page.style.transition = 'none'; }
+    if (!sw.on) { if (Math.hypot(dx, dy) < 10) return; if (dx < 0 || Math.abs(dy) * 1.3 > dx) { sw = null; return; } sw.on = true; page.style.transition = 'none'; }
     if (e.cancelable) e.preventDefault();
     page.style.transform = `translate3d(${Math.max(0, dx)}px,0,0)`;
-    sw.dx = dx;
+    sw.dx = dx; sw.s.push([performance.now(), t.clientX]); if (sw.s.length > 6) sw.s.shift();
   }, { passive: false });
   page.addEventListener('touchend', () => {
     if (!sw || !sw.on) { sw = null; return; }
-    page.style.transition = '';
-    if (sw.dx > sw.w * .32) { page.style.transform = `translate3d(${sw.w}px,0,0)`; setTimeout(closePage, 220); }
-    else page.style.transform = '';
-    sw = null;
+    const a = sw.s[0], z = sw.s[sw.s.length - 1], v = (z[1] - a[1]) / Math.max(1, z[0] - a[0]);   // px / ms
+    swDone(sw.dx, v); sw = null;
   });
+  // Mac 触控板：两指往右扫（wheel 的 deltaX 是负的）
+  let wx = 0, wxT = 0;
+  page.addEventListener('wheel', e => {
+    if (!page.classList.contains('show') || UI.anyOpen() || Math.abs(e.deltaX) <= Math.abs(e.deltaY) || noSwipe(e.target)) return;
+    if (e.cancelable) e.preventDefault();
+    wx = Math.max(0, wx - e.deltaX);
+    page.style.transition = 'none'; page.style.transform = `translate3d(${wx}px,0,0)`;
+    clearTimeout(wxT); wxT = setTimeout(() => { swDone(wx, 0); wx = 0; }, 120);
+  }, { passive: false });
 
   // ---------- 主题图片 ----------
   let coverFor = null;
@@ -1912,6 +1935,22 @@
 
   // ---------- 纪念相机（拍照时把倒数卡片叠在画面上；卡片默认是完全透明的玻璃） ----------
   let camCtx = null; // { id, stream, facing, style, font, pos:{x,y}, scale, bgImg }
+  // 横着拿手机拍（App 只竖屏）：和系统相机一样，界面不转，按钮图标和卡片转正，拍出来是横的照片。
+  // camRot = 界面里的东西要顺时针转几度才正（0 / 90 / -90）：iPhone 由原生按陀螺仪告诉网页（__mcDevRot），安卓 / 网页看重力
+  let camRot = 0;
+  function setCamRot(d) {
+    d = d === 90 || d === -90 ? d : 0;
+    if (d === camRot) return;
+    camRot = d;
+    if (camCtx) { camCtx.el.style.setProperty('--cam-rot', d + 'deg'); camCtx.el.classList.toggle('rot', !!d); }
+  }
+  window.__mcDevRot = setCamRot;
+  window.addEventListener('devicemotion', e => {
+    if (!camCtx || (MC.Native && MC.Native.ios)) return;
+    const g = e.accelerationIncludingGravity; if (!g || g.x == null) return;
+    if (Math.abs(g.x) > 6.5 && Math.abs(g.x) > Math.abs(g.y) * 1.4) setCamRot(g.x > 0 ? 90 : -90);   // 右边朝上：要顺时针转 90° 才正
+    else if (g.y > 6.5) setCamRot(0);
+  });
   const CAM_STYLES = [['glass', '玻璃'], ['clear', '透明'], ['light', '浅色'], ['dark', '深色']];
   const CAM_RATIOS = [['full', '全屏'], ['34', '3:4', 3, 4], ['45', '4:5', 4, 5], ['916', '9:16', 9, 16], ['11', '1:1', 1, 1]];
   // 画幅：在屏幕里放下所选比例的取景框，拍出来就是这个比例
@@ -1952,6 +1991,8 @@
       </div>`;
     document.body.appendChild(el);
     camCtx = { id: x.id, el, stream: null, facing: 'environment', style: 'glass', font: 'sans', ratio: 'full', pos: null, scale: 1, bgImg: null, bgFile: null, zoom: 1, zMin: 1, zMax: 5, hw: false };
+    el.style.setProperty('--cam-rot', camRot + 'deg'); el.classList.toggle('rot', !!camRot);
+    try { if (window.MCNative && window.MCNative.devRot) window.MCNative.devRot(true); } catch (e) {}   // iPhone：开始报方向
     requestAnimationFrame(() => el.classList.add('show'));
     bindCam(el);
     await startStream();
@@ -2011,6 +2052,7 @@
     }).catch(() => UI.toast(T('照片读取失败')));
   }
   function closeCam() {
+    try { if (window.MCNative && window.MCNative.devRot) window.MCNative.devRot(false); } catch (e) {}
     const c = camCtx; if (!c) return false;
     if (c.stream) c.stream.getTracks().forEach(t => t.stop());
     c.el.classList.remove('show'); setTimeout(() => c.el.remove(), 260);
@@ -2082,33 +2124,49 @@
     const k = Math.max(vr.width / iw, vr.height / ih) * dz, sw = vr.width / k, sh0 = vr.height / k;
     const s = Math.min(2560 / Math.max(sw, sh0), Math.max(1, 1440 / Math.min(sw, sh0)));
     const cv = document.createElement('canvas'); cv.width = Math.round(sw * s); cv.height = Math.round(sh0 * s);
-    const ctx = cv.getContext('2d'), f = cv.width / vr.width;
-    ctx.save();
-    if (!c.bgImg && c.facing === 'user') { ctx.translate(cv.width, 0); ctx.scale(-1, 1); }
-    ctx.drawImage(src, (iw - sw) / 2, (ih - sh0) / 2, sw, sh0, 0, 0, cv.width, cv.height);
-    ctx.restore();
+    const pctx = cv.getContext('2d'), f = cv.width / vr.width;
+    pctx.save();
+    if (!c.bgImg && c.facing === 'user') { pctx.translate(cv.width, 0); pctx.scale(-1, 1); }
+    pctx.drawImage(src, (iw - sw) / 2, (ih - sh0) / 2, sw, sh0, 0, 0, cv.width, cv.height);
+    pctx.restore();
+    // 横着拿：整张画面转成横的（世界的「上」在竖屏画面的右边 / 左边），卡片按它自己没转的样子画在横图里
+    const rot = c.bgImg ? 0 : camRot, rad0 = -rot * Math.PI / 180;
+    let out = cv, ctx = pctx;
+    const map = (x, y) => {   // 竖屏画布上的点 → 输出画布上的点
+      if (!rot) return [x, y];
+      const dx = x - cv.width / 2, dy = y - cv.height / 2;
+      return [dx * Math.cos(rad0) - dy * Math.sin(rad0) + out.width / 2, dx * Math.sin(rad0) + dy * Math.cos(rad0) + out.height / 2];
+    };
+    if (rot) {
+      out = document.createElement('canvas'); out.width = cv.height; out.height = cv.width;
+      ctx = out.getContext('2d');
+      ctx.translate(out.width / 2, out.height / 2); ctx.rotate(rad0); ctx.drawImage(cv, -cv.width / 2, -cv.height / 2); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
     const card = el.querySelector('.cam-card'), cr = card.getBoundingClientRect(), cs = getComputedStyle(card);
-    const X = (cr.left - vr.left) * f, Y = (cr.top - vr.top) * f, W = cr.width * f, H = cr.height * f, rad = parseFloat(cs.borderTopLeftRadius) * c.scale * f;
-    if (c.style === 'glass') clearGlass(ctx, X, Y, W, H, rad, f * c.scale);
+    // 卡片：中心从屏幕上量（转不转都一样），大小和里面每行字的位置按卡片自己没转的排版（offset），这样横着、竖着画出来都是正的
+    const [ccx, ccy] = map((cr.left + cr.width / 2 - vr.left) * f, (cr.top + cr.height / 2 - vr.top) * f), k2 = c.scale * f;
+    const W = card.offsetWidth * k2, H = card.offsetHeight * k2, X = ccx - W / 2, Y = ccy - H / 2, rad = parseFloat(cs.borderTopLeftRadius) * k2;
+    if (c.style === 'glass') clearGlass(ctx, X, Y, W, H, rad, k2);
     else if (c.style === 'light') { rr(ctx, X, Y, W, H, rad); ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.fill(); }
     else if (c.style === 'dark') { rr(ctx, X, Y, W, H, rad); ctx.fillStyle = 'rgba(12,12,16,.58)'; ctx.fill(); }
+    const offIn = n => { let x = 0, y = 0, e = n; while (e && e !== card) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; } return [x, y]; };
     card.querySelectorAll('.cc-head, .cc-num, .cc-unit, .cc-date').forEach(n => {
-      const r = n.getBoundingClientRect(), st = getComputedStyle(n);
-      const px = parseFloat(st.fontSize) * c.scale * f;
+      const st = getComputedStyle(n), [ox, oy] = offIn(n);
+      const px = parseFloat(st.fontSize) * k2;
       ctx.save();
       ctx.font = `${st.fontWeight} ${px}px ${st.fontFamily}`; ctx.fillStyle = st.color; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       if (c.style === 'clear') { ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = px * .25; ctx.shadowOffsetY = px * .04; }
-      const tx = TT(n.textContent.trim()), tw = ctx.measureText(tx).width, rw = r.width * f;
-      ctx.fillText(tx, (r.left - vr.left) * f + Math.max(0, (rw - tw) / 2), (r.top - vr.top + r.height / 2) * f);
+      const tx = TT(n.textContent.trim()), tw = ctx.measureText(tx).width, rw = n.offsetWidth * k2;
+      ctx.fillText(tx, X + ox * k2 + Math.max(0, (rw - tw) / 2), Y + (oy + n.offsetHeight / 2) * k2);
       ctx.restore();
     });
-    c.shot = cv;
+    c.shot = out;
     const res = document.createElement('div'); res.className = 'cam-res';
     res.innerHTML = `<img alt="">
       <div class="cam-res-bar"><button class="cam-pill" data-c="retake">${UI_IC.close}<span>${T('重拍')}</span></button>
       <button class="cam-pill" data-c="keep">${UI_IC.photo}<span>${T('存进相册')}</span></button>
       <button class="cam-pill solid" data-c="send">${UI_IC.share}<span>${T('保存 / 分享')}</span></button></div>`;
-    cv.toBlob(b => { if (b) res.querySelector('img').src = URL.createObjectURL(b); }, 'image/jpeg', .9);
+    out.toBlob(b => { if (b) res.querySelector('img').src = URL.createObjectURL(b); }, 'image/jpeg', .9);
     el.appendChild(res); el.classList.add('done');
     try { navigator.vibrate && navigator.vibrate(10); } catch (e) {}
   }

@@ -121,6 +121,32 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         }
     }
 
+    // ---------- 纪念相机：横着拿手机时告诉网页（界面锁竖屏，按钮图标和卡片由网页转正，拍出横的照片）----------
+    private var rotObs: NSObjectProtocol?
+    private var lastRot = 0
+    func watchRotation(_ on: Bool) {
+        if !on {
+            if let o = rotObs { NotificationCenter.default.removeObserver(o); rotObs = nil; UIDevice.current.endGeneratingDeviceOrientationNotifications() }
+            return
+        }
+        guard rotObs == nil else { pushRot(); return }
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+        rotObs = NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { [weak self] _ in self?.pushRot() }
+        pushRot()
+    }
+    private func pushRot() {
+        // landscapeLeft = 顶朝左（逆时针转了）：网页里的东西要顺时针转 90° 才正
+        let r: Int
+        switch UIDevice.current.orientation {
+        case .landscapeLeft: r = 90
+        case .landscapeRight: r = -90
+        case .portrait: r = 0
+        default: r = lastRot   // 平放、倒着：保持上一个
+        }
+        lastRot = r
+        web.evaluateJavaScript("window.__mcDevRot&&__mcDevRot(\(r))")
+    }
+
     // ---------- 桥接：网页里的 window.MCNative ----------
     private func info() -> JObj {
         let v = ProcessInfo.processInfo.operatingSystemVersion
@@ -163,7 +189,8 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
             icloudChoose: function (cb) { post('icloudChoose', [String(cb)]); },
             icloudRead: function (tag, cb) { post('icloudRead', [String(tag || ''), String(cb)]); },
             icloudWrite: function (body, cb) { post('icloudWrite', [String(body), String(cb)]); },
-            sysCalRead: function (j, cb) { post('sysCalRead', [String(j), String(cb)]); }
+            sysCalRead: function (j, cb) { post('sysCalRead', [String(j), String(cb)]); },
+            devRot: function (on) { post('devRot', [!!on]); }   // 纪念相机：开着时原生报手机横竖（App 只竖屏，网页自己收不到）
           };
         })();
         """
@@ -282,6 +309,7 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         case "icloudWrite": callback(s(1), CloudSync.shared.write(s(0)))
         case "sysCalRead": let cb = s(1), j = s(0); Task { callback(cb, await SysCal.read(j)) }   // 导入：读系统日历
         case "drawer": nav.openDrawer()
+        case "devRot": watchRotation(b(0))
         case "drawerPull": // 手指从网页里拉侧栏：开始 / 拉到哪 / 松手时的速度
             switch s(0) { case "begin": nav.pullBegin(); case "move": nav.pullMove(d(1)); default: nav.pullEnd(d(2)) }
         default: break

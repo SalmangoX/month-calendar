@@ -551,3 +551,30 @@ button.dp-glyph:active { transform: translate(-50%, -50%) scale(.95); }
 .de-cv-pick svg { width: 22px; height: 22px; }
 .de-covers .de-cv-none { border-radius: 13px; transform: none; }
 .de-covers .de-cv-none.on { box-shadow: none; outline: 2.5px solid var(--accent); outline-offset: 2px; }
+
+/* 横着拿手机拍（days.js 的 camRot）：界面不转，按钮图标和卡片转正，像系统相机 */
+.cam .cam-btn svg, .cam .cam-shutter span { transition: transform .35s var(--ease, ease); }
+.cam.rot .cam-btn svg { transform: rotate(var(--cam-rot)); }
+.cam .cam-card { transition: rotate .35s var(--ease, ease); }
+.cam.rot .cam-card { rotate: var(--cam-rot); }
+.cam.rot .cam-tip { opacity: 0; }
+/* 相机上的玻璃：带一点液态的高光边和折射（支持 SVG 折射的浏览器 / 安卓 WebView 用 #lg-refract；iPhone / Mac 的圆按钮由原生液态玻璃画） */
+.cam-btn, .cam-chips { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32), inset 0 0 0 .5px rgba(255, 255, 255, .22), inset 0 -6px 12px -8px rgba(255, 255, 255, .18), 0 6px 18px rgba(0, 0, 0, .18);
+  background: rgba(20, 20, 24, .26); -webkit-backdrop-filter: blur(10px) saturate(180%) brightness(1.06); backdrop-filter: blur(10px) saturate(180%) brightness(1.06); }
+.lg-refract .cam-btn, .lg-refract .cam-chips { -webkit-backdrop-filter: blur(4px) saturate(190%) brightness(1.06) url(#lg-refract-soft); backdrop-filter: blur(4px) saturate(190%) brightness(1.06) url(#lg-refract-soft); }
+
+/* 纪念日的提醒时间：选上之后是一颗饱满的水滴胶囊，用 Cadence logo 的渐变（雾紫 → 丁香 → 暖沙）灌满——
+   底下压一层同色的柔光、下沿一点点内阴影显出厚度、上沿一线很淡的亮边（不画大块高光）；点下去压扁、松开回弹 */
+.dd-rm-opts .qchip { position: relative; isolation: isolate; overflow: hidden; transition: color .2s, transform .28s cubic-bezier(.3, 1.3, .5, 1), box-shadow .25s; }
+.dd-rm-opts .qchip::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: linear-gradient(100deg, #9E9AC8, #C7B3CF 52%, #EBC7A6);
+  box-shadow: inset 0 -3px 6px -2px rgba(80, 60, 110, .28), inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 0 0 .5px rgba(255, 255, 255, .35);
+  opacity: 0; transform: scale(.55); filter: blur(6px); transition: opacity .18s ease-out, transform .32s cubic-bezier(.25, .9, .3, 1), filter .32s ease-out; }
+.dd-rm-opts .qchip.on { background: transparent; color: #fff; text-shadow: 0 1px 2px rgba(70, 50, 100, .35);
+  box-shadow: 0 6px 16px -4px rgba(158, 154, 200, .65), 0 2px 5px -1px rgba(235, 199, 166, .5); }
+.dd-rm-opts .qchip.on::before { opacity: 1; transform: none; filter: none; }
+.dd-rm-opts .qchip:active { transform: scale(.94, .9); }
+.dd-rm-opts .qchip.fill::before { animation: rmFill .42s cubic-bezier(.25, .9, .3, 1); }
+.dd-rm-opts .qchip.fill { animation: rmPop .42s cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes rmFill { 0% { opacity: .2; transform: scale(.3); filter: blur(8px); } 45% { opacity: 1; filter: blur(2px); } 100% { opacity: 1; transform: none; filter: none; } }
+@keyframes rmPop { 0% { transform: scale(.94, .9); } 60% { transform: scale(1.04, 1.02); } 100% { transform: none; } }

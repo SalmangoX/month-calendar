@@ -72,10 +72,71 @@
     backdrop.style.zIndex = (parseInt(getComputedStyle(top).zIndex, 10) || 30) - 1;
     backdrop.classList.add('show');
   }
-  UI.open = (id, closeCb) => {
+  // ====== 从点的那一条拉伸出来的小卡片（用户定的：选择、动作菜单、提醒通知、帮助、表单……都这样，不再从底部滑上来）======
+  // 和新建子日历的水滴一样：一滴液态玻璃从点的那一条（同样的位置、大小、圆角）被拉长、一口气展开成卡片，内容紧跟着出来；
+  // 收起倒过来缩回那一条。卡片放在那一条下面（放不下就上面），宽度跟那一组一样；要打字的表单放在屏幕上方，键盘不挡。不回弹。
+  const POP = new Set(['chooseSheet', 'notifySheet', 'helpSheet', 'sameSheet', 'importSheet', 'formSheet']);
+  let lastTap = null, lastTapT = 0;
+  document.addEventListener('pointerdown', e => {
+    const t = e.target.closest && e.target.closest('.srow, .pk-row, .cmp-same, button, [data-act], [role="button"]');
+    if (t) { lastTap = t; lastTapT = performance.now(); }
+  }, true);
+  const reduceMo = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const px = (r, rad) => ({ left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px', borderRadius: rad + 'px' });
+  function popPlace(el, from) {
+    const fr = from.getBoundingClientRect(), host = el.offsetParent ? el.offsetParent.getBoundingClientRect() : { left: 0, top: 0 };
+    const grp = from.closest('.sgroup, .group, .pk-rows') || from, gr = grp.getBoundingClientRect();
+    const cs = getComputedStyle(document.documentElement), sT = parseFloat(cs.getPropertyValue('--safe-t')) || 0, sB = parseFloat(cs.getPropertyValue('--safe-b')) || 0;
+    const W = innerWidth, H = innerHeight;
+    const w = Math.min(W - 16, 440, Math.max(gr.width, 300));
+    const x = Math.min(Math.max(8, gr.left + gr.width / 2 - w / 2), W - w - 8);
+    const maxH = H - sT - sB - 28;
+    el.classList.add('pop', 'measure');
+    el.style.setProperty('--pw', w + 'px'); el.style.setProperty('--pmh', maxH + 'px');
+    const h = Math.min(el.scrollHeight, maxH);
+    el.classList.remove('measure');
+    const typing = !!el.querySelector('input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea');
+    let y;
+    if (typing) y = sT + 14;                                                        // 要打字：放在上方，键盘不挡
+    else if (fr.bottom + 8 + h <= H - sB - 10) y = fr.bottom + 8;                   // 那一条下面
+    else if (fr.top - 8 - h >= sT + 10) y = fr.top - 8 - h;                         // 放不下就上面
+    else y = Math.max(sT + 10, Math.min(H - sB - 10 - h, fr.top + fr.height / 2 - h / 2));
+    el.style.setProperty('--px', x - host.left + 'px'); el.style.setProperty('--py', y - host.top + 'px');
+    return { src: { x: fr.left, y: fr.top, w: fr.width, h: fr.height }, dst: { x, y, w, h }, rad: Math.min(fr.height / 2, 18) };
+  }
+  // 中间那一帧：一滴被拉长的玻璃，一头还粘在那一条上，一头伸向卡片
+  function popMid(g) {
+    const { src: a, dst: b } = g, mw = Math.max(44, Math.min(a.w, b.w) * .5), cx = (a.x + a.w / 2 + b.x + b.w / 2) / 2;
+    const below = b.y >= a.y;
+    const top = below ? a.y + a.h * .15 : b.y + b.h * .45, bot = below ? b.y + b.h * .55 : a.y + a.h * .85;
+    return { x: cx - mw / 2, y: top, w: mw, h: Math.max(mw, bot - top) };
+  }
+  function popMorph(el, g, opening) {
+    if (!document.body.animate || reduceMo()) return;
+    const blob = document.createElement('div'); blob.className = 'ks-blob pop-blob'; document.body.appendChild(blob);
+    // 打开：被拉长的一滴先从那一条伸出去，再一口气展开；收起：卡片整块连着缩回那一条（不再变成细长的一滴，用户嫌怪），最后融进去
+    const kf = opening ? [px(g.src, g.rad), { ...px(popMid(g), popMid(g).w / 2), offset: .34 }, px(g.dst, 30)]
+      : [px(g.dst, 30), px(g.src, g.rad)];
+    el.style.opacity = '0';
+    const a = blob.animate(kf, { duration: opening ? 320 : 240, easing: opening ? 'cubic-bezier(.3, .72, .3, 1)' : 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
+    let done = false;
+    const fin = () => { if (done) return; done = true; blob.animate([{ opacity: 1 }, { opacity: 0 }], { duration: opening ? 120 : 90 }).onfinish = () => blob.remove(); setTimeout(() => blob.remove(), 300); };
+    if (opening) setTimeout(() => { el.style.opacity = ''; el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, easing: 'ease-out' }); }, 320 * .55);   // 拉到一半多就看得到里面的东西
+    a.onfinish = fin; setTimeout(fin, (opening ? 320 : 260) + 80);
+  }
+  UI.open = (id, closeCb, opts = {}) => {
     if (!stack.includes(id)) stack.push(id);
     if (closeCb) onClose[id] = closeCb;
-    $('#' + id).classList.add('show');
+    const el = $('#' + id);
+    const from = opts.from || (performance.now() - lastTapT < 900 ? lastTap : null);
+    if (POP.has(id) && from && document.contains(from) && !el.contains(from) && from.getBoundingClientRect().width > 0) {
+      const g = popPlace(el, from); el._pop = { from, g };
+      el.classList.add('show'); syncBackdrop();
+      popMorph(el, g, true);
+      return;
+    }
+    el.classList.remove('pop'); el._pop = null; el.style.opacity = '';
+    el.classList.add('show');
     syncBackdrop();
   };
   // 关闭前确认：UI.guard(id, proceed => …) 可以拦下关闭（取消、点外面、下拉、返回手势都走这里），确认后调 proceed()
@@ -87,7 +148,13 @@
     if (!force && guards[id] && stack.includes(id)) { guards[id](() => UI.close(id, true)); return; }
     const i = stack.indexOf(id);
     if (i >= 0) stack.splice(i, 1);
-    $('#' + id).classList.remove('show');
+    const pe = $('#' + id);
+    if (pe._pop && pe.classList.contains('show')) {   // 缩回点的那一条（那一条还在屏幕上的话）
+      const { from, g } = pe._pop, fr = from.getBoundingClientRect();
+      if (document.contains(from) && fr.width > 0) popMorph(pe, { ...g, src: { x: fr.left, y: fr.top, w: fr.width, h: fr.height }, dst: { ...g.dst, h: Math.min(pe.offsetHeight, g.dst.h) } }, false);
+    }
+    pe.classList.remove('show');
+    setTimeout(() => { if (!pe.classList.contains('show')) pe.style.opacity = ''; }, 300);
     const a = document.activeElement;
     if (a && $('#' + id).contains(a)) a.blur();
     syncBackdrop();
@@ -286,6 +353,8 @@
   };
   UI.choose = (anchor, items, cb, opts = {}) => {
     const multi = !!opts.multi, list = CS.querySelector('.ch-list');
+    const act = !multi && !items.some(it => it.on);   // 动作菜单：没有「当前选中」，不打勾
+    CS.classList.toggle('act', act);
     let cur = multi ? [...(opts.selected || [])] : null, finished = false;
     CS.querySelector('h2').textContent = titleOf(anchor, opts);
     const okB = CS.querySelector('[data-ok]'), xB = CS.querySelector('[data-x]');
@@ -315,7 +384,8 @@
     };
     okB.onclick = () => UI.close('chooseSheet');
     xB.onclick = () => UI.close('chooseSheet');
-    UI.open('chooseSheet', finish);   // 点外面、下拉收起也算选好了（多选是点一下就存的）
+    const from = anchor && anchor.closest ? (anchor.closest('.srow, .pk-row, .cmp-same, .b-opt') || anchor) : null;
+    UI.open('chooseSheet', finish, { from: from && from.getBoundingClientRect().width > 4 ? from : null });   // 从点的那一条拉伸出来；点外面也算选好了（多选是点一下就存的）
   };
   // 多选：「无」和具体的项互斥（选了时间「无」就取消，点「无」全部取消）
   UI.multiMenu = (anchor, options, selected, onChange, opts = {}) => UI.choose(anchor,
@@ -324,7 +394,8 @@
   // UI.menu 分流：有「当前选中」的（选择类）一律用选择窗口；其它（动作菜单、带开关的「⋯」）用小菜单。
   // App 的注入脚本会给 UI.menu 赋一个原生菜单：记下来，只给动作菜单用（选择类在 App 里也用同一个窗口）
   let nativeMenu = null;
-  const isChoice = (items, opts) => !opts.center && !opts.action && items.some(it => it.on && !it.sw);
+  // 用户定的：从一条点出来的小框都用同一种卡片——选择类和动作菜单都走 UI.choose；只有以「⋯」为中心展开、带开关的小窗口（opts.center）还是那颗水滴菜单
+  const isChoice = (items, opts) => !opts.center && !items.some(it => it.sw);
   Object.defineProperty(UI, 'menu', {
     configurable: true, enumerable: true,
     get: () => (anchor, items, cb, opts = {}) => (isChoice(items, opts) ? UI.choose(anchor, items, cb, opts) : (nativeMenu && !opts.web ? nativeMenu : webMenu)(anchor, items, cb, opts)),
@@ -799,7 +870,7 @@
   // 只给「控件」用液态玻璃（和 Apple 的规则一样）；面板、卡片、提示条还是毛玻璃。
   // 透明相机里的按钮、分段、卡片不交给原生画：压在实时相机画面上，原生玻璃常常画不出来，网页又把字藏了，结果整个相机界面什么都看不见
   // 【联动:原生玻璃】见 CLAUDE.md「联动分组」
-  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .lgn, .dv-cover.photo .cv-tile'
+  const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .lgn, .dv-cover.photo .cv-tile, .cam .cam-btn'   // 相机上的圆按钮：iPhone / Mac 用原生液态玻璃，透出、折射下面的取景画面
     + ', .pod-today .face, .fan:not(.fan-add) .face, .set-back .face, .pb-thumb';   // 顶部标题板（月份、星期）是网页自己画的半透明板，不再走原生玻璃   // 星期条也是一条原生液态玻璃 // 日历页的悬浮控件（时钟胶囊、扇形按钮、设置页返回、月份胶囊）；logo 和分页点里是图片 / 圆点，原生画不了，留给网页
   const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips, .lgn-dark, .cv-plate, .cv-tile, .dp-plate, .cam-pill'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
   const LAYERS = '.sheet.show, .dp.show, .cam.show, .cam-res, .confirm.show, .popover.show, #pvDoc.show';   // #pvDoc：隐私政策整页盖上去时，下面设置页的玻璃返回键不画（不然两个返回键）
