@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import CoreMotion
 import WebKit
 
 /// iPhone 版的界面就是 GitHub Pages 上的网页（和 Mac、安卓同一份）：通过 window.MCNative（与 Mac 同一套接口）提供原生能力，
@@ -122,30 +123,24 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
     }
 
     // ---------- 纪念相机：横着拿手机时告诉网页（界面锁竖屏，按钮图标和卡片由网页转正，拍出横的照片）----------
-    private var rotObs: NSObjectProtocol?
+    // 用陀螺仪的重力方向判断，不用 UIDevice.orientation：系统的竖屏锁打开时 UIDevice 一直报竖屏（用户发现要先关掉旋转锁定才转）
+    private let motion = CMMotionManager()
     private var lastRot = 0
     func watchRotation(_ on: Bool) {
-        if !on {
-            if let o = rotObs { NotificationCenter.default.removeObserver(o); rotObs = nil; UIDevice.current.endGeneratingDeviceOrientationNotifications() }
-            return
+        if !on { motion.stopDeviceMotionUpdates(); return }
+        guard motion.isDeviceMotionAvailable, !motion.isDeviceMotionActive else { sendRot(lastRot); return }
+        motion.deviceMotionUpdateInterval = 0.1
+        motion.startDeviceMotionUpdates(to: .main) { [weak self] m, _ in
+            guard let self, let g = m?.gravity else { return }
+            // 竖着拿：重力朝手机底下（y ≈ -1）；顶朝左（逆时针转了）：重力朝手机左边（x ≈ -1）→ 网页里的东西要顺时针转 90° 才正
+            var r = self.lastRot
+            if abs(g.x) > 0.65 && abs(g.x) > abs(g.y) * 1.3 { r = g.x < 0 ? 90 : -90 }
+            else if g.y < -0.65 { r = 0 }
+            if r != self.lastRot { self.lastRot = r; self.sendRot(r) }
         }
-        guard rotObs == nil else { pushRot(); return }
-        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-        rotObs = NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { [weak self] _ in self?.pushRot() }
-        pushRot()
+        sendRot(lastRot)
     }
-    private func pushRot() {
-        // landscapeLeft = 顶朝左（逆时针转了）：网页里的东西要顺时针转 90° 才正
-        let r: Int
-        switch UIDevice.current.orientation {
-        case .landscapeLeft: r = 90
-        case .landscapeRight: r = -90
-        case .portrait: r = 0
-        default: r = lastRot   // 平放、倒着：保持上一个
-        }
-        lastRot = r
-        web.evaluateJavaScript("window.__mcDevRot&&__mcDevRot(\(r))")
-    }
+    private func sendRot(_ r: Int) { web.evaluateJavaScript("window.__mcDevRot&&__mcDevRot(\(r))") }
 
     // ---------- 桥接：网页里的 window.MCNative ----------
     private func info() -> JObj {

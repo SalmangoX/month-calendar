@@ -896,14 +896,16 @@
   // 自定义 SVG 图标转成 PNG（data URL）：把 CSS 里的线宽、颜色写进图标本身，按 3 倍大小画到画布上；同样的图标只转一次
   const rasterCache = new Map();
   function rasterIcon(sv) {
-    const cs = getComputedStyle(sv), w = Math.round(sv.getBoundingClientRect().width), key = (sv.getAttribute('viewBox') || '') + sv.innerHTML + cs.color + w; // 不含 class：转好后加的 lgr（把网页的藏起来）不算换了图标
+    // 图标被 CSS 转过（纪念相机横着拿时，按钮图标转正）：按转到的角度（取最近的 90°）画进图片，原生玻璃上的图标也跟着转
+    const cs = getComputedStyle(sv), m = /matrix\(([^,]+),\s*([^,]+)/.exec(cs.transform || ''), deg = m ? Math.round(Math.atan2(+m[2], +m[1]) * 180 / Math.PI / 90) * 90 : 0;
+    const w = Math.round(parseFloat(cs.width) || sv.getBoundingClientRect().width), key = (sv.getAttribute('viewBox') || '') + sv.innerHTML + cs.color + w + '@' + deg; // 不含 class：转好后加的 lgr（把网页的藏起来）不算换了图标
     if (rasterCache.has(key)) return rasterCache.get(key);
     rasterCache.set(key, null);
     const c = sv.cloneNode(true), all = [c, ...c.querySelectorAll('*')], src = [sv, ...sv.querySelectorAll('*')];
     all.forEach((e, i) => { const s = getComputedStyle(src[i]); ['fill', 'fill-opacity', 'stroke', 'stroke-opacity', 'stroke-width', 'stroke-linecap', 'stroke-linejoin'].forEach(p => e.setAttribute(p, s.getPropertyValue(p).replace(/currentcolor/i, cs.color))); });
     c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', w * 3); c.setAttribute('height', w * 3); c.removeAttribute('class');
     const im = new Image();
-    im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = w * 3; cv.getContext('2d').drawImage(im, 0, 0, w * 3, w * 3); rasterCache.set(key, cv.toDataURL('image/png')); };
+    im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = w * 3; const g = cv.getContext('2d'); if (deg) { g.translate(w * 1.5, w * 1.5); g.rotate(deg * Math.PI / 180); g.translate(-w * 1.5, -w * 1.5); } g.drawImage(im, 0, 0, w * 3, w * 3); rasterCache.set(key, cv.toDataURL('image/png')); };
     im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c));
     return null;
   }

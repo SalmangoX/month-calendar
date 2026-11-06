@@ -58,13 +58,13 @@
 - 「设置 → 星期颜色 → 情绪光谱」（默认关）：每一天一团柔光从星期条往上下散开，对准那一列；今天 74%、其他 32%、往下照屏幕高度的 33%（今天再远 30%）。色相 `MC.WEEK_MOOD_HUE`（天蓝 → 雾紫 → 丁香 → 玫瑰 → 蜜桃 → 杏 → 金），深色滤色、浅色正片叠底。光在日历内容**下面**（只染背景，不盖住事件和文字，不然像一层雾）；今天只靠更亮的光和字区分，不加小点；今天的光稍亮、稍宽（2.0 列，别太强），其他几天收淡收窄（1.5 列），要一眼分得出。代码在 `calendar.js` 的 `paintMood`、`#wkGlow`。
 - 课程提醒：`data.courseRemind = { on, lead, tz }`（同步），四端各自排：`js/push.js`、`scripts/send-reminders.mjs`、安卓 `Engine.java`、iOS / Mac `Engine.swift`。
 - 小组件里「今天」那一格 / 那一列用品牌渐变淡底（`Pal.todayTint`，和 App 里选中的今天同样的比例），日期圆用 `todayStyle`，都不要再用蓝色或灰色。
-- **纪念相机横着拍**：App 只竖屏，像系统相机一样界面不转，按钮图标和卡片转正（`--cam-rot`、`.cam.rot`），拍出横的照片（`shoot` 里整张画面转过来，卡片按自己没转的排版画）。iPhone 由原生报方向（`WebShell.swift` 的 `watchRotation`，桥接 `devRot`，网页 `__mcDevRot`），安卓 / 网页看重力（`devicemotion`）。相机上的圆按钮 iPhone / Mac 用原生液态玻璃（在 `LG_SEL` 里），分段在支持的浏览器里带 `#lg-refract-soft` 折射。
+- **纪念相机横着拍**：App 只竖屏，像系统相机一样界面不转，按钮图标和卡片转正（`--cam-rot`、`.cam.rot`），拍出横的照片（`shoot` 里整张画面转过来，卡片按自己没转的排版画）。iPhone 由原生按陀螺仪的重力方向报（`WebShell.swift` 的 `watchRotation` 用 CMMotionManager，**不用 UIDevice.orientation**：竖屏锁打开时它一直报竖屏；桥接 `devRot`，网页 `__mcDevRot`），安卓 / 网页看重力（`devicemotion`），都绕过旋转锁定。转正的：按钮图标（原生玻璃上的图标由 `rasterIcon` 按 CSS 转的角度画进图片）、倍率、卡片；比例 / 样式 / 字体分段的字不转（和系统相机一样）。相机上的圆按钮 iPhone / Mac 用原生液态玻璃（在 `LG_SEL` 里），分段在支持的浏览器里带 `#lg-refract-soft` 折射。
 - 纪念日详情页（`#dayPage`）整页哪里都能从左往右滑退出（不只是左边缘；能左右滑的东西、开关、输入框上不触发），快速一甩也算；Mac 触控板两指往右扫。
 - 纪念日的提醒时间胶囊（`.dd-rm-opts .qchip`）选上之后是一颗饱满的水滴胶囊：Cadence logo 渐变（#9E9AC8 → #C7B3CF → #EBC7A6）灌满，同色柔光、下沿一点内阴影、上沿一线淡亮边，刚点上的那颗从中间涨开（`freshRm`）。
 - 纪念日分享图片的照片模板：底色、文字、数字和图标的颜色**全部按照片的颜色算**（`days.js` 的 `photoTone` / `photoPal`），不跟高亮色走；高亮色只用在没有照片的模板。
 - 纪念日历的图标是实心的（`js/days.js` 的 `FILL`：f 填满、k / d 用 mask 镂空），放在灰底块（`--tile`）里。
 - 侧拉菜单里子日历的「⋯」：以三个点为正中心展开一个小窗口：一颗玻璃水滴从三个点上的小圆一口气拉伸成窗口（带一点果冻回弹），收起时缩回小圆（网页 `ui.js` 的 `dropPop`，原生 `moreShown` / `moreUp`）（网页 `UI.menu(…, { center: true })`，iPhone / Mac 原生 `GlassDrawer.moreCard`），开关类的选项（`sw: true`）点了原地切换、窗口不关。开关的样子：一颗透明玻璃水滴（原生用系统 `glassEffect(.clear)` 盖在最上面），关着是空的，打开后 Cadence logo 的渐变色（#9E9AC8 → #C7B3CF → #EBC7A6）像气体一样在玻璃下面涨开、由模糊变清晰到饱满，充满后白色小勾从左往右画出来（带紫调投影）；**分两层**：一点就先铺上一层淡淡的 logo 渐变（约 0.18 秒）并马上画出小勾，给出干脆的反馈；原来那团气再在上面慢慢涨开、由模糊变清晰（约 0.6 秒）把层次补饱满——不要为了快把气的效果去掉；按下去水滴压扁、松手果冻回弹，切换轻震一下；不要手画高光（`FillToggle` / `FillToggleBody`、`.mi-sw`）。
-- **所有开关都是同一种透明水滴开关**（用户定的）：设置里的每日未完成提醒、日程开始前提醒，日历表单、全天、纪念日编辑……所有 `input.switch` 都由 `ui.js` 的 `skinSwitches` 自动套上 `.mi-sw` 的样子（和侧拉菜单「⋯」里的一样），原来的 checkbox 透明盖在上面接点按，状态跟着它变（改 `checked` 也会跟上）。新写开关照旧写 `<input type="checkbox" class="switch">` 就行。
+- **所有开关都是同一种透明水滴开关，统一叫「Cadence 开关」**（用户定的名字，说「Cadence 开关」就是它：侧拉菜单「⋯」里那种）：设置里的每日未完成提醒、日程开始前提醒，日历表单、全天、纪念日编辑……所有 `input.switch` 都由 `ui.js` 的 `skinSwitches` 自动套上 `.mi-sw` 的样子（和侧拉菜单「⋯」里的一样），原来的 checkbox 透明盖在上面接点按，状态跟着它变（改 `checked` 也会跟上）。新写开关照旧写 `<input type="checkbox" class="switch">` 就行。
 - 纪念日历自己也能选图标（和日子同一套实心图标，`c.icon`），原生侧拉菜单用对应的系统符号（`drawer.js` 的 `SF_OF`）。
 - logo 扇形展开像扇子打开（**要干脆**：约 0.32 秒弹簧、按钮之间隔 35ms，四端一样）：从 logo 出发先朝第一个按钮的方向，沿圆弧转到各自位置，按顺序一个接一个（网页 rotate-translate-rotate，原生 `FanArc`，安卓角度插值）。原生的扇形按钮**只用位移、不缩放**：玻璃容器里的玻璃不跟着 `scaleEffect` 走，一缩放玻璃就和图标错开；收起用 `FanBack`（相对位移），因为 asymmetric 转场的两个 identity 会同时生效，再加一遍位置按钮就跑到两倍半径。
 - 切换日历有过渡：先淡出微缩下沉，再从略大淡入（`drawer.js` 的 `D.pick`），不用模糊。

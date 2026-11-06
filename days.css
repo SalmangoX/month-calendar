@@ -578,3 +578,6 @@ button.dp-glyph:active { transform: translate(-50%, -50%) scale(.95); }
 .dd-rm-opts .qchip.fill { animation: rmPop .42s cubic-bezier(.3, 1.4, .5, 1); }
 @keyframes rmFill { 0% { opacity: .2; transform: scale(.3); filter: blur(8px); } 45% { opacity: 1; filter: blur(2px); } 100% { opacity: 1; transform: none; filter: none; } }
 @keyframes rmPop { 0% { transform: scale(.94, .9); } 60% { transform: scale(1.04, 1.02); } 100% { transform: none; } }
+/* 横着拿：倍率（.5× 1× 2×）也转正；分段（比例、样式、字体）的字和系统相机一样不转 */
+.cam .cam-zoom button { transition: rotate .35s var(--ease, ease), background .2s, color .2s; }
+.cam.rot .cam-zoom button { rotate: var(--cam-rot); }
