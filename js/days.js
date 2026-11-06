@@ -27,6 +27,12 @@
     'zh-Hant': { '暮色': '暮色', '极光': '極光', '深海': '深海', '蜜桃': '蜜桃', '抹茶': '抹茶', '余烬': '餘燼', '雾紫': '霧紫', '墨夜': '墨夜', '内置背景': '內建背景', '颜色跟着图标走': '顏色跟著圖示走', '点「更多图标」换一个': '點「更多圖示」換一個', '用名称的第一个字，点「更多图标」选一个': '用名稱的第一個字，點「更多圖示」選一個', '精确时间、主题图片、高亮、置顶': '精確時間、主題圖片、高亮、置頂', '提前 {0} 小时': '提前 {0} 小時', '会在{0}提醒你': '會在{0}提醒你', '这个日子没设精确时间：提前几小时按当天 0 点往前算。': '這個日子沒設精確時間：提前幾小時按當天 0 點往前算。', '当天': '當天', '提前 {0} 天': '提前 {0} 天', '提醒时间': '提醒時間', '会在{0} {1} 提醒你': '會在{0} {1} 提醒你', '还没打开提醒通知：到「设置 → 提醒」打开后才会收到。': '還沒打開提醒通知：到「設定 → 提醒」打開後才會收到。', '这个日子已经过去，不会再提醒。设成每年重复，就能每年提前提醒你。': '這個日子已經過去，不會再提醒。設成每年重複，就能每年提前提醒你。', '更多选项': '更多選項', '精确时间、图标、主题图片、高亮、置顶': '精確時間、圖示、主題圖片、高亮、置頂', '本月 {0} 个日子': '本月 {0} 個日子', '本月没有标记的日子': '本月沒有標記的日子', '点开看每个月': '點開看每個月', '这一天的日子': '這一天的日子' },
     ja: { '暮色': '夕暮れ', '极光': 'オーロラ', '深海': '深海', '蜜桃': 'ピーチ', '抹茶': '抹茶', '余烬': '残り火', '雾紫': 'ライラック', '墨夜': '墨夜', '内置背景': '背景', '颜色跟着图标走': '色はアイコンで決まります', '点「更多图标」换一个': '「その他のアイコン」で変更', '用名称的第一个字，点「更多图标」选一个': '名前の1文字目 —「その他のアイコン」で選択', '精确时间、主题图片、高亮、置顶': '時刻・カバー・ハイライト・ピン', '提前 {0} 小时': '{0} 時間前', '会在{0}提醒你': '{0}にお知らせします', '这个日子没设精确时间：提前几小时按当天 0 点往前算。': '時刻が未設定なので、当日 0 時から数えます。', '提醒': 'リマインダー', '当天': '当日', '提前 {0} 天': '{0} 日前', '提醒时间': '時刻', '会在{0} {1} 提醒你': '{0}の {1} にお知らせします', '还没打开提醒通知：到「设置 → 提醒」打开后才会收到。': '通知がオフです。設定 → リマインダーでオンにしてください。', '这个日子已经过去，不会再提醒。设成每年重复，就能每年提前提醒你。': 'この日は過ぎました。毎年繰り返しにすると毎年お知らせします。', '更多选项': 'その他のオプション', '精确时间、图标、主题图片、高亮、置顶': '時刻・アイコン・カバー・ハイライト・ピン', '本月 {0} 个日子': '今月 {0} 件', '本月没有标记的日子': '今月は記念日なし', '点开看每个月': 'タップして月ごとに見る', '这一天的日子': 'この日の記念日' },
   }).forEach(([k, v]) => Object.assign(DICT[k] || (DICT[k] = {}), v));
+  Object.entries({   // 纪念相机（重新设计）：方案、调整
+    "en": { "原生": "Natural", "柔光人像": "Soft portrait", "奶油": "Cream", "清透": "Clear", "胶片": "Film", "暮光": "Golden hour", "黑白": "Mono", "调整": "Adjust", "美颜": "Beauty", "滤镜": "Filter", "文字": "Text", "画幅": "Frame", "磨皮": "Smooth", "美白": "Brighten", "红润": "Rosy", "滤镜强度": "Strength", "亮度": "Brightness", "色温": "Warmth", "颗粒": "Grain", "还原这个方案": "Reset this look", "返回": "Back", "玻璃": "Glass", "透明": "Clear", "浅色": "Light", "深色": "Dark" },
+    "fr": { "原生": "Naturel", "柔光人像": "Portrait doux", "奶油": "Crème", "清透": "Limpide", "胶片": "Film", "暮光": "Heure dorée", "黑白": "N&B", "调整": "Réglages", "美颜": "Beauté", "滤镜": "Filtre", "文字": "Texte", "画幅": "Cadre", "磨皮": "Lissage", "美白": "Éclat", "红润": "Rosé", "滤镜强度": "Intensité", "亮度": "Luminosité", "色温": "Température", "颗粒": "Grain", "还原这个方案": "Rétablir", "返回": "Retour", "玻璃": "Verre", "透明": "Transparent", "浅色": "Clair", "深色": "Sombre" },
+    "zh-Hant": { "原生": "原生", "柔光人像": "柔光人像", "奶油": "奶油", "清透": "清透", "胶片": "膠片", "暮光": "暮光", "黑白": "黑白", "调整": "調整", "美颜": "美顏", "滤镜": "濾鏡", "文字": "文字", "画幅": "畫幅", "磨皮": "磨皮", "美白": "美白", "红润": "紅潤", "滤镜强度": "濾鏡強度", "亮度": "亮度", "色温": "色溫", "颗粒": "顆粒", "还原这个方案": "還原這個方案", "返回": "返回", "玻璃": "玻璃", "透明": "透明", "浅色": "淺色", "深色": "深色" },
+    "ja": { "原生": "ナチュラル", "柔光人像": "ソフトポートレート", "奶油": "クリーム", "清透": "クリア", "胶片": "フィルム", "暮光": "ゴールデンアワー", "黑白": "モノクロ", "调整": "調整", "美颜": "美肌", "滤镜": "フィルター", "文字": "文字", "画幅": "画角", "磨皮": "美肌補正", "美白": "美白", "红润": "血色", "滤镜强度": "強さ", "亮度": "明るさ", "色温": "色温度", "颗粒": "粒子", "还原这个方案": "この方案に戻す", "返回": "戻る", "玻璃": "ガラス", "透明": "透明", "浅色": "ライト", "深色": "ダーク" },
+  }).forEach(([k, v]) => Object.assign(DICT[k] || (DICT[k] = {}), v));
   const T = (Days.T = s => { const d = DICT[LANG]; return d && d[s] != null ? d[s] : s; });
   const F = (s, ...a) => T(s).replace(/\{(\d)\}/g, (m, n) => (a[n] !== undefined ? a[n] : m));
   const TT = s => (MC.t ? MC.t(s) : s);     // 画在图片里的文字（繁体也要转）
@@ -1951,8 +1957,107 @@
     if (Math.abs(g.x) > 6.5 && Math.abs(g.x) > Math.abs(g.y) * 1.4) setCamRot(g.x > 0 ? 90 : -90);   // 右边朝上：要顺时针转 90° 才正
     else if (g.y > 6.5) setCamRot(0);
   });
+  // ====== 纪念相机（用户定的：不要一堆自己选的东西，做成几个「方案」左右滑着挑；要细调才点「调整」展开参数）======
+  // 每个方案 = 一套滤镜 + 合适的卡片样式和字体。滤镜是实时的 WebGL：预览、拍照、相册照片都用同一套，看到什么拍出来就是什么。
+  // 人像为主：磨皮只磨皮肤（按肤色挑出来、保留边缘），美白 / 红润也主要作用在皮肤上；默认值用抖音里公认最自然的一档（磨皮 55、美白 35、红润 20）。
+  // 「原生」是老 iPhone 那一套后期：微暖、反差柔和、黑位略浮、饱和度克制，不过度锐化
+  const CAM_LOOKS = [
+    { id: 'native', name: '原生', style: 'clear', font: 'sans', f: { smooth: .3, white: .15, rosy: .1, bright: .02, warm: .07, con: .04, sat: .05, fade: .04, split: .05, vig: .1, grain: 0, mono: 0, glow: .05 } },
+    { id: 'portrait', name: '柔光人像', style: 'glass', font: 'sans', f: { smooth: .55, white: .35, rosy: .2, bright: .05, warm: .08, con: -.03, sat: .03, fade: .05, split: .04, vig: .12, grain: 0, mono: 0, glow: .22 } },
+    { id: 'cream', name: '奶油', style: 'light', font: 'round', f: { smooth: .5, white: .3, rosy: .15, bright: .08, warm: .14, con: -.1, sat: -.08, fade: .12, split: .08, vig: .06, grain: 0, mono: 0, glow: .18 } },
+    { id: 'clear', name: '清透', style: 'glass', font: 'sans', f: { smooth: .45, white: .3, rosy: .12, bright: .1, warm: -.06, con: .02, sat: .08, fade: .02, split: -.04, vig: .04, grain: 0, mono: 0, glow: .1 } },
+    { id: 'film', name: '胶片', style: 'clear', font: 'serif', f: { smooth: .3, white: .12, rosy: .1, bright: 0, warm: .1, con: .07, sat: -.12, fade: .16, split: .42, vig: .22, grain: .35, mono: 0, glow: .08 } },
+    { id: 'dusk', name: '暮光', style: 'dark', font: 'serif', f: { smooth: .4, white: .15, rosy: .15, bright: -.02, warm: .3, con: .08, sat: .1, fade: .06, split: .28, vig: .26, grain: .1, mono: 0, glow: .2 } },
+    { id: 'mono', name: '黑白', style: 'dark', font: 'mono', f: { smooth: .3, white: .1, rosy: 0, bright: 0, warm: 0, con: .2, sat: 0, fade: .06, split: 0, vig: .22, grain: .25, mono: 1, glow: .05 } },
+  ];
   const CAM_STYLES = [['glass', '玻璃'], ['clear', '透明'], ['light', '浅色'], ['dark', '深色']];
   const CAM_RATIOS = [['full', '全屏'], ['34', '3:4', 3, 4], ['45', '4:5', 4, 5], ['916', '9:16', 9, 16], ['11', '1:1', 1, 1]];
+  // 「调整」里的参数：[键, 名称, 最小, 最大]（滤镜强度 mix 是整体和原图混多少）
+  const CAM_ADJ = {
+    beauty: [['smooth', '磨皮', 0, 1], ['white', '美白', 0, 1], ['rosy', '红润', 0, 1]],
+    filter: [['mix', '滤镜强度', 0, 1], ['bright', '亮度', -.3, .3], ['warm', '色温', -.4, .4], ['grain', '颗粒', 0, .6]],
+  };
+  const lookOf = id => CAM_LOOKS.find(l => l.id === id) || CAM_LOOKS[0];
+
+  // ---- 实时滤镜（WebGL）----
+  const CAM_VS = 'attribute vec2 p;uniform vec4 crop;uniform float mir;varying vec2 uv;void main(){vec2 t=p*.5+.5;t.x=mir>.5?1.-t.x:t.x;uv=crop.xy+vec2(t.x,1.-t.y)*crop.zw;gl_Position=vec4(p,0.,1.);}';
+  const CAM_FS = `precision highp float;varying vec2 uv;uniform sampler2D tex;uniform vec2 px;uniform float rad,uSmooth,uWhite,uRosy,uBright,uWarm,uCon,uSat,uFade,uSplit,uVig,uGrain,uMono,uGlow,uMix,uTime;
+float L(vec3 c){return dot(c,vec3(.299,.587,.114));}
+float skin(vec3 c){float y=L(c);float cb=.5-.168736*c.r-.331264*c.g+.5*c.b;float cr=.5+.5*c.r-.418688*c.g-.081312*c.b;
+ return smoothstep(.06,.16,y)*(1.-smoothstep(0.,.05,abs(cb-.43)-.06))*(1.-smoothstep(0.,.05,abs(cr-.585)-.065));}
+void main(){vec3 o=texture2D(tex,uv).rgb;vec3 c=o;
+ vec3 s=c;float ws=1.;vec3 g=c;
+ for(int i=0;i<8;i++){float a=float(i)*.785398;vec2 d=vec2(cos(a),sin(a));
+  for(int j=1;j<3;j++){vec3 t=texture2D(tex,uv+d*px*rad*float(j*j+1)).rgb;vec3 e=t-c;float w=exp(-dot(e,e)*55.);s+=t*w;ws+=w;g+=t;}}
+ s/=ws;g/=17.;
+ float k=skin(o);
+ c=mix(c,s,clamp(uSmooth*(k*.95+.08),0.,1.));
+ float b=1.+uWhite*4.;vec3 wc=log(1.+(b-1.)*c)/log(b);c=mix(c,wc,uWhite*(k*.75+.25));
+ c+=uRosy*k*vec3(.05,-.012,.0);
+ c=uBright>0.?mix(c,1.-(1.-c)*(1.-c),uBright*1.6):c*(1.+uBright*1.4);
+ c+=uWarm*vec3(.075,.018,-.075);
+ c=(c-.5)*(1.+uCon)+.5;
+ float l=L(c);c=mix(vec3(l),c,1.+uSat);
+ c+=uSplit*((1.-l)*vec3(-.03,.02,.05)+l*vec3(.05,.018,-.04));
+ c=mix(c,1.-(1.-c)*(1.-g*1.05),uGlow*.45);
+ c=uFade*vec3(.1,.095,.11)+c*(1.-uFade*.14);
+ c=mix(c,vec3(L(c)),uMono);
+ float dv=distance(uv,vec2(.5));c*=1.-uVig*smoothstep(.32,.86,dv);
+ float n=fract(sin(dot(uv*vec2(1789.3,1301.7)+uTime,vec2(12.9898,78.233)))*43758.5453)-.5;c+=n*uGrain*.07;
+ gl_FragColor=vec4(mix(o,clamp(c,0.,1.),uMix),1.);}`;
+  function camGL(cv, keep) {
+    const gl = cv.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: !!keep, antialias: false });
+    if (!gl) return null;
+    const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+    const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, CAM_VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, CAM_FS)); gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
+    gl.useProgram(pr);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const ap = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 2, gl.FLOAT, false, 0, 0);
+    const tx = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tx);
+    [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T].forEach(p => gl.texParameteri(gl.TEXTURE_2D, p, gl.CLAMP_TO_EDGE));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    const U = n => gl.getUniformLocation(pr, n);
+    const names = ['crop', 'mir', 'px', 'rad', 'uSmooth', 'uWhite', 'uRosy', 'uBright', 'uWarm', 'uCon', 'uSat', 'uFade', 'uSplit', 'uVig', 'uGrain', 'uMono', 'uGlow', 'uMix', 'uTime'], u = {};
+    names.forEach(n => (u[n] = U(n)));
+    // src：video / img / canvas；sx..sh：从原图里取的那一块；f：滤镜参数；W×H：输出大小
+    return function draw(src, sx, sy, sw, shh, mirror, f, W, H) {
+      const iw = src.videoWidth || src.naturalWidth || src.width, ih = src.videoHeight || src.naturalHeight || src.height;
+      if (!iw || !ih) return false;
+      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+      gl.viewport(0, 0, W, H);
+      try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, src); } catch (e) { return false; }
+      gl.uniform4f(u.crop, sx / iw, sy / ih, sw / iw, shh / ih); gl.uniform1f(u.mir, mirror ? 1 : 0);
+      gl.uniform2f(u.px, 1 / iw, 1 / ih);
+      gl.uniform1f(u.rad, Math.max(1, Math.min(iw, ih) / 540));   // 磨皮的取样半径跟着分辨率走（1080p 约 2 像素一档）
+      const m = { uSmooth: 'smooth', uWhite: 'white', uRosy: 'rosy', uBright: 'bright', uWarm: 'warm', uCon: 'con', uSat: 'sat', uFade: 'fade', uSplit: 'split', uVig: 'vig', uGrain: 'grain', uMono: 'mono', uGlow: 'glow' };
+      Object.entries(m).forEach(([k, v]) => gl.uniform1f(u[k], f[v] || 0));
+      gl.uniform1f(u.uMix, f.mix == null ? 1 : f.mix); gl.uniform1f(u.uTime, (performance.now() / 1000) % 100);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      return true;
+    };
+  }
+  // 现在这一套参数：方案的滤镜 + 用户在「调整」里改过的
+  const camF = c => ({ ...lookOf(c.look).f, mix: 1, ...c.tune });
+  // 从原图里取哪一块（铺满取景框 + 数码变焦）
+  function camCrop(c, src, vw, vh) {
+    const iw = src.videoWidth || src.naturalWidth, ih = src.videoHeight || src.naturalHeight;
+    if (!iw || !ih) return null;
+    const dz = !c.bgImg && !c.hw ? c.zoom : 1, k = Math.max(vw / iw, vh / ih) * dz, sw = vw / k, sh = vh / k;
+    return { iw, ih, sx: (iw - sw) / 2, sy: (ih - sh) / 2, sw, sh };
+  }
+  function camLoop() {
+    const c = camCtx; if (!c) return;
+    c.raf = requestAnimationFrame(camLoop);
+    if (c.el.classList.contains('done') || !c.draw) return;
+    const view = c.el.querySelector('.cam-view'), cv = c.el.querySelector('.cam-gl');
+    const src = c.bgImg || c.el.querySelector('video'), vw = view.clientWidth, vh = view.clientHeight;
+    if (!vw || !vh || (!c.bgImg && src.readyState < 2)) return;
+    const cr = camCrop(c, src, vw, vh); if (!cr) return;
+    const d = Math.min(2, devicePixelRatio || 1);
+    c.draw(src, cr.sx, cr.sy, cr.sw, cr.sh, !c.bgImg && c.facing === 'user', camF(c), Math.round(vw * d), Math.round(vh * d));
+  }
+
   // 画幅：在屏幕里放下所选比例的取景框，拍出来就是这个比例
   function layoutCam() {
     const c = camCtx; if (!c) return;
@@ -1960,7 +2065,7 @@
     if (!R || !R[2]) { view.style.cssText = ''; c.el.classList.remove('framed'); return; }
     const vw = c.el.clientWidth, vh = c.el.clientHeight, ar = R[2] / R[3];
     let w = vw, h = w / ar; if (h > vh) { h = vh; w = h * ar; }
-    const top = Math.max(0, (vh - h) * .42);
+    const top = Math.max(0, (vh - h) * .4);
     view.style.cssText = `inset:auto;left:${(vw - w) / 2}px;top:${top}px;width:${w}px;height:${h}px`;
     c.el.classList.add('framed');
   }
@@ -1972,31 +2077,69 @@
       <span class="cc-row"><b class="cc-num">${a.today ? T('今天') : a.num}</b>${a.unit ? `<i class="cc-unit">${a.unit}</i>` : ''}</span>
       <small class="cc-date">${esc(P.fmtDateTime(inf.occ, x.time))}</small>`;
   }
+  const IC_ADJ = '<svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>';
   Days.openCam = async x => {
     closeCam();
     const el = document.createElement('div');
-    el.className = 'cam'; el.id = 'dayCam';
-    el.innerHTML = `<div class="cam-view"><video playsinline muted autoplay></video><img class="cam-bg" alt="" hidden><div class="cam-msg" hidden></div>
-        <div class="cam-card st-glass f-sans" role="img">${camCardHTML(x)}</div></div>
-      <div class="cam-top"><button class="cam-btn" data-c="close" aria-label="${T('关闭')}">${UI_IC.close}</button>
-        <div class="cam-ratios cam-chips" data-group="ratio">${CAM_RATIOS.map(([v, l], i) => `<button data-cr="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
-      <p class="cam-tip">${T('拖动卡片调整位置，双指缩放大小')}</p>
+    el.className = 'cam cam2'; el.id = 'dayCam';
+    el.innerHTML = `<div class="cam-view"><video playsinline muted autoplay></video><img class="cam-bg" alt="" hidden><canvas class="cam-gl"></canvas><div class="cam-msg" hidden></div>
+        <div class="cam-look-flash" aria-hidden="true"></div>
+        <div class="cam-card f-sans st-clear" role="img">${camCardHTML(x)}</div></div>
+      <div class="cam-top"><button class="cam-ic" data-c="close" aria-label="${T('返回')}">${UI_IC.back}</button></div>
       <div class="cam-panel">
-        <div class="cam-row"><div class="cam-chips" data-group="style">${CAM_STYLES.map(([v, l], i) => `<button data-style="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
-        <div class="cam-row"><div class="cam-fonts cam-chips" data-group="font">${FONT_NAMES.map(([v, l], i) => `<button data-font="${v}" class="${i === 0 ? 'on' : ''}">${T(l)}</button>`).join('')}</div></div>
-        <div class="cam-zoom cam-chips" data-group="zoom" hidden></div>
-        <div class="cam-bottom"><button class="cam-btn" data-c="album" aria-label="${T('从相册选择')}">${UI_IC.photo}</button>
+        <div class="cam-dots" aria-hidden="true">${CAM_LOOKS.map(l => `<i data-dot="${l.id}"></i>`).join('')}</div>
+        <div class="cam-adj" hidden>
+          <div class="cam-adj-tabs">${[['beauty', '美颜'], ['filter', '滤镜'], ['text', '文字'], ['frame', '画幅']].map(([k, l], i) => `<button data-tab="${k}" class="${i ? '' : 'on'}">${T(l)}</button>`).join('')}</div>
+          <div class="cam-adj-body"></div>
+        </div>
+        <div class="cam-zoom" hidden></div>
+        <div class="cam-bottom"><button class="cam-ic big" data-c="adjust" aria-label="${T('调整')}" aria-pressed="false">${IC_ADJ}</button>
           <button class="cam-shutter" data-c="shot" aria-label="${T('拍摄')}"><span></span></button>
-          <button class="cam-btn" data-c="flip" aria-label="${T('切换镜头')}">${UI_IC.flip}</button></div>
+          <button class="cam-ic big" data-c="flip" aria-label="${T('切换镜头')}">${UI_IC.flip}</button></div>
       </div>`;
     document.body.appendChild(el);
-    camCtx = { id: x.id, el, stream: null, facing: 'environment', style: 'glass', font: 'sans', ratio: 'full', pos: null, scale: 1, bgImg: null, bgFile: null, zoom: 1, zMin: 1, zMax: 5, hw: false };
+    camCtx = { id: x.id, el, stream: null, facing: 'user', look: 'portrait', tune: {}, tab: 'beauty', style: 'glass', font: 'sans', ratio: 'full', pos: null, scale: 1, bgImg: null, bgFile: null, zoom: 1, zMin: 1, zMax: 5, hw: false, draw: null, raf: 0 };
+    camCtx.draw = camGL(el.querySelector('.cam-gl'));
+    el.classList.toggle('nogl', !camCtx.draw);   // 没有 WebGL：直接显示相机画面，不带滤镜
     el.style.setProperty('--cam-rot', camRot + 'deg'); el.classList.toggle('rot', !!camRot);
     try { if (window.MCNative && window.MCNative.devRot) window.MCNative.devRot(true); } catch (e) {}   // iPhone：开始报方向
-    requestAnimationFrame(() => el.classList.add('show'));
+    requestAnimationFrame(() => { el.classList.add('show'); setLook('portrait', true); });
     bindCam(el);
+    camLoop();
     await startStream();
   };
+  // 换方案：滤镜、卡片样式、字体一起换；「调整」里改过的清掉（换了方案就是想要它原本的样子）
+  function setLook(id, quiet) {
+    const c = camCtx; if (!c) return;
+    const L = lookOf(id); c.look = L.id; c.tune = {}; c.style = L.style; c.font = L.font;
+    const card = c.el.querySelector('.cam-card');
+    card.className = card.className.replace(/st-\w+/, 'st-' + c.style).replace(/f-\w+/, 'f-' + c.font);
+    c.el.querySelectorAll('[data-dot]').forEach(d => d.classList.toggle('on', d.dataset.dot === L.id));   // 下面一排小点：现在是第几个方案
+    if (!quiet) {
+      const fl = c.el.querySelector('.cam-look-flash'); fl.textContent = T(L.name); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on');
+      try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(6); } catch (e) {}
+    }
+    paintAdj();
+  }
+  // 「调整」面板：美颜（磨皮 / 美白 / 红润）· 滤镜（强度 / 亮度 / 色温 / 颗粒）· 文字（卡片样式 / 字体）
+  function paintAdj() {
+    const c = camCtx; if (!c) return;
+    const body = c.el.querySelector('.cam-adj-body'), f = camF(c);
+    c.el.querySelectorAll('.cam-adj-tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === c.tab));
+    if (c.tab === 'frame') {
+      body.innerHTML = `<div class="cam-seg" data-group="ratio">${CAM_RATIOS.map(([v, l]) => `<button data-cr="${v}" class="${v === c.ratio ? 'on' : ''}">${T(l)}</button>`).join('')}</div>`;
+      return;
+    }
+    if (c.tab === 'text') {
+      body.innerHTML = `<div class="cam-seg" data-group="style">${CAM_STYLES.map(([v, l]) => `<button data-style="${v}" class="${v === c.style ? 'on' : ''}">${T(l)}</button>`).join('')}</div>
+        <div class="cam-seg" data-group="font">${FONT_NAMES.map(([v, l]) => `<button data-font="${v}" class="${v === c.font ? 'on' : ''}">${T(l)}</button>`).join('')}</div>`;
+      return;
+    }
+    body.innerHTML = CAM_ADJ[c.tab].map(([k, l, lo, hi]) => {
+      const v = f[k] == null ? (k === 'mix' ? 1 : 0) : f[k], pct = Math.round((v - lo) / (hi - lo) * 100);
+      return `<label class="cam-sl"><span>${T(l)}</span><input type="range" min="0" max="100" value="${pct}" data-k="${k}" data-lo="${lo}" data-hi="${hi}" style="--v:${pct}%"><b>${lo < 0 ? Math.round(v / hi * 100) : pct}</b></label>`;
+    }).join('') + `<button class="cam-reset" data-c="reset">${T('还原这个方案')}</button>`;
+  }
   async function startStream() {
     const c = camCtx; if (!c) return;
     if (c.stream) c.stream.getTracks().forEach(t => t.stop());
@@ -2006,28 +2149,26 @@
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nocam');
       const want = { width: { ideal: 1920 }, height: { ideal: 1920 } };
-      // 先按前 / 后置要；有的设备不认 facingMode，就退一步随便开一个镜头
       try { c.stream = await navigator.mediaDevices.getUserMedia({ video: { ...want, facingMode: { ideal: c.facing } }, audio: false }); }
       catch (err) { c.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
       if (camCtx !== c) { c.stream.getTracks().forEach(t => t.stop()); return; }
-      v.srcObject = c.stream; v.hidden = false; msg.hidden = true;
+      v.srcObject = c.stream; msg.hidden = true; c.el.classList.remove('nocam');
       await v.play().catch(() => {});
-      // 倍率：镜头自己支持变焦（安卓 Chrome 等）就用真的光学 / 传感器变焦，否则在画面上放大（拍出来同样裁切）
       const tr = c.stream.getVideoTracks()[0], caps = tr && tr.getCapabilities ? tr.getCapabilities() : {};
       c.hw = !!(caps && caps.zoom && caps.zoom.max > caps.zoom.min);
       c.zMin = c.hw ? Math.max(.5, caps.zoom.min) : 1; c.zMax = c.hw ? Math.min(10, caps.zoom.max) : 5;
       c.zoom = Math.max(c.zMin, 1);
       paintZoom(); applyZoom();
     } catch (e) {
-      v.hidden = true; msg.hidden = false;
-      msg.innerHTML = `<b>${T('没法打开相机')}</b><span>${T('可以允许使用相机后再试，或者从相册选一张照片当背景。')}</span><button class="chip-btn glass" data-c="album">${T('从相册选择')}</button>`;
+      c.el.classList.add('nocam'); msg.hidden = false;
+      msg.innerHTML = `<b>${T('没法打开相机')}</b><span>${T('可以允许使用相机后再试，或者从相册选一张照片当背景。')}</span><button class="chip-btn" data-c="album">${T('从相册选择')}</button>`;
     }
   }
   const ZOOMS = [.5, 1, 2, 3, 5];
   function paintZoom() {
     const c = camCtx; if (!c) return;
     const box = c.el.querySelector('.cam-zoom'), list = ZOOMS.filter(z => z >= c.zMin - 1e-3 && z <= c.zMax + 1e-3);
-    box.hidden = !!c.bgImg || !c.stream;
+    box.hidden = !!c.bgImg || !c.stream || list.length < 2;
     box.innerHTML = list.map(z => `<button data-zoom="${z}" class="${Math.abs(c.zoom - z) < .05 ? 'on' : ''}">${String(z).replace(/^0/, '')}×</button>`).join('')
       + (list.some(z => Math.abs(c.zoom - z) < .05) ? '' : `<button class="on cur" data-zoom="${c.zoom}">${c.zoom.toFixed(1)}×</button>`);
   }
@@ -2038,7 +2179,7 @@
       const tr = c.stream && c.stream.getVideoTracks()[0];
       if (tr) tr.applyConstraints({ advanced: [{ zoom: c.zoom }] }).catch(() => { c.hw = false; applyZoom(); });
       v.style.transform = mir.trim();
-    } else v.style.transform = `scale(${c.zoom})${mir}`;   // 数码变焦：画面放大，拍照时按同样比例裁切
+    } else v.style.transform = `scale(${c.zoom})${mir}`;   // 没有 WebGL 时直接显示的画面：数码变焦放大（WebGL 里按同样比例裁切）
   }
   function camUseImage(f) {
     const c = camCtx; if (!c) return;
@@ -2047,7 +2188,7 @@
       c.bgImg = im; c.bgFile = f;
       if (c.stream) { c.stream.getTracks().forEach(t => t.stop()); c.stream = null; }
       const bg = c.el.querySelector('.cam-bg'); bg.src = u; bg.hidden = false;
-      c.el.querySelector('video').hidden = true; c.el.querySelector('.cam-msg').hidden = true;
+      c.el.classList.add('photo'); c.el.querySelector('.cam-msg').hidden = true; c.el.classList.remove('nocam');
       paintZoom();
     }).catch(() => UI.toast(T('照片读取失败')));
   }
@@ -2055,24 +2196,34 @@
     try { if (window.MCNative && window.MCNative.devRot) window.MCNative.devRot(false); } catch (e) {}
     const c = camCtx; if (!c) return false;
     if (c.stream) c.stream.getTracks().forEach(t => t.stop());
+    cancelAnimationFrame(c.raf);
     c.el.classList.remove('show'); setTimeout(() => c.el.remove(), 260);
     camCtx = null; return true;
   }
   function bindCam(el) {
     const card = el.querySelector('.cam-card'), view = el.querySelector('.cam-view');
-    const place = () => { const c = camCtx; if (!c) return; const p = c.pos || { x: .5, y: .64 }; card.style.left = (p.x * 100) + '%'; card.style.top = (p.y * 100) + '%'; card.style.transform = `translate(-50%,-50%) scale(${c.scale})`; };
+    const place = () => { const c = camCtx; if (!c) return; const p = c.pos || { x: .5, y: .62 }; card.style.left = (p.x * 100) + '%'; card.style.top = (p.y * 100) + '%'; card.style.transform = `translate(-50%,-50%) scale(${c.scale})`; };
     place();
+    el.addEventListener('input', e => {
+      const r = e.target.closest('input[type=range]'); if (!r || !camCtx) return;
+      const lo = +r.dataset.lo, hi = +r.dataset.hi, v = lo + (hi - lo) * r.value / 100;
+      camCtx.tune[r.dataset.k] = v; r.style.setProperty('--v', r.value + '%');
+      const b = r.parentElement.querySelector('b'); if (b) b.textContent = lo < 0 ? Math.round(v / hi * 100) : r.value;
+    });
     el.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b || !camCtx) return;
       const c = camCtx;
-      if (b.dataset.style) { c.style = b.dataset.style; card.className = card.className.replace(/st-\w+/, 'st-' + c.style); b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); return; }
-      if (b.dataset.cr) { c.ratio = b.dataset.cr; b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); layoutCam(); return; }
+      if (b.dataset.cr) { c.ratio = b.dataset.cr; layoutCam(); paintAdj(); return; }
+      if (b.dataset.tab) { c.tab = b.dataset.tab; paintAdj(); return; }
+      if (b.dataset.style) { c.style = b.dataset.style; card.className = card.className.replace(/st-\w+/, 'st-' + c.style); paintAdj(); return; }
+      if (b.dataset.font) { c.font = b.dataset.font; card.className = card.className.replace(/f-\w+/, 'f-' + c.font); paintAdj(); return; }
       if (b.dataset.zoom) { c.zoom = Number(b.dataset.zoom); applyZoom(); paintZoom(); try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} return; }
-      if (b.dataset.font) { c.font = b.dataset.font; card.className = card.className.replace(/f-\w+/, 'f-' + c.font); b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); return; }
       const a = b.dataset.c;
       if (a === 'close') closeCam();
-      else if (a === 'flip') {   // 前后镜头切换；正用着相册照片时回到相机
-        if (c.bgImg) { c.bgImg = null; c.el.querySelector('.cam-bg').hidden = true; } else c.facing = c.facing === 'user' ? 'environment' : 'user';
+      else if (a === 'adjust') { const on = el.querySelector('.cam-adj').hidden; el.querySelector('.cam-adj').hidden = !on; el.classList.toggle('adj', on); b.setAttribute('aria-pressed', String(on)); if (on) paintAdj(); }
+      else if (a === 'reset') { c.tune = {}; paintAdj(); }
+      else if (a === 'flip') {
+        if (c.bgImg) { c.bgImg = null; c.el.querySelector('.cam-bg').hidden = true; c.el.classList.remove('photo'); } else c.facing = c.facing === 'user' ? 'environment' : 'user';
         c.zoom = 1; b.classList.add('spin'); setTimeout(() => b.classList.remove('spin'), 420); startStream();
       }
       else if (a === 'album') { $('#dayBgFile').value = ''; $('#dayBgFile').click(); }
@@ -2081,11 +2232,11 @@
       else if (a === 'keep') saveShot(true);
       else if (a === 'send') saveShot(false);
     });
-    // 拖动、双指缩放
+    // 卡片：拖动、双指缩放
     const pts = new Map(); let start = null;
     card.addEventListener('pointerdown', e => {
       card.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
-      const r = view.getBoundingClientRect(), c = camCtx, p = c.pos || { x: .5, y: .64 };
+      const r = view.getBoundingClientRect(), c = camCtx, p = c.pos || { x: .5, y: .62 };
       start = { p: { ...p }, r, s: c.scale, pts: new Map(pts), d: pts.size > 1 ? dist() : 0 };
     });
     const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a[0] - b[0], a[1] - b[1]); };
@@ -2097,9 +2248,16 @@
       else { const o = start.pts.get(e.pointerId); if (!o) return; c.pos = { x: Math.max(.08, Math.min(.92, start.p.x + (e.clientX - o[0]) / start.r.width)), y: Math.max(.08, Math.min(.92, start.p.y + (e.clientY - o[1]) / start.r.height)) }; }
       place();
     });
-    // 在画面上（不是卡片上）双指捏合：调相机倍率
-    const zp = new Map(); let z0 = null;
-    view.addEventListener('pointerdown', e => { if (e.target.closest('.cam-card') || !camCtx || camCtx.bgImg) return; zp.set(e.pointerId, [e.clientX, e.clientY]); if (zp.size === 2) { const [a, b] = [...zp.values()]; z0 = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, z: camCtx.zoom }; } });
+    const up = e => { pts.delete(e.pointerId); if (camCtx) start = { p: { ...(camCtx.pos || { x: .5, y: .62 }) }, r: view.getBoundingClientRect(), s: camCtx.scale, pts: new Map(pts), d: pts.size > 1 ? dist() : 0 }; };
+    card.addEventListener('pointerup', up); card.addEventListener('pointercancel', up);
+    // 画面上（不是卡片上）：一根手指左右滑换方案，两指捏合调倍率
+    const zp = new Map(); let z0 = null, sw0 = null;
+    view.addEventListener('pointerdown', e => {
+      if (e.target.closest('.cam-card') || !camCtx) return;
+      zp.set(e.pointerId, [e.clientX, e.clientY]);
+      if (zp.size === 1) sw0 = { x: e.clientX, y: e.clientY, t: performance.now() };
+      if (zp.size === 2 && !camCtx.bgImg) { sw0 = null; const [a, b] = [...zp.values()]; z0 = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, z: camCtx.zoom }; }
+    });
     view.addEventListener('pointermove', e => {
       if (!zp.has(e.pointerId) || !camCtx) return; zp.set(e.pointerId, [e.clientX, e.clientY]);
       if (zp.size !== 2 || !z0) return;
@@ -2107,28 +2265,42 @@
       c.zoom = Math.round(Math.max(c.zMin, Math.min(c.zMax, z0.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / z0.d)) * 10) / 10;
       applyZoom(); paintZoom();
     });
-    const zup = e => { zp.delete(e.pointerId); if (zp.size < 2) z0 = null; };
-    view.addEventListener('pointerup', zup); view.addEventListener('pointercancel', zup);
+    const zup = e => {
+      if (sw0 && zp.size === 1 && camCtx) {
+        const dx = e.clientX - sw0.x, dy = e.clientY - sw0.y;
+        if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          const i = CAM_LOOKS.findIndex(l => l.id === camCtx.look), n = CAM_LOOKS.length;
+          setLook(CAM_LOOKS[(i + (dx < 0 ? 1 : -1) + n) % n].id);
+        }
+      }
+      zp.delete(e.pointerId); if (zp.size < 2) z0 = null; if (!zp.size) sw0 = null;
+    };
+    view.addEventListener('pointerup', zup); view.addEventListener('pointercancel', e => { zp.delete(e.pointerId); sw0 = null; z0 = null; });
     view.style.touchAction = 'none';
-    const up = e => { pts.delete(e.pointerId); if (camCtx) start = { p: { ...(camCtx.pos || { x: .5, y: .64 }) }, r: view.getBoundingClientRect(), s: camCtx.scale, pts: new Map(pts), d: pts.size > 1 ? dist() : 0 }; };
-    card.addEventListener('pointerup', up); card.addEventListener('pointercancel', up);
   }
-  // 拍摄：把屏幕上看到的画面（裁切后的相机画面或照片）和卡片一起画到画布上
+  // 拍摄：把取景框里的画面（用同一套滤镜按原始分辨率重新算一遍）和卡片一起画到画布上
   function shoot() {
     const c = camCtx; if (!c) return;
     const el = c.el, view = el.querySelector('.cam-view'), vr = view.getBoundingClientRect();
     const src = c.bgImg || el.querySelector('video');
-    const iw = src.naturalWidth || src.videoWidth, ih = src.naturalHeight || src.videoHeight;
-    if (!iw || !ih) { UI.toast(T('相机还没准备好')); return; }
-    const dz = !c.bgImg && !c.hw ? c.zoom : 1;   // 数码变焦：只取画面中间那一块
-    const k = Math.max(vr.width / iw, vr.height / ih) * dz, sw = vr.width / k, sh0 = vr.height / k;
+    const cr0 = camCrop(c, src, vr.width, vr.height);
+    if (!cr0) { UI.toast(T('相机还没准备好')); return; }
+    const { sx: sx0, sy: sy0, sw, sh: sh0 } = cr0;
     const s = Math.min(2560 / Math.max(sw, sh0), Math.max(1, 1440 / Math.min(sw, sh0)));
     const cv = document.createElement('canvas'); cv.width = Math.round(sw * s); cv.height = Math.round(sh0 * s);
-    const pctx = cv.getContext('2d'), f = cv.width / vr.width;
-    pctx.save();
-    if (!c.bgImg && c.facing === 'user') { pctx.translate(cv.width, 0); pctx.scale(-1, 1); }
-    pctx.drawImage(src, (iw - sw) / 2, (ih - sh0) / 2, sw, sh0, 0, 0, cv.width, cv.height);
-    pctx.restore();
+    const pctx = cv.getContext('2d'), f = cv.width / vr.width, mirror = !c.bgImg && c.facing === 'user';
+    let ok = false;
+    if (c.draw) {   // 滤镜按拍照的尺寸再算一遍（不是把预览放大）
+      const gcv = document.createElement('canvas'), dr = camGL(gcv, true);
+      ok = !!(dr && dr(src, sx0, sy0, sw, sh0, mirror, camF(c), cv.width, cv.height));
+      if (ok) pctx.drawImage(gcv, 0, 0);
+    }
+    if (!ok) {
+      pctx.save();
+      if (mirror) { pctx.translate(cv.width, 0); pctx.scale(-1, 1); }
+      pctx.drawImage(src, sx0, sy0, sw, sh0, 0, 0, cv.width, cv.height);
+      pctx.restore();
+    }
     // 横着拿：整张画面转成横的（世界的「上」在竖屏画面的右边 / 左边），卡片按它自己没转的样子画在横图里
     const rot = c.bgImg ? 0 : camRot, rad0 = -rot * Math.PI / 180;
     let out = cv, ctx = pctx;
