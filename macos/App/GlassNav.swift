@@ -171,7 +171,8 @@ final class NavModel: ObservableObject {
     func pullBegin() {
         var t = Transaction(); t.disablesAnimations = true
         withTransaction(t) { drawerPull = -NavModel.panelW; drawerOpen = true }
-        refresh()
+        // 已经有上一次的列表就先用它，等拉完再刷新：刚拉出来那一下不去等网页、不中途重排（快速侧拉卡一下就是这个）
+        if drawer == nil { refresh() } else { DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in self?.refresh() } }
     }
     func pullMove(_ dx: CGFloat) { drawerPull = dx - NavModel.panelW } // 拉过头（正数）时视图里按橡皮筋拉长
     /// 松手：拉出一半以上、或者往右甩，就弹开（带一点果冻回弹）；否则收回去

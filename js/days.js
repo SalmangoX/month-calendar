@@ -486,14 +486,20 @@
     if (urls.has(old)) { URL.revokeObjectURL(urls.get(old)); urls.delete(old); }
     Album.enqueue('del', old);
   }
-  async function setCover(x, value) { await dropCover(x); MC.updateDay(x, { cover: value || '' }); }
+  // 选为主题图片的照片自动收进这个日子的相册并设为喜欢（用户定的）：从相册里选的标上喜欢，从手机选的放进相册再标上
+  async function setCover(x, value) {
+    await dropCover(x);
+    const ph = value && x.photos.find(p => p.id === value);
+    MC.updateDay(x, { cover: value || '', ...(ph && !ph.like ? { photos: x.photos.map(p => (p.id === value ? { ...p, like: true } : p)) } : {}) });
+  }
   async function setCoverFile(x, file) {
     try {
-      const { blob } = await compress(file, 2000, .86);
+      const { blob, w, h } = await compress(file, 2000, .86);
       const id = 'p' + MC.uid();
       await PDB.put(id, blob);
       await dropCover(x);
-      MC.updateDay(x, { cover: id });
+      const nx = MC.data.days.find(d => d.id === x.id) || x;
+      MC.updateDay(nx, { cover: id, photos: [{ id, at: Date.now(), w, h, like: true }, ...nx.photos] });
       Album.enqueue('up', id);
     } catch (e) { UI.toast(T('照片读取失败')); }
   }

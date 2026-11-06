@@ -568,7 +568,7 @@
       if (!g.moved) {
         if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { g.bar.classList.remove('dragging'); g = null; return; } // 竖着划：交给页面滚动，水滴落回去
         if (Math.abs(dx) < 6) return;
-        g.moved = true;
+        g.moved = true; UI._hdrag = true;
         try { g.bar.setPointerCapture(e.pointerId); } catch (_) {}
         UI.cancelPresses && UI.cancelPresses();
       }
@@ -582,7 +582,7 @@
     }, true);
     const end = e => {
       if (!g || e.pointerId !== g.id) return;
-      const s = g; g = null;
+      const s = g; g = null; UI._hdrag = false;
       if (s.moved) { s.bar._swallow = Date.now(); pick(s.bar, Math.round(Math.max(0, Math.min(s.n - 1, s.p)))); return; }
       if (e.type === 'pointercancel') { s.bar.classList.remove('dragging'); return; }
       const o = e.target.closest && e.target.closest('.lg-opt');
@@ -626,7 +626,7 @@
       if (!g.moved) {
         if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { g = null; return; }   // 竖着划：交给页面滚动
         if (Math.abs(dx) < 5) return;
-        g.moved = true; g.bar.classList.add('dragging');
+        g.moved = true; g.bar.classList.add('dragging'); UI._hdrag = true;
         try { g.bar.setPointerCapture(e.pointerId); } catch (_) {}
         UI.cancelPresses && UI.cancelPresses();
       }
@@ -636,7 +636,7 @@
     }, true);
     const end = e => {
       if (!g || e.pointerId !== g.id) return;
-      const s = g; g = null;
+      const s = g; g = null; UI._hdrag = false;
       if (e.type === 'pointercancel' && !s.moved) return;
       const t = !s.moved && e.target.closest && e.target.closest('.pb-tick');
       const k = t && s.bar.contains(t) ? Number(t.dataset.i) : Math.round(fAt(s, e.clientX) * (PB_N - 1));
@@ -651,6 +651,8 @@
       if (d) { e.preventDefault(); pick(bar, Math.max(0, Math.min(PB_N - 1, k + d))); }
     });
   }
+  // 拖优先级条、等级 / 分段的水滴时：已经横着拖起来了，就不让面板跟着上下滑（用户发现斜着拖会带着面板走）
+  document.addEventListener('touchmove', e => { if (UI._hdrag && e.cancelable) { e.preventDefault(); e.stopPropagation(); } }, { passive: false, capture: true });
   UI.doneFeedback = () => { haptic(); chime(); };
 
   // ---------- 事件的快捷操作：长按（手机）或右键（电脑）弹出 ----------

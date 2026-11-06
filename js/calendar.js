@@ -644,6 +644,8 @@
   const popGlass = () => track.querySelectorAll('.sel').forEach(c => { c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); });
   function select(ds) {
     if (ds === selected && previewOpen) { previewOpen = false; render(); return; }
+    // 某一天的卡片开着：只有同一周的能直接换过去（用户定的）；点别的周就是关掉卡片
+    if (previewOpen && +MC.weekStartOf(MC.parse(ds)) !== +MC.weekStartOf(MC.parse(selected))) { previewOpen = false; render(); return; }
     selected = ds;
     if (!previewOpen) { previewOpen = true; render(); popGlass(); revealSelected(); return; }
     track.querySelectorAll('.sel').forEach(c => c.classList.remove('sel', 'pop'));
@@ -939,6 +941,11 @@
     }
     const cell = e.target.closest('[data-date]');
     if (cell) select(cell.dataset.date);
+  });
+  // 卡片开着时，点卡片和那一周的格子以外的地方（标题板、空白……）都是关掉卡片
+  $('#page-cal').addEventListener('click', e => {
+    if (!previewOpen || e.target.closest('#preview, [data-date], .mini')) return;
+    previewOpen = false; render();
   });
 
   let rz;

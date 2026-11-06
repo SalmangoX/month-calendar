@@ -114,7 +114,12 @@
       ${c.id ? `<button class="dr-more" data-act="more" aria-label="编辑「${esc(c.name)}」">${MORE}</button>` : ''}
     </div>`;
   }
+  // 侧拉菜单的列表：数据没变就不重画（拉出来的那一下不再整块重排，快速侧拉不卡一下）
+  let drawnKey = '';
   function render() {
+    const key = [MC.data.updatedAt, MC.activeCal(), MC.data.cals.length, document.documentElement.lang].join('|');
+    if (key === drawnKey && list.firstElementChild) return;
+    drawnKey = key;
     const cals = MC.data.cals;
     let h = row(MC.MAIN_CAL, 1);
     const recs = cals.filter(c => c.kind !== 'days'), dayCals = cals.filter(c => c.kind === 'days');
