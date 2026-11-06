@@ -52,7 +52,7 @@
       + `<button type="button" data-cfm="0">${esc(o.cancel || '取消')}</button>`
       + `<button type="button" data-cfm="1" class="${o.danger ? 'danger' : 'strong'}">${esc(o.ok || '确定')}</button></div>`;
     cfm.scrim.classList.add('show'); cfm.el.classList.add('show');
-    if (UI.menuOpen()) UI.closeMenu();
+    if (UI.menuOpen()) closeWeb();
     // 危险操作默认停在「取消」上，回车不会误删
     setTimeout(() => { const b = cfm.el.querySelector(`[data-cfm="${o.danger ? 0 : 1}"]`); b && b.focus({ preventScroll: true }); }, 30);
   });
@@ -97,7 +97,7 @@
   backdrop.addEventListener('click', () => UI.close());
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (UI.confirmOpen()) UI.closeConfirm(); else if (UI.menuOpen()) UI.closeMenu(); else if (stack.length) UI.close();
+    if (UI.confirmOpen()) UI.closeConfirm(); else if (UI.menuOpen()) closeWeb(); else if (stack.length) UI.close();
   });
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => UI.close(b.closest('.sheet').id)));
   // 面板手势：除了可编辑区域（输入框、文本框、滚轮），面板任何位置往下拉都能收起；
@@ -244,7 +244,7 @@
         : `<button role="menuitem" data-i="${i}" class="${it.on ? 'on' : ''}${it.danger ? ' danger' : ''}${it.cls ? ' ' + it.cls : ''}">${it.icon || ''}<span>${esc(it.label)}</span>${it.on ? '<span class="tick">✓</span>' : ''}</button>`).join('');
     if (dropA) { dropA.cancel(); dropA = null; }
     pop.classList.toggle('multi', !!opts.multi);   // 多选菜单：打勾用正文色
-    pop.classList.toggle('grow', !!opts.center);   // 以按钮为中心时：从那一点长出来（更明显的缩放 + 回弹）
+    pop.classList.add('grow');   // 所有菜单都从点的那个按钮里长出来（同样的位置、大小、圆角），再展开成菜单；不回弹
     pop.classList.add('show');
     pop.style.setProperty('--cc', getComputedStyle(anchor).getPropertyValue('--cc').trim() || 'var(--accent)');   // 开关填充用那一行日历的颜色
     const r = anchor.getBoundingClientRect();
@@ -260,54 +260,107 @@
     pop.style.left = left + 'px'; pop.style.top = top + 'px';
     pop.style.setProperty('--ox', (r.left + r.width / 2 - left) + 'px');
     pop.style.setProperty('--oy', opts.center ? (r.top + r.height / 2 - top) + 'px' : above ? '100%' : '0%');
-    if (opts.center) dropPop(true, r.left + r.width / 2 - left, r.top + r.height / 2 - top);
+    dropPop(true, { x: r.left - left, y: r.top - top, w: Math.max(24, r.width), h: Math.max(24, r.height) });
     pop.querySelectorAll('button').forEach(b => b.onclick = ev => {
       ev.stopPropagation();
       const it = items[Number(b.dataset.i)];
       if (it.ck) { try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(6); } catch (e) {} it.on = !it.on; b.setAttribute('aria-checked', String(it.on)); b.classList.toggle('on', it.on); if (popCb) popCb(it.value, it); return; }
       if (it.sw) { try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(6); } catch (e) {} it.on = !it.on; b.setAttribute('aria-checked', String(it.on)); b.querySelector('.mi-sw').classList.toggle('on', it.on); if (popCb) popCb(it.value, it); return; }
-      UI.closeMenu();
+      closeWeb();
       if (popCb) popCb(it.value, it);
     });
   };
-  // 多选菜单（提醒可以选好几个）：一直用网页的菜单——App 里 UI.menu 换成了原生菜单，原生菜单点一下就关，没法多选
+  // ====== 选择窗口（用户定的：所有「选一个 / 选几个」的都用同一种窗口，和「提醒通知」一样的悬浮卡片）======
+  // 标题 + 一组行，选中的在右边打勾。单选：点一下打勾、马上收起；多选：点一下打勾 / 取消，「无」和具体的项互斥，「完成」收起。
+  // 「动作」菜单（换头像、备份、子日历「⋯」这种没有「当前选中」的）还是小菜单，从按钮里长出来。【联动:原生玻璃】左上「取消」是 .lgn，iPhone / Mac 由原生画
   const webMenu = UI.menu;
-  UI.multiMenu = (anchor, options, selected, onChange, opts = {}) => {
-    let cur = [...selected];
-    const items = [{ label: opts.none || '无', value: '__none', on: !cur.length }, ...options.map(o => ({ label: o.label, value: o.v, ck: true, on: cur.includes(o.v) }))];
-    if (opts.done) items.push({ label: opts.done, value: '__done', cls: 'mi-ok' });   // 选好后点它才生效（比如给整个日历设提醒）
-    webMenu(anchor, items, (v, it) => {
-      if (v === '__done') { opts.onDone && opts.onDone(cur); return; }
-      if (v === '__none') { cur = []; if (opts.done) { opts.onDone && opts.onDone(cur); return; } onChange(cur); return; }
-      cur = it.on ? [...new Set([...cur, v])] : cur.filter(x => x !== v);
-      const nb = pop.querySelector('[data-i="0"]'); if (nb) { nb.classList.toggle('on', !cur.length); const t = nb.querySelector('.tick'); if (t) t.remove(); }
-      onChange(cur);
-    }, { ...opts, multi: true });
+  const CS = document.createElement('section');
+  CS.className = 'sheet fl choose'; CS.id = 'chooseSheet'; CS.setAttribute('aria-label', '选择');
+  CS.innerHTML = '<div class="handle"></div><div class="sheet-head"><button class="sh-btn lgbtn lgn tap" data-x type="button">取消</button><h2></h2><button class="sh-ok tap" data-ok type="button">完成</button></div><div class="sgroup ch-list"></div>';
+  (document.getElementById('notifySheet') || document.body.lastElementChild).after(CS);
+  const TICK = '<svg class="ch-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5l4.2 4.2 8.8-9.4"/></svg>';
+  // 标题：设置里那一行的名字 / 选择器里那一行的名字 / 按钮的 aria-label
+  const titleOf = (anchor, opts) => {
+    const q = (sel, sub) => { const r = anchor && anchor.closest && anchor.closest(sel); const t = r && r.querySelector(sub); return t && t.textContent.trim(); };
+    return opts.title || q('.srow', '.slabel') || q('.pk-row', 'span') || (anchor && anchor.getAttribute && anchor.getAttribute('aria-label')) || '选择';
   };
-  // 以三个点为中心的小窗口：玻璃是一颗水滴，从三个点上 30px 的小圆一口气拉伸成窗口（带一点果冻回弹），收起时缩回小圆
+  UI.choose = (anchor, items, cb, opts = {}) => {
+    const multi = !!opts.multi, list = CS.querySelector('.ch-list');
+    let cur = multi ? [...(opts.selected || [])] : null, finished = false;
+    CS.querySelector('h2').textContent = titleOf(anchor, opts);
+    const okB = CS.querySelector('[data-ok]'), xB = CS.querySelector('[data-x]');
+    okB.hidden = !multi; okB.textContent = opts.done || '完成';
+    xB.style.visibility = multi ? 'hidden' : '';   // 多选是点一下就存的，只要「完成」
+    list.innerHTML = items.map((it, i) => `<button type="button" class="srow ch-row${it.danger ? ' danger' : ''}" data-i="${i}" role="${multi ? 'menuitemcheckbox' : 'menuitemradio'}">${it.icon || ''}<span class="slabel">${esc(it.label)}</span>${TICK}</button>`).join('');
+    const paint = () => list.querySelectorAll('.ch-row').forEach(b => {
+      const it = items[Number(b.dataset.i)], on = multi ? (it.value === '__none' ? !cur.length : cur.includes(it.value)) : !!it.on;
+      b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on));
+    });
+    paint();
+    const buzz = () => { try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(6); } catch (e) {} };
+    const finish = () => { if (finished) return; finished = true; if (multi && opts.onDone) opts.onDone(cur); };
+    list.onclick = e => {
+      const b = e.target.closest('.ch-row'); if (!b) return;
+      const it = items[Number(b.dataset.i)]; buzz();
+      if (multi) {
+        if (it.value === '__none') cur = [];
+        else if (cur.includes(it.value)) { if (opts.keepOne && cur.length === 1) return; cur = cur.filter(x => x !== it.value); }   // keepOne：至少留一个
+        else cur = [...cur, it.value];
+        paint(); opts.onChange && opts.onChange(cur);
+        return;
+      }
+      items.forEach(x => (x.on = x === it)); paint();   // 先看到打勾换过来，再收起
+      finished = true;
+      setTimeout(() => { UI.close('chooseSheet', true); cb && cb(it.value, it); }, 150);
+    };
+    okB.onclick = () => UI.close('chooseSheet');
+    xB.onclick = () => UI.close('chooseSheet');
+    UI.open('chooseSheet', finish);   // 点外面、下拉收起也算选好了（多选是点一下就存的）
+  };
+  // 多选：「无」和具体的项互斥（选了时间「无」就取消，点「无」全部取消）
+  UI.multiMenu = (anchor, options, selected, onChange, opts = {}) => UI.choose(anchor,
+    [...(opts.keepOne ? [] : [{ label: opts.none || '无', value: '__none' }]), ...options.map(o => ({ label: o.label, value: o.v }))], null,
+    { ...opts, multi: true, selected, onChange });
+  // UI.menu 分流：有「当前选中」的（选择类）一律用选择窗口；其它（动作菜单、带开关的「⋯」）用小菜单。
+  // App 的注入脚本会给 UI.menu 赋一个原生菜单：记下来，只给动作菜单用（选择类在 App 里也用同一个窗口）
+  let nativeMenu = null;
+  const isChoice = (items, opts) => !opts.center && !opts.action && items.some(it => it.on && !it.sw);
+  Object.defineProperty(UI, 'menu', {
+    configurable: true, enumerable: true,
+    get: () => (anchor, items, cb, opts = {}) => (isChoice(items, opts) ? UI.choose(anchor, items, cb, opts) : (nativeMenu && !opts.web ? nativeMenu : webMenu)(anchor, items, cb, opts)),
+    set: f => { nativeMenu = f; },
+  });
+  // 菜单从点的那个按钮里长出来：先和按钮一样的位置、大小、圆角（玻璃一直在），一口气展开成菜单，字跟着淡进来；收起倒过来缩回按钮。
+  // 干脆、不回弹（用户定的：保留液态玻璃，别弹来弹去）。按钮在菜单外面也一样（从按钮的位置移过来）
   let dropA = null, dropO = null;
-  function dropPop(opening, ox, oy) {
+  function dropPop(opening, ar) {
     if (!pop.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (!opening) pop.classList.remove('show', 'grow'); return; }
-    if (opening) dropO = [ox, oy]; else if (!dropO) { pop.classList.remove('show', 'grow'); return; }
-    const [x, y] = dropO, w = pop.offsetWidth, h = pop.offsetHeight, R = 15;
-    const dot = `inset(${y - R}px ${w - x - R}px ${h - y - R}px ${x - R}px round ${R}px)`, full = 'inset(0px 0px 0px 0px round 22px)';
+    if (opening) dropO = ar; else if (!dropO) { pop.classList.remove('show', 'grow'); return; }
+    const o = dropO, w = pop.offsetWidth, h = pop.offsetHeight, sx = o.w / w, sy = o.h / h, R = Math.min(o.h / 2, 22);
+    const small = { transform: `translate(${o.x}px, ${o.y}px) scale(${sx}, ${sy})`, borderRadius: `${R / sx}px / ${R / sy}px` };
+    const full = { transform: 'none', borderRadius: '22px' };
     if (dropA) dropA.cancel();
     const kids = [...pop.children];
+    pop.style.transformOrigin = '0 0';
     if (opening) {
-      dropA = pop.animate([{ clipPath: dot }, { clipPath: full }], { duration: 260, easing: 'cubic-bezier(.2,.8,.25,1)' });   // 干脆、不晃（不再冲过再缩回）
-      kids.forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, delay: 60, easing: 'ease-out', fill: 'backwards' }));
+      dropA = pop.animate([small, full], { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+      kids.forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 130, delay: 80, easing: 'ease-out', fill: 'backwards' }));
     } else {
-      kids.forEach(k => k.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 60, fill: 'forwards' }));
-      dropA = pop.animate([{ clipPath: full }, { clipPath: dot, opacity: 1, offset: .85 }, { clipPath: dot, opacity: 0 }], { duration: 200, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' });
+      kids.forEach(k => k.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 70, fill: 'forwards' }));
+      dropA = pop.animate([full, { ...small, opacity: 1, offset: .85 }, { ...small, opacity: 0 }], { duration: 190, easing: 'cubic-bezier(.4, 0, .6, 1)', fill: 'forwards' });
       const a = dropA;
       const end = () => { if (dropA !== a) return; pop.classList.remove('show', 'grow'); a.cancel(); kids.forEach(k => k.getAnimations().forEach(x => x.cancel())); dropO = null; dropA = null; };
-      a.onfinish = end; setTimeout(end, 260);   // 后台标签页里动画事件可能不来：到点也一定收干净，不留一个看不见的菜单
+      a.onfinish = end; setTimeout(end, 250);   // 后台标签页里动画事件可能不来：到点也一定收干净，不留一个看不见的菜单
     }
   }
-  UI.closeMenu = () => { if (pop.classList.contains('grow') && pop.classList.contains('show')) dropPop(false); else pop.classList.remove('show'); };
+  // 网页自己的菜单一律用 closeWeb 收起：App 的注入脚本会把 UI.closeMenu 换成空函数（App 里的菜单平常是原生画的），
+  // 但多选菜单（UI.multiMenu）一直是网页画的，用 UI.closeMenu 就收不回去
+  function closeWeb() { if (pop.classList.contains('grow') && pop.classList.contains('show')) dropPop(false); else pop.classList.remove('show'); }
+  UI.closeMenu = closeWeb;
+  UI.closeWebMenu = closeWeb;
   let swallow = false;
   document.addEventListener('pointerdown', e => {
-    if (UI.menuOpen() && !pop.contains(e.target)) { UI.closeMenu(); swallow = true; setTimeout(() => (swallow = false), 400); }
+    if (UI.menuOpen() && !pop.contains(e.target)) { closeWeb(); swallow = true; setTimeout(() => (swallow = false), 400); }
   }, true);
   document.addEventListener('click', e => {
     if (swallow) { swallow = false; e.stopPropagation(); e.preventDefault(); }

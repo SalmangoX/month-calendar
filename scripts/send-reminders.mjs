@@ -76,7 +76,7 @@ function localToUtc(y, m, d, h, mi, tz) {
 }
 // 一个事件可以有好几个提醒：remind 是第一个，remindMore 是另外加的（【联动:提醒】）
 function fireTimes(e, tz) {
-  const l = [...new Set([e.remind, ...(Array.isArray(e.remindMore) ? e.remindMore : [])].filter(v => v !== null && v !== undefined && v !== '').map(Number).filter(n => Number.isFinite(n) && n >= 0))];
+  const l = [...new Set([e.remind, ...(Array.isArray(e.remindMore) ? e.remindMore : []), ...(calRemind.get(e.cal) || [])].filter(v => v !== null && v !== undefined && v !== '').map(Number).filter(n => Number.isFinite(n) && n >= 0))];
   if (!l.length) return [];
   const [y, m, d] = e.date.split('-').map(Number);
   const [h, mi] = (e.time || '09:00').split(':').map(Number);
@@ -120,6 +120,8 @@ const sent = sentDoc.sent || {};
 webpush.setVapidDetails(info.subject && /^https:|^mailto:/.test(info.subject) ? info.subject : 'mailto:noreply@example.com', info.publicKey, VAPID_PRIVATE);
 
 const notifyCals = new Set((data.cals || []).filter(c => c && c.notify).map(c => c.id));
+// 日历的统一提醒（remindDef）：对这个日历里的每个事件都生效，和事件自己的提醒合在一起（不写进事件）
+const calRemind = new Map((data.cals || []).filter(c => c && Array.isArray(c.remindDef) && c.remindDef.length).map(c => [c.id, c.remindDef]));
 const now = Date.now();
 const dead = new Set();
 let count = 0, changed = false;

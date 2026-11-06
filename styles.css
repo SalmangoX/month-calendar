@@ -577,7 +577,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 @media (min-width: 700px) and (min-height: 520px) {
   .sheet.fl { top: 50%; bottom: auto; translate: 0 -50%; max-height: calc(100% - 80px); opacity: 1;
     transition: transform .34s var(--ease), opacity .22s ease, visibility 0s .34s; }
-  .sheet.fl.show { transition: transform .4s var(--spring-out), opacity .22s ease, visibility 0s; }
+  .sheet.fl.show { transition: transform .3s var(--ease), opacity .2s ease, visibility 0s; }   /* 弹出的窗口不回弹（用户定的：别弹来弹去） */
   .sheet.fl:not(.show) { transform: translateY(28px) scale(.97); opacity: 0; }
   .sheet.tall.fl { top: 40px; bottom: 40px; translate: none; }
 }
@@ -914,7 +914,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .popover.multi button .tick { color: var(--text); }
 .popover button.mi-ok { justify-content: center; margin-top: 6px; font-weight: 650; background: color-mix(in srgb, var(--text) 8%, transparent); border-radius: 999px; }
 .popover button.mi-ok:active { background: color-mix(in srgb, var(--text) 14%, transparent); }
-.popover button.ck .tick { color: var(--text); opacity: 0; transform: scale(.6); transition: opacity .15s, transform .2s cubic-bezier(.3,1.5,.5,1); }
+.popover button.ck .tick { color: var(--text); opacity: 0; transform: scale(.7); transition: opacity .15s, transform .18s ease-out; }
 .popover button.ck.on { background: transparent; }
 .popover button.ck.on .tick { opacity: 1; transform: none; }
 .popover button.ck:active { background: var(--field); }
@@ -953,7 +953,7 @@ html.locked .lock { display: grid; }
 .cfm-scrim { position: absolute; inset: 0; z-index: 84; background: var(--backdrop); opacity: 0; pointer-events: none; transition: opacity .2s; }
 .cfm-scrim.show { opacity: 1; pointer-events: auto; }
 .cfm { position: absolute; z-index: 85; left: 50%; top: 50%; width: min(300px, calc(100% - 48px)); border-radius: 22px; padding: 20px 16px 14px;
-  transform: translate(-50%, -46%) scale(.94); opacity: 0; pointer-events: none; transition: opacity .16s, transform .26s var(--ease-spring); }
+  transform: translate(-50%, -48%) scale(.97); opacity: 0; pointer-events: none; transition: opacity .16s, transform .22s var(--ease); }   /* 不回弹 */
 .cfm.show { transform: translate(-50%, -50%); opacity: 1; pointer-events: auto; }
 .cfm p { margin: 0 4px 18px; font-size: 15px; line-height: 1.5; text-align: center; white-space: normal; word-break: break-word; user-select: text; -webkit-user-select: text; }
 .cfm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -1262,6 +1262,11 @@ html.locked .lock { display: grid; }
 .dr-sec { --i: 2; margin: 18px 12px 6px; font-size: 12.5px; font-weight: 600; color: var(--text2); }
 .dr-empty { margin: 4px 12px; font-size: 13px; line-height: 1.6; color: var(--text2); }
 .dr-row { position: relative; display: flex; align-items: center; border-radius: 20px; margin-bottom: 4px; transition: background .2s; }
+/* 长按拖动排序：拿起来的那一行浮起（略放大、带投影），同组的其它行让位 */
+.drawer .reordering .dr-row.shift { transition: transform .22s cubic-bezier(.2, .8, .3, 1); }
+.drawer .dr-row.lifted { z-index: 3; background: var(--surface); box-shadow: 0 14px 34px rgba(14, 24, 40, .2), 0 3px 8px rgba(14, 24, 40, .1); transition: box-shadow .2s, transform .18s cubic-bezier(.2, .8, .3, 1); }
+.drawer .reordering .dr-row.lifted { transition: box-shadow .2s; }
+.drawer .dr-row { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .dr-row.on { background: rgba(255, 255, 255, .62); box-shadow: 0 1px 3px rgba(0, 0, 0, .06), inset 0 0 0 .6px rgba(0, 0, 0, .05); }   /* 选中的那一行：中性的白色高亮，不染日历色（用户不要蓝） */
 :root[data-theme="dark"] .dr-row.on { background: rgba(255, 255, 255, .1); box-shadow: inset 0 0 0 .6px rgba(255, 255, 255, .08); }
 .dr-pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 18px; min-height: 60px; box-sizing: border-box; padding: 0 10px;   /* 行高 60（用户在预览里定的；两行字比图标高，用固定行高），图标和字间距 18 */
@@ -2023,3 +2028,34 @@ body #page-cal .weekdays.hide { display: none; }
 .cmp-same .cs-t small { font-size: 12px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cmp-same .cs-chev { flex: none; width: 16px; height: 16px; fill: none; stroke: var(--text3); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .cs-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+
+/* 选择窗口（UI.choose）：所有「选一个 / 选几个」都用它，和「提醒通知」同一种悬浮卡片；选中的在右边打勾（正文色，不用蓝色） */
+#chooseSheet { z-index: 48; }
+#chooseSheet .ch-list { margin: 0 14px 4px; max-height: min(62vh, 560px); overflow-y: auto; }
+.ch-row { padding: 0 18px; font-size: 16px; }
+.ch-row + .ch-row::before { left: 18px; }
+.ch-row .slabel { flex: 1; min-width: 0; }
+.ch-row .ch-tick { flex: none; width: 20px; height: 20px; fill: none; stroke: var(--text); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(.7); transition: opacity .15s, transform .18s ease-out; }
+.ch-row.on .ch-tick { opacity: 1; transform: none; }
+.ch-row.on .slabel { font-weight: 600; }
+.ch-row:active { background: var(--field); }
+
+/* 同名事件窗口（editor.js 的 #sameSheet）：每一条都看得清，勾选要挪的，再选挪到哪 */
+#sameSheet { z-index: 47; }
+#sameSheet .sm-body { padding: 0 14px 6px; overflow-y: auto; }
+#sameSheet .sgroup-title { margin: 6px 8px 8px; }
+#sameSheet .sgroup-title + .sgroup { margin-bottom: 10px; }
+#sameSheet .sm-list { max-height: 38vh; overflow-y: auto; }
+.sm-row { padding: 10px 16px; gap: 14px; min-height: 56px; }
+.sm-row + .sm-row::before { left: 52px; }
+.sm-ck { flex: none; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--text) 30%, transparent); display: grid; place-items: center; transition: background .15s, box-shadow .15s; }
+.sm-ck svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity .12s; }
+.sm-row.on .sm-ck { background: var(--text); box-shadow: none; }
+:root[data-theme="dark"] .sm-row.on .sm-ck svg { stroke: var(--bg); }
+.sm-row.on .sm-ck svg { opacity: 1; }
+.sm-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sm-main b { font-size: 15px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.sm-main i { font-style: normal; font-weight: 500; color: var(--text2); font-size: 13.5px; }
+.sm-main em { font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--text2); padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--text) 7%, transparent); }
+.sm-main small { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#sameSheet .sm-hint { margin: 2px 8px 4px; }

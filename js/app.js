@@ -1068,8 +1068,7 @@
         const v = l.length ? [...l].sort((a, b) => a - b) : [10];
         MC.setCourseRemind({ lead: v[0], leadMore: v.slice(1), tz: MC.currentTz() });
         renderSettings();   // 菜单浮在上面，重画设置页不影响它
-        if (!l.length) UI.closeMenu();
-      }, { none: '默认（10 分钟）' });
+      }, { keepOne: true });   // 课程提醒开着就至少有一个提前量
     }
     else if (act === 'boost') openHelp('boost');
     else if (act === 'ics') {
@@ -1824,7 +1823,7 @@
   MC.back = () => {
     if (UI.confirmOpen()) { UI.closeConfirm(); return true; }
     if (document.documentElement.classList.contains('locked')) return false;
-    if (UI.menuOpen()) { UI.closeMenu(); return true; }
+    if (UI.menuOpen()) { UI.closeWebMenu(); return true; }
     if (UI.anyOpen()) { UI.close(); return true; }
     if (MC.Drawer.isOpen()) { MC.Drawer.close(); return true; }
     if (page !== 'cal') { showPage('cal'); return true; }

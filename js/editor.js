@@ -19,10 +19,15 @@
   const newHeading = () => (newCal && MC.cal(newCal) ? `添加到「${MC.cal(newCal).name}」` : '新建事件');
   const draft = {};
   function resetDraft(date) {
-    Object.assign(draft, { title: '', note: '', priority: 0, rate: 0, segs: {}, date, days: 1, time: '', endTime: '', remind: null, remindMore: [], repeat: 'none', until: '', done: false, ...calReminds() });
+    Object.assign(draft, { title: '', note: '', priority: 0, rate: 0, segs: {}, date, days: 1, time: '', endTime: '', remind: null, remindMore: [], repeat: 'none', until: '', done: false });
   }
-  // 子日历设了统一提醒：新加的事件默认带上（还能在这个事件里改）
-  function calReminds() { const c = newCal && MC.cal(newCal); return c && c.remindDef && c.remindDef.length ? MC.withReminds(c.remindDef) : {}; }
+  // 所在子日历的统一提醒（对日历里每个事件都生效，不写进事件）：提醒那一行写「跟随日历」
+  function calDef() { const id = mode === 'edit' && editing ? editing.cal : newCal, c = id && MC.cal(id); return (c && c.remindDef) || []; }
+  function remindText(l, hasTime) {
+    const d = calDef();
+    if (!d.length) return MC.remindsLabel(l, hasTime);
+    return l.length ? `${MC.remindsLabel(l, hasTime)} + 日历提醒` : `跟随日历：${MC.remindsLabel(d, true)}`;
+  }
   function paintFlag(btn, p) {
     const c = MC.rateOn(newCal) ? `var(--lv${p || 1})` : MC.priOf(p).color; // 开了等级评分的日历：标记用等级颜色
     btn.style.setProperty('--pc', p ? c : 'var(--text2)');
@@ -90,26 +95,51 @@
     b.innerHTML = `<span class="cs-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h11M4 12h16M4 17h8"/></svg></span>
       <span class="cs-t"><b>${n > 1 ? `同名事件 ${n} 条` : '只有这一条'}</b><small>在${esc(here)} · 点了放进子日历</small></span><svg class="cs-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`;
   }
+  // 同名事件窗口：先看清每一条（日期、星期、钟点、备注、完成没有），勾选要挪的，再选挪到哪个日历；左上「取消」，右上「移动」
+  const SS = document.createElement('section');
+  SS.className = 'sheet fl'; SS.id = 'sameSheet'; SS.setAttribute('aria-label', '同名事件');
+  SS.innerHTML = `<div class="handle"></div><div class="sheet-head"><button class="sh-btn lgbtn lgn tap" data-x type="button">取消</button><h2></h2><button class="sh-ok tap" data-ok type="button">移动</button></div>
+    <div class="sm-body"><p class="sgroup-title sm-t1"></p><div class="sgroup sm-list"></div><p class="sgroup-title">移到</p><div class="sgroup sm-to"></div><p class="hint sm-hint"></p></div>`;
+  ($('#chooseSheet') || $('#notifySheet')).before(SS);
+  const CK = '<span class="sm-ck" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6.5 12.5l3.8 3.8 7.2-8.3"/></svg></span>';
+  const TK = '<svg class="ch-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5l4.2 4.2 8.8-9.4"/></svg>';
   $('#cmpSame') && ($('#cmpSame').onclick = () => {
     const e = editing; if (!e) return;
-    const list = sameOf(e).sort((a, b) => a.date.localeCompare(b.date));
-    const items = [...(e.cal ? [{ label: '放回主日历', value: '' }] : []),
-      ...MC.data.cals.filter(c => c.kind !== 'days' && c.id !== e.cal).map(c => ({ label: `放进「${c.name}」`, value: c.id, icon: `<span class="cs-dot" style="--c:${c.color}"></span>` }))];
-    UI.menu($('#cmpSame'), items, async to => {
-      const name = to ? `「${MC.cal(to).name}」` : '主日历';
-      let all = true;
-      if (list.length > 1) {
-        const ds = list.slice(0, 6).map(x => MC.dateLabel(x.date)).join('、') + (list.length > 6 ? ` 等` : '');
-        const r = await UI.confirm(`「${e.title}」一共 ${list.length} 条（${ds}）。\n全部放进${name}，还是只放这一条？`, { ok: `全部 ${list.length} 条`, cancel: '只放这一条', dismiss: null });
-        if (r === null) return;
-        all = r;
-      }
-      const t = Date.now(), moved = all ? list : [e];
+    const list = sameOf(e).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+    const targets = [...(e.cal ? [{ id: '', name: '主日历', color: '' }] : []), ...MC.data.cals.filter(c => c.kind !== 'days' && c.id !== e.cal)];
+    const pick = new Set([e.id]); let to = null;
+    const here = e.cal && MC.cal(e.cal) ? `「${MC.cal(e.cal).name}」` : '主日历';
+    SS.querySelector('h2').textContent = `「${e.title.trim()}」`;
+    SS.querySelector('.sm-t1').textContent = `${here}里叫这个名字的 ${list.length} 条`;
+    const wd = d => '周' + MC.WD[MC.parse(d).getDay()];
+    SS.querySelector('.sm-list').innerHTML = list.map(x => `<button type="button" class="srow sm-row" data-id="${esc(x.id)}">${CK}
+      <span class="sm-main"><b>${esc(MC.dateLabel(x.date))} ${MC.parse(x.date).getFullYear() !== new Date().getFullYear() ? MC.parse(x.date).getFullYear() + ' ' : ''}${wd(x.date)}<i>${esc(MC.timeLabel(x) || '全天')}</i>${x.done ? '<em>已完成</em>' : ''}${x.id === e.id ? '<em class="cur">正在编辑</em>' : ''}</b>
+      ${x.note ? `<small>${esc(x.note.slice(0, 60))}</small>` : ''}</span></button>`).join('');
+    SS.querySelector('.sm-to').innerHTML = targets.map(c => `<button type="button" class="srow ch-row" data-to="${esc(c.id)}">${c.id ? `<span class="cs-dot" style="--c:${c.color}"></span>` : ''}<span class="slabel">${esc(c.name === '主日历' ? '主日历' : `「${c.name}」`)}</span>${TK}</button>`).join('')
+      || '<p class="hint" style="margin:14px">还没有别的记录日历</p>';
+    const okB = SS.querySelector('[data-ok]');
+    const paint = () => {
+      SS.querySelectorAll('.sm-row').forEach(r => r.classList.toggle('on', pick.has(r.dataset.id)));
+      SS.querySelectorAll('[data-to]').forEach(r => r.classList.toggle('on', r.dataset.to === to));
+      okB.disabled = to === null || !pick.size;
+      const name = to === null ? '' : to ? `「${MC.cal(to).name}」` : '主日历';
+      okB.textContent = '移动';
+      SS.querySelector('.sm-hint').textContent = to === null ? '勾选要挪的几条，再选挪到哪个日历。' : `把勾选的 ${pick.size} 条移到${name}（是挪过去，不是复制）。`;
+    };
+    paint();
+    SS.querySelector('.sm-list').onclick = ev => { const r = ev.target.closest('.sm-row'); if (!r) return; const id = r.dataset.id; pick.has(id) ? pick.delete(id) : pick.add(id); paint(); };
+    SS.querySelector('.sm-to').onclick = ev => { const r = ev.target.closest('[data-to]'); if (!r) return; to = r.dataset.to; paint(); };
+    SS.querySelector('[data-x]').onclick = () => UI.close('sameSheet');
+    okB.onclick = () => {
+      if (to === null || !pick.size) return;
+      const name = to ? `「${MC.cal(to).name}」` : '主日历', t = Date.now(), moved = list.filter(x => pick.has(x.id));
       moved.forEach(x => { x.cal = to; x.updatedAt = t; });
       MC.commit(); MC.reindex && MC.reindex(); if (MC.Cal) MC.Cal.render(); if (MC.Drawer && MC.Drawer.paint) MC.Drawer.paint();
-      UI.toast(`已把 ${moved.length} 条放进${name}`);
+      UI.close('sameSheet');
+      UI.toast(`已把 ${moved.length} 条移到${name}`);
       paintSame(); paintComposer();
-    });
+    };
+    UI.open('sameSheet');
   });
   function paintTools() {
     const extra = [];
@@ -503,7 +533,7 @@
     `<button class="pk-row" data-act="${act}">${icon}<span>${label}</span><span class="grow-val${on ? ' on' : ''}" data-bind="${act}">${esc(val)}</span></button>`;
   function extraRows() {
     const hasTime = !!pk.time;
-    let h = row('remind', SVG_BELL, '提醒', MC.remindsLabel(MC.remindsOf(pk), hasTime), MC.remindsOf(pk).length > 0);
+    let h = row('remind', SVG_BELL, '提醒', remindText(MC.remindsOf(pk), hasTime), MC.remindsOf(pk).length > 0 || calDef().length > 0);
     if (pk.allowRepeat) {
       h += row('repeat', SVG_REPEAT, '重复', MC.repeatLabel(pk.repeat), pk.repeat !== 'none');
       if (pk.repeat !== 'none') {
@@ -556,7 +586,7 @@
   function refreshLabels() {
     const set = (k, v) => { const el = PB.querySelector(`[data-bind="${k}"]`); if (el) el.textContent = v; };
     set('time', pk.time ? MC.timeLabel(pk) : '无');
-    set('remind', MC.remindsLabel(MC.remindsOf(pk), !!pk.time));
+    set('remind', remindText(MC.remindsOf(pk), !!pk.time));
     set('until', pk.until ? MC.dateLabel(pk.until) + ' ' + MC.parse(pk.until).getFullYear() : '不设，一直重复');
     set('cardDate', `${MC.dateLabel(pk.date)}，周${MC.WD[MC.parse(pk.date).getDay()]}`);
     set('cardRel', MC.relLabel(pk.date));
@@ -644,8 +674,7 @@
       UI.multiMenu(a, MC.remindOptions(!!pk.time).filter(o => o.v !== null), MC.remindsOf(pk), l => {
         useCtx(ctx);
         Object.assign(pk, MC.withReminds(l)); refreshLabels();
-        a.querySelector('.grow-val').classList.toggle('on', l.length > 0);
-        if (!l.length) UI.closeMenu();
+        a.querySelector('.grow-val').classList.toggle('on', l.length > 0 || calDef().length > 0);
         if (l.length && !warned && MC.Push && !MC.Push.enabled()) { warned = true; UI.toast('提醒需要在「设置 → 提醒通知」中开启'); }
       });
     }
@@ -844,7 +873,7 @@
       else { rows = []; localStorage.removeItem(BATCH_KEY); proceed(); }
     });
   });
-  const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, rate: 0, date, days: 1, time: '', endTime: '', remind: null, remindMore: [], repeat: 'none', until: '', ...calReminds(), ...extra });
+  const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, rate: 0, date, days: 1, time: '', endTime: '', remind: null, remindMore: [], repeat: 'none', until: '', ...extra });
   // 行里日期按钮上的摘要：日期 + 时间，有提醒 / 重复时各加一个小图标
   const I_BELL = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="有提醒"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
   const I_REP = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="重复"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"/></svg>';
@@ -998,7 +1027,7 @@
     }
     else if (a.dataset.act === 'remind') {
       document.activeElement && document.activeElement.blur();
-      UI.multiMenu(a, MC.remindOptions(!!r.time).filter(o => o.v !== null), MC.remindsOf(r), l => { Object.assign(r, MC.withReminds(l)); paintBatchTools(el, r); saveBatchDraft(); if (!l.length) UI.closeMenu(); });
+      UI.multiMenu(a, MC.remindOptions(!!r.time).filter(o => o.v !== null), MC.remindsOf(r), l => { Object.assign(r, MC.withReminds(l)); paintBatchTools(el, r); saveBatchDraft(); });
     }
     else if (a.dataset.act === 'repeat') {
       document.activeElement && document.activeElement.blur();

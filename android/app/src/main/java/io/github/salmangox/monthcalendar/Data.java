@@ -197,6 +197,19 @@ final class Data {
                 if (col.matches("#[0-9a-fA-F]{6}")) d.calColor.put(id, 0xFF000000 | Integer.parseInt(col.substring(1), 16));
                 if (c.optBoolean("notify")) d.notifyCals.add(id);
                 if ("days".equals(c.optString("kind"))) d.dayCals.put(id, c.optString("name"));
+                // 日历的统一提醒（remindDef）：对这个日历里的每个事件都生效，到点时和事件自己的提醒合在一起（不写进事件）【联动:提醒】
+                JSONArray rd = c.optJSONArray("remindDef");
+                if (rd != null && rd.length() > 0) {
+                    java.util.TreeSet<Long> def = new java.util.TreeSet<>();
+                    for (int k = 0; k < rd.length(); k++) { long v = rd.optLong(k, -1); if (v >= 0) def.add(v); }
+                    for (Event e : d.events) {
+                        if (!id.equals(e.cal) || def.isEmpty()) continue;
+                        java.util.TreeSet<Long> all = new java.util.TreeSet<>(def);
+                        for (long v : e.reminds) all.add(v);
+                        e.reminds = all.stream().limit(8).mapToLong(Long::longValue).toArray();
+                        e.hasRemind = true;
+                    }
+                }
             }
         }
         JSONArray ds = o.optJSONArray("days");

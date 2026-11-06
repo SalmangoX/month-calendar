@@ -22,7 +22,7 @@ final class NavModel: ObservableObject {
     /// 新建子日历的介绍卡片用的文字（网页 MC.Drawer.model 的 kinds）
     struct Kind: Decodable { let name, desc, eg: String; let big, unit, tag: String? }
     struct Kinds: Decodable { let title, lead, cancel: String; let rec, days: Kind }
-    struct Drawer: Decodable { let title, sub, recTitle, recEmpty, daysTitle: String; let main: Row; let recs, days: [Row]; let add: [Item]; let addLabel: String?; let kinds: Kinds? }
+    struct Drawer: Decodable { let title, sub, recTitle, recEmpty, daysTitle: String; let main: Row; var recs, days: [Row]; let add: [Item]; let addLabel: String?; let kinds: Kinds? }
 
     @Published var tabs: [Tab] = []
     @Published var page = "cal"
@@ -229,6 +229,16 @@ final class NavModel: ObservableObject {
             self?.drawer = m
             done?()
         }
+    }
+    /// 长按拖动排序（记录日历 / 纪念日历各自一组）：先在本地挪好（不闪），再交给网页存（cal.order，会同步）【联动:侧拉菜单】
+    func reorder(_ group: String, from: Int, to: Int) {
+        guard var d = drawer, from != to else { return }
+        if group == "days" { guard d.days.indices.contains(from) else { return }; d.days.insert(d.days.remove(at: from), at: min(to, d.days.count)) }
+        else { guard d.recs.indices.contains(from) else { return }; d.recs.insert(d.recs.remove(at: from), at: min(to, d.recs.count)) }
+        drawer = d
+        let ids = (group == "days" ? d.days : d.recs).map { $0.id }
+        let js = String(data: (try? JSONSerialization.data(withJSONObject: ids)) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
+        eval("MC.Drawer.reorder(\(js))") { [weak self] _ in self?.refresh() }
     }
     func pick(_ id: String) {
         eval("MC.Drawer.pick(\(Self.q(id)))", nil)
@@ -944,6 +954,7 @@ struct GlassMenu: View {
     @ObservedObject var m: NavModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hoverRow: Int?
+    @State private var grownID: String? = nil   // 已经从按钮展开成菜单的那一个
 
     var body: some View {
         GeometryReader { g in
@@ -957,6 +968,10 @@ struct GlassMenu: View {
                     let ax = mm.anchor.minX < 80 ? mm.anchor.minX : mm.anchor.midX > g.size.width * 0.6 ? mm.anchor.maxX - w : mm.anchor.midX - w / 2
                     let x = min(max(8, ax), g.size.width - w - 8)
                     let y = below ? mm.anchor.maxY + 8 : mm.anchor.minY - 8 - hgt
+                    let grown = grownID == mm.id
+                    let a = mm.anchor.width > 2 ? mm.anchor : CGRect(x: x + w / 2 - 20, y: y, width: 40, height: 40)
+                    let r = grown ? CGRect(x: x, y: y, width: w, height: hgt) : a
+                    let rad: CGFloat = grown ? 18 : min(a.height / 2, 18)
                     VStack(spacing: 0) {
                         ForEach(Array(mm.items.enumerated()), id: \.offset) { i, it in
                             Button { m.pickMenu(i) } label: {
@@ -976,17 +991,22 @@ struct GlassMenu: View {
                         }
                     }
                     .padding(6)
-                    .frame(width: w)
-                    .modifier(ChromeGlass(shape: RoundedRectangle(cornerRadius: 18, style: .continuous)))
-                    .offset(x: x, y: y)
-                    .transition(.asymmetric(insertion: .scale(scale: 0.86, anchor: below ? .top : .bottom).combined(with: .opacity),
-                                            removal: .scale(scale: 0.94, anchor: below ? .top : .bottom).combined(with: .opacity)))
+                    .frame(width: w, height: hgt, alignment: .top)
+                    // 从点的那个按钮里长出来：先是按钮的位置、大小、圆角，一口气展开成菜单（不回弹），字跟着淡进来
+                    .opacity(grown ? 1 : 0)
+                    .animation(.easeOut(duration: 0.14).delay(grown ? 0.08 : 0), value: grown)
+                    .frame(width: r.width, height: r.height, alignment: below ? .top : .bottom)
+                    .clipShape(RoundedRectangle(cornerRadius: rad, style: .continuous))
+                    .modifier(ChromeGlass(shape: RoundedRectangle(cornerRadius: rad, style: .continuous)))
+                    .offset(x: r.minX, y: r.minY)
+                    .transition(.opacity.animation(.easeOut(duration: 0.12)))
                     .id(mm.id)
+                    .onAppear { let id = mm.id; DispatchQueue.main.async { withAnimation(reduceMotion ? nil : .smooth(duration: 0.24)) { grownID = id } } }
                 }
             }
             .frame(width: g.size.width, height: g.size.height, alignment: .topLeading)
         }
-        .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.62), value: m.menu?.id) // 果冻：带一点过冲
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: m.menu?.id)   // 只淡入淡出；形状由 grownID 从按钮展开（不回弹）
         .onEscape { m.pickMenu(-1) }
     }
 }
@@ -1006,6 +1026,13 @@ struct GlassDrawer: View {
     @State private var kPhase = 0                       // 介绍卡片：0 藏在胶囊里 · 1 小水滴 · 2 卡片
     @State private var kindsH: CGFloat = 400
     @State private var kTask: Task<Void, Never>? = nil
+    // 长按拖动排序
+    @State private var rKey: String? = nil
+    @State private var rGroup = ""
+    @State private var rFrom = 0
+    @State private var rTo = 0
+    @State private var rDY: CGFloat = 0
+    @State private var rEnded = Date.distantPast
     @State private var moreShown: String? = nil         // 「⋯」小窗口正在画的那一行（收起动画放完才清掉）
     @State private var moreUp = false                   // 小窗口：false 是三个点上的一颗小水滴，true 是展开的窗口
 
@@ -1077,14 +1104,15 @@ struct GlassDrawer: View {
                     if d.recs.isEmpty {
                         Text(d.recEmpty).font(.system(size: 12)).foregroundStyle(.secondary).padding(.horizontal, 12).padding(.vertical, 4)
                     }
-                    ForEach(d.recs) { row($0) }
+                    reorderable(d.recs, group: "rec")
                     if !d.days.isEmpty {
                         section(d.daysTitle)
-                        ForEach(d.days) { row($0) }
+                        reorderable(d.days, group: "days")
                     }
                 }
                 .padding(.horizontal, 10).padding(.bottom, 8)
             }
+            .scrollDisabled(rKey != nil)   // 拖着排序时列表不滚
             // 新建子日历：这里只占位置并报出位置；胶囊本身画在 GlassDrawer 的玻璃容器里（和介绍卡片同一个容器，卡片才能从它分离出去）
             Color.clear
                 .background(GeometryReader { g in Color.clear.preference(key: PillKey.self, value: g.frame(in: .named("drawer"))) })
@@ -1297,11 +1325,50 @@ struct GlassDrawer: View {
         Text(t).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary).padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 4)
     }
 
+    // 长按一行拖动排序：拿起来的那一行浮起（略放大、带投影）跟着手指，同组的其它行让位；松手按位置排好
+    private static let rowH: CGFloat = 63   // 行高 60 + 间距 3
+    @ViewBuilder private func reorderable(_ rows: [NavModel.Row], group: String) -> some View {
+        ForEach(Array(rows.enumerated()), id: \.element.id) { k, r in
+            let lifted = rKey == r.key
+            let inGroup = rGroup == group && rKey != nil
+            let shift: CGFloat = inGroup && !lifted ? (k > rFrom && k <= rTo ? -Self.rowH : k < rFrom && k >= rTo ? Self.rowH : 0) : 0
+            row(r)
+                .background { if lifted { RoundedRectangle(cornerRadius: 15, style: .continuous).fill(Color(argb: scheme == .dark ? 0xFF2C_2C30 : 0xFFFF_FFFF)).shadow(color: .black.opacity(scheme == .dark ? 0.5 : 0.18), radius: 16, y: 8) } }
+                .scaleEffect(lifted ? 1.03 : 1)
+                .offset(y: lifted ? rDY : shift)
+                .zIndex(lifted ? 2 : 0)
+                .animation(.spring(response: 0.24, dampingFraction: 0.86), value: shift)
+                .animation(.spring(response: 0.22, dampingFraction: 0.8), value: lifted)
+                .simultaneousGesture(
+                    LongPressGesture(minimumDuration: 0.4)
+                        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("drawer")))
+                        .onChanged { v in
+                            guard case .second(true, let drag) = v else { return }
+                            if rKey == nil { rKey = r.key; rGroup = group; rFrom = k; rTo = k; rDY = 0; navTick() }
+                            let dy = max(-CGFloat(k) * Self.rowH - 10, min(CGFloat(rows.count - 1 - k) * Self.rowH + 10, drag?.translation.height ?? 0))
+                            rDY = dy
+                            let to = max(0, min(rows.count - 1, k + Int((dy / Self.rowH).rounded())))
+                            if to != rTo { rTo = to; navTick() }
+                        }
+                        .onEnded { _ in
+                            guard rKey == r.key else { return }
+                            let from = rFrom, to = rTo
+                            withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) { rDY = CGFloat(to - from) * Self.rowH }
+                            rEnded = Date()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                var t = Transaction(); t.disablesAnimations = true
+                                withTransaction(t) { rKey = nil; rDY = 0; m.reorder(group, from: from, to: to) }
+                            }
+                        }
+                )
+        }
+    }
+
     private func row(_ r: NavModel.Row) -> some View {
         let color = Color(hex: r.color) ?? Pal(dark: scheme == .dark).accent
         let icon = r.kind == "days" ? (r.sf ?? "heart.fill") : r.kind == "rec" ? "bookmark.fill" : "calendar"
         return HStack(spacing: 6) {
-            Button { m.pick(r.id) } label: {
+            Button { if Date().timeIntervalSince(rEnded) > 0.4 { m.pick(r.id) } } label: {   // 刚拖完排序松手的那一下不算点开
                 HStack(spacing: 18) {   // 用户在预览里定的：行高 60、图标底块 36、图形 24（网页 svg 尺寸）、间距 18，和网页 .dr-pick 一样
                     // 和网页同一套：中性的灰底块 + 实心、饱和的彩色图形（系统的 calendar 只有空心的，主日历自己画一个实心日历）
                     let tile = Color(argb: scheme == .dark ? 0xFF2A_2A2E : 0xFFEF_F1F4)

@@ -33,7 +33,7 @@
 - 今日时间线可以捏合缩放（一小时 26–160，记在本机 `mcal.tlH`），以两指中间那个钟点为中心；手机两指、Mac 触控板（gesture 事件 / ctrl+wheel）都行。
 - **从其他日历导入**（设置 → 数据）：`js/calimport.js`。三种来源整理成同一种「每一次发生」的格式（`date` `time` `endDate` `endTime` `allDay` `days` `remind` `cal` `uid` `recur`，本地时间的字符串）：系统日历（iPhone / Mac `macos/App/SysCal.swift` 用 EventKit，安卓 `SysCal.java` 用 CalendarContract，桥接方法 `sysCalRead`，功能名 `sysCal`；手机里登录的 iCloud、谷歌、Outlook / Exchange 都在里面）、谷歌日历的私密 iCal 地址（App 里经原生 `http` 代取，绕过跨域）、.ics 文件（`parseICS`：时区按事件自己的 TZID、重复规则在事件自己的时区里按墙上时间展开、EXDATE / 改过某一次 / CATEGORIES 分组）。弹出面板：每个来源日历 / 分类单独选 导到主日历 / 新建子日历 / 已有子日历 / 不导入（已有同名子日历时默认导到它）。事件 id = `imp` + UID、日期、钟点的哈希：再导一次不重复。范围：过去一年到未来两年。
 - 子日历「⋯」里的「并入…」：先选并入到哪（主日历或别的记录日历），确认框写清楚「把这个子日历的事件全部转移过去、然后删掉它，不能撤销」（红色按钮）（`drawer.js`）。
-- 同名事件：编辑某个事件时，面板里有一行「同名事件」（`#cmpSame`，`editor.js` 的 `paintSame`），点开选放进哪个子日历 / 放回主日历；同名的有好几条时问「全部 N 条」还是「只放这一条」（挪，不是复制）。子日历菜单里不再有「把主日历同名事件加进来」。
+- 同名事件：编辑某个事件时，面板里有一行「同名事件」（`#cmpSame`，`editor.js` 的 `paintSame`），点开是一个窗口（`#sameSheet`）：每一条都列出来（日期、星期、钟点、备注、已完成、正在编辑），勾选要挪的（默认只勾正在编辑的这条），再选移到哪个日历，左上「取消」、右上「移动」（挪，不是复制）。子日历菜单里不再有「把主日历同名事件加进来」。
 - 列表左滑出来的 编辑 / 删除：两颗 36 的淡色圆（编辑是正文色 8%、删除是红色 13% 底 + 红图标），只有图标，文字只给读屏；不要整块色块（塑料感）。
 - iPhone / Mac 原生侧拉菜单开着时，点了里面要弹确认框 / 面板的项（除了切换日历和提醒），先收起侧拉菜单（`GlassNav.swift` 的 `act`），不然网页弹出的东西会被原生菜单盖住。
 - 优先级条的滑块（`.pb-thumb`）和玻璃分段的水滴一样：停着时由网页画，按住拖时才换原生玻璃透镜；不然原生按速度推算位置，面板上下滑时会跟着抖。
@@ -71,7 +71,10 @@
 - 纪念日历也能「在主日历显示」：日子到了那一天显示在主日历和小组件里（只读，点开是详情页）。
 - **纪念日的颜色只由自己选的图标决定**（`iconColor`），类别只用来分组，选类别、按名称猜都不换图标。新建面板顺序：名称 → 日期 → 图标 → 类别 → 重复 → 更多选项。
 - **提醒都可以多选**（用户定的）：事件 `remind` 是第一个（老版本只认它）+ `remindMore` 另外几个（`MC.remindsOf` / `withReminds` / `fireTimes`，安卓 `Data.Event.reminds` / `fireTimes`，iOS / Mac `CEvent.reminds` / `fireTimes`）；课程提醒 `lead` + `leadMore`（`MC.leadsOf`、安卓 `courseLeads`、Swift `courseLeads`）；同一个事件 / 课的几次提醒各发一次（key 后面带提前量）。选的时候用 `UI.multiMenu`（一直用网页的菜单打勾，App 里 `UI.menu` 被换成原生菜单、点一下就关，没法多选），打勾用正文色，不要蓝色。
-- 子日历「⋯」里的「统一提醒…」：多选几个提前量，点「应用到全部 N 条事件」把这个日历里的事件全部换成这几个提醒，并记成 `cal.remindDef`（新加的事件默认带上，`editor.js` 的 `calReminds`），没开通知的顺手打开。
+- 子日历「⋯」里的「统一提醒…」：**对这个子日历生效**（用户定的）：选的几个提前量记在 `cal.remindDef`，日历里每个事件（以后加的也一样）到点时都按它提醒，和事件自己的提醒合在一起；**不写进各个事件**（用户还会改）。四端到点时合并：网页 `MC.effReminds` / `fireTimes`、`send-reminders.mjs` 的 `calRemind`、安卓 `Data.java` 读 cals 时并进 `Event.reminds`、Swift `Model.swift` 同样。编辑事件时提醒那一行写「跟随日历：…」。点一下就存，没开通知的顺手打开。
+- **选择窗口统一**（用户定的）：所有「选一个 / 选几个」（有当前选中的）都用同一种窗口 `UI.choose`（`#chooseSheet`，和「提醒通知」一样的悬浮卡片：左上玻璃「取消」、标题、一组行、选中的右边打勾）。单选点一下打勾马上收起；多选（`UI.multiMenu`）点一下就存，「无」和具体项互斥，「完成」收起。`UI.menu` 自动分流：带 `on` 的选择类 → 窗口；动作菜单（没有当前选中、带开关的「⋯」）→ 小菜单。App 的注入脚本给 `UI.menu` 赋的原生菜单被 `ui.js` 的 setter 记下，只给动作菜单用。网页自己的菜单收起一律用 `closeWeb`（App 把 `UI.closeMenu` 换成了空函数）。
+- 小菜单（动作菜单）从点的那个按钮里长出来：先是按钮的位置、大小、圆角，一口气展开（约 0.24 秒，不回弹），字跟着淡进来；收起缩回按钮（网页 `dropPop`，原生 `GlassMenu` 的 `grownID`）。弹出的窗口、确认框都不回弹。
+- 侧拉菜单里**长按子日历拖动排序**（记录日历、纪念日历各自一组）：拿起来的一行浮起跟手、同组让位，松手排好；顺序存 `cal.order`（同步；`MC.calKey`、`MC.reorderCals`，合并时按它排，安卓 `CalMerge.kt` 一样）。网页 `drawer.js` 的 `startReorder`，iPhone / Mac 原生 `GlassDrawer.reorderable` → `NavModel.reorder` → 网页 `D.reorder`。
 - **按住 logo 拖动**（四端一样）：拖起来就打开扇形，后面的页面虚下去（网页 `body.fan-drag` 让 `.dock-scrim` 带模糊，原生 / 安卓也是让网页加这个类）；一根 logo 渐变色（#9E9AC8 → #C7B3CF → #EBC7A6）的线从 logo 中心跟着手指、带一点弧度；手指离扇形按钮中心 46 以内它就变大（1.26）、冒出 logo 色调的粒子、轻震，停着时一直冒一点；松手选中它，不在按钮上就收起；刚拖完的那一下不算点 logo。网页 `index.html` 的 logo 拖动（canvas `.fan-trail`），iOS / Mac `GlassNav.swift` 的 `logoDragGesture` / `FanTrail` / `FanFX`（变大改尺寸，不用 scaleEffect），安卓 `Dock.kt` 的 `FanTrail` / `FanFX`。
 - 隐私政策整页（`#pvDoc`）盖上去时算最上面一层（`LAYERS` 里有它），下面设置页的原生玻璃返回键不画，原生底栏也让开（`ui-open`）。
 - 纪念日提醒：`reminds`（提前几天，在 `remindAt` 钟点）+ `remindH`（提前 1 / 12 小时，按精确时间、没有就按 0 点）+ `remindTz`，四端各自排（同课程提醒那四处）。

@@ -172,8 +172,10 @@
   // 课程提醒的所有提前量（分钟，去重、从小到大）【联动:提醒】
   MC.leadsOf = cr => [...new Set([cr && cr.lead, ...((cr && Array.isArray(cr.leadMore)) ? cr.leadMore : [])].filter(v => v !== null && v !== undefined && v !== '').map(Number).filter(n => Number.isFinite(n) && n >= 0 && n <= 180))].sort((a, b) => a - b).slice(0, 6);
   // 每个提醒的触发时间（毫秒）
+  // 到点要响的：事件自己的提醒 + 所在子日历的统一提醒（cal.remindDef，对日历里每个事件都生效，不写进事件，改日历设置就跟着变）
+  MC.effReminds = e => { const c = e.cal && MC.cal(e.cal), d = c && c.remindDef; return d && d.length ? MC.remindsOf({ remindMore: [...MC.remindsOf(e), ...d] }) : MC.remindsOf(e); };
   MC.fireTimes = e => {
-    const l = MC.remindsOf(e); if (!l.length) return [];
+    const l = MC.effReminds(e); if (!l.length) return [];
     const [y, m, d] = e.date.split('-').map(Number);
     const [h, mi] = (e.time || '09:00').split(':').map(Number);
     const t0 = new Date(y, m - 1, d, h, mi).getTime();
@@ -309,6 +311,7 @@
       rateOn: c.kind !== 'days' && !!c.rateOn, // 记录日历：不按优先级，改用 4 个等级给事件评级并统计
       rateLabels: MC.normRateLabels(c.rateLabels), // 4 个等级的名称（可自定义，整个日历通用），从低到高
       presets: normPresets(c.presets), // 常用事件：存好名称，添加时一点就填上（time / endTime 记住上次用的时段）
+      ...(Number.isFinite(Number(c.order)) && c.order !== null && c.order !== '' ? { order: Number(c.order) } : {}),   // 侧拉菜单里的顺序（长按拖动排过才有；没有按创建时间）【联动:同步数据】
       kind: c.kind === 'days' ? 'days' : '', // 'days' = 纪念日历（倒数日 / 纪念日），其余为记录日历
       createdAt: c.createdAt || t, updatedAt: c.updatedAt || c.createdAt || t };
   }
@@ -490,6 +493,15 @@
     const c = normCal({ id: 'c' + MC.uid(), name, color, ...opts });
     MC.data.cals.push(c); MC.commit(); return c;
   };
+  // 子日历的顺序：拖动排过的按 order，没排过的按创建时间（排在排过的后面）
+  MC.calKey = c => (Number.isFinite(c.order) ? c.order : (c.createdAt || 0));
+  MC.reorderCals = ids => {
+    const t = Date.now();
+    ids.forEach((id, i) => { const c = MC.cal(id); if (c) { c.order = i; c.updatedAt = t; } });
+    MC.data.cals.forEach(c => { if (!Number.isFinite(c.order)) { c.order = 1000 + MC.data.cals.indexOf(c); c.updatedAt = t; } });   // 别的一组也补上顺序，混排时不乱
+    MC.data.cals.sort((x, y) => MC.calKey(x) - MC.calKey(y));
+    MC.commit(); if (MC.onCalChange) MC.onCalChange();
+  };
   MC.updateCal = (c, fields) => { Object.assign(c, fields, { updatedAt: Date.now() }); MC.commit(); if (MC.onCalChange) MC.onCalChange(); };
   // 等级顺序填反了：名称倒过来，这个日历里已有的评级（含分段评价）也跟着换，意思不变
   MC.reverseRates = c => {
@@ -568,7 +580,7 @@
       if (!old || (c.updatedAt || 0) > (old.updatedAt || 0)) cmap.set(c.id, { ...c });
     }
     const cals = [...cmap.values()].filter(c => !(deleted['cal:' + c.id] && deleted['cal:' + c.id] >= (c.updatedAt || 0)))
-      .sort((x, y) => (x.createdAt || 0) - (y.createdAt || 0));
+      .sort((x, y) => MC.calKey(x) - MC.calKey(y));
     const calIds = new Set(cals.map(c => c.id));
     const kept = events.filter(e => !e.cal || calIds.has(e.cal) || !deleted['cal:' + e.cal]); // 已删除的日历里不留事件
     const byNewest = (la, lb, pre) => {
@@ -803,7 +815,7 @@
     const stamp = stampOf(Date.now());
     const alarm = (trigger, text) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(text), 'TRIGGER:' + trigger, 'END:VALARM'];
     for (const e of d.events) {
-      const rl = MC.remindsOf(e);
+      const rl = MC.effReminds(e);
       if (e.done || !rl.length || e.date < from || e.date > to) continue;
       L.push('BEGIN:VEVENT', `UID:${e.id}@mcal`, 'DTSTAMP:' + stamp, 'SUMMARY:' + icsEsc(e.title));
       if (e.note) L.push('DESCRIPTION:' + icsEsc(e.note));

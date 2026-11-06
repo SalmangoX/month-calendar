@@ -76,7 +76,7 @@ object CalMerge {
 
         val cals = newest(a.arr("cals") + b.arr("cals")).values
             .filter { !gone("cal:" + it.optString("id"), it.num("updatedAt")) }
-            .sortedBy { it.num("createdAt") }
+            .sortedBy { if (it.has("order")) it.optDouble("order") else it.num("createdAt").toDouble() }   // 侧拉菜单里拖动排过的顺序（和网页 MC.calKey 一样）
         val calIds = cals.map { it.optString("id") }.toHashSet()
         fun calOk(cal: String) = calIds.contains(cal) || (deleted["cal:$cal"] ?: 0L) == 0L
         val kept = events.filter { val cal = it.optString("cal", ""); cal.isEmpty() || calOk(cal) }

@@ -263,6 +263,13 @@ final class CalData {
             if col.count == 7, col.hasPrefix("#"), let v = UInt32(col.dropFirst(), radix: 16) { d.calColor[id] = 0xFF00_0000 | v }
             if c.bool("notify") { d.notifyCals.insert(id) }
             if c.str("kind") == "days" { dayCals.insert(id) }
+            // 日历的统一提醒（remindDef）：对这个日历里的每个事件都生效，到点时和事件自己的提醒合在一起（不写进事件）【联动:提醒】
+            let def = ((c["remindDef"] as? [Any]) ?? []).compactMap { ($0 as? NSNumber)?.int64Value }.filter { $0 >= 0 }
+            if !def.isEmpty {
+                for k in d.events.indices where d.events[k].cal == id {
+                    d.events[k].reminds = Array(Set(d.events[k].reminds + def)).sorted().prefix(8).map { $0 }
+                }
+            }
         }
         for x in o.arr("days") {
             guard let date = YMD(string: x.str("date")), dayCals.contains(x.str("cal")) else { continue }

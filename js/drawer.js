@@ -57,6 +57,7 @@
       : spring(pos, target, v, 520, 48, (p, vv) => apply(Math.max(0, p), vv), () => (anim = null));
   }
   D.isOpen = () => isOpen;
+  D.reorder = ids => { MC.reorderCals(ids); render(); };   // iPhone / Mac 原生侧拉菜单拖动排好后交过来
   const daysPage = $('#page-days'), sumPage = $('#page-dsum');
   // Mac App（macOS 26 起）用原生的液态玻璃侧边栏，数据和操作还是这里的（见下面的 D.model / D.pick / D.act / D.add）
   const nativeDrawer = () => MC.Native.has('glassDrawer') && window.MCNative && window.MCNative.openDrawer;
@@ -132,6 +133,50 @@
     if (b.dataset.act === 'pick') { D.pick(id); setTimeout(D.close, 140); return; }
     const c = MC.cal(id); if (c) UI.menu(b, menuOf(c), v => D.act(id, v), { center: true });   // 以「⋯」为正中心展开
   });
+  // 长按子日历拖动排序：记录日历、纪念日历各自一组，只在自己那一组里挪（顺序存在 cal.order，会同步）【联动:侧拉菜单】iPhone / Mac 原生在 GlassDrawer 的 reorder
+  let rd = null;
+  list.addEventListener('pointerdown', e => {
+    const r = e.target.closest('.dr-row'), c = r && r.dataset.id && MC.cal(r.dataset.id);
+    if (!c || e.target.closest('[data-act="more"]') || e.button) return;
+    const x0 = e.clientX, y0 = e.clientY;
+    const stop = () => { clearTimeout(tm); document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', stop); document.removeEventListener('pointercancel', stop); };
+    const mv = ev => { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) stop(); };   // 先动了就是滚动列表，不算长按
+    const tm = setTimeout(() => { stop(); startReorder(r, c, y0); }, 420);
+    document.addEventListener('pointermove', mv); document.addEventListener('pointerup', stop); document.addEventListener('pointercancel', stop);
+  });
+  function startReorder(r, c, y0) {
+    const days = c.kind === 'days';
+    const rows = [...list.querySelectorAll('.dr-row[data-id]')].filter(x => { const k = x.dataset.id && MC.cal(x.dataset.id); return k && (k.kind === 'days') === days; });
+    if (rows.length < 2) return;
+    const idx = rows.indexOf(r), h = r.getBoundingClientRect().height + 4;
+    rd = { r, rows, idx, to: idx, y0, h, days };
+    try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(10); } catch (err) {}
+    list.classList.add('reordering'); r.classList.add('lifted');
+    rows.forEach(x => { if (x !== r) x.classList.add('shift'); });
+    const move = ev => {
+      const dy = Math.max((0 - idx) * h - 10, Math.min((rows.length - 1 - idx) * h + 10, ev.clientY - y0));
+      r.style.transform = `translateY(${dy}px) scale(1.03)`;
+      const to = Math.max(0, Math.min(rows.length - 1, idx + Math.round(dy / h)));
+      if (to !== rd.to) { rd.to = to; try { navigator.vibrate && navigator.vibrate(4); } catch (err) {} }
+      rows.forEach((x, k) => { if (x === r) return; const s = k > idx && k <= to ? -h : k < idx && k >= to ? h : 0; x.style.transform = s ? `translateY(${s}px)` : ''; });
+    };
+    const end = () => {
+      document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', end); document.removeEventListener('pointercancel', end);
+      const { to } = rd; rd = null;
+      swallow = true; setTimeout(() => (swallow = false), 300);   // 松手那一下不算点开这个日历
+      r.style.transform = `translateY(${(to - idx) * h}px)`;
+      setTimeout(() => {
+        list.classList.remove('reordering');
+        if (to !== idx) { const ids = rows.map(x => x.dataset.id); ids.splice(to, 0, ids.splice(idx, 1)[0]); MC.reorderCals(ids); }
+        render();
+      }, 180);
+    };
+    document.addEventListener('pointermove', move); document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
+  }
+  // 拖着排序时：不让列表滚动、也不让侧拉菜单跟着左右收
+  list.addEventListener('touchmove', e => { if (rd) { if (e.cancelable) e.preventDefault(); e.stopPropagation(); } }, { passive: false, capture: true });
+  list.addEventListener('contextmenu', e => { if (rd || e.target.closest('.dr-row')) e.preventDefault(); });
+
   // 切换日历：不再整页一下子闪过去——先淡出、稍微缩一点往下沉，换好内容后再从略大一点淡入回来（不用模糊：会让里面的液态玻璃失效）
   let swapping = false;
   D.pick = id => {
@@ -176,20 +221,20 @@
     else if (v === 'notify') { MC.updateCal(c, { notify: !c.notify }); render(); UI.toast(c.notify ? `已打开「${c.name}」的通知` : `已关闭「${c.name}」的通知`); }
     else if (v === 'edit') calForm(c);
     else if (v === 'remindAll') {
-      // 统一提醒：选好几个提前量，点「应用」后这个日历里的事件全部换成这几个提醒；以后新加的事件也默认带上
-      const n = MC.countIn(c.id), a = anchorFor(c);
-      UI.multiMenu(a.el, MC.remindOptions(true).filter(o => o.v !== null), c.remindDef || [], () => {}, {
-        center: true, none: '全部不提醒', done: n ? `应用到全部 ${n} 条事件` : '设为新事件的默认提醒',
-        onDone: l => {
-          a.done();
-          const t = Date.now(), r = MC.withReminds(l);
-          MC.data.events.forEach(e => { if (e.cal === c.id) { Object.assign(e, r); e.updatedAt = t; } });
-          const turnOn = l.length && !c.notify;
-          MC.updateCal(c, { remindDef: MC.remindsOf(r), ...(turnOn ? { notify: true } : {}) });
-          MC.reindex && MC.reindex(); render(); MC.Cal.render();
-          if (l.length && MC.Push && !MC.Push.enabled()) MC.Push.enable().catch(() => {});
-          UI.toast(l.length ? `「${c.name}」的事件都会${MC.remindsLabel(l, true)}提醒${turnOn ? '，已打开这个日历的通知' : ''}` : `「${c.name}」的事件都不再提醒`);
-        },
+      // 统一提醒：对这个子日历生效（cal.remindDef）——里面的每个事件到点都按这几个提前量提醒，以后加进来的也一样；
+      // 不写进各个事件，事件自己的提醒照样保留、还能单独改。点一下就存，「完成」或点外面收起
+      const a = anchorFor(c);
+      let last = c.remindDef || [];
+      const save = l => {
+        const turnOn = l.length > 0 && !c.notify;
+        MC.updateCal(c, { remindDef: MC.remindsOf({ remindMore: l }), ...(turnOn ? { notify: true } : {}) });
+        if (l.length && MC.Push && !MC.Push.enabled()) MC.Push.enable().catch(() => {});
+        if (turnOn) UI.toast(`已打开「${c.name}」的通知`);
+        render();
+      };
+      UI.multiMenu(a.el, MC.remindOptions(true).filter(o => o.v !== null), last, l => { last = l; save(l); }, {
+        center: true, none: '不提醒', done: '完成',
+        onDone: l => { a.done(); UI.toast(l.length ? `「${c.name}」里的事件都会${MC.remindsLabel(l, true)}提醒` : `「${c.name}」不再统一提醒`); },
       });
     }
     else if (v === 'merge') {
