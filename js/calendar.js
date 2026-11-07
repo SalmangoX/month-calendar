@@ -297,7 +297,6 @@
     if (!t1) return;                      // 顶部抬头已移除
     t1.textContent = monthName(focus.m);
     paintEyebrow();
-    const { total, done } = tally(`${focus.y}-${MC.pad(focus.m + 1)}-`);
     if (t2) t2.textContent = String(focus.y);
   }
   // ---------- 物理滚动：弹簧动画，接住手指松开时的速度 ----------
@@ -323,6 +322,17 @@
     let T = 0;
     while (T < 1500) { const x = valueAt(T) - to; if (Math.abs(x) < 0.3 && T > 40) break; T += 8; }
     if (Math.abs(x0) < 0.5 && Math.abs(v0) < 0.02) { h.apply(to); onDone && onDone(); return; }
+    play(valueAt, T, to, h, onDone);
+  }
+  // 惯性滑行：起步速度和手指离开时一样，然后平滑减速，在 T 时刻速度正好减到 0、停在 to 上（三次方减速曲线，没有指数衰减那条拖很久的尾巴）。
+  // 起步速度 = 3 × 距离 ÷ T，所以 T = 3 × tau（tau = 距离 ÷ 速度）：只要目标行离自然停下的地方不远，手感就和自然减速一样
+  function glide(from, to, tau, h, onDone) {
+    stopAnim();
+    const d = to - from, T = 3 * tau;
+    const valueAt = t => (t <= 0 ? from : t >= T ? to : to - d * Math.pow(1 - t / T, 3));
+    play(valueAt, T, to, h, onDone);
+  }
+  function play(valueAt, T, to, h, onDone) {
     const frames = [];
     for (let t = 0; t < T; t += 12) frames.push({ transform: h.css(valueAt(t)) });
     frames.push({ transform: h.css(to) });
@@ -369,7 +379,7 @@
     const before = focus.y * 12 + focus.m;
     computeFocus();
     try { updateBack(); } catch (e) {} // setT 时 focus 还是旧的月份：算完再看一次
-    if (focus.y * 12 + focus.m !== before || lastFocusKey === '') { lastFocusKey = 'x'; monthTitle(); drawFrame(); if (view === 'month') markOut(); }
+    if (focus.y * 12 + focus.m !== before || lastFocusKey === '') { lastFocusKey = 'x'; monthTitle(); drawFrame(); if (view === 'month' && !moving && !animating) markOut(); }   // 滚动中不改几百个格子的灰色（会卡一下），停稳时 settle 再改
   }
   // 滚得太远时把 anchor 往前/后挪，画面不动，保证两侧始终有足够的预渲染行
   function recenter(margin = 4) {
@@ -393,10 +403,12 @@
     if (!force && fk === outKey) return; outKey = fk;
     track.querySelectorAll('.cell[data-date]').forEach(c => { const d = c.dataset.date; c.classList.toggle('out', (+d.slice(0, 4)) * 12 + (+d.slice(5, 7)) - 1 !== fk); });
   }
+  const GLIDE_TAU = 320;   // 自然减速能滑多远：速度 × 320ms（滑行约 1 秒停下），和 iPhone 的惯性滚动差不多，甩出去能滑一段，不会像撞墙一样停住
   function snapMonth(v) { // v：滚动速度（px/ms）
+    if (!rowH) return;   // 还没量出行高（页面没显示出来）：不算，免得除以 0 变成 NaN
     recenter(1);
     let monthSnap = false;
-    const proj = scrollY + v * 230;                      // 按速度预估惯性距离
+    const proj = scrollY + v * GLIDE_TAU;                // 不吸附的话，按自然减速会停在哪
     let n = Math.round(proj / rowH);
     const cur = scrollY / rowH;
     if (n === Math.round(cur) && Math.abs(v) > 0.25) n = v > 0 ? Math.floor(cur) + 1 : Math.ceil(cur) - 1;
@@ -415,7 +427,13 @@
     // 吸到某个月时，让这个月的第一行稍低于顶部（半行），上面露出上个月的尾巴
     if (monthSnap) n -= 1;
     n = Math.max(-(BUF - 1), Math.min(BUF - 1, n));
-    spring(scrollY, n * rowH, v, monthH, settle);
+    const to = n * rowH, dist = to - scrollY;
+    // 有速度、而且目标就在滑出去的方向上：沿着自然减速的曲线滑，快停下时刚好落到整行上（不再一松手就被弹簧拽过去）
+    if (Math.abs(v) > 0.15 && dist * v > 0) {
+      const tau = dist / v;
+      if (tau >= 110 && tau <= 460) { glide(scrollY, to, tau, monthH, settle); return; }   // 滑行 0.33–1.4 秒；离谱的（目标太近或太远）交给弹簧
+    }
+    spring(scrollY, to, v, monthH, settle);   // 慢慢松手、往回拉的：弹簧就近对齐
   }
   // 预览打开后，选中的那一周要在看得见的地方：在下面被挡住就往上滚到刚好露出来
   function revealSelected() {
