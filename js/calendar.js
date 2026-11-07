@@ -403,37 +403,45 @@
     if (!force && fk === outKey) return; outKey = fk;
     track.querySelectorAll('.cell[data-date]').forEach(c => { const d = c.dataset.date; c.classList.toggle('out', (+d.slice(0, 4)) * 12 + (+d.slice(5, 7)) - 1 !== fk); });
   }
-  const GLIDE_TAU = 320;   // 自然减速能滑多远：速度 × 320ms（滑行约 1 秒停下），和 iPhone 的惯性滚动差不多，甩出去能滑一段，不会像撞墙一样停住
-  function snapMonth(v) { // v：滚动速度（px/ms）
+  // 【月视图惯性和吸附】（2026-11-07 用户调过两次：短滑容易跳行、停下前滑太久太远）
+  const GLIDE_TAU = 220;   // 自然减速能滑多远：速度 × 220ms
+  // v：滚动速度（px/ms）；start：手指按下时的位置（没有就是滚轮 / 键盘，直接就近对齐）
+  function snapMonth(v, start) {
     if (!rowH) return;   // 还没量出行高（页面没显示出来）：不算，免得除以 0 变成 NaN
-    recenter(1);
-    let monthSnap = false;
-    const proj = scrollY + v * GLIDE_TAU;                // 不吸附的话，按自然减速会停在哪
-    let n = Math.round(proj / rowH);
-    const cur = scrollY / rowH;
-    if (n === Math.round(cur) && Math.abs(v) > 0.25) n = v > 0 ? Math.floor(cur) + 1 : Math.ceil(cur) - 1;
-    // 磁吸：快速滑动时，落点附近若有某个月的首行（含 1 号的那一周），就吸到那一行
-    const speed = Math.abs(v);
-    if (speed > 0.55) {
-      const reach = speed > 1.2 ? 2 : 1;
+    const shift = recenter(1);
+    if (start != null) start -= shift;
+    const cur = scrollY / rowH, speed = Math.abs(v);
+    const proj = (scrollY + v * GLIDE_TAU) / rowH;     // 不吸附的话，按自然减速会停在第几行
+    let n;
+    if (start == null) n = Math.round(proj);
+    else {
+      // 以手指按下时那一行为准：几乎没动就留在原地；有意滑一下就正好走一行；要多走，估出来得接近两行（短甩只走一行，不跳行）
+      const s0 = Math.round(start / rowH), travel = proj - s0;
+      if (Math.abs(travel) < 0.45 && speed < 0.35) n = s0;
+      else {
+        const dir = Math.sign(travel) || Math.sign(v) || 1;
+        n = s0 + dir * Math.max(1, Math.round(Math.abs(travel) - 0.45));   // 估出来不到两行（短甩）都只走一行
+      }
+    }
+    // 月份磁吸：只在用力长甩（会滑过 3 行以上）时，落点旁边正好是某个月的第一周（含 1 号那一周）才吸过去；短滑一律不吸
+    if (speed > 1.2 && Math.abs(n - cur) >= 3) {
       const mid = MC.addDays(anchor, 7 * n + 3);
       let best = null;
       for (const dm of [-1, 0, 1]) {
         const k = Math.round((MC.weekStartOf(new Date(mid.getFullYear(), mid.getMonth() + dm, 1)) - anchor) / (7 * 864e5));
         if ((v > 0 ? k > cur : k < cur) && (best === null || Math.abs(k - n) < Math.abs(best - n))) best = k;
       }
-      if (best !== null && Math.abs(best - n) <= reach) { n = best; monthSnap = true; }
+      // 吸到某个月时，这个月的第一行落在吸附线上（第二行），上面露出上个月的尾巴
+      if (best !== null && Math.abs(best - 1 - n) <= 1) n = best - 1;
     }
-    // 吸到某个月时，让这个月的第一行稍低于顶部（半行），上面露出上个月的尾巴
-    if (monthSnap) n -= 1;
     n = Math.max(-(BUF - 1), Math.min(BUF - 1, n));
     const to = n * rowH, dist = to - scrollY;
-    // 有速度、而且目标就在滑出去的方向上：沿着自然减速的曲线滑，快停下时刚好落到整行上（不再一松手就被弹簧拽过去）
-    if (Math.abs(v) > 0.15 && dist * v > 0) {
+    // 有速度、而且目标就在滑出去的方向上：沿着手指的速度减速滑过去，正好停在那一行（不再一松手就被弹簧拽住）
+    if (speed > 0.15 && dist * v > 0) {
       const tau = dist / v;
-      if (tau >= 110 && tau <= 460) { glide(scrollY, to, tau, monthH, settle); return; }   // 滑行 0.33–1.4 秒；离谱的（目标太近或太远）交给弹簧
+      if (tau >= 70 && tau <= 230) { glide(scrollY, to, tau, monthH, settle); return; }   // 滑行 0.2–0.7 秒就停稳
     }
-    spring(scrollY, to, v, monthH, settle);   // 慢慢松手、往回拉的：弹簧就近对齐
+    spring(scrollY, to, v, monthH, settle);   // 慢慢松手、往回拉的：弹簧就近对齐（约 0.3 秒，不回弹）
   }
   // 预览打开后，选中的那一周要在看得见的地方：在下面被挡住就往上滚到刚好露出来
   function revealSelected() {
@@ -838,7 +846,7 @@
     }
     suppress = true; setTimeout(() => (suppress = false), 80);
     const v = velocity(); // 手指速度（px/ms）
-    if (view === 'month') snapMonth(-v);
+    if (view === 'month') snapMonth(-v, base);   // base：手指按下时的位置（滚动中途 recenter 过的已经跟着改了）
     else {
       const size = view === 'week' ? W : H;
       page(pageTarget(pagePos, v, size), v);

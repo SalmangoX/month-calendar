@@ -672,6 +672,9 @@ button.dp-glyph:active { transform: translate(-50%, -50%) scale(.95); }
 .fl-card { position: relative; display: block; text-align: left; transform-origin: 50% 0; rotate: var(--tilt, 0deg); animation: flHang .7s cubic-bezier(.3, 1.35, .45, 1) both; animation-delay: var(--d, 0ms); }
 .fl-card:active { scale: .97; }
 @keyframes flHang { from { opacity: 0; rotate: calc(var(--tilt) * -3); translate: 0 -10px; } to { opacity: 1; rotate: var(--tilt); translate: 0 0; } }
+/* 切页滑动的时候先不挂：整页在滑动专用的图层里，落定那一下图层一换，正在播的动画在 iPhone / 安卓上会闪回起点再播一遍（「动一下又卡回去重来」）。
+   所以滑动时绳子先空着，页面落定（去掉 .drag）后卡片才一张张挂上去，只播这一次 */
+.page.drag .fl-card { animation-play-state: paused; }
 .fl-clip { position: absolute; z-index: 2; left: 50%; top: -12px; width: 14px; height: 22px; margin-left: -7px; border-radius: 3px;
   background: linear-gradient(180deg, #d9c3a5, #b8996f); box-shadow: 0 1px 2px rgba(0, 0, 0, .25), inset 0 0 0 .5px rgba(0, 0, 0, .15); }
 :root[data-theme="dark"] .fl-clip { background: linear-gradient(180deg, #9c8a73, #786752); }
