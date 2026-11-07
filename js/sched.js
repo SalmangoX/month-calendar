@@ -455,16 +455,7 @@
       // 保险：万一没收到捏合结束，鼠标一按下就复原
       grid.addEventListener('pointerdown', () => { if (p && p.g) { p = null; inner.style.transition = ''; inner.style.transform = ''; } }, true);
     }
-    // 触控板左右轻扫翻周（全览时；放大后左右滑是滚动内容）
-    let hx = 0, hLock = false, hT = null;
-    grid.addEventListener('wheel', e => {
-      if (e.ctrlKey || zoom > 1 || Math.abs(e.deltaX) < Math.abs(e.deltaY) * 1.5) return;
-      e.preventDefault();
-      if (hLock) return;
-      hx += e.deltaX;
-      clearTimeout(hT); hT = setTimeout(() => (hx = 0), 200);
-      if (Math.abs(hx) > 60) { shiftWeek(hx > 0 ? 1 : -1); hx = 0; hLock = true; setTimeout(() => (hLock = false), 450); }
-    }, { passive: false });
+    // 翻周只用上下滑（和手机一样）：触控板左右扫不再翻周，交给页面级的左右滑（切日历 / 日程）
     grid.addEventListener('wheel', e => { // 触控板捏合
       if (!e.ctrlKey) return;
       e.preventDefault();
