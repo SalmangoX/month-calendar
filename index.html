@@ -1064,7 +1064,7 @@
 
   Object.values(pages).forEach(el => el && el.classList.add('no-in'));
   let pendingFinish = null, dg = null;
-  const blockedBy = t => !!(t && t.closest && t.closest('.drawer, .sheet, .drawer-scrim, .dock2, .dock-scrim, .tabbar, .preview, .wkpick, .set-back'));
+  const blockedBy = t => !!(t && t.closest && t.closest('.drawer, .sheet, .drawer-scrim, .dock2, .dock-scrim, .tabbar, .preview, .wkpick, .set-back, .dv-peek'));
 
   const EASE = 'cubic-bezier(.32,.72,0,1)';   // 系统面板曲线：快起、长尾
   // 收尾：dx 是松手时的位移，go 表示切过去还是弹回
@@ -1173,7 +1173,7 @@
   // 设置页、统计页：从左往右滑，回到进来之前那一页；今日页：从右往左滑，原路收回到时钟胶囊里。
   // 手机上跟着手指走；Mac 上两指在触控板上左右扫同样跟手（wheel 的 deltaX），停下时按拖了多远 / 多快决定回不回去
   const setPage = $id('page-set'), statPage = $id('page-rstat');
-  const SWIPE_BLOCK = 'input, textarea, select, .switch, .seg, .lgbar, .wheel, .wheel-wrap, .sheet, .popover, [contenteditable], .rs-pages, .td-ev';
+  const SWIPE_BLOCK = 'input, textarea, select, .switch, .seg, .lgbar, .wheel, .wheel-wrap, .sheet, .popover, [contenteditable], .rs-pages, .td-ev, .dv-peek';
   const statBack = () => (statFrom === 'rstat' || statFrom === 'set' ? 'cal' : statFrom);
   // 每种页的手感：dir 是要往哪边滑（1 = 往右，-1 = 往左）
   const SWIPES = {

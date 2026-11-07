@@ -104,7 +104,7 @@
   function renderPage() {
     if (page === 'sched') { MC.Sched.render(); return; }
     if (page === 'cal') requestAnimationFrame(() => MC.Cal.render());
-    else if (page === 'days' || page === 'dsum') { if (MC.Days) { MC.Days.render(); if (page === 'dsum' && MC.Days.replayFilm) MC.Days.replayFilm(); } }
+    else if (page === 'days' || page === 'dsum') { if (MC.Days) MC.Days.render(); }
     else if (page === 'today') renderToday();
     else if (page === 'rstat') renderRstat();
     else renderSettings();

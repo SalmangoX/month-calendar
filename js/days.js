@@ -557,24 +557,20 @@
     const word = inf.state === 'today' ? '' : inf.state === 'fut' ? T('还有') : x.from1 ? T('第') : T('已经');
     const lead = photo ? `<span class="rw-lead photo"><img alt="" data-cover="${x.cover}"></span>` : `<span class="rw-lead">${glyph(x)}</span>`;
     const num = a.today ? `<b class="today">${T('今天')}</b>` : `<small>${word}</small><b>${a.num}<i>${a.unit}</i></b>`;
-    return `<button class="dv-row v2${x.hl ? ' hl' : ''}${inf.state === 'past' ? ' past' : ''}" data-id="${x.id}" style="${toneVar(x, inf)};--ic:${P.catColor(x)}">
+    return `<button class="dv-row v2${x.hl ? ' hl' : ''}${inf.state === 'past' ? ' past' : ''}${x.hide ? ' is-hid' : ''}" data-id="${x.id}" style="${toneVar(x, inf)};--ic:${P.catColor(x)}">
       ${lead}
       <span class="dv-txt"><b data-uc>${esc(x.title || T('（无标题）'))}${x.pin ? `<span class="dv-pin" title="${T('置顶')}">${UI_IC.pin}</span>` : ''}</b>
         <small>${esc(fmtDateTime(inf.occ, x.time))}${x.rep ? '<i class="dot">·</i>' + repLabel(x.rep) : ''}</small></span>
       <span class="rw-num">${num}</span>
     </button>`;
   }
-  // 往左滑露出 隐藏 · 编辑 · 删除（总览里「隐藏」换成「显示」）；行本身照旧点开详情
+  // 长按预览卡片里的几个操作（行上不再能左滑：和整页左右滑切页冲突，用户定的）
   const DVA = {
     hide: '<svg viewBox="0 0 24 24"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><path d="M4 4l16 16"/></svg>',
     show: '<svg viewBox="0 0 24 24"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.6"/></svg>',
     edit: '<svg viewBox="0 0 24 24"><path d="M14.5 5.5l4 4L9 19H5v-4z"/><path d="M13 7l4 4"/></svg>',
     del: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg>',
   };
-  const swRow = (x, html) => `<div class="dv-sw${x.hide ? ' hidden' : ''}" data-sw="${x.id}">${html}<div class="dv-acts" aria-hidden="true">
-      <button data-dva="${x.hide ? 'show' : 'hide'}" tabindex="-1" aria-label="${T(x.hide ? '显示' : '隐藏')}"><i>${DVA[x.hide ? 'show' : 'hide']}</i></button>
-      <button data-dva="edit" tabindex="-1" aria-label="${T('编辑')}"><i>${DVA.edit}</i></button>
-      <button data-dva="del" class="del" tabindex="-1" aria-label="${T('删除')}"><i>${DVA.del}</i></button></div></div>`;
   const pad = MC.pad;
   function tickHTML(x, inf, now) {
     const c = clock(x, inf, now);
@@ -646,7 +642,7 @@
     const pinned = items.filter(o => o.x.pin).sort((a, b) => b.x.updatedAt - a.x.updatedAt)[0];
     const hero = pinned || fut[0] || past[0];
     let h = coverCardHTML(hero.x, now);
-    const sec = (title, list) => list.length ? `<p class="dv-sec">${title}<span>${list.length}</span></p><div class="dv-cards">${list.map(o => swRow(o.x, rowHTML(o.x, now))).join('')}</div>` : '';
+    const sec = (title, list) => list.length ? `<p class="dv-sec">${title}<span>${list.length}</span></p><div class="dv-cards">${list.map(o => rowHTML(o.x, now)).join('')}</div>` : '';
     h += sec(T('即将到来'), fut.filter(o => o !== hero));
     h += sec(T('已经过去'), past.filter(o => o !== hero));
     return h;
@@ -683,13 +679,13 @@
       <div class="sm-mh"><b>${monthTitle(y, m)}</b><small>${cnt ? F('本月 {0} 个日子', cnt) : T('本月没有标记的日子')}</small><span class="sm-chev">${UI_IC.chev}</span></div>
       <div class="mc-wd">${wdRow()}</div><div class="mc-grid">${monthCells(y, m, today, marks)}</div>
     </div>`;
-    if (todays.length) h += `<p class="dv-sec">${T('今天')}</p><div class="dv-cards">${todays.map(o => swRow(o.x, rowHTML(o.x, now))).join('')}</div>`;
+    if (todays.length) h += `<p class="dv-sec">${T('今天')}</p><div class="dv-cards">${todays.map(o => rowHTML(o.x, now)).join('')}</div>`;
     // 接下来：默认像洗好的胶卷一张张挂在绳子上（从左到右、从上到下按时间排），右边一颗键换成一条一条的
     const film = nextView() === 'film';
     const viewBtn = `<button class="dv-view" data-nextview aria-label="${T(film ? '列表' : '卡片')}">${film
       ? '<svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg>'
       : '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="7" height="9" rx="1.5"/><rect x="13" y="5" width="7" height="9" rx="1.5"/><path d="M3 3.5h18"/></svg>'}</button>`;
-    if (fut.length) h += `<p class="dv-sec">${T('接下来')}<span>${fut.length}</span>${viewBtn}</p>` + (film ? filmHTML(fut.slice(0, 12)) : `<div class="dv-cards">${fut.map(o => swRow(o.x, rowHTML(o.x, now))).join('')}</div>`);
+    if (fut.length) h += `<p class="dv-sec">${T('接下来')}<span>${fut.length}</span>${viewBtn}</p>` + (film ? filmHTML(fut.slice(0, 12)) : `<div class="dv-cards">${fut.map(o => rowHTML(o.x, now)).join('')}</div>`);
     const ms = past.map(o => ({ o, m: milestone(o.x, o.inf) })).filter(z => z.m && z.m.left <= 90).sort((a, b) => a.m.left - b.m.left);
     if (ms.length) h += `<p class="dv-sec">${T('快到的里程碑')}<span>${ms.length}</span></p><div class="dv-cards">${ms.slice(0, 3).map(({ o, m }) => `
       <button class="dv-row v2 sm-ms" data-id="${o.x.id}" style="--tone:var(--past);--ic:${P.catColor(o.x)}"><span class="rw-lead">${glyph(o.x)}</span>
@@ -747,46 +743,117 @@
       if (sk.dataset.custom && st.sub === id) { bookMenu(sk, MC.data.books.find(b => b.id === id)); return; }
       st.sub = id; render(); return;
     }
-    if (dvAct(t)) return;
     const row = t.closest('[data-id]'); if (row) openPage(row.dataset.id);
   };
-  // 滑出来的三个键
-  function dvAct(t) {
-    const b = t.closest('[data-dva]'); if (!b) return false;
-    const w = b.closest('[data-sw]'), x = w && find(w.dataset.sw); if (!x) return true;
-    const a = b.dataset.dva; closeSw();
-    if (a === 'hide' || a === 'show') { MC.updateDay(x, { hide: a === 'hide' }); UI.toast(a === 'hide' ? F('「{0}」只在总览里显示', x.title) : F('「{0}」回到纪念日列表', x.title)); }
-    else if (a === 'edit') openEditor(x);
-    else if (a === 'del') removeDay(x);
-    return true;
+  // ---------- 长按预览（像相册那样，用户定的）：那一行从原位浮起放大，背景变暗变虚，下面列出 编辑 · 隐藏 / 显示 · 删除；
+  // 点卡片进编辑，点外面缩回原位。行上不再能左滑（和整页左右滑切页冲突）。
+  // 这一层盖在页面和底栏上面：开着时根元素挂 ui-open（原生底栏让开），ui.js 的 LAYERS 里有 .dv-peek.on（下面的原生玻璃不画）【联动:原生玻璃】
+  const peek = document.createElement('div');
+  peek.className = 'dv-peek'; peek.setAttribute('aria-hidden', 'true');
+  peek.innerHTML = '<div class="dpk-bg"></div><div class="dpk-card" role="button" tabindex="-1"></div><div class="dpk-menu" role="menu"></div>';
+  document.body.appendChild(peek);
+  const pkCard = peek.querySelector('.dpk-card'), pkMenu = peek.querySelector('.dpk-menu');
+  const PK_EASE = 'cubic-bezier(.32,.72,0,1)';
+  let pk = null;
+  // 预览卡片在原来那一行上的位置（原位可能已经重画过：按 id 和同一种卡片重新找）
+  const pkSrc = () => {
+    if (!pk) return null;
+    if (pk.el.isConnected) return pk.el;
+    return [...pk.pg.querySelectorAll(`[data-id="${pk.id}"]`)].find(e => e.classList.contains(pk.kind)) || null;
+  };
+  const pkXform = (r, s) => `translate3d(${r.left - pk.r.left}px,${r.top - pk.r.top}px,0) scale(${s})`;
+  function openPeek(el, ev) {
+    const x = find(el.dataset.id); if (!x || pk) return;
+    UI.cancelPresses && UI.cancelPresses();
+    const r = el.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+    pk = { id: x.id, el, pg: el.closest('.page') || document.body, kind: el.classList[0], r, armed: false };
+    // 卡片：和原来那一行一模一样的一份，钉在原位
+    const c = el.cloneNode(true); c.removeAttribute('data-id'); c.classList.add('dpk-clone');
+    c.style.width = r.width + 'px'; c.style.height = r.height + 'px';
+    pkCard.innerHTML = ''; pkCard.appendChild(c);
+    Object.assign(pkCard.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', transition: 'none', transform: 'none', opacity: '' });
+    // 下面的几个操作
+    const act = (k, label, ic, cls = '') => `<button class="dpk-it${cls}" data-pk="${k}" role="menuitem"><span>${label}</span><i>${ic}</i></button>`;
+    pkMenu.innerHTML = act('edit', T('编辑'), DVA.edit) + act(x.hide ? 'show' : 'hide', T(x.hide ? '显示' : '隐藏'), DVA[x.hide ? 'show' : 'hide']) + act('del', T('删除'), DVA.del, ' del');
+    peek.classList.add('on'); peek.setAttribute('aria-hidden', 'false');
+    // 放大多少：一行（和屏幕差不多宽）只浮起一点；胶片那样的小卡片放大到屏幕六成多宽
+    const wide = r.width > W * .6;
+    const s = wide ? Math.min(1.035, (W - 24) / r.width) : Math.min(1.6, W * .64 / r.width);
+    const cw = r.width * s, ch = r.height * s, mw = pkMenu.offsetWidth, mh = pkMenu.offsetHeight;
+    const pcs = getComputedStyle(peek), safeT = parseFloat(pcs.paddingTop) || 0, safeB = parseFloat(pcs.paddingBottom) || 0;   // .dv-peek 的上下 padding 就是刘海 / 灵动岛、底部横条的安全区
+    const top0 = Math.max(16, safeT + 12), bot = H - Math.max(24, safeB + 12);
+    let left = wide ? r.left + (r.width - cw) / 2 : (W - cw) / 2;
+    left = Math.max(12, Math.min(W - 12 - cw, left));
+    let top = r.top + (r.height - ch) / 2;
+    top = Math.max(top0, Math.min(bot - ch - 10 - mh, top));
+    pk.to = { left, top }; pk.s = s;
+    pkMenu.style.left = Math.max(12, Math.min(W - 12 - mw, left)) + 'px';
+    pkMenu.style.top = (top + ch + 10) + 'px';
+    el.style.visibility = 'hidden';
+    document.documentElement.classList.add('ui-open');
+    try { MC.Native && MC.Native.haptic && MC.Native.haptic(); } catch (e) {}
+    void pkCard.offsetWidth;
+    pkCard.style.transition = `transform .32s ${PK_EASE}, opacity .2s`;
+    pkCard.style.transform = pkXform(pk.to, s);
+    peek.classList.add('open');
+    // 长按松手时那一下点击不算（不然一松手就关了）
+    const arm = () => setTimeout(() => { if (pk) pk.armed = true; }, 120);
+    if (ev && ev.type === 'touchstart') { const once = () => { document.removeEventListener('touchend', once, true); document.removeEventListener('touchcancel', once, true); arm(); }; document.addEventListener('touchend', once, true); document.addEventListener('touchcancel', once, true); }
+    else arm();
   }
-  // 往左滑：露出 隐藏 / 编辑 / 删除；点别处或往右滑收回（和事件列表一样）
-  const SW_W = 176;
-  let dsw = null, swOpen = null;
-  const setSw = (w, x, anim) => { w.style.setProperty('--sx', x + 'px'); w.classList.toggle('sw-anim', !!anim); w.classList.toggle('swiping', x !== 0); };
-  function closeSw() { if (swOpen) { setSw(swOpen, 0, true); swOpen = null; } }
+  // 收起：back 为真时缩回原位（原位没了就原地淡掉），否则整个淡掉（接着进编辑 / 删除）
+  function closePeek(back = true) {
+    if (!pk) return;
+    const p = pk; pk = null;
+    const src = (() => { pk = p; const e = pkSrc(); pk = null; return e; })();
+    peek.classList.remove('open'); peek.setAttribute('aria-hidden', 'true');
+    const done = () => {
+      if (peek.classList.contains('open')) return;
+      peek.classList.remove('on', 'fade'); pkCard.innerHTML = ''; pkMenu.innerHTML = '';
+      p.el.style.visibility = ''; if (src) src.style.visibility = '';
+    };
+    if (back && src) {
+      const r = src.getBoundingClientRect();
+      if (src !== p.el) { p.el.style.visibility = ''; src.style.visibility = 'hidden'; }
+      pkCard.style.transition = `transform .26s ${PK_EASE}`;
+      pkCard.style.transform = `translate3d(${r.left - p.r.left}px,${r.top - p.r.top}px,0) scale(${r.width / p.r.width})`;
+      setTimeout(done, 270);
+    } else {
+      p.el.style.visibility = ''; if (src) src.style.visibility = '';
+      peek.classList.add('fade');
+      setTimeout(done, 200);
+    }
+    document.documentElement.classList.toggle('ui-open', !!document.querySelector('.sheet.show, .confirm.show, #pvDoc.show'));
+  }
+  peek.addEventListener('click', e => {
+    if (!pk) return;
+    e.stopPropagation();
+    if (!pk.armed) return;
+    const x = find(pk.id);
+    const b = e.target.closest('[data-pk]');
+    if (b) {
+      const a = b.dataset.pk;
+      if (!x) { closePeek(); return; }
+      if (a === 'edit') { closePeek(false); openEditor(x); }
+      else if (a === 'del') { closePeek(false); removeDay(x); }
+      else {   // 隐藏 / 显示：先改，再缩回到它的新位置（隐藏后纪念日列表里没有它了，就原地淡掉）
+        MC.updateDay(x, { hide: a === 'hide' });
+        UI.toast(a === 'hide' ? F('「{0}」只在总览里显示', x.title) : F('「{0}」回到纪念日列表', x.title));
+        closePeek();
+      }
+      return;
+    }
+    if (e.target.closest('.dpk-card')) { closePeek(false); if (x) openEditor(x); return; }
+    closePeek();
+  });
+  peek.addEventListener('touchmove', e => { if (e.cancelable) e.preventDefault(); }, { passive: false });   // 预览开着时下面的页面不跟着滚
+  peek.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('keydown', e => { if (pk && e.key === 'Escape') { e.stopPropagation(); closePeek(); } }, true);
+  Days.closePeek = closePeek;
   [listPage, sumPage].forEach(pg => {
-    pg.addEventListener('touchstart', ev => {
-      const w = ev.target.closest('[data-sw]'); if (!w || ev.touches.length !== 1) { dsw = null; if (!ev.target.closest('.dv-acts')) closeSw(); return; }
-      if (swOpen && swOpen !== w) closeSw();
-      const t = ev.touches[0]; dsw = { w, x0: t.clientX, y0: t.clientY, base: w === swOpen ? -SW_W : 0, mode: 0, x: 0 };
-    }, { passive: true });
-    pg.addEventListener('touchmove', ev => {
-      if (!dsw) return;
-      const t = ev.touches[0], dx = t.clientX - dsw.x0, dy = t.clientY - dsw.y0;
-      if (!dsw.mode) { if (Math.hypot(dx, dy) < 8) return; dsw.mode = Math.abs(dx) > Math.abs(dy) * 1.4 && (dx < 0 || dsw.base) ? 1 : -1; if (dsw.mode === 1) UI.cancelPresses(); }
-      if (dsw.mode !== 1) return;
-      if (ev.cancelable) ev.preventDefault(); ev.stopPropagation();
-      dsw.x = Math.min(0, Math.max(-SW_W * 1.25, dsw.base + dx)); setSw(dsw.w, dsw.x, false);
-    }, { passive: false, capture: true });
-    pg.addEventListener('touchend', () => {
-      if (!dsw) return; const s = dsw; dsw = null; if (s.mode !== 1) return;
-      const open = s.x < -SW_W / 2; setSw(s.w, open ? -SW_W : 0, true); swOpen = open ? s.w : null;
-      pg._swUntil = Date.now() + 350;
-    });
-    pg.addEventListener('click', ev => { if (pg._swUntil && Date.now() < pg._swUntil && !ev.target.closest('[data-dva]')) { ev.stopPropagation(); ev.preventDefault(); } else if (swOpen && !ev.target.closest('[data-dva]')) { closeSw(); ev.stopPropagation(); ev.preventDefault(); } }, true);
-    // 长按：直接编辑
-    UI.longPress(pg, '[data-id]', el => { const x = find(el.dataset.id); if (x) openEditor(x); });
+    // 长按：浮起预览卡片（不再直接编辑）；长按时不选字
+    UI.longPress(pg, '[data-id]', openPeek);
+    pg.addEventListener('selectstart', e => { if (e.target.closest && e.target.closest('[data-id]')) e.preventDefault(); });
   });
   $('#dmBody').addEventListener('click', e => { const md = e.target.closest('[data-mdate]'); if (md) pickDate(md, md.dataset.mdate); });
   listPage.addEventListener('click', onClick);
@@ -794,7 +861,6 @@
     if (e.target.closest('.dv-title')) { MC.Drawer.open(); return; }
     if (e.target.closest('[data-openmonths]')) { openMonths(); return; }
     if (e.target.closest('[data-nextview]')) { try { localStorage.setItem('mcal.dvNext', nextView() === 'film' ? 'list' : 'film'); } catch (err) {} render(); return; }
-    if (dvAct(e.target)) return;
     const gc = e.target.closest('[data-gocat]');
     if (gc) { st.cat = gc.dataset.gocat; st.sub = ''; MC.App.showPage('days'); return; }
     const row = e.target.closest('[data-id]'); if (row) openPage(row.dataset.id);
@@ -1353,12 +1419,7 @@
     else MC.App.placeInd();
   }
   Days.paint = () => { syncTabs(); if (isOn()) render(); };
-  // 切到总览时胶片挂一遍（只一遍：切页时 showPage 会连着来几次，1 秒内不再重播）
-  let filmT = 0;
-  Days.replayFilm = () => {
-    if (Date.now() - filmT < 1000) return; filmT = Date.now();
-    dvSum.querySelectorAll('.fl-card').forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
-  };
+  // 切到总览时胶片只挂一遍：总览一露出来（拖着切页时 .page.drag 就显示了）CSS 动画自己从头播；落定时不再重播（以前 replayFilm 在这里重播，动完卡一下又动一遍）
   Days.render = render;
   Days.refresh = () => { if (isOn()) render(); if (cur && Days.pageOpen()) { const s = pgScroll.scrollTop; renderPage(); pgScroll.scrollTop = s; } if (Days.refreshShare) Days.refreshShare(); };
   // 每秒更新精确时间；过了午夜重画

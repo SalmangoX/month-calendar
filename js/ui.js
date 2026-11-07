@@ -908,7 +908,7 @@
   const LG_SEL = '.glass:not(.accent):not(.glass-panel):not(.tabbar), .lg-thumb, .cv-pin, .dp-btn, .lgn, .dv-cover.photo .cv-tile'
     + ', .pod-today .face, .fan:not(.fan-add) .face, .set-back .face, .pb-thumb';   // 顶部标题板（月份、星期）是网页自己画的半透明板，不再走原生玻璃   // 星期条也是一条原生液态玻璃 // 日历页的悬浮控件（时钟胶囊、扇形按钮、设置页返回、月份胶囊）；logo 和分页点里是图片 / 圆点，原生画不了，留给网页
   const LG_DARK = '.dp-btn, .dp-setcover, .cv-pin, .cam-btn, .cam-chips, .lgn-dark, .cv-plate, .cv-tile, .dp-plate, .cam-pill'; // 压在照片 / 相机画面上的：用偏暗的玻璃，白字看得清
-  const LAYERS = '.sheet.show, .dp.show, .cam.show, .cam-res, .confirm.show, .popover.show, #pvDoc.show';   // #pvDoc：隐私政策整页盖上去时，下面设置页的玻璃返回键不画（不然两个返回键）
+  const LAYERS = '.sheet.show, .dp.show, .cam.show, .cam-res, .confirm.show, .popover.show, #pvDoc.show, .dv-peek.on';   // .dv-peek：纪念日长按的预览卡片   // #pvDoc：隐私政策整页盖上去时，下面设置页的玻璃返回键不画（不然两个返回键）
   // 自定义 SVG 图标转成 PNG（data URL）：把 CSS 里的线宽、颜色写进图标本身，按 3 倍大小画到画布上；同样的图标只转一次
   const rasterCache = new Map();
   function rasterIcon(sv) {
