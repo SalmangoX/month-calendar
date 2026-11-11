@@ -680,7 +680,7 @@ final class FanFX {
 
 /// 按住 logo 拖动的样子（几处共用）：扇形这一块放大多少、logo 被拉过去多少、水滴的尺寸【联动:底部悬浮控件】（和网页 DROP、安卓 Dock.kt 一样）
 enum FanDropSize {
-    static let zoom: CGFloat = 1.12, tip: CGFloat = 12, tipHot: CGFloat = 15, snap: CGFloat = 150, hot: CGFloat = 58   // snap：离 logo 中心多远断开成独立的一滴；hot：手指离按钮中心多近算拖到上面（放宽，手小也点得准）
+    static let zoom: CGFloat = 1.12, tip: CGFloat = 12, tipHot: CGFloat = 15, snap: CGFloat = 150, hot: CGFloat = 84   // snap：离 logo 中心多远断开成独立的一滴；hot：手指离按钮中心多近算拖到上面（放宽，手小也点得准）
     /// 像水的表面张力：刚拉出来时颈很粗、根部张得开，越拉越细（不会细成一根线），拉到 snap 就断开（和网页 dropGeom 一样）
     static func geom(_ d: CGFloat, _ r1: CGFloat, _ r2: CGFloat) -> (free: Bool, w: CGFloat, a1: CGFloat, a2: CGFloat)? {
         if d <= r1 + r2 * 0.2 { return nil }

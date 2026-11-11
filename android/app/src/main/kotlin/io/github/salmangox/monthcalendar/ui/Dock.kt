@@ -435,7 +435,7 @@ class FanFX {
 private const val ZOOM = 1.12f
 private const val DROP_TIP = 12f; private const val DROP_TIP_HOT = 15f
 /** 离 logo 中心多远断开成独立的一滴（出了扇形这一块）；手指离按钮中心多近算拖到上面（放宽，手小也点得准） */
-private const val DROP_SNAP = 150f; const val FAN_HOT = 58f
+private const val DROP_SNAP = 150f; const val FAN_HOT = 84f
 
 /** 像水的表面张力：刚拉出来时颈很粗、根部张得开，越拉越细（不会细成一根线），拉到 snap 就断开（和网页 dropGeom 一样）；null = 还在 logo 里，FloatArray(0) = 已断开，否则 [w, a1, a2] */
 private fun dropGeom(d: Float, r1: Float, r2: Float, snap: Float): FloatArray? {
