@@ -191,6 +191,11 @@ final class WebController: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         })();
         """
         ucc.addUserScript(WKUserScript(source: js, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        // 系统语言：WKWebView 的 navigator.language 会被 App 自己带的语言限制住（App 没有各语言的本地化资源，就一直是同一个），
+        // 所以把系统设置里的语言顺序直接交给网页，「跟随系统语言」才真的跟随（js/i18n.js 的 MC.lang 优先用它）
+        if let data = try? JSONSerialization.data(withJSONObject: Locale.preferredLanguages), let list = String(data: data, encoding: .utf8) {
+            ucc.addUserScript(WKUserScript(source: "window.__mcSysLangs=\(list);", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
         // 网页自己的菜单栏、加号、侧栏一开始就藏起来：等网页加载完再藏，会先闪一下，和原生的玻璃菜单栏叠在一起
         ucc.addUserScript(WKUserScript(source: "(function(){var s=document.createElement('style');s.textContent='#dock,#fab,#calBack,#drawerScrim,#calDrawer{display:none!important}';(document.head||document.documentElement).appendChild(s);})();",
                                        injectionTime: .atDocumentStart, forMainFrameOnly: true))

@@ -364,6 +364,11 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKScriptMessageHan
         })();
         """
         ucc.addUserScript(WKUserScript(source: js, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        // 系统语言：WKWebView 的 navigator.language 会被 App 自己带的语言限制住（App 没有各语言的本地化资源，就一直是同一个），
+        // 所以把系统设置里的语言顺序直接交给网页，「跟随系统语言」才真的跟随（js/i18n.js 的 MC.lang 优先用它）
+        if let data = try? JSONSerialization.data(withJSONObject: Locale.preferredLanguages), let list = String(data: data, encoding: .utf8) {
+            ucc.addUserScript(WKUserScript(source: "window.__mcSysLangs=\(list);", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
         if #available(macOS 26.0, *) {
             ucc.addUserScript(WKUserScript(source: MainWindowController.navJS, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         }

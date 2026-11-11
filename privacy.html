@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="light dark">
 <title>隐私政策 — 节律 Cadence</title>
 <meta name="description" content="节律（Cadence）隐私政策：不需要注册，不收集个人信息，数据只存在你的设备和你自己选的同步空间里。">
-<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png?v=0.22.0">
 <style>
   :root { --bg: #F7F7F9; --card: #fff; --ink: #1C1C1F; --sub: #6B6B74; --line: rgba(0, 0, 0, .08); --accent: #4F80C4; }
   @media (prefers-color-scheme: dark) { :root:not(.light) { --bg: #111113; --card: #1C1C1F; --ink: #F2F2F4; --sub: #9B9BA4; --line: rgba(255, 255, 255, .1); --accent: #8DB0EA; color-scheme: dark; } }
@@ -121,5 +121,115 @@
 </main>
 
 <footer><div class="wrap">© 2026 SalmangoX · 节律 Cadence<span class="foot-links"> · <a href="./about.html">关于节律</a></span></div></footer>
+<script>
+/* 多语言：上面的简体中文是原文；其他语言在这里换进去。语言取 ?lang=（App 里传的是 App 自己选的语言），没有就跟随系统语言。 */
+(function () {
+  var m = /[?&]lang=([\w-]+)/.exec(location.search);
+  var l = ((m && m[1]) || (navigator.languages && navigator.languages[0]) || navigator.language || 'zh-CN').toLowerCase();
+  var lang = l.indexOf('zh') === 0 ? (/tw|hk|mo|hant/.test(l) ? 'zh-Hant' : 'zh-Hans') : l.indexOf('fr') === 0 ? 'fr' : l.indexOf('ja') === 0 ? 'ja' : 'en';
+  if (lang === 'zh-Hans') return;
+  var M = 'jxz2651189539@163.com';
+  function sec(h, body) { return '<section><h2>' + h + '</h2>' + body + '</section>'; }
+  function dl(rows) { return '<dl>' + rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>'; }
+  function page(t) {
+    var h = '<h1>' + t.h1 + '</h1><p class="date">' + t.date + '</p><div class="sum"><ul>' + t.sum.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>';
+    return h + t.secs.map(function (s) { return sec(s[0], s[1]); }).join('');
+  }
+  var T = {
+    en: {
+      title: 'Privacy Policy — Cadence', desc: 'Cadence privacy policy: no sign-up, no personal data collected. Your data stays on your device and in the sync space you choose.',
+      brand: 'Cadence', about: 'About Cadence', foot: '© 2026 SalmangoX · Cadence',
+      h1: 'Privacy Policy', date: 'Last updated: November 5, 2026',
+      sum: ["No sign-up is needed. We don't collect your name, phone number, location, or anything that could identify you.",
+        "What you write stays on your device and in the sync space you choose. We have no server and can't see it.",
+        "No ads and no analytics. We don't sell or share any data."],
+      secs: [
+        ['Who provides Cadence', '<p>Cadence is developed and maintained by SalmangoX. If you have any question about this policy, write to the email address at the end of this page.</p>'],
+        ['Where your data lives', '<p>Events, timetables, courses, anniversaries, notes, photos and settings are kept on your device by default. If you delete the app or clear its data they are deleted with it, and we cannot recover them.</p><p>If you turn on sync in Settings → Sync, your data goes straight from your device to the place you chose:</p>' +
+          dl([['GitHub', 'Written to a private Gist in your own account, using an access token you generate yourself.'], ['WebDAV', 'Written to your own cloud drive (for example Nutstore, Nextcloud, Synology).'], ['iCloud Drive', 'iPhone / Mac app only. Stored in your own iCloud.']]) +
+          '<p class="muted">Tokens and passwords are stored only on this device and are never sent to us. Syncing does not pass through any server of ours.</p>'],
+        ['Reminders', '<p>The iPhone, Mac and Android apps use the system’s local notifications and alarms. Reminders are scheduled right on the device and need no network.</p><p>If you only use the web version, you can turn on “Remind me even when the app is closed”. Those reminders are sent by a scheduled job in your own GitHub repository and delivered through your browser’s push service. This is something you set up yourself and can turn off at any time.</p>'],
+        ['Permissions we use', dl([['Photos', 'Only when you choose a cover, add photos to an anniversary, import a timetable from a photo, or save a shared image.'], ['Camera', 'Only when you open the Memory Camera in Anniversaries. The picture never leaves your device.'], ['Notifications and alarms', 'Only for the reminders you set. You can turn them off in system settings at any time.'], ['Network', 'Used for the sync you turn on, for checking for new versions, and for downloading the recognition model the first time you recognise a timetable photo.']])],
+        ['Timetable recognition and sharing', '<p>When you import a timetable from a web page, a spreadsheet or a photo, recognition happens on your device and the photo is not uploaded. Shared images are made on your device, and you decide who receives them through the system share sheet.</p>'],
+        ['Third parties', '<p>Cadence contains no advertising or analytics SDKs. The sync service you choose (GitHub, a WebDAV drive, iCloud) and the store you download the app from handle data under their own privacy policies.</p>'],
+        ['Children', '<p>Cadence does not knowingly collect personal information from anyone, including children under 14.</p>'],
+        ['Changes to this policy', '<p>If this policy changes, the date on this page will be updated, and important changes will be shown in the app.</p>'],
+        ['Contact', '<p>For any question or suggestion, write to <a href="mailto:' + M + '">' + M + '</a>.</p>']]
+    },
+    fr: {
+      title: 'Politique de confidentialité — Cadence', desc: 'Politique de confidentialité de Cadence : pas d’inscription, aucune donnée personnelle collectée. Vos données restent sur votre appareil et dans l’espace de synchronisation que vous choisissez.',
+      brand: 'Cadence', about: 'À propos de Cadence', foot: '© 2026 SalmangoX · Cadence',
+      h1: 'Politique de confidentialité', date: 'Dernière mise à jour : 5 novembre 2026',
+      sum: ['Aucune inscription n’est nécessaire. Nous ne collectons ni votre nom, ni votre numéro de téléphone, ni votre position, ni aucune information permettant de vous identifier.',
+        'Ce que vous notez reste sur votre appareil et dans l’espace de synchronisation que vous choisissez. Nous n’avons pas de serveur et ne pouvons pas le voir.',
+        'Pas de publicité, pas d’analyse d’audience. Nous ne vendons ni ne partageons aucune donnée.'],
+      secs: [
+        ['Qui fournit Cadence', '<p>Cadence est développé et maintenu par SalmangoX. Pour toute question sur cette politique, écrivez à l’adresse e-mail indiquée en bas de page.</p>'],
+        ['Où sont stockées vos données', '<p>Les événements, emplois du temps, cours, anniversaires, notes, photos et réglages sont conservés par défaut sur votre appareil. Si vous supprimez l’app ou effacez ses données, ils sont supprimés avec elle et nous ne pouvons pas les récupérer.</p><p>Si vous activez la synchronisation dans Réglages → Synchronisation, vos données vont directement de votre appareil vers l’endroit que vous avez choisi :</p>' +
+          dl([['GitHub', 'Écrites dans un Gist privé de votre propre compte, avec un jeton d’accès que vous générez vous-même.'], ['WebDAV', 'Écrites sur votre propre espace de stockage (par exemple Nutstore, Nextcloud, Synology).'], ['iCloud Drive', 'App iPhone / Mac uniquement. Stockées dans votre propre iCloud.']]) +
+          '<p class="muted">Les jetons et mots de passe sont conservés uniquement sur cet appareil et ne nous sont jamais envoyés. La synchronisation ne passe par aucun de nos serveurs.</p>'],
+        ['Rappels', '<p>Les apps iPhone, Mac et Android utilisent les notifications locales et les alarmes du système. Les rappels sont programmés directement sur l’appareil et ne nécessitent pas de connexion.</p><p>Si vous utilisez uniquement la version web, vous pouvez activer « Rappeler même quand l’app est fermée ». Ces rappels sont envoyés par une tâche planifiée dans votre propre dépôt GitHub et livrés via le service de notifications push de votre navigateur. Vous la configurez vous-même et pouvez la désactiver à tout moment.</p>'],
+        ['Autorisations utilisées', dl([['Photos', 'Uniquement lorsque vous choisissez une couverture, ajoutez des photos à un anniversaire, importez un emploi du temps depuis une photo ou enregistrez une image partagée.'], ['Appareil photo', 'Uniquement lorsque vous ouvrez l’Appareil souvenir dans Anniversaires. L’image ne quitte jamais votre appareil.'], ['Notifications et alarmes', 'Uniquement pour les rappels que vous définissez. Vous pouvez les désactiver à tout moment dans les réglages du système.'], ['Réseau', 'Utilisé pour la synchronisation que vous activez, la recherche de nouvelles versions et le téléchargement du modèle de reconnaissance la première fois que vous reconnaissez une photo d’emploi du temps.']])],
+        ['Reconnaissance d’emploi du temps et partage', '<p>Lorsque vous importez un emploi du temps depuis une page web, un tableur ou une photo, la reconnaissance se fait sur votre appareil et la photo n’est pas envoyée. Les images partagées sont créées sur votre appareil, et vous choisissez qui les reçoit via la feuille de partage du système.</p>'],
+        ['Tiers', '<p>Cadence ne contient aucun SDK de publicité ou d’analyse. Le service de synchronisation que vous choisissez (GitHub, un espace WebDAV, iCloud) et la boutique où vous téléchargez l’app traitent les données selon leurs propres politiques de confidentialité.</p>'],
+        ['Enfants', '<p>Cadence ne collecte sciemment aucune information personnelle, y compris auprès des enfants de moins de 14 ans.</p>'],
+        ['Modifications de cette politique', '<p>Si cette politique change, la date de cette page sera mise à jour, et les changements importants seront signalés dans l’app.</p>'],
+        ['Nous contacter', '<p>Pour toute question ou suggestion, écrivez à <a href="mailto:' + M + '">' + M + '</a>.</p>']]
+    },
+    ja: {
+      title: 'プライバシーポリシー — Cadence', desc: 'Cadence のプライバシーポリシー：アカウント登録不要、個人情報は収集しません。データはお使いの端末と、ご自身で選んだ同期先にのみ保存されます。',
+      brand: 'Cadence', about: 'Cadence について', foot: '© 2026 SalmangoX · Cadence',
+      h1: 'プライバシーポリシー', date: '最終更新：2026年11月5日',
+      sum: ['アカウント登録は不要です。お名前、電話番号、位置情報など、あなたを特定できる情報は収集しません。',
+        '記録した内容は、お使いの端末とご自身で選んだ同期先にのみ保存されます。当方にはサーバーがなく、内容を見ることはできません。',
+        '広告も解析もありません。データを販売・共有することもありません。'],
+      secs: [
+        ['Cadence の提供者', '<p>Cadence は SalmangoX が開発・運営しています。本ポリシーについてのご質問は、ページ末尾のメールアドレスまでご連絡ください。</p>'],
+        ['データの保存先', '<p>予定、時間割、講義、記念日、メモ、写真、設定は、初期状態ではお使いの端末にのみ保存されます。アプリを削除するかデータを消去すると一緒に削除され、当方では復元できません。</p><p>「設定 → 同期」で同期をオンにすると、データは端末からご自身で選んだ場所へ直接送られます：</p>' +
+          dl([['GitHub', 'ご自身のアカウントのプライベート Gist に、ご自身で発行したアクセストークンを使って書き込みます。'], ['WebDAV', 'ご自身のクラウドストレージ（例：Nutstore、Nextcloud、Synology）に書き込みます。'], ['iCloud Drive', 'iPhone / Mac アプリのみ。ご自身の iCloud に保存されます。']]) +
+          '<p class="muted">トークンとパスワードはこの端末にのみ保存され、当方に送られることはありません。同期は当方のサーバーを一切経由しません。</p>'],
+        ['リマインダー', '<p>iPhone、Mac、Android アプリはシステムのローカル通知とアラームを使います。リマインダーは端末上で直接設定され、ネットワークは不要です。</p><p>Web 版のみをお使いの場合は「アプリを閉じていても通知」をオンにできます。この通知はご自身の GitHub リポジトリ内の定期実行タスクから送られ、ブラウザのプッシュサービス経由で届きます。ご自身で設定する機能で、いつでもオフにできます。</p>'],
+        ['使用する権限', dl([['写真', 'カバーを選ぶとき、記念日に写真を追加するとき、写真から時間割を取り込むとき、共有画像を保存するときにのみ使用します。'], ['カメラ', '記念日の「記念カメラ」を開いたときにのみ使用します。映像が端末の外に出ることはありません。'], ['通知とアラーム', '設定したリマインダーにのみ使用します。システム設定でいつでもオフにできます。'], ['ネットワーク', 'オンにした同期、新バージョンの確認、初めて時間割の写真を認識するときの認識モデルのダウンロードに使用します。']])],
+        ['時間割の認識と共有', '<p>Web ページ、表、写真から時間割を取り込むとき、認識は端末上で行われ、写真はアップロードされません。共有画像は端末上で作成され、誰に送るかはシステムの共有機能であなたが決めます。</p>'],
+        ['第三者', '<p>Cadence には広告や解析の SDK は含まれていません。お選びの同期サービス（GitHub、WebDAV、iCloud）やアプリの入手先は、それぞれのプライバシーポリシーに従ってデータを扱います。</p>'],
+        ['お子様', '<p>Cadence は、14歳未満のお子様を含め、誰からも個人情報を意図的に収集しません。</p>'],
+        ['ポリシーの変更', '<p>本ポリシーが変更された場合はこのページの日付を更新し、重要な変更はアプリ内でお知らせします。</p>'],
+        ['お問い合わせ', '<p>ご質問やご提案は <a href="mailto:' + M + '">' + M + '</a> までお寄せください。</p>']]
+    },
+    'zh-Hant': {
+      title: '隱私權政策 — 節律 Cadence', desc: '節律（Cadence）隱私權政策：不需要註冊，不收集個人資料，資料只存在你的裝置和你自己選的同步空間裡。',
+      brand: '節律 Cadence', about: '關於節律', foot: '© 2026 SalmangoX · 節律 Cadence',
+      h1: '隱私權政策', date: '最後更新：2026 年 11 月 5 日',
+      sum: ['不需要註冊帳號，我們不收集你的姓名、手機號碼、位置或任何能認出你的資訊。',
+        '你記下的內容只存在你的裝置上，以及你自己選擇的同步空間裡；我們沒有伺服器，也看不到這些內容。',
+        '沒有廣告，沒有統計分析，不出售、不共享任何資料。'],
+      secs: [
+        ['誰在提供節律', '<p>節律（Cadence）由 SalmangoX 開發和維護。對本政策有任何問題，都可以透過頁面末尾的電子郵件聯絡。</p>'],
+        ['你的資料存在哪裡', '<p>事件、行程、課程、紀念日、便條、照片和設定，預設只儲存在你這台裝置上。刪除 App 或清除資料後，這些內容會一併刪除，我們無法找回。</p><p>如果你在「設定 → 同步」裡開啟同步，資料會直接從你的裝置傳到你自己選的地方：</p>' +
+          dl([['GitHub', '寫入你自己帳號下的私密 Gist，使用你自己產生的存取權杖。'], ['WebDAV', '寫入你自己的雲端硬碟（例如堅果雲、Nextcloud、群暉）。'], ['iCloud 雲碟', '僅限 iPhone / Mac App，存在你自己的 iCloud 裡。']]) +
+          '<p class="muted">權杖和密碼只儲存在本機，不會傳給我們。同步過程不經過任何屬於我們的伺服器。</p>'],
+        ['提醒', '<p>iPhone、Mac 和 Android App 使用系統內建的本機通知和鬧鐘，提醒在裝置上直接排好，不需要連網。</p><p>只用網頁版時，可以選擇開啟「App 關閉時也提醒」：提醒由你自己 GitHub 儲存庫裡的排程任務發送，透過瀏覽器的推播服務送達。這項功能需要你主動設定，隨時可以關閉。</p>'],
+        ['用到的權限', dl([['相簿', '只在你選擇封面、為紀念日加入照片、從照片匯入課表或儲存分享圖片時使用。'], ['相機', '只在你開啟紀念日裡的「紀念相機」時使用，畫面不會離開你的裝置。'], ['通知與鬧鐘', '只用於你設定的提醒，可以隨時在系統設定裡關閉。'], ['網路', '用於你開啟的同步、檢查新版本，以及第一次辨識課表照片時下載辨識模型。']])],
+        ['課表辨識和分享', '<p>從網頁、表格或照片匯入課表時，辨識都在你的裝置上完成，照片不會上傳。分享圖片在本機產生，傳給誰由你透過系統分享決定。</p>'],
+        ['第三方', '<p>節律不包含廣告或統計分析 SDK。你選擇的同步服務（GitHub、WebDAV 雲端硬碟、iCloud）和下載 App 的平台，會依照它們各自的隱私權政策處理資料。</p>'],
+        ['兒童', '<p>節律不會有意收集任何人的個人資料，包括 14 歲以下的兒童。</p>'],
+        ['政策變更', '<p>如果本政策有變化，會更新本頁的日期；重要的變化會在 App 裡提示。</p>'],
+        ['聯絡我們', '<p>有任何疑問或建議，請來信至 <a href="mailto:' + M + '">' + M + '</a>。</p>']]
+    }
+  };
+  var t = T[lang];
+  function go() {
+    document.documentElement.lang = lang;
+    document.title = t.title;
+    var d = document.querySelector('meta[name="description"]'); if (d) d.setAttribute('content', t.desc);
+    var bar = document.querySelector('header .bar');
+    if (bar) bar.innerHTML = '<img src="icons/logo.png" alt="" width="26" height="26">' + t.brand + '<a href="./about.html">' + t.about + '</a>';
+    var main = document.querySelector('main'); if (main) main.innerHTML = page(t);
+    var ft = document.querySelector('footer .wrap');
+    if (ft) ft.innerHTML = t.foot + '<span class="foot-links"> · <a href="./about.html">' + t.about + '</a></span>';
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+})();
+</script>
 </body>
 </html>

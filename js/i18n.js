@@ -10,7 +10,8 @@
   MC.lang = () => {
     const p = MC.langPref();
     if (p !== 'auto') return p;
-    const l = (navigator.language || '').toLowerCase();
+    // App 壳（iPhone / Mac）会把系统语言列表放在 __mcSysLangs 里：WKWebView 自己的 navigator.language 只认 App 带的语言
+    const l = String((window.__mcSysLangs && window.__mcSysLangs[0]) || navigator.language || '').toLowerCase();
     if (l.startsWith('zh')) return /tw|hk|mo|hant/.test(l) ? 'zh-Hant' : 'zh-Hans';
     if (l.startsWith('fr')) return 'fr';
     if (l.startsWith('ja')) return 'ja';
