@@ -697,6 +697,7 @@
       b.style.setProperty('--fa0', -angles[0] + 'deg');
       b.style.setProperty('--fr', R + 'px');
       b.style.setProperty('--i', k);   // 从上往下依次展开
+      b.dataset.ang = angles[k];   // 拖动时按方向选它（fanPick）
     });
   }
   function setOpen(v) {
@@ -806,7 +807,23 @@
     if (!fdCv) { fdCv = document.createElement('canvas'); fdCv.className = 'fan-trail'; fdCv.setAttribute('aria-hidden', 'true'); scrim.parentNode.insertBefore(fdCv, scrim.nextSibling); fdCtx = fdCv.getContext('2d'); }
     if (!fdRaf) fdRaf = requestAnimationFrame(fdFrame);
   };
-  function fdEnd(pick) {
+  // 拖到哪颗按钮上：先看手指离按钮中心够不够近（HOT_R）；不够近但已经离开 logo 一段（PICK_MIN），就按手指朝哪个方向选那颗（差 PICK_ANG 度以内）。
+  // 按方向选不用等按钮展开到位：拖得快、一甩就松手、拖过头都能选上【联动:底部悬浮控件】
+  const PICK_MIN = 36, PICK_ANG = 40;
+  function fanPick(px, py) {
+    let hot = null, best = HOT_R;
+    const list = [fans.add, fans.stat, fans.set].filter(b => !b.hidden);
+    for (const b of list) { const [x, y] = centerOf(b), dd = Math.hypot(x - px, y - py); if (dd < best) { best = dd; hot = b; } }
+    if (hot) return hot;
+    const [lx, ly] = centerOf(logo), dx = px - lx, dy = ly - py;
+    if (Math.hypot(dx, dy) < PICK_MIN) return null;
+    const a = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+    let bd = PICK_ANG;
+    for (const b of list) { const d = Math.abs(((a - Number(b.dataset.ang || 0)) % 360 + 540) % 360 - 180); if (d <= bd) { bd = d; hot = b; } }
+    return hot;
+  }
+  function fdEnd(pick, ex, ey) {
+    if (fd && pick && ex != null) { const h2 = fanPick(ex, ey); if (h2 !== fd.hot) { if (fd.hot) fd.hot.classList.remove('hot'); fd.hot = h2; } }   // 松手那一下的位置再判一次（甩得快时最后一次移动可能还没到）
     const h = fd && fd.hot;
     if (fd) { if (h) h.classList.remove('hot'); body.classList.remove('fan-drag'); lastDragEnd = Date.now(); }
     const was = !!fd;
@@ -825,12 +842,7 @@
       fdKick();
     }
     fd.x = e.clientX; fd.y = e.clientY;
-    let hot = null, best = HOT_R;
-    for (const b of [fans.add, fans.stat, fans.set]) {
-      if (b.hidden) continue;
-      const [x, y] = centerOf(b), dd = Math.hypot(x - fd.x, y - fd.y);
-      if (dd < best) { best = dd; hot = b; }
-    }
+    const hot = fanPick(fd.x, fd.y);
     if (hot !== fd.hot) {
       if (fd.hot) fd.hot.classList.remove('hot');
       fd.hot = hot;
@@ -838,7 +850,7 @@
     }
     fdKick();
   }, { passive: true });
-  document.addEventListener('pointerup', e => { if (pd && e.pointerId === pd.id) { if (fd) fdEnd(true); else pd = null; } }, true);
+  document.addEventListener('pointerup', e => { if (pd && e.pointerId === pd.id) { if (fd) fdEnd(true, e.clientX, e.clientY); else pd = null; } }, true);
   document.addEventListener('pointercancel', e => { if (pd && e.pointerId === pd.id) fdEnd(false); }, true);
 
   fans.add.addEventListener('click', () => { closeMenu(); const f = $id('fab'); if (f) f.click(); });

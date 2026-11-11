@@ -68,6 +68,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.json.JSONObject
+import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.hypot
@@ -327,6 +329,18 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
             val rad = Math.toRadians(angles[k]); val px = r * ZOOM * density.density   // 拖着时扇形放大了
             id to Offset(m.logoC.x + (cos(rad) * px).toFloat(), m.logoC.y - (sin(rad) * px).toFloat())
         }
+        // 拖到哪颗按钮上：离按钮中心 FAN_HOT 以内取最近的；不够近但已经离开 logo PICK_MIN，就按手指朝的方向选（差 PICK_ANG 度以内）。
+        // 按方向选：拖得快、一甩就松手、拖过头都能选上【联动:底部悬浮控件】
+        fun fanPick(f: Offset): Triple<String, Offset, Float>? {
+            val cs = centers()
+            cs.map { (id, c) -> Triple(id, c, hypot(c.x - f.x, c.y - f.y)) }.filter { it.third < hotR }.minByOrNull { it.third }?.let { return it }
+            val dx = f.x - m.logoC.x; val dy = m.logoC.y - f.y
+            if (hypot(dx, dy) < PICK_MIN * density.density) return null
+            val a = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble()))
+            val best = items.indices.minByOrNull { k -> abs(((a - angles[k]) % 360 + 540) % 360 - 180) } ?: return null
+            if (abs(((a - angles[best]) % 360 + 540) % 360 - 180) > PICK_ANG) return null
+            return Triple(cs[best].first, cs[best].second, 0f)
+        }
         Tap(Modifier.fillMaxSize()
             .onGloballyPositioned { val p = it.positionInRoot(); m.logoC = Offset(p.x + it.size.width / 2f, p.y + it.size.height / 2f) }
             .pointerInput(items) {
@@ -336,7 +350,7 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
                         ch.consume()
                         val f = m.logoC + ch.position - Offset(size.width / 2f, size.height / 2f)
                         m.drag = f
-                        val near = centers().map { (id, c) -> Triple(id, c, hypot(c.x - f.x, c.y - f.y)) }.filter { it.third < hotR }.minByOrNull { it.third }
+                        val near = fanPick(f)
                         if (near?.first != m.hot) {
                             m.hot = near?.first
                             if (near != null) { m.fx.burst(near.second, 18, 2.4f * density.density); m.hapticTick() }
@@ -435,7 +449,7 @@ class FanFX {
 private const val ZOOM = 1.12f
 private const val DROP_TIP = 12f; private const val DROP_TIP_HOT = 15f
 /** 离 logo 中心多远断开成独立的一滴（出了扇形这一块）；手指离按钮中心多近算拖到上面（放宽，手小也点得准） */
-private const val DROP_SNAP = 150f; const val FAN_HOT = 84f
+private const val DROP_SNAP = 150f; const val FAN_HOT = 84f; private const val PICK_MIN = 36f; private const val PICK_ANG = 40.0
 
 /** 像水的表面张力：刚拉出来时颈很粗、根部张得开，越拉越细（不会细成一根线），拉到 snap 就断开（和网页 dropGeom 一样）；null = 还在 logo 里，FloatArray(0) = 已断开，否则 [w, a1, a2] */
 private fun dropGeom(d: Float, r1: Float, r2: Float, snap: Float): FloatArray? {

@@ -680,7 +680,7 @@ final class FanFX {
 
 /// 按住 logo 拖动的样子（几处共用）：扇形这一块放大多少、logo 被拉过去多少、水滴的尺寸【联动:底部悬浮控件】（和网页 DROP、安卓 Dock.kt 一样）
 enum FanDropSize {
-    static let zoom: CGFloat = 1.12, tip: CGFloat = 12, tipHot: CGFloat = 15, snap: CGFloat = 150, hot: CGFloat = 84   // snap：离 logo 中心多远断开成独立的一滴；hot：手指离按钮中心多近算拖到上面（放宽，手小也点得准）
+    static let zoom: CGFloat = 1.12, tip: CGFloat = 12, tipHot: CGFloat = 15, snap: CGFloat = 150, hot: CGFloat = 84, pickMin: CGFloat = 36, pickAng: CGFloat = 40   // snap：离 logo 中心多远断开成独立的一滴；hot：手指离按钮中心多近算拖到上面（放宽，手小也点得准）
     /// 像水的表面张力：刚拉出来时颈很粗、根部张得开，越拉越细（不会细成一根线），拉到 snap 就断开（和网页 dropGeom 一样）
     static func geom(_ d: CGFloat, _ r1: CGFloat, _ r2: CGFloat) -> (free: Bool, w: CGFloat, a1: CGFloat, a2: CGFloat)? {
         if d <= r1 + r2 * 0.2 { return nil }
@@ -897,6 +897,18 @@ struct GlassDock: View {
         let ids = fanIDs(d), offs = DockSize.fan(ids.count), z = m.logoDrag != nil ? FanDropSize.zoom : 1   // 拖着时扇形放大了
         return ids.enumerated().map { k, id in (id, CGPoint(x: logoC.x + offs[k].width * z, y: logoC.y + offs[k].height * z)) }
     }
+    /// 拖到哪颗按钮上：离按钮中心 hot 以内取最近的；不够近但已经离开 logo pickMin，就按手指朝的方向选（差 pickAng 度以内）。
+    /// 按方向选：拖得快、一甩就松手、拖过头都能选上【联动:底部悬浮控件】
+    private func fanPick(_ d: NavModel.Dock, _ p: CGPoint) -> (String, CGPoint)? {
+        let cs = fanCenters(d)
+        if let n = cs.map({ ($0.0, $0.1, hypot($0.1.x - p.x, $0.1.y - p.y)) }).filter({ $0.2 < FanDropSize.hot }).min(by: { $0.2 < $1.2 }) { return (n.0, n.1) }
+        let dx = p.x - logoC.x, dy = logoC.y - p.y
+        guard hypot(dx, dy) >= FanDropSize.pickMin else { return nil }
+        let a = atan2(dy, dx) * 180 / .pi
+        func diff(_ c: CGPoint) -> CGFloat { let b = atan2(logoC.y - c.y, c.x - logoC.x) * 180 / .pi; return abs((a - b + 540).truncatingRemainder(dividingBy: 360) - 180) }
+        guard let best = cs.min(by: { diff($0.1) < diff($1.1) }), diff(best.1) <= FanDropSize.pickAng else { return nil }
+        return best
+    }
     private func hotCenter(_ d: NavModel.Dock) -> CGPoint? { m.fanHot.flatMap { h in fanCenters(d).first { $0.0 == h }?.1 } }
     /// 按住 logo 拖：拖起来就打开扇形、后面虚下去；手指离哪个按钮中心 46 以内就是它（变大、冒粒子、轻震）；松手选中它，没在按钮上就收起
     private func logoDragGesture(_ d: NavModel.Dock) -> some Gesture {
@@ -904,14 +916,14 @@ struct GlassDock: View {
             .onChanged { v in
                 if m.logoDrag == nil { if !m.fanOpen { m.setFan(true) } else { navTick() }; m.dragDepth(true) }
                 m.logoDrag = v.location
-                let near = fanCenters(d).map { ($0.0, $0.1, hypot($0.1.x - v.location.x, $0.1.y - v.location.y)) }.filter { $0.2 < FanDropSize.hot }.min { $0.2 < $1.2 }
+                let near = fanPick(d, v.location)
                 if near?.0 != m.fanHot {
                     m.fanHot = near?.0
                     if let c = near?.1 { fx.burst(at: c, n: 18, speed: 150); navTick() }
                 }
             }
-            .onEnded { _ in
-                let h = m.fanHot
+            .onEnded { v in
+                let h = fanPick(d, v.location)?.0 ?? m.fanHot   // 松手那一下的位置再判一次（甩得快时最后一次移动可能还没到）
                 m.logoDrag = nil; m.fanHot = nil; m.dragDepth(false); m.dragEndedAt = Date()
                 if let h { m.fan(h) } else { m.setFan(false) }
             }
