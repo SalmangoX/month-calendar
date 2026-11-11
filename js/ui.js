@@ -803,7 +803,8 @@
     host.innerHTML = '';
     const wrap = document.createElement('div');
     wrap.className = 'wheel';
-    wrap.innerHTML = `<div class="wheel-band glass" style="top:${ITEM * 2}px;height:${ITEM}px"></div>`;
+    // 中间那条选中框是网页自己画的浅色底：不带 .glass，不然 iPhone / Mac 上原生液态玻璃盖在选中的字上，滚动时字被折射得发糊
+    wrap.innerHTML = `<div class="wheel-band" style="top:${ITEM * 2}px;height:${ITEM}px"></div>`;
     wrap.style.height = ITEM * 5 + 'px';
     if (ITEM > 36) wrap.classList.add('big');
     host.appendChild(wrap);
@@ -830,14 +831,22 @@
         mark() { sc.querySelectorAll('.witem').forEach(el => el.classList.toggle('on', Number(el.dataset.i) === this.idx)); },
         get value() { return this.items[this.idx] && this.items[this.idx].value; },
       };
-      let t;
+      // 手指还按着时不自动吸附（以前手指停一下就被拽走，和手指抢）；松手、惯性停下后才对齐到整行
+      let t, touching = false, lastScroll = 0;
+      const settle = () => { clearTimeout(t); t = setTimeout(() => { if (!touching && Math.abs(sc.scrollTop - col.idx * ITEM) > 1) sc.scrollTo({ top: col.idx * ITEM, behavior: 'smooth' }); }, 160); };
+      sc.addEventListener('touchstart', e => { touching = true; clearTimeout(t); e.stopPropagation(); }, { passive: true });   // 滚轮里的手指不交给面板 / 页面的手势
+      const up = () => { touching = false; settle(); };
+      sc.addEventListener('touchend', up, { passive: true });
+      sc.addEventListener('touchcancel', up, { passive: true });
       sc.addEventListener('scroll', () => {
+        lastScroll = performance.now();
         const i = Math.max(0, Math.min(col.items.length - 1, Math.round(sc.scrollTop / ITEM)));
         if (i !== col.idx) { col.idx = i; col.mark(); onChange && onChange(ci, col.value); }
-        clearTimeout(t);
-        t = setTimeout(() => { if (Math.abs(sc.scrollTop - col.idx * ITEM) > 1) sc.scrollTo({ top: col.idx * ITEM, behavior: 'smooth' }); }, 140);
+        settle();
       }, { passive: true });
       sc.addEventListener('click', e => {
+        // 正在滚（或刚停）时的一下点按只是让它停住，不算选中某一行
+        if (performance.now() - lastScroll < 220) return;
         const it = e.target.closest('.witem'); if (!it) return;
         sc.scrollTo({ top: Number(it.dataset.i) * ITEM, behavior: 'smooth' });
       });
