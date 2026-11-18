@@ -9,6 +9,7 @@ set -uo pipefail
 HOME_DIR="$HOME/Library/Application Support/Cadence"
 WORK="$HOME_DIR/ios-build"                # 编译用的副本（后台任务读不了「桌面」文件夹，所以放这里）
 STAMP="$HOME_DIR/iphone-installed"        # 上次成功安装的时间
+EXP="$HOME_DIR/iphone-expires"            # 手机上那一份签名（描述文件）哪天到期（秒）：续签看它，不看安装时间
 BUILT="$HOME_DIR/iphone-build"            # 手机上现在装的是 iOS 第几版（ios/version.json 的 build）
 REPO=SalmangoX/month-calendar
 LOG="$HOME_DIR/iphone-renew.log"
@@ -50,13 +51,17 @@ if [ "${1:-}" = "--renew" ]; then
            || curl -fsSL --max-time 15 "https://cdn.jsdelivr.net/gh/$REPO@main/ios/version.json" 2>/dev/null)
   latest=$(echo "$latest" | sed -nE 's/.*"build"[^0-9]*([0-9]+).*/\1/p'); latest=${latest:-0}
   due=$(( $(date +%s) - last >= 5 * 86400 ))
+  # 知道签名哪天到期就按它算：离到期不到 2 天就续（以前只看装了几天：重装时 Xcode 沿用快过期的旧描述文件，装完第二天就过期了）
+  exp=$(cat "$EXP" 2>/dev/null || echo 0)
+  [ "$exp" -gt 0 ] && due=$(( $(date +%s) >= exp - 2 * 86400 ))
   [ "$due" = 0 ] && [ "$latest" -le "$have" ] && exit 0   # 签名还新、也没有新版本：什么都不做
   echo "---- $(date '+%F %T') $([ "$latest" -gt "$have" ] && echo "有新版本（第 $latest 版，手机上是第 $have 版）" || echo "到期续签")"
   if [ -z "$(find_phone)" ]; then
     echo "手机不在身边（或没解锁、不在同一个 Wi-Fi），下次再试"
     # 签名第 6 天了还连不上手机（比如校园网不让设备之间直连）：在 Mac 上提醒一下插线，每天最多一次
     NOTE="$HOME_DIR/iphone-renew-noted"
-    if [ $(( $(date +%s) - last )) -ge $(( 6 * 86400 )) ] && [ "$(cat "$NOTE" 2>/dev/null)" != "$(date +%F)" ]; then
+    soon=$(( $(date +%s) - last >= 6 * 86400 )); [ "$exp" -gt 0 ] && soon=$(( $(date +%s) >= exp - 86400 ))
+    if [ "$soon" = 1 ] && [ "$(cat "$NOTE" 2>/dev/null)" != "$(date +%F)" ]; then
       osascript -e 'display notification "Cadence 的签名明天到期。用数据线把 iPhone 连上这台 Mac，几分钟内会自动续签。" with title "插上 iPhone 续签 Cadence"' 2>/dev/null
       date +%F > "$NOTE"
     fi
@@ -96,6 +101,16 @@ VER=$(plutil -extract version raw ../version.json | sed -E 's/-b[0-9]+$//')
 BUILD=$(plutil -extract build raw version.json 2>/dev/null || echo 1)
 echo "→ 编译并签名 ${VER}（${BUILD}）…"  # 编译目标就是这台 iPhone：第一次会把它登记到你的开发者账号，签名才包含它
 mkdir -p build
+# 快过期的描述文件先删掉：Xcode 只在描述文件已经过期时才换新的，不删的话重装还是用旧的那份，装完没几天又过期
+now=$(date +%s)
+for p in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"/*.mobileprovision "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision; do
+  [ -f "$p" ] || continue
+  x=$(security cms -D -i "$p" 2>/dev/null) || continue
+  echo "$x" | grep -q "io.github.salmangox.cadence" || continue
+  e=$(echo "$x" | plutil -extract ExpirationDate raw -o - - 2>/dev/null)
+  e=$(date -j -u -f "%Y-%m-%dT%H:%M:%SZ" "$e" +%s 2>/dev/null || echo 0)
+  [ "$e" -lt $(( now + 6 * 86400 )) ] && rm -f "$p" && echo "  删掉快过期的描述文件（$(date -r "$e" '+%F %H:%M') 到期）"
+done
 if ! xcodebuild -project CadenceiOS.xcodeproj -scheme Cadence -configuration Release -destination "id=$UDID" \
      -derivedDataPath build/dev -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
      DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$VER" CURRENT_PROJECT_VERSION="$BUILD" CADENCE_CHANNEL=mac build > build/dev-log.txt 2>&1; then
@@ -106,6 +121,9 @@ if ! xcrun devicectl device install app --device "$UDID" build/dev/Build/Product
   echo "❌ 安装失败："; tail -5 build/install-err.txt; exit 1
 fi
 date +%s > "$STAMP"; echo "$BUILD" > "$BUILT"
+e=$(security cms -D -i build/dev/Build/Products/Release-iphoneos/Cadence.app/embedded.mobileprovision 2>/dev/null | plutil -extract ExpirationDate raw -o - - 2>/dev/null)
+e=$(date -j -u -f "%Y-%m-%dT%H:%M:%SZ" "$e" +%s 2>/dev/null || echo 0)
+[ "$e" -gt 0 ] && { echo "$e" > "$EXP"; echo "  签名到期：$(date -r "$e" '+%F %H:%M')"; }
 echo "✅ 已装到 iPhone：${VER}（${BUILD}）$(date '+%F %T')"
 
 # 打开自动续期：每 6 小时检查一次（只在需要时才真正重装）
