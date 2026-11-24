@@ -974,7 +974,8 @@
   });
   // 卡片开着时，点卡片和那一周的格子以外的地方（标题板、空白……）都是关掉卡片
   $('#page-cal').addEventListener('click', e => {
-    if (!previewOpen || e.target.closest('#preview, [data-date], .mini')) return;
+    // 点的东西已经不在页面上（卡片里勾选完成后整张卡片重画，被点的勾选框被换掉了）也不算点外面
+    if (!previewOpen || !e.target.isConnected || e.target.closest('#preview, [data-date], .mini')) return;
     previewOpen = false; render();
   });
 
