@@ -238,19 +238,20 @@
     }
 
     track.style.cssText = '';
-    track.innerHTML = h + `<svg class="mframe${moving ? ' moving' : ''}" width="${W}" height="${rowH * (6 + BUF * 2)}" aria-hidden="true">${MF_DEFS}<path id="mframePath"/></svg>`;
+    track.innerHTML = h + `<div class="mframe${moving ? ' moving' : ''}" aria-hidden="true"><div class="mf-in" id="mframePath"></div></div>`;
     setT(0, TOP - (BUF * rowH + scrollY));
     monthTitle();
     drawFrame();
   }
   // 月份交替的地方：一根 Cadence logo 色（雾紫 → 丁香 → 暖沙）缓缓流动的细线，沿着交界呈阶梯形；两侧不画（用户定的：只留月份交替那一条）
   // 本月开头那条（和上个月的交界）、本月结尾那条（和下个月的交界）
-  const MF_DEFS = '<defs><linearGradient id="mfGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="160" y2="0" spreadMethod="reflect">'
-    + '<stop offset="0" stop-color="#9E9AC8"/><stop offset=".5" stop-color="#C7B3CF"/><stop offset="1" stop-color="#EBC7A6"/>'
-    + '<animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="320 0" dur="7s" repeatCount="indefinite"/></linearGradient></defs>';
+  // 性能（安卓卡顿的主因之一）：以前是 SVG 描边 + SMIL 动画渐变（animateTransform），SMIL 每一帧都在主线程上重画整个当月那一块，
+  // 页面静止时也一直在出帧（安卓模拟器上静止 5 秒出 140 帧）。现在每一段直线是一个小方块，里面一条渐变带用 CSS transform 动画平移，
+  // 交给合成器播放：样子一样（1.6 宽、圆头圆角、整体 .95 不透明、渐变按横坐标 0–160 往返、7 秒平移 320），主线程不再每帧干活
+  const MF_P = 320, MF_T = 7000;
   function drawFrame() {
-    const path = document.getElementById('mframePath');
-    if (!path || view !== 'month') return;
+    const box = document.getElementById('mframePath');
+    if (!box || view !== 'month') return;
     const start = MC.addDays(anchor, -BUF * 7);
     const idx = d => Math.round((d - start) / 864e5);
     const a = idx(new Date(focus.y, focus.m, 1)), b = idx(new Date(focus.y, focus.m + 1, 0)) + 1;   // b：下个月 1 号
@@ -261,9 +262,31 @@
       if (c === 0) return [[X(0), Y(r)], [X(7), Y(r)]];
       return [[X(0), Y(r + 1)], [X(c), Y(r + 1)], [X(c), Y(r)], [X(7), Y(r)]];
     };
-    const d = [seam(a), seam(b)].map(ps => 'M' + ps.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L')).join(' ');
-    path.setAttribute('d', d);
+    const R = .8;   // 线宽 1.6 的一半：每段两头各伸出半个线宽、圆角，拼起来就是圆头圆角
+    const delay = -(performance.now() % MF_T);   // 重画时接着原来的进度流动，不跳
+    let h = '';
+    for (const ps of [seam(a), seam(b)]) for (let i = 1; i < ps.length; i++) {
+      const [x1, y1] = ps[i - 1], [x2, y2] = ps[i];
+      const l = Math.min(x1, x2) - R, t = Math.min(y1, y2) - R, w = Math.abs(x2 - x1) + 2 * R, hh = Math.abs(y2 - y1) + 2 * R;
+      if (w <= 2 * R && hh <= 2 * R) continue;
+      const off = -MF_P - (((l % MF_P) + MF_P) % MF_P);   // 渐变带的起点对齐到全局横坐标的整周期（和 SVG 的 userSpaceOnUse 一样）
+      h += `<b style="left:${l.toFixed(2)}px;top:${t.toFixed(2)}px;width:${w.toFixed(2)}px;height:${hh.toFixed(2)}px"><i style="left:${off.toFixed(2)}px;width:${(w + 2 * MF_P).toFixed(0)}px;animation-delay:${delay.toFixed(0)}ms"></i></b>`;
+    }
+    box.innerHTML = h;
+    flowTick();
   }
+  // 安卓 WebView 里合成器动画也不省：每一帧整个 App 的视图、WebView 和标题板的模糊都要重画一遍（iPhone / Mac 的系统在 App 外面合成，不受影响）。
+  // 所以安卓上不用 CSS 动画，改成每秒挪 12 次（每次约 4px，这么慢的渐变看不出一格一格），静止时一秒 12 帧，不再是满帧；
+  // 滚动中线是淡掉的、App 在后台、不在月视图时都不挪
+  function flowTick() {
+    const box = document.getElementById('mframePath');
+    if (!box || !document.documentElement.classList.contains('in-android')) return;
+    box.style.setProperty('--mf-x', ((performance.now() % MF_T) / MF_T * MF_P).toFixed(1) + 'px');
+  }
+  setInterval(() => {
+    if (document.hidden || moving || view !== 'month' || document.body.dataset.page !== 'cal') return;
+    flowTick();
+  }, 83);
   // 统计某段日期里的事件：跨好几天的事件只算一个
   function tally(prefix) {
     const seen = new Set(); let total = 0, done = 0;

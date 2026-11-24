@@ -1376,7 +1376,7 @@ struct GlassDrawer: View {
             }
             Text(k.lead).font(.system(size: 12)).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal, 4)
             VStack(spacing: 8) {   // 菜单里窄：两种日历上下排
-                kindOption(k.rec, art: AnyView(RecArt(dark: scheme == .dark)), tint: Color(argb: 0xFF5B_8FD0)) { m.kindsOpen = false; m.addCal("rec") }
+                kindOption(k.rec, art: AnyView(RecArt(dark: scheme == .dark)), tint: Color(argb: 0xFF46_87DB)) { m.kindsOpen = false; m.addCal("rec") }
                 kindOption(k.days, art: AnyView(DaysArt(k: k.days, dark: scheme == .dark)), tint: Color(argb: 0xFFD4_6A8C)) { m.kindsOpen = false; m.addCal("days") }
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -1605,7 +1605,7 @@ struct RecArt: View {
             .padding(10)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             HStack(alignment: .bottom, spacing: 3) {
-                ForEach(Array([(0.4, 0xFF5B_A86B), (0.7, 0xFFC9_8A1E), (0.55, 0xFFE0_7A3C), (0.85, 0xFFD4_472C)].enumerated()), id: \.offset) { _, b in
+                ForEach(Array([(0.4, 0xFF5B_A86B), (0.7, 0xFFE4_8E50), (0.55, 0xFFE0_7A3C), (0.85, 0xFFD5_3D37)].enumerated()), id: \.offset) { _, b in
                     RoundedRectangle(cornerRadius: 2).fill(Color(argb: UInt32(b.1))).frame(width: 7, height: 34 * b.0)
                 }
             }

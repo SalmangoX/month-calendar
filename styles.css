@@ -1,14 +1,14 @@
 /* 月历 0.3 · 磨砂玻璃 / 灰蓝主色 */
 :root {
   --glass-rim: inset 0 1px 0 var(--rim-hi), inset 1px 0 0 color-mix(in srgb, var(--rim-hi) 55%, transparent), inset 0 -1px 0 var(--rim-lo), inset -1px 0 0 var(--rim-lo), inset 0 0 0 .5px var(--frost-edge), inset 0 0 22px var(--rim-glow);
-  /* 优先级色（按色彩心理设计）：高 = 朱红（紧迫、最醒目）、中 = 琥珀（提醒注意）、低 = 静蓝（平静）、无 = 中性灰（退后）。
+  /* 优先级色（按色彩心理设计）：高 = 朱红（紧迫、最醒目）、中 = 杏橙（提醒注意）、低 = 静蓝（平静）、无 = 中性灰（退后）。
      越重要越鲜艳；高和中靠明暗也能区分，红绿色弱也看得出来。深色模式另有一套专门的深色调（见 store.js MC.PAL） */
-  /* 优先级色（色彩心理学）：低 = 冷静、往后退的天蓝；中 = 提醒注意的琥珀金；高 = 紧迫的朱红；无 = 中性灰。
+  /* 优先级色（色彩心理学）：低 = 冷静、往后退的天蓝；中 = 提醒注意的杏橙（2026-11-24 换过：旧的杏橙太暗发棕）；高 = 紧迫的朱红；无 = 中性灰。
      冷 → 暖、亮 → 浓，色相和明暗都拉开，色弱也分得清。白字都看得清；深色调由 store.js 按同一规则算出 */
   /* 【联动:优先级颜色】见 CLAUDE.md「联动分组」 */
-  --p3: #D4472C;   /* 高：朱红 */
-  --p2: #C98A1E;   /* 中：琥珀金 */
-  --p1: #5B8FD0;   /* 低：天蓝 */
+  --p3: #D53D37;   /* 高：朱红 */
+  --p2: #E48E50;   /* 中：杏橙 */
+  --p1: #4687DB;   /* 低：天蓝 */
   --p0: #A3A1AD;   /* 无 */
   /* 红色只用于「现在时间」的线、删除、出错、逾期（和优先级无关）*/
   /* 【联动:主色和红色】见 CLAUDE.md「联动分组」 */
@@ -214,7 +214,15 @@ body .weekdays { display: none; }
 /* 滑动中月框淡下去，停下时和星期条同一条曲线一起回来（calendar.js 的 markMoving / endMoving） */
 .mframe.moving { opacity: 0; transition: opacity .25s ease-out; }
 /* 月份交替那一条：logo 渐变色缓缓流动的细实线（calendar.js 的 drawFrame / MF_DEFS），两侧不画 */
-.mframe path { fill: none; stroke: url(#mfGrad); stroke-opacity: .95; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.mframe .mf-in { position: absolute; left: 0; top: 0; opacity: .95; }   /* 整体一层 .95（段与段在拐角重叠处不会更深，和 SVG 的 stroke-opacity 一样） */
+.mframe b { position: absolute; display: block; overflow: hidden; border-radius: .8px; }
+/* 渐变按横坐标 0–160 往返（周期 320），7 秒平移一个周期；transform 动画由合成器播放，主线程不用每帧重画 */
+.mframe i { position: absolute; top: 0; bottom: 0; display: block; will-change: transform;
+  background: linear-gradient(90deg, #9E9AC8 0, #C7B3CF 80px, #EBC7A6 160px, #C7B3CF 240px, #9E9AC8 320px) 0 0 / 320px 100% repeat-x;
+  animation: mfFlow 7s linear infinite; }
+@keyframes mfFlow { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(320px, 0, 0); } }
+/* 安卓：不用每帧的动画，由 calendar.js 的 flowTick 每秒挪 12 次（--mf-x），见那里的说明 */
+.in-android .mframe i { animation: none; transform: translate3d(var(--mf-x, 0px), 0, 0); }
 
 .wrow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 0 2px; contain: layout paint style; }
 .cell { position: relative; overflow: hidden; min-width: 0; padding-top: 6px; cursor: pointer; border-top: .5px solid var(--line); }
@@ -255,17 +263,30 @@ body .weekdays { display: none; }
 /* 展开当天预览时行变矮：收紧上下间距，事件条仍留在选中框内 */
 .chip {
   height: var(--chip-h); line-height: var(--chip-h);
-  font-size: 9.5px; padding: 0 2px; border-radius: 4.5px; letter-spacing: -.025em;
+  font-size: 9.5px; padding: 0 2px; border-radius: 6.5px; letter-spacing: -.025em;
   white-space: nowrap; overflow: hidden;
   background: var(--cg, var(--c)); color: #fff; font-weight: 600;   /* --cg：优先级渐变（store.js 的 MC.priGrad） */
 }
+/* 中文：字小一点、字距大一点、离边远一点，事件多的时候不挤（2026-11-24 用户定的） */
+:root:lang(zh) .chip { font-size: 9px; letter-spacing: .04em; padding: 0 4px 0 6px; }   /* 字往右挪一点，不贴着左端的渐变 */
+:root:lang(zh) .chip.tm { padding-right: 8px; }   /* 右端有表示「有具体时间」的小点 */
 /* 深色：每个颜色专门设计的深色调（--cf，宝石色，不发灰不发棕）+ 带一点同色的柔白字（--ci），由 store.js 算好写在每个色条上 */
 :root[data-theme="dark"] .chip:not(.done) { background: var(--cgd, var(--cf, var(--c))); color: var(--ci, #F0F0F0); font-weight: 500; }
 /* 【联动:优先级色条】见 CLAUDE.md「联动分组」 */
 .chip.done { opacity: .42; text-decoration: line-through; }
 @supports (background: color-mix(in srgb, red 50%, blue)) {
-  .chip.done { opacity: 1; background: var(--cgo, color-mix(in srgb, var(--c) var(--done-mix), transparent));   /* --cgo：已完成也带同一组渐变（淡） */ color: color-mix(in srgb, var(--c) 70%, var(--text2)); }
+  .chip.done { opacity: 1; background: var(--cgob, color-mix(in srgb, var(--c) var(--done-mix), transparent)); color: color-mix(in srgb, var(--c) 70%, var(--text2)); isolation: isolate; }
+  /* 已完成也带同一组渐变（淡）：顺着圆角的渐变是好几层叠起来的，不能每层各自变透明，整层画在 ::before 上再按 --done-mix 变淡 */
+  .chip.done::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--cgo, none); opacity: var(--done-mix); pointer-events: none; }
+  .chip.done:not(.mbar) { position: relative; }
 }
+/* 子日历（除了主日历的所有日历，body[data-cal]）：像课表的课程块（.sc-blk）一样，左边一根实色竖条 + 半透明淡底 + 一圈很淡的同色细边 + 同色深字（2026-11-24 用户定的：和主日历的彩底白字区分开） */
+body[data-cal] .chip:not(.gap) { background: color-mix(in srgb, var(--c) 17%, transparent); color: color-mix(in srgb, var(--c) 72%, #16141d);
+  box-shadow: inset 3px 0 0 var(--c), inset 0 0 0 .5px color-mix(in srgb, var(--c) 35%, transparent); padding-left: 6px; border-radius: 4.5px; font-weight: 600; }
+body[data-cal] .chip.done { background: color-mix(in srgb, var(--c) 6%, transparent); color: var(--text3);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 35%, transparent), inset 0 0 0 .5px color-mix(in srgb, var(--c) 18%, transparent); }
+:root[data-theme="dark"] body[data-cal] .chip:not(.gap):not(.done) { background: color-mix(in srgb, var(--cf, var(--c)) 28%, transparent); color: color-mix(in srgb, var(--c) 50%, #fff);
+  box-shadow: inset 3px 0 0 var(--c), inset 0 0 0 .5px color-mix(in srgb, var(--c) 30%, transparent); font-weight: 500; }
 .more { font-size: 10px; color: var(--text2); padding-left: 4px; line-height: 12px; }
 .ctime { font-size: 9px; line-height: 11px; color: var(--text2); padding-left: 2px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -.02em;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
@@ -771,7 +792,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .b-top { display: block; margin-bottom: 12px; }
 /* 优先级是竖着的一条时：卡片分左右两栏，左边名称、备注和日期 / 提醒 / 重复，右边整条高度放优先级 */
 .b-card.v { display: flex; align-items: stretch; gap: 10px; }
-/* 卡片按优先级在外框泛一圈色（用户定的）：无 = 默认；低 / 中 / 高 = 天蓝 / 琥珀 / 朱红，只在边上一圈，往里很快淡掉。
+/* 卡片按优先级在外框泛一圈色（用户定的）：无 = 默认；低 / 中 / 高 = 天蓝 / 杏橙 / 朱红，只在边上一圈，往里很快淡掉。
    层次：一圈细细的色边 + 贴着边往里晕开的柔光 + 外面一点同色的软投影。阴影的层数始终一样（无的时候颜色是透明），换档时颜色平滑过渡 */
 .b-card.v { --pc: transparent; --pk: 1;
   box-shadow: inset 0 0 0 .5px var(--group-line),
@@ -937,10 +958,12 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .help-body a.chip-btn { display: inline-block; margin: 6px 0 4px; text-decoration: none; } /* 向导里当按钮用的链接 */
 
 /* 弹出菜单 */
-.popover { position: absolute; z-index: 50; min-width: 190px; border-radius: 16px; padding: 5px; opacity: 0; transform: scale(.94); transform-origin: var(--ox, 50%) var(--oy, 100%); pointer-events: none; transition: opacity .15s, transform .22s var(--ease); }
-.popover.show { opacity: 1; transform: none; pointer-events: auto; }
+.popover { position: absolute; z-index: 50; min-width: 190px; border-radius: 16px; padding: 5px; opacity: 0; transform: scale(.94); transform-origin: var(--ox, 50%) var(--oy, 100%); pointer-events: none; transition: opacity .15s, transform .22s var(--ease), visibility 0s .22s; visibility: hidden; }
+.popover.show { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity .15s, transform .22s var(--ease); }
+/* 性能：藏起来时 visibility:hidden（淡出完再藏）。只是透明度 0 的话，它的背景模糊在安卓上每一帧照样要算（实测滑动每帧多十几毫秒）。toast / cpop / wkpick 同样 */
 /* 以三个点为中心的小窗口：形状变化由 ui.js 的 dropPop 画（一颗水滴拉伸成窗口），这里不再缩放 */
-.popover.grow { transform: none; border-radius: 22px; transition: opacity .12s; }
+.popover.grow { transform: none; border-radius: 22px; transition: opacity .12s, visibility 0s .12s; }
+.popover.grow.show { transition: opacity .12s; }
 .popover button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border-radius: 14px; font-size: 15px; text-align: left; }
 .popover button:active, .popover button.on { background: var(--field); }
 .popover button .tick { margin-left: auto; color: var(--accent-text); font-weight: 700; }
@@ -975,9 +998,9 @@ html.locked .lock { display: grid; }
   padding: 10px 18px; border-radius: 20px; font-size: 14px; font-weight: 550;
   background: var(--frost-strong); -webkit-backdrop-filter: var(--glass-fx-strong); backdrop-filter: var(--glass-fx-strong);
   box-shadow: var(--glass-rim), var(--frost-shadow);
-  pointer-events: none; transition: opacity .2s, transform .3s var(--ease); z-index: 90; max-width: 86vw; text-align: center;
+  pointer-events: none; transition: opacity .2s, transform .3s var(--ease), visibility 0s .3s; visibility: hidden; z-index: 90; max-width: 86vw; text-align: center;
 }
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); visibility: visible; transition: opacity .2s, transform .3s var(--ease); }
 .toast { display: flex; align-items: center; gap: 14px; }
 .toast.has-act { pointer-events: auto; padding: 6px 6px 6px 18px; text-align: left; }
 .toast-act { flex: none; padding: 6px 13px; border-radius: 999px; font-size: 14px; font-weight: 650; color: var(--accent-text); background: var(--field); }
@@ -1022,7 +1045,7 @@ html.locked .lock { display: grid; }
 /* 点击反馈：按下去水滴被压扁一点，松手像果冻一样弹回 */
 .mi-sw { transition: transform .45s cubic-bezier(.3, 1.8, .4, 1); }
 .popover button.sw:active .mi-sw { transform: scale(1.1, .86); transition: transform .16s cubic-bezier(.2, .8, .3, 1); }
-.lg-refract .mi-sw::after { -webkit-backdrop-filter: blur(.6px) saturate(140%) url(#lg-refract-soft); backdrop-filter: blur(.6px) saturate(140%) url(#lg-refract-soft); }
+.lg-refract:not(.scrolling) .mi-sw::after { -webkit-backdrop-filter: blur(.6px) saturate(140%) url(#lg-refract-soft); backdrop-filter: blur(.6px) saturate(140%) url(#lg-refract-soft); }
 .popover button.danger { color: var(--red); }
 
 /* 今日：分组标题右侧的小按钮（已逾期 → 全部移到今天） */
@@ -1208,9 +1231,9 @@ html.locked .lock { display: grid; }
     color-mix(in srgb, var(--c) 7%, var(--cpop-bg));
   -webkit-backdrop-filter: blur(26px) saturate(185%); backdrop-filter: blur(26px) saturate(185%);
   box-shadow: var(--glass-rim), 0 2px 6px rgba(15, 25, 40, .08), 0 18px 48px rgba(15, 25, 40, .24);
-  opacity: 0; transform: scale(.88); pointer-events: none; transition: opacity .18s, transform .32s var(--ease-spring);
+  opacity: 0; transform: scale(.88); pointer-events: none; transition: opacity .18s, transform .32s var(--ease-spring), visibility 0s .32s; visibility: hidden;
 }
-.cpop.show { opacity: 1; transform: none; pointer-events: auto; }
+.cpop.show { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity .18s, transform .32s var(--ease-spring); }
 .cpop::before { content: ""; position: absolute; left: 16px; right: 16px; top: 0; height: 3px; border-radius: 0 0 3px 3px; background: var(--c); }
 .cp-top { display: flex; align-items: center; justify-content: space-between; }
 .cp-tag { font-size: 12px; font-weight: 650; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); padding: 3px 10px; border-radius: 999px; }
@@ -1231,9 +1254,9 @@ html.locked .lock { display: grid; }
   padding: 10px 10px 12px; border-radius: 24px;
   background: var(--frost-strong); -webkit-backdrop-filter: blur(30px) saturate(160%); backdrop-filter: blur(30px) saturate(160%);
   box-shadow: var(--glass-rim), 0 2px 6px rgba(15, 25, 40, .08), 0 18px 48px rgba(15, 25, 40, .24);
-  opacity: 0; transform: translateX(-50%) scale(.92); transform-origin: 50% 0; pointer-events: none; transition: opacity .18s, transform .3s var(--ease-spring);
+  opacity: 0; transform: translateX(-50%) scale(.92); transform-origin: 50% 0; pointer-events: none; transition: opacity .18s, transform .3s var(--ease-spring), visibility 0s .3s; visibility: hidden;
 }
-.wkpick.show { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+.wkpick.show { opacity: 1; transform: translateX(-50%); pointer-events: auto; visibility: visible; transition: opacity .18s, transform .3s var(--ease-spring); }
 .wp-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 6px; }
 .wp-head b { font-size: 16px; font-weight: 650; }
 .wp-week, .wp-row { display: grid; grid-template-columns: 26px repeat(7, 1fr); align-items: center; text-align: center; }
@@ -1276,14 +1299,14 @@ html.locked .lock { display: grid; }
   background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .06) 55%, rgba(255, 255, 255, .14));
   -webkit-backdrop-filter: blur(3px) saturate(190%) brightness(1.05); backdrop-filter: blur(3px) saturate(190%) brightness(1.05);
   box-shadow: var(--glass-rim); }
-.lg-refract .drawer::before { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); }
+.lg-refract:not(.scrolling) .drawer::before { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); }
 /* 中间的磨砂卡片：往里收 7px，圆角 23 */
 .drawer::after { inset: 7px; border-radius: 23px;
   background: var(--drawer-frost);
   -webkit-backdrop-filter: blur(30px) saturate(170%); backdrop-filter: blur(30px) saturate(170%);
   box-shadow: inset 0 0 0 .6px rgba(255, 255, 255, .5), 0 1px 4px rgba(14, 24, 40, .06); }
 :root[data-theme="dark"] .drawer::before { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
-:root[data-theme="dark"].lg-refract .drawer::before { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }
+:root[data-theme="dark"].lg-refract:not(.scrolling) .drawer::before { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }
 :root[data-theme="dark"] .drawer::after { box-shadow: inset 0 0 0 .6px rgba(255, 255, 255, .08); }
 .drawer > * { position: relative; z-index: 1; }
 .drawer.vis { visibility: visible; }
@@ -1335,7 +1358,7 @@ html.locked .lock { display: grid; }
   -webkit-backdrop-filter: blur(6px) saturate(180%); backdrop-filter: blur(6px) saturate(180%);
   box-shadow: var(--lg-shadow); text-shadow: var(--lg-ink-halo);
 }
-.lg-refract .lgbtn { -webkit-backdrop-filter: blur(6px) saturate(170%) url(#lg-refract-soft); backdrop-filter: blur(6px) saturate(170%) url(#lg-refract-soft); }
+.lg-refract:not(.scrolling) .lgbtn { -webkit-backdrop-filter: blur(6px) saturate(170%) url(#lg-refract-soft); backdrop-filter: blur(6px) saturate(170%) url(#lg-refract-soft); }
 :root[data-theme="dark"] .lgbtn { background: linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04) 55%, rgba(255, 255, 255, .08)); }
 .dr-swatches { display: flex; flex-wrap: wrap; gap: 12px; padding: 4px 2px; }
 .dr-sw { width: 34px; height: 34px; border-radius: 50%; background: var(--cc); transition: transform .25s var(--ease-spring), box-shadow .2s; }
@@ -1667,11 +1690,13 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 :root[data-theme="dark"] .face { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
 :root[data-theme="dark"] .face::after { opacity: .07; }
 /* 真折射：把背景按噪声位移，边缘像液体一样扭曲（Chromium / 安卓 WebView 支持；不支持的就用上面的普通玻璃） */
-.lg-refract .face {
+/* 性能：滚动中（ui.js 给根元素挂 scrolling）暂时不用 SVG 折射，换回同样模糊、饱和的普通玻璃，停下就恢复。
+   折射的位移滤镜在滚动内容上每一帧都要重算，安卓设置页实测滑动每帧多 ~16ms；滚动中那一点边缘扭曲几乎看不出来。.mi-sw / .lgbtn / 侧拉菜单 / .st-glass 同样 */
+.lg-refract:not(.scrolling) .face {
   -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract);
   backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract);
 }
-:root[data-theme="dark"].lg-refract .face {
+:root[data-theme="dark"].lg-refract:not(.scrolling) .face {
   -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract);
   backdrop-filter: blur(2px) saturate(170%) url(#lg-refract);
 }
@@ -1975,7 +2000,7 @@ body #page-cal .weekdays.hide { display: none; }
   background: linear-gradient(160deg, color-mix(in srgb, var(--brand-a) 22%, transparent), color-mix(in srgb, var(--brand-mid) 18%, transparent));
 }
 
-/* ---------- 优先级拖动条：无 → 低 → 中 → 高，天蓝 → 琥珀 → 朱红的渐变填到哪露到哪，越重要越暖 ---------- */
+/* ---------- 优先级拖动条：无 → 低 → 中 → 高，天蓝 → 杏橙 → 朱红的渐变填到哪露到哪，越重要越暖 ---------- */
 .pbar { --th: 28px; --pad: 3px; position: relative; padding: 2px 0 0; touch-action: pan-y; -webkit-user-select: none; user-select: none; outline: none; }
 .pbar.compact { --th: 24px; }
 .pb-track {

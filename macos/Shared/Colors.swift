@@ -195,15 +195,15 @@ struct Pal {
                                             startPoint: .topLeading, endPoint: .bottomTrailing))
     }
 
-    /// 优先级色（和网页 --p0…--p3 一致）：无 灰 · 低 天蓝 · 中 琥珀金 · 高 朱红（色彩心理学：冷 → 暖）；深色调按同一个 OKLCH 规则算（和网页 MC.darkTone 一样）
+    /// 优先级色（和网页 --p0…--p3 一致）：无 灰 · 低 天蓝 · 中 杏橙 · 高 朱红（色彩心理学：冷 → 暖）；深色调按同一个 OKLCH 规则算（和网页 MC.darkTone 一样）
     // 【联动:优先级颜色】见 CLAUDE.md「联动分组」
-    static let P: [UInt32] = [0xFFA3_A1AD, 0xFF5B_8FD0, 0xFFC9_8A1E, 0xFFD4_472C]
+    static let P: [UInt32] = [0xFFA3_A1AD, 0xFF46_87DB, 0xFFE4_8E50, 0xFFD5_3D37]
     static let DARK_FILL: [UInt32] = P.map { CourseColors.darkTone($0).0 }
     static let DARK_INK: [UInt32] = P.map { CourseColors.darkTone($0).1 }
     /// 优先级色条的渐变（和网页 store.js 的 GRAD 同一组色标）：低在右端带一点中级，中两端带低级 / 高级，高在左端带一点中级
     // 【联动:优先级色条】见 CLAUDE.md「联动分组」
-    static let GRAD_L: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF5B_8FD0), (0.75, 0xFF5B_8FD0), (0.8125, 0xFF6A_9FE0), (0.875, 0xFF77_ABED), (0.9375, 0xFFDA_A258), (1, 0xFFDA_A14F)], 2: [(0, 0xFF79_ACEF), (0.0312, 0xFFDA_A357), (0.0625, 0xFFD9_A04D), (0.0938, 0xFFD3_973A), (0.125, 0xFFC9_8A1E), (0.875, 0xFFC9_8A1E), (0.9062, 0xFFDC_8D2C), (0.9375, 0xFFEB_8D38), (0.9688, 0xFFF3_863E), (1, 0xFFF1_783E)], 3: [(0, 0xFFED_8C39), (0.0625, 0xFFF3_843E), (0.125, 0xFFF0_753D), (0.1875, 0xFFE4_6036), (0.25, 0xFFD4_472C), (1, 0xFFD4_472C)]]
-    static let GRAD_D: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF23_5692), (0.75, 0xFF23_5692), (0.8125, 0xFF38_6AA7), (0.875, 0xFF4A_7BB8), (0.9375, 0xFFAD_7833), (1, 0xFFB1_7D2E)], 2: [(0, 0xFF4D_7DBA), (0.0312, 0xFFAD_7A31), (0.0625, 0xFFB1_7D2D), (0.0938, 0xFFB0_7A20), (0.125, 0xFFAC_7305), (0.875, 0xFFAC_7305), (0.9062, 0xFFBB_761C), (0.9375, 0xFFC6_762A), (0.9688, 0xFFCA_7030), (1, 0xFFC5_6330)], 3: [(0, 0xFFC7_752B), (0.0625, 0xFFC9_6E31), (0.125, 0xFFC3_6030), (0.1875, 0xFFB5_4D29), (0.25, 0xFFA3_351F), (1, 0xFFA3_351F)]]
+    static let GRAD_L: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF46_87DB), (0.75, 0xFF46_87DB), (0.8125, 0xFF67_8CC8), (0.875, 0xFF8F_90AC), (0.9375, 0xFFB9_9187), (1, 0xFFE4_8E50)], 2: [(0, 0xFF6E_8DC4), (0.0312, 0xFF96_91A6), (0.0625, 0xFFB7_9288), (0.0938, 0xFFD2_906A), (0.125, 0xFFE4_8E50), (0.875, 0xFFE4_8E50), (0.9062, 0xFFE3_8449), (0.9375, 0xFFE1_7640), (0.9688, 0xFFDE_6539), (1, 0xFFDA_5036)], 3: [(0, 0xFFDF_693A), (0.0625, 0xFFDB_5536), (0.125, 0xFFD8_4736), (0.1875, 0xFFD6_3F37), (0.25, 0xFFD5_3D37), (1, 0xFFD5_3D37)]]
+    static let GRAD_D: [Int: [(CGFloat, UInt32)]] = [1: [(0, 0xFF0C_53A3), (0.75, 0xFF0C_53A3), (0.8125, 0xFF39_5B94), (0.875, 0xFF62_637D), (0.9375, 0xFF8C_675D), (1, 0xFFB8_6624)], 2: [(0, 0xFF40_5C91), (0.0312, 0xFF69_6479), (0.0625, 0xFF8A_675F), (0.0938, 0xFFA5_6742), (0.125, 0xFFB8_6624), (0.875, 0xFFB8_6624), (0.9062, 0xFFB5_5E22), (0.9375, 0xFFB0_5320), (0.9688, 0xFFA9_4520), (1, 0xFFA1_3622)], 3: [(0, 0xFFAB_4820), (0.0625, 0xFFA3_3A22), (0.125, 0xFF9E_3024), (0.1875, 0xFF9B_2B25), (0.25, 0xFF9A_2925), (1, 0xFF9A_2925)]]
     /// 红色只用于逾期、现在时间的线（和优先级无关）
     static let RED: UInt32 = 0xFFD9_453E
 

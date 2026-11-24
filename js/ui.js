@@ -57,6 +57,17 @@
     setTimeout(() => { const b = cfm.el.querySelector(`[data-cfm="${o.danger ? 0 : 1}"]`); b && b.focus({ preventScroll: true }); }, 30);
   });
 
+  // ---------- 滚动中：根元素挂 scrolling（停下 160ms 摘掉）----------
+  // 性能：滚动中 styles.css 暂时不用 SVG 折射（.lg-refract:not(.scrolling) …），只在支持折射的浏览器 / 安卓 WebView 上挂
+  if (document.documentElement.classList.contains('lg-refract') || (window.CSS && CSS.supports && CSS.supports('backdrop-filter', 'url(#lg-refract)'))) {
+    let scT = 0;
+    const root = document.documentElement;
+    document.addEventListener('scroll', () => {
+      if (!root.classList.contains('scrolling')) root.classList.add('scrolling');
+      clearTimeout(scT); scT = setTimeout(() => root.classList.remove('scrolling'), 160);
+    }, { capture: true, passive: true });
+  }
+
   // ---------- 面板层级 ----------
   const backdrop = $('#backdrop');
   const stack = [];
