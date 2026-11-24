@@ -829,7 +829,7 @@
   function fdEnd(pick, ex, ey) {
     if (fd && pick && ex != null) { const h2 = fanPick(ex, ey); if (h2 !== fd.hot) { if (fd.hot) fd.hot.classList.remove('hot'); fd.hot = h2; } }   // 松手那一下的位置再判一次（甩得快时最后一次移动可能还没到）
     const h = fd && fd.hot;
-    if (fd) { if (h) h.classList.remove('hot'); body.classList.remove('fan-drag'); lastDragEnd = Date.now(); }
+    if (fd) { if (h) h.classList.remove('hot'); body.classList.remove('fan-drag'); lastDragEnd = Date.now(); if (pvHeld) fitPreview(); }
     const was = !!fd;
     fd = null; pd = null;
     if (!was) return;
@@ -1024,7 +1024,10 @@
 
   // ---------- 日历里点开某一天的卡片：时钟和 logo 挪进卡片底部，不压在卡片边上 ----------
   const calBody = $id('calBody'), pvCard = $id('preview');
+  let pvHeld = false;   // 按住 logo 拖着时底栏先不挪进卡片（拖到一半 logo 被搬走，手指和扇形对不上，添加面板出不来），松手再挪【联动:底部悬浮控件】
   function fitPreview() {
+    if (body.classList.contains('fan-drag')) { pvHeld = true; return; }
+    pvHeld = false;
     const on = !!calBody && calBody.classList.contains('previewing') && page() === 'cal' && body.dataset.kind !== 'days';
     if (!on) { body.classList.remove('dock-pv'); body.style.removeProperty('--d2-pv'); return; }
     // 用不受动画影响的布局位置算：卡片弹出有位移动画，按钮挪动也有过渡

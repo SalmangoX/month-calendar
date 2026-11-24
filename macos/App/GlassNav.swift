@@ -120,6 +120,9 @@ final class NavModel: ObservableObject {
     func tapPager() { navTick(); eval("document.getElementById('pager').click()", nil) }
     /// 扇形打开的时刻（换页时刚打开不久的不收）
     var fanOpenedAt = Date.distantPast
+    /// 日历里点开某一天时底栏往上挪多少：按住 logo 拖着时先不挪，松手再挪（拖到一半 logo 被搬走，手指和扇形对不上，添加面板出不来）【联动:底部悬浮控件】
+    private var heldPv: Double = 0
+    func dockPv(_ d: Dock) -> Double { if logoDrag == nil { heldPv = d.pv ?? 0 }; return heldPv }
     func setFan(_ open: Bool) {
         guard open != fanOpen else { return }
         navTick()
@@ -824,8 +827,8 @@ struct GlassDock: View {
                     }
                     .frame(width: g.size.width, height: g.size.height, alignment: .bottom)
                 }
-                .padding(.bottom, b + DockSize.lift + CGFloat(max(0, d.pv ?? 0)))
-                .animation(.spring(response: 0.45, dampingFraction: 0.85), value: d.pv)
+                .padding(.bottom, b + DockSize.lift + CGFloat(max(0, m.dockPv(d))))
+                .animation(.spring(response: 0.45, dampingFraction: 0.85), value: m.dockPv(d))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .coordinateSpace(name: "dock")

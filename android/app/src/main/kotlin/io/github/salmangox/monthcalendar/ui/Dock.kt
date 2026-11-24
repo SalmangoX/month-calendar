@@ -209,7 +209,11 @@ fun DockOverlay(m: DockModel) {
     // 时钟胶囊、logo 按中轴放：左边对准周日 / 周一之间那条线，右边对准周五 / 周六之间那条线（和网页 --d2-cx、iPhone 一样），卡片打开时只往上挪
     // 安卓的 WebView 在导航条上面、日历行高也跟着变：固定抬 40 会压到最下面那一行。按网页量的那条行线（fl）再抬，底边离线 6dp
     val base = maxOf(DockModel.LIFT.toFloat(), if (d.fl > 0f) d.fl + 6f - b else 0f)
-    val lift by animateDpAsState((base + maxOf(0f, d.pv)).dp, spring(.85f, 300f), label = "lf")
+    // 按住 logo 拖着时底栏不跟着挪：刚点了某一天（卡片正在展开、底栏要往上挪进卡片）或刚打开 App（行线刚量到）时马上拖到加号，
+    // 拖到一半 logo 被搬走，手指和扇形对不上，松手哪颗都没选中、添加面板就出不来（用户发现的）。松手后再挪过去【联动:底部悬浮控件】
+    val liftHeld = remember { floatArrayOf(0f) }
+    if (m.drag == null) liftHeld[0] = base + maxOf(0f, d.pv)
+    val lift by animateDpAsState(liftHeld[0].dp, spring(.85f, 300f), label = "lf")
     BoxWithConstraints(Modifier.fillMaxSize().onGloballyPositioned { m.origin = it.positionInRoot() }) {
         val cx = 2f + (maxWidth.value - 4f) / 7f
         // 扇形打开时：除了 logo 和扇形这一块，整个界面都暗一点（聚光的圆心是 logo），按住拖动时再暗一点；也接住点击，不会点穿到日历【联动:底部悬浮控件】
