@@ -767,12 +767,38 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .brow.err .b-card { box-shadow: inset 0 0 0 1.5px var(--red); }
 .b-swdel { position: absolute; top: 0; right: 0; bottom: 0; width: 76px; border-radius: 0 18px 18px 0; background: var(--red); color: #fff; font-size: 15px; font-weight: 600; opacity: 0; transition: opacity .2s; }
 .brow.swiped .b-swdel, .brow:has(.b-card[style*="translateX"]) .b-swdel { opacity: 1; }
-.b-top { display: block; padding-bottom: 12px; margin-bottom: 12px; border-bottom: .5px solid var(--group-line); }
-.b-name { display: flex; flex-direction: column; gap: 3px; }
-.b-title { min-width: 0; border: 0; background: none; outline: none; padding: 0; font-size: 16.5px; line-height: 22px; font-weight: 600; color: var(--text); }
+/* 名称 + 备注：一组带底色的输入框（和设置里的分组一样），名称一行 46、备注一行 42，中间一根细线；整行都是输入框，哪里点都能打字 */
+.b-top { display: block; margin-bottom: 12px; }
+/* 优先级是竖着的一条时：卡片分左右两栏，左边名称、备注和日期 / 提醒 / 重复，右边整条高度放优先级 */
+.b-card.v { display: flex; align-items: stretch; gap: 10px; }
+/* 卡片按优先级在外框泛一圈色（用户定的）：无 = 默认；低 / 中 / 高 = 天蓝 / 琥珀 / 朱红，只在边上一圈，往里很快淡掉。
+   层次：一圈细细的色边 + 贴着边往里晕开的柔光 + 外面一点同色的软投影。阴影的层数始终一样（无的时候颜色是透明），换档时颜色平滑过渡 */
+.b-card.v { --pc: transparent; --pk: 1;
+  box-shadow: inset 0 0 0 .5px var(--group-line),
+    inset 0 0 0 1px color-mix(in oklab, var(--pc) calc(30% * var(--pk)), transparent),
+    inset 0 0 14px -3px color-mix(in oklab, var(--pc) calc(30% * var(--pk)), transparent),
+    inset 0 0 34px -10px color-mix(in oklab, var(--pc) calc(18% * var(--pk)), transparent),
+    0 6px 18px -10px color-mix(in oklab, var(--pc) calc(45% * var(--pk)), transparent);
+  transition: box-shadow .35s var(--ease); }
+.b-card.v[data-p="1"] { --pc: var(--p1); --pk: .85; }
+.b-card.v[data-p="2"] { --pc: var(--p2); --pk: 1; }
+.b-card.v[data-p="3"] { --pc: var(--p3); --pk: 1.1; }
+:root[data-theme="dark"] .b-card.v[data-p="1"] { --pk: 1.15; }
+:root[data-theme="dark"] .b-card.v[data-p="2"] { --pk: 1.3; }
+:root[data-theme="dark"] .b-card.v[data-p="3"] { --pk: 1.4; }
+.brow.err .b-card.v { box-shadow: inset 0 0 0 1.5px var(--red); }
+.b-card.v .b-main { flex: 1; min-width: 0; }
+.b-card.v .b-pri { flex: none; display: flex; flex-direction: column; align-items: center; }
+.b-card.v .b-tools { margin-top: 0; gap: 6px; }
+.b-card.v .b-when { flex: 1.35; }
+.b-card.v .b-when, .b-card.v .b-opt { padding: 0 6px; font-size: 13.5px; gap: 4px; }
+.b-name { display: flex; flex-direction: column; border-radius: 14px; background: var(--field); overflow: hidden; }
+.b-title, .b-note { display: block; width: 100%; min-width: 0; border: 0; background: none; outline: none; margin: 0; padding: 0 14px; font-family: inherit; -webkit-appearance: none; appearance: none; }
+.b-title { height: 46px; font-size: 16.5px; font-weight: 600; color: var(--text); }
 .b-title::placeholder { color: var(--text3); font-weight: 500; }
-.b-note { min-width: 0; border: 0; background: none; outline: none; padding: 0; font-size: 14px; line-height: 19px; color: var(--text2); }
+.b-note { height: 42px; font-size: 15px; color: var(--text2); box-shadow: inset 0 .5px 0 var(--group-line); }
 .b-note::placeholder { color: var(--text3); }
+.b-name:focus-within { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 14%, transparent); }
 .b-tools { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .b-when, .b-opt { flex: 1; min-width: 0; height: 40px; padding: 0 8px; border-radius: 999px; background: var(--field); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
 .b-when { color: var(--accent-text); }
@@ -2007,6 +2033,36 @@ body #page-cal .weekdays.hide { display: none; }
 .pb-tick.on { color: var(--text); font-weight: 650; }
 .pbar.compact .pb-ticks { height: 18px; margin-top: 3px; }
 .pbar.compact .pb-tick { font-size: 11.5px; }
+/* 竖着的优先级条（批量添加卡片最右边）：最下面「无」、最上面「高」，渐变从下往上填。
+   不另外列字：玻璃圈里写着当前那一档，字用那一档的颜色；拖动时圈里的字像滚轮一样跟着一格一格滚过去（.pb-reel 跟着 --f 走）。
+   填色比纯色浅一档（纯色铺满太暗发闷，太浅又看不出颜色，用户两头都嫌过） */
+.pbar.vertical { --th: 30px; display: flex; flex: 1; min-height: 0; padding: 0; touch-action: none;
+  --v0: color-mix(in oklab, var(--p0) 50%, #fff); --v1: color-mix(in oklab, var(--p1) 66%, #fff);
+  --v2: color-mix(in oklab, var(--p2) 70%, #fff); --v3: color-mix(in oklab, var(--p3) 72%, #fff); }
+:root[data-theme="dark"] .pbar.vertical {
+  --v0: color-mix(in oklab, var(--p0) 62%, var(--field)); --v1: color-mix(in oklab, var(--p1) 80%, var(--field));
+  --v2: color-mix(in oklab, var(--p2) 84%, var(--field)); --v3: color-mix(in oklab, var(--p3) 86%, var(--field)); }
+.pbar.vertical .pb-track { width: calc(var(--th) + var(--pad) * 2); height: auto; flex: none; }
+.pbar.vertical .pb-fill {
+  background: linear-gradient(0deg, var(--v0) calc(var(--th) / 2), var(--v1) calc(var(--th) / 2 + (100% - var(--th)) / 3),
+    var(--v2) calc(var(--th) / 2 + (100% - var(--th)) * 2 / 3), var(--v3) calc(100% - var(--th) / 2));
+  clip-path: inset(calc((1 - var(--f)) * (100% - var(--th))) 0 0 0 round 999px);
+}
+.pbar.vertical .pb-stop { left: 50%; margin: -2px 0 0 -2px; top: calc(var(--pad) + var(--th) / 2 + (1 - var(--j)) * (100% - var(--pad) * 2 - var(--th))); }
+.pbar.vertical .pb-thumb { left: var(--pad); top: calc(var(--pad) + (1 - var(--f)) * (100% - var(--pad) * 2 - var(--th))); overflow: hidden;
+  transition: top .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1)), transform .45s var(--spring-out, ease), background .3s; }
+.pbar.vertical.dragging .pb-thumb { transition: transform .45s var(--spring-out, ease), background .3s; }
+/* 圈里的滚轮：从上到下 高 中 低 无，往上拖时新的字从上面滚进来 */
+.pb-reel { position: absolute; left: 0; right: 0; top: 0; display: flex; flex-direction: column;
+  transform: translateY(calc((var(--f) - 1) * 3 * var(--th)));
+  transition: transform .5s var(--spring-out, cubic-bezier(.3, 1.45, .45, 1)); }
+.pbar.dragging .pb-reel { transition: none; }
+.pb-reel i { flex: none; height: var(--th); display: flex; align-items: center; justify-content: center; font-style: normal;
+  font-size: 13px; font-weight: 700; color: color-mix(in oklab, var(--c) 82%, var(--text)); }
+/* 深色：圈里压一层深底，字用提亮的那一档颜色，不然半透明白的圈上浅色字看不见 */
+:root[data-theme="dark"] .pbar.vertical:not(.dragging) .pb-thumb { background: linear-gradient(180deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .08)), color-mix(in srgb, var(--surface) 88%, transparent); }
+:root[data-theme="dark"] .pb-reel i { color: color-mix(in oklab, var(--c) 72%, #fff); }
+.b-pri-h { font-size: 10.5px; font-weight: 600; letter-spacing: .04em; color: var(--text3); text-align: center; white-space: nowrap; line-height: 14px; margin-bottom: 5px; }
 
 /* 列表、菜单里的优先级：一根迷你条 */
 .flag.pmini { width: 18px; height: 6px; border-radius: 3px; position: relative; overflow: hidden; align-self: center;

@@ -403,7 +403,7 @@
       allowRepeat: !!opts.allowRepeat, dateOnly: !!opts.dateOnly,
       tab: opts.endTime ? 'range' : 'date',
       cal: { y: d.getFullYear(), m: d.getMonth() },
-      wheelMode: false, expanded: null, chooser: null,
+      wheelMode: false, expanded: null, chooser: opts.endTime ? { key: 'date', mode: 'cal', cal: null } : null,   // 时间段：日期默认展开（用户定的）
     }; };
   // opts: date, time, endTime, remind, repeat, until, allowRepeat, dateOnly
   Editor.openPicker = (opts, cb) => {
@@ -451,6 +451,7 @@
     useCtx(e.currentTarget.id === 'cmpPkTabs' ? inlineCtx : sheetCtx);
     const b = e.target.closest('button'); if (!b || b.dataset.v === pk.tab) return;
     pk.tab = b.dataset.v; pk.expanded = null;
+    pk.chooser = pk.tab === 'range' ? { key: 'date', mode: 'cal', cal: null } : null;   // 切到时间段：日期日历直接展开，不用再点一下
     if (pk.tab === 'range' && !pk.time) { pk.time = nextHour(); pk.endTime = plusHour(pk.time); }
     if (pk.tab === 'range' && pk.time && !pk.endTime) pk.endTime = plusHour(pk.time);
     paintTabs(); renderPicker();
@@ -627,7 +628,7 @@
     if (e.target.id === 'pkAllDay') {
       if (e.target.checked) { pk.time = ''; pk.endTime = ''; }
       else { pk.time = nextHour(); pk.endTime = plusHour(pk.time); pk.days = 1; }
-      pk.expanded = null; pk.chooser = null; renderPicker();
+      pk.expanded = null; pk.chooser = { key: 'date', mode: 'cal', cal: null }; renderPicker();
     }
   };
   const onBodyClick = e => {
@@ -650,7 +651,9 @@
       if (d) {
         chooserPick(key, d.dataset.cds);
         if (key === 'date' && pk.days > 1) { /* 保持天数，结束日期随开始日期移动 */ }
-        pk.chooser = null; renderPicker();
+        pk.chooser = null;
+        if (key === 'date' && pk.tab === 'range' && pk.time) pk.expanded = 'range';   // 时间段：选好日期接着展开时间，一路选下去
+        renderPicker();
       }
       return;
     }
@@ -947,27 +950,31 @@
   // 卡片往左滑露出「删除」，点了先确认再删
   function priChips(r) {
     const rc = MC.rateOn(newCal) && MC.cal(newCal);
-    if (!rc) return UI.priBar(r.priority, { compact: true });
+    if (!rc) return UI.priBar(r.priority, { compact: true, vertical: true });   // 竖着放在卡片最右边（用户定的）
     const list = [{ v: 0, name: '无', color: 'var(--p0)' }, ...MC.RATE_ORDER.map(v => ({ v, name: MC.rateLabels(rc)[v - 1], color: `var(--lv${v})` }))];
     return UI.lgBar(list, r.rate || 0);
   }
   function renderBatch() {
+    const vert = !MC.rateOn(newCal);   // 优先级：竖条放右边；记录日历的等级还是横着一行
     $('#batchList').innerHTML = rows.map((r, i) => `
       <div class="brow" data-i="${i}">
         <button class="b-swdel" data-act="del" tabindex="-1">删除</button>
-        <div class="b-card">
+        <div class="b-card${vert ? ' v' : ''}"${vert ? ` data-p="${r.priority || 0}"` : ''}>
+          <div class="b-main">
           <div class="b-top">
             <div class="b-name">
               <input class="b-title" value="${esc(r.title)}" placeholder="名称（必填）" enterkeyhint="next">
               <input class="b-note" value="${esc(r.note)}" placeholder="备注（选填）">
             </div>
           </div>
-          <div class="b-pri">${priChips(r)}</div>
+          ${vert ? '' : `<div class="b-pri">${priChips(r)}</div>`}
           <div class="b-tools">
             <button class="b-when" data-act="date" aria-label="日期和时间">${whenHTML(r)}</button>
             <button class="b-opt${MC.remindsOf(r).length ? ' on' : ''}" data-act="remind" aria-label="提醒">${remindHTML(r)}</button>
             <button class="b-opt${r.repeat && r.repeat !== 'none' ? ' on' : ''}" data-act="repeat" aria-label="重复">${repeatHTML(r)}</button>
           </div>
+          </div>
+          ${vert ? `<div class="b-pri"><span class="b-pri-h">优先级</span>${priChips(r)}</div>` : ''}
         </div>
       </div>`).join('');
     updateBatchCount();
@@ -1006,8 +1013,12 @@
   $('#batchList').addEventListener('lgchange', e => {
     const el = e.target.closest('.brow'); if (!el) return;
     const r = rows[Number(el.dataset.i)];
-    if (MC.rateOn(newCal)) r.rate = e.detail.v; else r.priority = e.detail.v;
+    if (MC.rateOn(newCal)) r.rate = e.detail.v; else { r.priority = e.detail.v; el.querySelector('.b-card').dataset.p = r.priority || 0; }
     saveBatchDraft();
+  });
+  // 拖优先级竖条的过程中，卡片外框的颜色跟着经过的那一档实时变
+  $('#batchList').addEventListener('pbinput', e => {
+    const card = e.target.closest('.b-card.v'); if (card) card.dataset.p = e.detail.v || 0;
   });
   $('#batchList').addEventListener('focusin', e => { const el = e.target.closest('.brow'); if (el) batchFocus = Number(el.dataset.i); });
   // 键盘挡住输入框时的处理统一在 ui.js（只在会被挡住时才挪，挪刚好够的距离）
@@ -1051,7 +1062,7 @@
   const setX = (card, x, anim) => { card.style.transition = anim ? 'transform .28s var(--ease)' : 'none'; card.style.transform = x ? `translateX(${x}px)` : ''; };
   function closeSwipe() { if (openCard) { setX(openCard, 0, true); openCard.closest('.brow').classList.remove('swiped'); openCard = null; } }
   $('#batchList').addEventListener('touchstart', e => {
-    const card = e.target.closest('.b-card'); if (!card || e.touches.length !== 1 || e.target.closest('.lgbar')) { sw = null; return; }
+    const card = e.target.closest('.b-card'); if (!card || e.touches.length !== 1 || e.target.closest('.lgbar, .pbar')) { sw = null; return; }
     if (openCard && openCard !== card) closeSwipe();
     const t = e.touches[0];
     sw = { card, x0: t.clientX, y0: t.clientY, base: card === openCard ? -DEL_W : 0, mode: 0, x: 0 };

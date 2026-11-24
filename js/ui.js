@@ -611,9 +611,12 @@
   const PB_N = 4, PB_NAMES = () => MC.PRI_ASC.map(p => p.name), PB_FULL = () => MC.PRI_ASC.map(p => p.full);
   UI.priBar = (cur, opts = {}) => {
     const k = Math.max(0, Math.min(PB_N - 1, Number(cur) || 0)), names = PB_NAMES();
-    return `<div class="pbar${opts.compact ? ' compact' : ''}" role="slider" tabindex="0" aria-label="优先级" aria-valuemin="0" aria-valuemax="3" aria-valuenow="${k}" aria-valuetext="${esc(PB_FULL()[k])}" data-i="${k}" style="--f:${k / (PB_N - 1)}">`
-      + `<div class="pb-track"><div class="pb-fill"></div>${[0, 1, 2, 3].map(j => `<i class="pb-stop" style="--j:${j / (PB_N - 1)}"></i>`).join('')}<span class="pb-thumb"></span></div>`
-      + `<div class="pb-ticks">${names.map((n, j) => `<span class="pb-tick${j === k ? ' on' : ''}" data-i="${j}" style="--j:${j / (PB_N - 1)}" data-uc>${esc(n)}</span>`).join('')}</div></div>`;
+    // opts.vertical：竖着的一条（批量添加卡片最右边），最下面是「无」、最上面是「高」，上下拖
+    return `<div class="pbar${opts.compact ? ' compact' : ''}${opts.vertical ? ' vertical' : ''}" role="slider" tabindex="0" aria-label="优先级"${opts.vertical ? ' aria-orientation="vertical"' : ''} aria-valuemin="0" aria-valuemax="3" aria-valuenow="${k}" aria-valuetext="${esc(PB_FULL()[k])}" data-i="${k}" style="--f:${k / (PB_N - 1)}">`
+      + `<div class="pb-track"><div class="pb-fill"></div>${[0, 1, 2, 3].map(j => `<i class="pb-stop" style="--j:${j / (PB_N - 1)}"></i>`).join('')}`
+      // 竖条：玻璃圈里写着当前那一档（无 / 低 / 中 / 高，用各自的颜色），拖动时字跟着圈一格一格滚过去，不另外列字
+      + `<span class="pb-thumb">${opts.vertical ? `<span class="pb-reel">${names.map((n, j) => `<i style="--c:var(--p${j})" data-uc>${esc(n)}</i>`).reverse().join('')}</span>` : ''}</span></div>`
+      + (opts.vertical ? '</div>' : `<div class="pb-ticks">${names.map((n, j) => `<span class="pb-tick${j === k ? ' on' : ''}" data-i="${j}" style="--j:${j / (PB_N - 1)}" data-uc>${esc(n)}</span>`).join('')}</div></div>`);
   };
   // 优先级的小图标（列表、菜单）：一根迷你条，渐变填到对应位置
   UI.priMini = p => `<span class="flag pmini" style="--f:${Math.max(0, Math.min(3, p || 0)) / 3}" aria-hidden="true"><i></i></span>`;
@@ -628,32 +631,34 @@
       bar.setAttribute('aria-valuenow', k); bar.setAttribute('aria-valuetext', PB_FULL()[k]);
       if (k !== was) { haptic(); bar.dispatchEvent(new CustomEvent('lgchange', { bubbles: true, detail: { v: MC.PRI_ASC[k].v, i: k } })); }
     };
-    const fAt = (s, x) => Math.max(0, Math.min(1, (x - s.r.left - s.pad) / Math.max(1, s.r.width - s.pad * 2)));
+    // 横着：从左往右 0 → 1；竖着：从下往上 0 → 1
+    const fAt = (s, x, y) => Math.max(0, Math.min(1, s.v ? (s.r.bottom - s.pad - y) / Math.max(1, s.r.height - s.pad * 2) : (x - s.r.left - s.pad) / Math.max(1, s.r.width - s.pad * 2)));
     document.addEventListener('pointerdown', e => {
       const bar = e.target.closest && e.target.closest('.pbar'); if (!bar || e.button > 0) return;
       const tr = bar.querySelector('.pb-track'), r = tr.getBoundingClientRect(), th = bar.querySelector('.pb-thumb').offsetWidth || 28;
-      g = { bar, id: e.pointerId, x0: e.clientX, y0: e.clientY, r, pad: 3 + th / 2, moved: false, last: Number(bar.dataset.i) };
+      g = { bar, id: e.pointerId, x0: e.clientX, y0: e.clientY, r, pad: 3 + th / 2, moved: false, last: Number(bar.dataset.i), v: bar.classList.contains('vertical') };
     }, true);
     document.addEventListener('pointermove', e => {
       if (!g || e.pointerId !== g.id) return;
-      const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+      let dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+      if (g.v) [dx, dy] = [dy, dx];   // 竖着的条：上下拖是拖动，横着划交给别人
       if (!g.moved) {
-        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { g = null; return; }   // 竖着划：交给页面滚动
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { g = null; return; }   // 和条垂直的方向划：交给页面滚动
         if (Math.abs(dx) < 5) return;
         g.moved = true; g.bar.classList.add('dragging'); UI._hdrag = true;
         try { g.bar.setPointerCapture(e.pointerId); } catch (_) {}
         UI.cancelPresses && UI.cancelPresses();
       }
-      const f = fAt(g, e.clientX), k = Math.round(f * (PB_N - 1));
+      const f = fAt(g, e.clientX, e.clientY), k = Math.round(f * (PB_N - 1));
       setF(g.bar, f); ticksOn(g.bar, k);
-      if (k !== g.last) { haptic(); g.last = k; }    // 经过每一档轻轻一下
+      if (k !== g.last) { haptic(); g.last = k; g.bar.dispatchEvent(new CustomEvent('pbinput', { bubbles: true, detail: { v: MC.PRI_ASC[k].v, i: k } })); }    // 经过每一档轻轻一下；拖的过程中也告诉外面（批量添加的卡片外框跟着变色）
     }, true);
     const end = e => {
       if (!g || e.pointerId !== g.id) return;
       const s = g; g = null; UI._hdrag = false;
       if (e.type === 'pointercancel' && !s.moved) return;
       const t = !s.moved && e.target.closest && e.target.closest('.pb-tick');
-      const k = t && s.bar.contains(t) ? Number(t.dataset.i) : Math.round(fAt(s, e.clientX) * (PB_N - 1));
+      const k = t && s.bar.contains(t) ? Number(t.dataset.i) : Math.round(fAt(s, e.clientX, e.clientY) * (PB_N - 1));
       if (s.moved) s.bar._swallow = Date.now();
       pick(s.bar, k);
     };
