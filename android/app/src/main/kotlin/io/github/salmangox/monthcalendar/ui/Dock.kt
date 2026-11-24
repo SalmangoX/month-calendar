@@ -333,6 +333,7 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
         // 按方向选：拖得快、一甩就松手、拖过头都能选上【联动:底部悬浮控件】
         fun fanPick(f: Offset): Triple<String, Offset, Float>? {
             val cs = centers()
+            if (hypot(f.x - m.logoC.x, f.y - m.logoC.y) > DROP_SNAP * density.density) return null   // 太远（水滴断开、出了扇形这一块）就什么都不选
             cs.map { (id, c) -> Triple(id, c, hypot(c.x - f.x, c.y - f.y)) }.filter { it.third < hotR }.minByOrNull { it.third }?.let { return it }
             val dx = f.x - m.logoC.x; val dy = m.logoC.y - f.y
             if (hypot(dx, dy) < PICK_MIN * density.density) return null
@@ -434,11 +435,12 @@ fun tr(s: String): String = I18n.t(s)
 class FanFX {
     class P(val x: Float, val y: Float, val vx: Float, val vy: Float, val r: Float, val t: Long, val life: Float, val c: Int)
     val ps = ArrayList<P>()
-    fun burst(at: Offset, n: Int, speed: Float) {
+    /** r0：从离中心多远的那一圈冒出来（持续冒的从按钮边上冒，不然被放大的按钮挡住看不见） */
+    fun burst(at: Offset, n: Int, speed: Float, r0: Float = 0f) {
         val now = System.nanoTime()
         repeat(n) {
             val a = Math.random() * Math.PI * 2; val v = speed * (0.5f + Math.random().toFloat() * 1.5f)
-            ps.add(P(at.x, at.y, (cos(a) * v).toFloat(), (sin(a) * v).toFloat(), (1.4f + Math.random().toFloat() * 2.4f), now, 0.38f + Math.random().toFloat() * 0.42f, (Math.random() * 3).toInt()))
+            ps.add(P(at.x + (cos(a) * r0).toFloat(), at.y + (sin(a) * r0).toFloat(), (cos(a) * v).toFloat(), (sin(a) * v).toFloat(), (1.4f + Math.random().toFloat() * 2.4f), now, 0.38f + Math.random().toFloat() * 0.42f, (Math.random() * 3).toInt()))
         }
         while (ps.size > 220) ps.removeAt(0)
     }
@@ -490,9 +492,10 @@ private fun FanTrail(m: DockModel) {
             withFrameNanos { now ->
                 frame.longValue = now
                 val h = m.hot
-                if (m.drag != null && h != null && now - lastEmit > 80_000_000L) {
+                if (m.drag != null && h != null && now - lastEmit > 45_000_000L) {
                     lastEmit = now
-                    m.fx.burst(hotCenter(m, h), 2, 0.9f * android.content.res.Resources.getSystem().displayMetrics.density)   // 停在按钮上：一直冒一点
+                    val dn = android.content.res.Resources.getSystem().displayMetrics.density
+                    m.fx.burst(hotCenter(m, h), 3, 1.6f * dn, 26f * dn)   // 停在按钮上（选中着）：一直冒粒子，不只是刚选中那一下
                 }
             }
         }

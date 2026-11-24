@@ -668,11 +668,12 @@ final class FanFX {
     struct P { let x, y, vx, vy, r: CGFloat; let t: Date; let life: Double; let c: Int }
     var ps: [P] = []
     static let cols: [Color] = [Color(argb: 0xFF9E_9AC8), Color(argb: 0xFFC7_B3CF), Color(argb: 0xFFEB_C7A6)]   // Cadence logo 的雾紫 → 丁香 → 暖沙
-    func burst(at c: CGPoint, n: Int, speed: CGFloat) {
+    /// r0：从离中心多远的那一圈冒出来（持续冒的从按钮边上冒，不然被放大的按钮挡住看不见）
+    func burst(at c: CGPoint, n: Int, speed: CGFloat, r0: CGFloat = 0) {
         let now = Date()
         for _ in 0..<n {
             let a = CGFloat.random(in: 0..<(2 * .pi)), v = speed * CGFloat.random(in: 0.5...2)
-            ps.append(P(x: c.x, y: c.y, vx: cos(a) * v, vy: sin(a) * v, r: CGFloat.random(in: 1.4...3.8), t: now, life: Double.random(in: 0.38...0.8), c: Int.random(in: 0..<3)))
+            ps.append(P(x: c.x + cos(a) * r0, y: c.y + sin(a) * r0, vx: cos(a) * v, vy: sin(a) * v, r: CGFloat.random(in: 1.4...3.8), t: now, life: Double.random(in: 0.38...0.8), c: Int.random(in: 0..<3)))
         }
         if ps.count > 220 { ps.removeFirst(ps.count - 220) }
     }
@@ -721,7 +722,7 @@ struct FanSparks: View {
                 Canvas { ctx, _ in
                     ctx.translateBy(x: -o.x, y: -o.y)
                     let now = tl.date
-                    if m.logoDrag != nil, let h = hotC, now.timeIntervalSince(lastEmit) > 0.08 { DispatchQueue.main.async { lastEmit = now; fx.burst(at: h, n: 2, speed: 55) } }   // 停在按钮上：一直冒一点
+                    if m.logoDrag != nil, let h = hotC, now.timeIntervalSince(lastEmit) > 0.045 { DispatchQueue.main.async { lastEmit = now; fx.burst(at: h, n: 3, speed: 100, r0: 26) } }   // 停在按钮上（选中着）：一直冒粒子，不只是刚选中那一下
                     fx.ps.removeAll { now.timeIntervalSince($0.t) > $0.life }
                     for q in fx.ps {
                         let e = now.timeIntervalSince(q.t), k = e / q.life, tau = 0.36
@@ -901,6 +902,7 @@ struct GlassDock: View {
     /// 按方向选：拖得快、一甩就松手、拖过头都能选上【联动:底部悬浮控件】
     private func fanPick(_ d: NavModel.Dock, _ p: CGPoint) -> (String, CGPoint)? {
         let cs = fanCenters(d)
+        guard hypot(p.x - logoC.x, p.y - logoC.y) <= FanDropSize.snap else { return nil }   // 太远（水滴断开、出了扇形这一块）就什么都不选
         if let n = cs.map({ ($0.0, $0.1, hypot($0.1.x - p.x, $0.1.y - p.y)) }).filter({ $0.2 < FanDropSize.hot }).min(by: { $0.2 < $1.2 }) { return (n.0, n.1) }
         let dx = p.x - logoC.x, dy = logoC.y - p.y
         guard hypot(dx, dy) >= FanDropSize.pickMin else { return nil }
@@ -923,7 +925,7 @@ struct GlassDock: View {
                 }
             }
             .onEnded { v in
-                let h = fanPick(d, v.location)?.0 ?? m.fanHot   // 松手那一下的位置再判一次（甩得快时最后一次移动可能还没到）
+                let h = fanPick(d, v.location)?.0   // 只按松手那一下的位置判（甩得快时最后一次移动可能还没到）；那里够不着就不选，不退回之前选中的那颗
                 m.logoDrag = nil; m.fanHot = nil; m.dragDepth(false); m.dragEndedAt = Date()
                 if let h { m.fan(h) } else { m.setFan(false) }
             }
