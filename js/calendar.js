@@ -337,6 +337,8 @@
   }
   setInterval(() => {
     if (document.hidden || moving || view !== 'month' || document.body.dataset.page !== 'cal') return;
+    // 侧拉菜单拉出来、或有面板 / 卡片开着时不挪：线被盖住了，可这时一帧很重（菜单、卡片、好几层模糊），每秒 12 次重画会让点按和滑动都卡（安卓实测：菜单开着静止时每帧 850ms）
+    if (document.documentElement.classList.contains('ui-open') || document.querySelector('#calDrawer.vis')) return;
     flowTick();
   }, 83);
   // 统计某段日期里的事件：跨好几天的事件只算一个

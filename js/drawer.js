@@ -44,6 +44,13 @@
     scrim.classList.toggle('vis', vis);
   }
   function measure() { EW = el.offsetWidth || 1; W = EW + GAP; }
+  // 预热（安卓）：用户说冷启动后头几次拉菜单卡、之后才顺——手机 GPU 第一次画某种模糊 / 渐变要现场编译绘制程序。
+  // App 打开后空闲时，把侧拉菜单在原位以 1% 的透明度画两帧（看不见、不接点按），让这些程序提前编译好
+  setTimeout(() => (window.requestIdleCallback || setTimeout)(() => {
+    if (!document.documentElement.classList.contains('in-android') || isOpen || document.hidden) return;
+    el.classList.add('warm');
+    requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => el.classList.remove('warm'), 80)));
+  }, { timeout: 2500 }), 1500);
   function animateTo(target, v = 0) {
     if (anim) anim.stop();
     const opening = target > 0;

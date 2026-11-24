@@ -1336,6 +1336,11 @@ html.locked .lock { display: grid; }
 :root[data-theme="dark"].lg-refract:not(.scrolling):not(.ui-open) .drawer::before { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }
 /* 性能：有面板 / 卡片盖在上面时（ui-open，侧拉菜单整个被遮罩压暗），边缘那圈玻璃不再每帧算背景滤镜（安卓上实测编辑日历时每帧省一半以上） */
 :root.ui-open .drawer::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* 同样，有卡片盖着时磨砂卡片也不再每帧算 30px 模糊（编辑日历时最大的开销），换成不透明的磨砂底色（半透明会透出后面日历的大字）：被遮罩压暗着，看起来还是一块磨砂板 */
+:root.ui-open .drawer::after { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgb(246, 246, 247); }
+:root[data-theme="dark"].ui-open .drawer::after { background: rgb(38, 38, 42); }
+/* 预热（drawer.js）：App 打开后空闲时在原位画两帧，透明度 1%，看不见、不接点按 */
+.drawer.warm { visibility: visible; transform: none !important; opacity: .01; pointer-events: none; }
 :root[data-theme="dark"] .drawer::after { box-shadow: inset 0 0 0 .6px rgba(255, 255, 255, .08); }
 .drawer > * { position: relative; z-index: 1; }
 .drawer.vis { visibility: visible; }

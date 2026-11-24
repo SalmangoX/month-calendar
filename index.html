@@ -1118,6 +1118,13 @@
       if (done) return;
       done = true; pendingFinish = null;
       nxt.removeEventListener('transitionend', onEnd);
+      if (go && page() !== from) {
+        // 动画还没走完，页面已经被别的操作换走了（比如滑完马上拖 logo 到「设置」）：只收拾动画，不再切回目标页（以前会把设置页又切回日历，用户发现的）【联动:底部悬浮控件】
+        cur.classList.remove('drag'); nxt.classList.remove('drag');
+        cur.style.transition = ''; cur.style.transform = ''; nxt.style.transition = ''; nxt.style.transform = '';
+        if (page() === 'set') lastMain = to;   // 从设置返回时回到本来要滑到的那一页
+        return;
+      }
       if (go) {
         cur.style.display = 'none';
         cur.classList.remove('drag');
