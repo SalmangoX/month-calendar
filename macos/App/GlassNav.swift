@@ -100,7 +100,8 @@ final class NavModel: ObservableObject {
             withAnimation(.spring(response: 0.42, dampingFraction: 0.8)) { dock = s.dock }
             if s.dock == nil || s.dock?.set != dock?.set { fanOpen = false }
         }
-        if page != s.page { if fanOpen { withAnimation(.spring(response: 0.36, dampingFraction: 0.82)) { fanOpen = false } }; page = s.page }
+        // 刚点开的（0.7 秒内）不收：左右滑松手后动画走完网页才切页，那一瞬间点 logo 以前会刚打开就被收起【联动:底部悬浮控件】
+        if page != s.page { if fanOpen && Date().timeIntervalSince(fanOpenedAt) > 0.7 { withAnimation(.spring(response: 0.36, dampingFraction: 0.82)) { fanOpen = false } }; page = s.page }
         if back != (s.back ?? false) { withAnimation(.spring(response: 0.36, dampingFraction: 0.7)) { back = s.back ?? false } }
         // 面板弹出时菜单栏马上让开（0.12 秒淡出，不会和从底部升起的面板叠在一起）；面板收起后再弹回来
         if cover != (s.cover ?? false) { withAnimation(s.cover == true ? .easeOut(duration: 0.12) : .spring(response: 0.32, dampingFraction: 0.86)) { cover = s.cover ?? false } }
@@ -117,9 +118,12 @@ final class NavModel: ObservableObject {
     /// 新底栏的按钮：都交给网页里同名的按钮处理（切页动画、今日页展开都在网页里），原生只负责画和触感
     func tapClock() { navTick(); eval("document.getElementById('bubbleToday').click()", nil) }
     func tapPager() { navTick(); eval("document.getElementById('pager').click()", nil) }
+    /// 扇形打开的时刻（换页时刚打开不久的不收）
+    var fanOpenedAt = Date.distantPast
     func setFan(_ open: Bool) {
         guard open != fanOpen else { return }
         navTick()
+        if open { fanOpenedAt = Date() }
         withAnimation(.spring(response: open ? 0.32 : 0.24, dampingFraction: open ? 0.74 : 0.88)) { fanOpen = open }
     }
     func fan(_ id: String) {

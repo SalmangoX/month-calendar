@@ -118,8 +118,10 @@
     const grp = from.closest('.sgroup, .group, .pk-rows') || from, gr = grp.getBoundingClientRect();
     const cs = getComputedStyle(document.documentElement), sT = parseFloat(cs.getPropertyValue('--safe-t')) || 0, sB = parseFloat(cs.getPropertyValue('--safe-b')) || 0;
     const W = innerWidth, H = innerHeight;
-    const w = Math.min(W - 16, 440, Math.max(gr.width, 300));
-    const x = Math.min(Math.max(8, gr.left + gr.width / 2 - w / 2), W - w - 8);
+    // 从侧拉菜单、「⋯」小菜单这种窄的地方点开的（编辑日历、统一提醒……）：不跟着那一条又窄又偏，放在屏幕中间、宽一点（2026-11-24 用户嫌贴着菜单太窄）
+    const mid = !!from.closest('.drawer, .popover');
+    const w = mid ? Math.min(W - 24, 420) : Math.min(W - 16, 440, Math.max(gr.width, 300));
+    const x = mid ? (W - w) / 2 : Math.min(Math.max(8, gr.left + gr.width / 2 - w / 2), W - w - 8);
     const maxH = H - sT - sB - 28;
     el.classList.add('pop', 'measure');
     el.style.setProperty('--pw', w + 'px'); el.style.setProperty('--pmh', maxH + 'px');
@@ -127,7 +129,8 @@
     el.classList.remove('measure');
     const typing = !!el.querySelector('input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea');
     let y;
-    if (typing) y = sT + 14;                                                        // 要打字：放在上方，键盘不挡
+    if (mid) y = Math.max(sT + 10, Math.min(H - sB - 10 - h, (H - h) / 2));      // 屏幕正中
+    else if (typing) y = sT + 14;                                                        // 要打字：放在上方，键盘不挡
     else if (fr.bottom + 8 + h <= H - sB - 10) y = fr.bottom + 8;                   // 那一条下面
     else if (fr.top - 8 - h >= sT + 10) y = fr.top - 8 - h;                         // 放不下就上面
     else y = Math.max(sT + 10, Math.min(H - sB - 10 - h, fr.top + fr.height / 2 - h / 2));

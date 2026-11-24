@@ -238,7 +238,7 @@
         render();
       };
       UI.multiMenu(a.el, MC.remindOptions(true).filter(o => o.v !== null), last, l => { last = l; save(l); }, {
-        center: true, none: '不提醒', done: '完成',
+        center: true, none: '不提醒', done: '完成', title: '统一提醒',
         onDone: l => { a.done(); UI.toast(l.length ? `「${c.name}」里的事件都会${MC.remindsLabel(l, true)}提醒` : `「${c.name}」不再统一提醒`); },
       });
     }
@@ -374,34 +374,40 @@
     const days = kind === 'days';
     const used = new Set(MC.data.cals.map(x => x.color));
     let color = c ? c.color : MC.suggestCalColor([...used]); // 没选颜色时：自动挑和主日历、其他记录日历都不冲突的
+    // 旧色板（2026-11-24 前的暗色）里的颜色：打开时选中新色板里最接近的那个，保存后就换成新的（不主动改没打开过的日历）
+    const OLD_SW = { '#B76271': '#D8625C', '#B86652': '#DA7646', '#B06F35': '#D98F3F', '#539156': '#50A064', '#269573': '#29A288', '#009390': '#009FAC', '#138DB1': '#2095C5',
+      '#4086BD': '#4780D2', '#607EC2': '#4780D2', '#8074BD': '#736BC9', '#9B6AAB': '#9D66B5', '#AE648F': '#C66295', '#656970': '#6B7583', '#627887': '#6B7583' };
+    if (OLD_SW[String(color).toUpperCase()]) color = OLD_SW[String(color).toUpperCase()];
     // 纪念日历：先选图标（按大类分好的那几组，去掉重复），颜色在下面
     let icon = days ? (c && c.icon) || 'heart' : '';
     const P = DP(), ICS = P ? [...new Set(P.ICON_GROUPS.flatMap(g => g[1]))].filter(k => P.ICONS[k]) : [];
     const icPick = () => days && ICS.length ? `<div class="field"><span>${T('图标')}</span><div class="cf-icons" id="calIc" style="--cc:${color}">${ICS.map(k =>
       `<button type="button" class="cf-ic${k === icon ? ' on' : ''}" data-ic="${k}" aria-pressed="${k === icon}">${P.svgOf(k)}</button>`).join('')}</div></div>` : '';
-    const sw = () => icPick() + `<div class="field"><span>颜色</span><div class="dr-swatches" id="calSw">${MC.CAL_COLORS.map(x =>
+    const sw = () => icPick() + `<div class="field"><span>颜色</span><div class="dr-swatches cf-sw" id="calSw">${MC.CAL_COLORS.map(x =>
       `<button type="button" class="dr-sw${x === color ? ' on' : ''}" style="--cc:${x}" data-c="${x}" aria-label="颜色 ${x}" aria-pressed="${x === color}"></button>`).join('')}</div></div>`;
     MC.openForm({
       title: c ? (days ? T('编辑纪念日历') : '编辑日历') : (days ? T('新建纪念日历') : '新建记录日历'),
       submit: c ? '保存' : '新建',
       // 顶上的预览：图标块用选中的颜色，名字跟着输入实时变
-      hero: `<div class="cf-hero" id="cfHero" style="--cc:${color}"><div class="cf-tile" id="cfTile">${days ? daysIcon({ icon }) : ICON_REC}</div><div class="cf-name${c ? '' : ' ph'}" id="cfName">${MC.esc(c ? c.name : (days ? T('纪念日历') : '记录日历'))}</div></div>`,
-      fields: [{ id: 'calName', label: '名称', ph: days ? T('比如：我们、生日、旅行') : '日历名称', val: c ? c.name : '', max: 24 }],
+      // 顶上一行：图标块（跟着选的颜色、图标实时变）+ 名称输入框（2026-11-24 用户嫌太长：预览和名称并成一行）
+      hero: `<div class="cf-head" id="cfHero" style="--cc:${color}"><div class="cf-tile" id="cfTile">${days ? daysIcon({ icon }) : ICON_REC}</div>`
+        + `<input id="ff_calName" class="cf-name-in" type="text" value="${MC.esc(c ? c.name : '')}" placeholder="${MC.esc(days ? T('比如：我们、生日、旅行') : '日历名称')}" maxlength="24" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="名称"></div>`,
+      fields: [],
       note: days && !c ? T('纪念日历记录重要的日子：未来的倒数，过去的累计。每个日子可以写小纸条、建相册、生成分享图片。') : '',
       extra: sw() + (days ? `<div class="group dr-switches">
         <label class="pk-row"><span>在主日历显示<small>${T('每个日子到了那一天，也出现在主日历里')}</small></span><input type="checkbox" class="switch" id="calMain"${c && c.showInMain ? ' checked' : ''}></label>
       </div>` : `<div class="group dr-switches">
-        <label class="pk-row"><span>在主日历显示<small>这个日历的事件也出现在主日历里</small></span><input type="checkbox" class="switch" id="calMain"${c && c.showInMain ? ' checked' : ''}></label>
-        <label class="pk-row"><span>通知<small>事件设了提醒时到点通知</small></span><input type="checkbox" class="switch" id="calNotify"${c && c.notify ? ' checked' : ''}></label>
-        <label class="pk-row"><span>等级评分<small>不按优先级排列，改用 4 个等级给事件评级，并在「统计」里汇总</small></span><input type="checkbox" class="switch" id="calRate"${c && c.rateOn ? ' checked' : ''}></label>
+        <label class="pk-row"><span>在主日历显示<small>事件也出现在主日历里</small></span><input type="checkbox" class="switch" id="calMain"${c && c.showInMain ? ' checked' : ''}></label>
+        <label class="pk-row"><span>通知<small>设了提醒的事件到点通知</small></span><input type="checkbox" class="switch" id="calNotify"${c && c.notify ? ' checked' : ''}></label>
+        <label class="pk-row"><span>等级评分<small>用 4 个等级给事件评分，在「统计」里汇总</small></span><input type="checkbox" class="switch" id="calRate"${c && c.rateOn ? ' checked' : ''}></label>
       </div>
-      <div class="field rate-fields" id="calRateF"${c && c.rateOn ? '' : ' hidden'}><span>等级名称：从左到右 = 最低 → 最高（整个日历通用）</span>
-        <div class="rate-inputs">${MC.RATE_ORDER.map(v => [MC.normRateLabels(c && c.rateLabels)[v - 1], v - 1]).map(([n, i]) => `<label class="rate-in lv${i + 1}"><i class="rate-swatch"></i><input type="text" id="calRL${i}" maxlength="8" value="${MC.esc(n)}" placeholder="${MC.RATE_DEFAULT[i]}" aria-label="等级 ${i + 1}"></label>`).join('')}</div>
-        <p class="rate-cap"><span>绿 = 最低</span><span>红 = 最高</span></p>
+      <div class="field rate-fields" id="calRateF"${c && c.rateOn ? '' : ' hidden'}><span>等级名称<em>从低到高</em></span>
+        <div class="rate-inputs">${MC.RATE_ORDER.map(v => [MC.normRateLabels(c && c.rateLabels)[v - 1], v - 1]).map(([n, i]) => `<input type="text" class="rate-in lv${i + 1}" id="calRL${i}" maxlength="8" value="${MC.esc(n)}" placeholder="${MC.RATE_DEFAULT[i]}" aria-label="等级 ${i + 1}">`).join('')}</div>
+        <i class="rate-scale" aria-hidden="true"></i>
         ${c && MC.data.events.some(e => e.cal === c.id && e.rate) ? '<button type="button" class="text-btn" id="calRateRev">顺序填反了？一键反转（已有的评级会跟着换，意思不变）</button>' : ''}
       </div>`),
-      onSubmit: async v => {
-        const name = v.calName.trim();
+      onSubmit: async () => {
+        const name = $('#ff_calName').value.trim();
         if (!name) throw new Error('请填写名称');
         const showInMain = $('#calMain').checked, notify = !days && $('#calNotify').checked;   // 纪念日历也能在主日历显示
         const rateOn = !days && $('#calRate').checked, rateLabels = days ? undefined : MC.normRateLabels([0, 1, 2, 3].map(i => $('#calRL' + i).value));
@@ -430,7 +436,6 @@
       color = b.dataset.c; $('#cfHero').style.setProperty('--cc', color); if ($('#calIc')) $('#calIc').style.setProperty('--cc', color);
       $('#calSw').querySelectorAll('.dr-sw').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
     });
-    $('#ff_calName').addEventListener('input', e => { const v = e.target.value.trim(), n = $('#cfName'); n.textContent = v || (days ? T('纪念日历') : '记录日历'); n.classList.toggle('ph', !v); });
     if (!c) setTimeout(() => UI.desktopFocus($('#ff_calName')), 360);
   }
 

@@ -109,10 +109,15 @@
     // 细条之间各多盖 .5px、最底下再铺一整层不挪的，细条接缝处（色条落在半像素上时）不露白线
     return CHIP_ROWS.filter(r => r.ind).map(({ y, h, ind }) => `${lin(ind)} 0 ${y - (y ? .25 : 0)}px / 100% ${h + .5}px no-repeat`).concat(lin(0)).join(',');
   };
+  // 性能（2026-11-24 安卓变卡的元凶）：顺着圆角的渐变一档有 8 层、好几 KB，以前每个色条的 style 里各写一整串（浅色、深色、已完成三份），
+  // 月视图几百个色条一画就是 4 MB 的样式要解析，每次重画都慢一倍多。现在三档的渐变只在 :root 定义一次（--cgl1…3 / --cgk1…3），色条上只写 var() 引用
+  const gradSheet = document.createElement('style'); gradSheet.id = 'mcChipGrad';
+  gradSheet.textContent = ':root{' + [1, 2, 3].map(v => `--cgl${v}:${MC.chipGrad(v, false)};--cgk${v}:${MC.chipGrad(v, true)}`).join(';') + '}';
+  (document.head || document.documentElement).appendChild(gradSheet);
   MC.toneVars = e => {
     const c = MC.evColor(e), m = /^var\(--p(\d)\)$/.exec(c);
     const [f, i] = MC.darkTone(m ? MC.PAL.light[m[1]] : c);
-    const g = m && GRAD.light[m[1]] ? `;--cg:${MC.chipGrad(+m[1], false)};--cgd:${MC.chipGrad(+m[1], true)};--cgo:${MC.chipGrad(+m[1], false)};--cgob:transparent` : '';   // 已完成：--cgo 画在 ::before 上、整层按 --done-mix 变淡（半透明的几层叠在一起颜色会不对）
+    const g = m && GRAD.light[m[1]] ? `;--cg:var(--cgl${m[1]});--cgd:var(--cgk${m[1]});--cgo:var(--cgl${m[1]});--cgob:transparent` : '';   // 已完成：--cgo 画在 ::before 上、整层按 --done-mix 变淡（半透明的几层叠在一起颜色会不对）
     return `--c:${c};--cf:${f};--ci:${i}${g}`;
   };
 
@@ -313,7 +318,8 @@
   // ---------- 特殊记录日历 ----------
   // 记录日历可选的 14 种颜色：12 个色相（OKLCH 明度 0.60、彩度 0.11，跳过会发橄榄色的黄绿一带）+ 两种中性灰，
   // 和整套配色同一个体系；浅色时白字都清楚，深色时用 MC.darkTone 生成同色的深色调
-  MC.CAL_COLORS = ['#B76271', '#B86652', '#B06F35', '#539156', '#269573', '#009390', '#138DB1', '#4086BD', '#607EC2', '#8074BD', '#9B6AAB', '#AE648F', '#656970', '#627887'];
+  // 子日历可选的颜色（2026-11-24 换过：以前一律暗、灰，和优先级色不在一个图层）：明度、彩度和优先级色同一档（OKLCH 明度 .6–.74、彩度 .11–.15），色相一圈均匀排开，最后一个是石板灰
+  MC.CAL_COLORS = ['#D8625C', '#DA7646', '#D98F3F', '#CDA53A', '#87A54D', '#50A064', '#29A288', '#009FAC', '#2095C5', '#4780D2', '#736BC9', '#9D66B5', '#C66295', '#6B7583'];
   MC.MAIN_CAL = { id: '', name: '主日历', color: 'var(--accent)' };
   MC.RATE_DEFAULT = ['超高', '高', '中', '低'];   // 第 1–4 级的默认名称。1 级 = 红 = 等级最高（比如「超忙」），4 级 = 绿 = 等级最低（比如「轻松」）
   // 【联动:记录等级】见 CLAUDE.md「联动分组」

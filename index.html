@@ -700,9 +700,11 @@
       b.dataset.ang = angles[k];   // 拖动时按方向选它（fanPick）
     });
   }
+  let openedAt = 0;   // 扇形刚打开的时刻：刚打开不久就换页（左右滑松手后动画走完才真正切页），不要顺手收起【联动:底部悬浮控件】
   function setOpen(v) {
     if (v === open) return;
     open = v;
+    if (v) openedAt = Date.now();
     if (v) { layoutFans(); spot(); }
     menu.classList.toggle('open', v);
     scrim.classList.toggle('show', v);
@@ -1013,7 +1015,7 @@
     const days = body.dataset.kind === 'days';
     if (body.dataset.cal && body.dataset.kind !== 'days' && page() === 'sched') { MC.App.showPage('cal'); return; }   // 切到子日历时正停在日程页：回日历
     if (page() !== 'set') lastMain = page();
-    if (open) closeMenu();   // 纪念日历也用这套新底栏（分页点：日历 · 纪念日 · 总览）
+    if (open && Date.now() - openedAt > 700) closeMenu();   // 刚点开的（0.7 秒内）不收：从日程滑回日历、松手马上点 logo，切页在动画走完后才发生，以前会刚打开就被收起（用户发现的）。纪念日历也用这套新底栏（分页点：日历 · 纪念日 · 总览）
     syncPager(); syncPill();
   }
   new MutationObserver(sync).observe(body, { attributes: true, attributeFilter: ['data-page', 'data-kind', 'data-cal'] });
@@ -1172,8 +1174,8 @@
     if (!dg) return;
     const d = dg; dg = null;
     if (!d.active) return;
-    lastDragEnd = Date.now();
     const t = e.changedTouches && e.changedTouches[0];
+    { const r = logo.getBoundingClientRect(); if (!t || (t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom)) lastDragEnd = Date.now(); }   // 只有正好在 logo 上松手才忽略接下来那一下点按；松手后另外点 logo 照常打开
     const dx = t ? t.clientX - d.x0 : 0;
     const v = Math.abs(dx) / Math.max(1, performance.now() - d.t0);
     // 触摸被系统取消（上滑回桌面、来电）：不算松手，弹回原页

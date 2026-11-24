@@ -119,7 +119,7 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
         }
         if (d == null || d.set != dock?.set) fanOpen = false
         val pg = o.optString("page")
-        if (pg != page) { fanOpen = false; page = pg }
+        if (pg != page) { if (System.currentTimeMillis() - fanOpenedAt > 700) fanOpen = false; page = pg }   // 刚点开的（0.7 秒内）不收：左右滑松手后动画走完网页才切页，那一瞬间点 logo 以前会刚打开就被收起【联动:底部悬浮控件】
         dock = d
         cover = o.optBoolean("cover")
         back = o.optBoolean("back")
@@ -128,8 +128,10 @@ class DockModel(private val eval: (String) -> Unit, private val tick: () -> Unit
     private fun click(id: String) = eval("(function(){var b=document.getElementById('$id');if(b)b.click();})()")
     fun tapClock() { tick(); fanOpen = false; click("bubbleToday") }
     fun tapPager() { tick(); click("pager") }
-    fun setFan(open: Boolean) { if (open != fanOpen) { tick(); fanOpen = open } }
-    fun forceOpen() { fanOpen = true }
+    /** 扇形打开的时刻（换页时刚打开不久的不收） */
+    private var fanOpenedAt = 0L
+    fun setFan(open: Boolean) { if (open != fanOpen) { tick(); fanOpen = open; if (open) fanOpenedAt = System.currentTimeMillis() } }
+    fun forceOpen() { fanOpen = true; fanOpenedAt = System.currentTimeMillis() }
     fun fan(id: String) {
         fanOpen = false; tick()
         if (id == "add") click("fab") else if (id == "stat") click("fanStat") else click("fanSet")   // 设置页里它是「返回」，由网页决定回到哪一页

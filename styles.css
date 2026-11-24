@@ -670,6 +670,16 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .cf-tile svg .f { fill: currentColor; stroke: none; }
 .cf-name { font-size: 19px; font-weight: 700; letter-spacing: -.01em; color: var(--text); max-width: 80%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cf-name.ph { color: var(--text3); }
+/* 编辑日历顶上一行：图标块 + 名称输入框（2026-11-24 用户嫌太长：不再单独一大块预览） */
+.cf-head { display: flex; align-items: center; gap: 12px; padding: 2px 0 4px; }
+.cf-head .cf-tile { flex: none; width: 52px; height: 52px; border-radius: 17px; box-shadow: inset 0 0 0 .5px var(--tile-line), 0 6px 16px color-mix(in srgb, var(--cc) 26%, transparent); }
+.cf-head .cf-tile svg { width: 28px; height: 28px; }
+.cf-name-in { flex: 1; min-width: 0; height: 52px; padding: 0 16px; border: 0; border-radius: 17px; outline: none; background: var(--field);
+  font-size: 17px; font-weight: 600; color: var(--text); }
+.cf-name-in:focus { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--cc) 70%, transparent); }
+/* 颜色：两排各 7 个，对齐 */
+.sheet.fl .dr-swatches.cf-sw { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px 0; justify-items: center; padding: 4px 0; }
+.sheet.fl .cf-sw .dr-sw { width: 32px; height: 32px; }
 .sheet.fl .dr-swatches { gap: 10px; justify-content: space-between; }
 /* 纪念日历的图标：一排可以横着滑的实心图标，选中的带一圈日历颜色的光框 */
 .cf-icons { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
@@ -930,6 +940,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 
 /* 表单 */
 .form { padding: 0 18px 10px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.form > * { flex-shrink: 0; }   /* 内容比卡片高时整块滚动，不把里面的分组压扁截掉 */
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text2); }
 .field input { font-size: 16px; color: var(--text); background: var(--field); border: 0; border-radius: 16px; padding: 12px 14px; outline: none; }
 .field input:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
@@ -1045,7 +1056,7 @@ html.locked .lock { display: grid; }
 /* 点击反馈：按下去水滴被压扁一点，松手像果冻一样弹回 */
 .mi-sw { transition: transform .45s cubic-bezier(.3, 1.8, .4, 1); }
 .popover button.sw:active .mi-sw { transform: scale(1.1, .86); transition: transform .16s cubic-bezier(.2, .8, .3, 1); }
-.lg-refract:not(.scrolling) .mi-sw::after { -webkit-backdrop-filter: blur(.6px) saturate(140%) url(#lg-refract-soft); backdrop-filter: blur(.6px) saturate(140%) url(#lg-refract-soft); }
+/* 开关上不用 SVG 折射：50 × 28 这么小的玻璃上，位移滤镜会把左边缘的像素挪碎（安卓上用户看到「勾的左边碎了」）；模糊和饱和照旧 */
 .popover button.danger { color: var(--red); }
 
 /* 今日：分组标题右侧的小按钮（已逾期 → 全部移到今天） */
@@ -1299,14 +1310,16 @@ html.locked .lock { display: grid; }
   background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .06) 55%, rgba(255, 255, 255, .14));
   -webkit-backdrop-filter: blur(3px) saturate(190%) brightness(1.05); backdrop-filter: blur(3px) saturate(190%) brightness(1.05);
   box-shadow: var(--glass-rim); }
-.lg-refract:not(.scrolling) .drawer::before { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); }
+.lg-refract:not(.scrolling):not(.ui-open) .drawer::before { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); }
 /* 中间的磨砂卡片：往里收 7px，圆角 23 */
 .drawer::after { inset: 7px; border-radius: 23px;
   background: var(--drawer-frost);
   -webkit-backdrop-filter: blur(30px) saturate(170%); backdrop-filter: blur(30px) saturate(170%);
   box-shadow: inset 0 0 0 .6px rgba(255, 255, 255, .5), 0 1px 4px rgba(14, 24, 40, .06); }
 :root[data-theme="dark"] .drawer::before { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
-:root[data-theme="dark"].lg-refract:not(.scrolling) .drawer::before { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }
+:root[data-theme="dark"].lg-refract:not(.scrolling):not(.ui-open) .drawer::before { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }
+/* 性能：有面板 / 卡片盖在上面时（ui-open，侧拉菜单整个被遮罩压暗），边缘那圈玻璃不再每帧算背景滤镜（安卓上实测编辑日历时每帧省一半以上） */
+:root.ui-open .drawer::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
 :root[data-theme="dark"] .drawer::after { box-shadow: inset 0 0 0 .6px rgba(255, 255, 255, .08); }
 .drawer > * { position: relative; z-index: 1; }
 .drawer.vis { visibility: visible; }
@@ -1394,7 +1407,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .dr-switches { margin-top: 2px; }
 .dr-switches .pk-row { gap: 12px; font-size: 15.5px; }
 .dr-switches .pk-row small { display: block; font-size: 12px; color: var(--text2); margin-top: 1px; }
-.dr-switches .pk-row span { flex: 1; min-width: 0; }
+.dr-switches .pk-row > span:not(.mi-sw) { flex: 1; min-width: 0; }   /* 开关的外壳（span.mi-sw）也是 span：别把它一起撑长 */
 
 /* ---------- 跨天的全天事件：连成一整条 ---------- */
 .wrow { position: relative; --ct: 39px; } /* --ct：格子里第一条事件的顶部（数字下方） */
@@ -1615,11 +1628,15 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 .seg-b.inh { background: color-mix(in srgb, var(--lc, transparent) 24%, var(--field)); color: var(--text); border: 1px dashed color-mix(in srgb, var(--lc, var(--text)) 55%, transparent); }
 .seg-b.sel, .seg-b.inh.sel, .seg-b.own.sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
 .seg-mini i { width: 7px; height: 9px; border-radius: 2px; background: var(--lc, color-mix(in srgb, var(--text) 12%, transparent)); }
-.rate-swatch { width: 10px; height: 10px; border-radius: 50%; background: var(--lc); flex: none; }
-.rate-in { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
-.rate-in input { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--lc) 55%, transparent); }
-.rate-cap { display: flex; justify-content: space-between; margin: 6px 2px 0; font-size: 11.5px; color: var(--text2); }
 #calRateRev { margin-top: 8px; font-size: 13px; }
+/* 编辑日历里的等级名称（2026-11-24 重做）：一排四个同色淡底的输入框，字用这一档的深色，下面一根从低到高的细色条；不要圆点、描边和「绿 = 最低」那种说明 */
+.rate-fields > span em { font-style: normal; margin-left: 8px; color: var(--text3); }
+.rate-inputs input.rate-in { height: 40px; padding: 0 4px; border-radius: 14px; font-size: 14.5px; font-weight: 650; color: var(--lt);
+  background: color-mix(in srgb, var(--lc) 22%, var(--field)); box-shadow: none; }
+.rate-inputs input.rate-in:focus { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--lc) 70%, transparent); }
+.rate-inputs input.rate-in::placeholder { color: color-mix(in srgb, var(--lt) 50%, transparent); }
+.rate-scale { display: block; height: 3px; margin: 8px 6px 0; border-radius: 2px; opacity: .55;
+  background: linear-gradient(90deg, var(--lv4), var(--lv3) 33%, var(--lv2) 67%, var(--lv1)); }
 
 /* ---------- iPhone / Mac App：玻璃控件和照片上的牌子由原生画（整块系统液态玻璃 + 照着网页位置画上去的字和图标，见 ui.js 的 MC.LG） ----------
    原生正在画的（.lgx）：网页这边的底变透明，字（text-fill）和系统符号图标藏起来；其他图标、图片照常（只负责接收点按） */
