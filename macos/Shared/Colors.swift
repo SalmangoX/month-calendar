@@ -148,12 +148,20 @@ struct Pal {
     /// 白字永远不压在实色的白块上
     var glass = false
 
-    var accentV: UInt32 { dark ? 0xFF8D_B0EA : 0xFF4F_80C4 }   // 和网页 --accent 一致（天蓝）
+    /// 主色：中性黑白（和网页 --accent 一致；2026-11-24 用户定的：界面里不要蓝色）。日历选区（今天、选中的日子）保留蓝色，用 selV
+    var accentV: UInt32 { dark ? 0xFFEC_EDF1 : 0xFF2B_2D33 }
     var accent: Color { glass ? .white : Color(argb: accentV) }
+    /// 主色底上的字（网页 --on-accent）
+    var onAccent: Color { glass ? .black : Color(argb: dark ? 0xFF1A_1B1F : 0xFFFF_FFFF) }
+    /// 实色按钮的着色（系统玻璃按钮上是白字）：深色模式用深灰，不用近白
+    var btnTint: Color { Color(argb: dark ? 0xFF4A_4D55 : accentV) }
+    /// 日历选区的蓝（网页 --cs）：今天、选中的日子、当前周
+    var selV: UInt32 { dark ? 0xFF8D_B0EA : 0xFF4F_80C4 }
+    var sel: Color { glass ? .white : Color(argb: selV) }
     /// 加号这种白字的实色按钮：深色模式下用深一点、饱和一点的蓝（浅蓝配白字发灰）
     /// 课表页加号（添加课程）的绿色
     static let course = Color(argb: 0xFF34_A853)
-    var fab: Color { Color(argb: dark ? 0xFF5A_93D6 : 0xFF4F_80C4) }
+    var fab: Color { Color(argb: dark ? 0xFF4A_4D55 : 0xFF2B_2D33) }
     /// 玻璃样式下：色条、圆点、彩色的字 → 实色白；色块的底 → 淡淡的白
     func ink(_ v: UInt32) -> Color { glass ? .white : Color(argb: v) }
     func wash(_ v: UInt32) -> Color { glass ? .white.opacity(0.15) : Color(argb: v) }
@@ -163,10 +171,12 @@ struct Pal {
     var line: Color { glass ? .white.opacity(0.18) : Color(argb: dark ? 0xFF2C_2C2F : 0xFFEA_EAED) }
     var text: Color { glass ? .white : Color(argb: dark ? 0xFFEE_EEF1 : 0xFF17_1B20) }
     var text2: Color { glass ? .white.opacity(0.72) : Color(argb: dark ? 0xFF8C_8E97 : 0xFF74_7B83) }
-    var live: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(accentV, dark ? 0x3D : 0x29)) }
+    var live: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(selV, dark ? 0x3D : 0x29)) }
     /// 与网页一致：--accent-text、--today-dim（今天的淡主色圆）、--sel-bg（当前周的淡底）、--text2
-    var accentText: Color { glass ? .white : Color(argb: dark ? 0xFFBC_D2F5 : 0xFF3C_69AE) }
-    var todayDim: Color { glass ? .white.opacity(0.2) : Color(argb: withAlpha(accentV, dark ? 0x47 : 0x33)) }
+    var accentText: Color { glass ? .white : Color(argb: dark ? 0xFFEC_EDF1 : 0xFF2B_2D33) }
+    /// 日历选区里的「今天」字色（网页 --cs-text）
+    var selText: Color { glass ? .white : Color(argb: dark ? 0xFFBC_D2F5 : 0xFF3C_69AE) }
+    var todayDim: Color { glass ? .white.opacity(0.2) : Color(argb: withAlpha(selV, dark ? 0x47 : 0x33)) }
     /// 当前周的底：中性的浅灰（网页 --field），不带蓝
     var weekBand: Color { glass ? .white.opacity(0.07) : Color(argb: dark ? 0x13EC_EEFA : 0x176E_7D91) }
     private var text2V: UInt32 { dark ? 0xFF8F_929B : 0xFF6E_757E }
@@ -174,7 +184,7 @@ struct Pal {
     /// iPhone：今天那一格 / 那一列用中性的浅灰，不是蓝色的一片
     var todayCell: Color { glass ? .white.opacity(0.16) : Color(argb: dark ? 0x1AFF_FFFF : 0x0D00_0000) }
     #else
-    var todayCell: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(accentV, dark ? 0x33 : 0x1F)) }
+    var todayCell: Color { glass ? .white.opacity(0.16) : Color(argb: withAlpha(selV, dark ? 0x33 : 0x1F)) }
     #endif
     /// 今天那一格 / 那一列的淡底：和 App 里选中的今天一样，一层很淡的品牌渐变（金黄 → 天蓝），不再是蓝色或灰色的块
     // 【联动:品牌渐变】见 CLAUDE.md「联动分组」
@@ -186,7 +196,7 @@ struct Pal {
     }
     var dim: Color { glass ? .white.opacity(0.42) : Color(argb: 0x8088_8890) }
     /// 「今天」那个实色圆 / 小标签：玻璃样式下改成半透明的白底，上面的字才看得清
-    var todayFill: Color { glass ? .white.opacity(0.3) : accent }
+    var todayFill: Color { glass ? .white.opacity(0.3) : sel }
     /// 今天的日期圆、「还有几项」小标签：品牌渐变 金黄 → 天蓝 → 亮蓝（和 App 里选中的今天、安卓小组件一样）；玻璃样式下还是半透明白
     var todayStyle: AnyShapeStyle {
         if glass { return AnyShapeStyle(Color.white.opacity(0.3)) }

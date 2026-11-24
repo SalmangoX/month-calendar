@@ -43,19 +43,25 @@
   --field: rgba(118, 118, 128, .09);
   --group-line: rgba(0, 0, 0, .07);
   /* 【联动:主色和红色】见 CLAUDE.md「联动分组」 */
-  --accent: #4F80C4;          /* 主色：和优先级中段同一种蓝，白字和细线都清楚 */
-  --accent-base: #4F80C4;
+  /* 主色：中性黑白（2026-11-24 用户定的：界面里不要蓝色；以前这里是蓝 #4F80C4，一百多处引用它，哪里用主色哪里就变蓝）。
+     主色底上的字用 --on-accent。日历选区（选中的日子、今天、当前周、日期选择器的选中 / 范围）保留蓝色，用下面的 --cs 系列 */
+  --accent: #2B2D33;
+  --accent-base: #2B2D33;
+  --on-accent: #FFFFFF;
+  --cs: #4F80C4;              /* 日历选区的蓝（用户要保留） */
+  --cs-text: #3C69AE;
+  --cs-soft: rgba(79, 128, 196, .12);
   --drawer-frost: rgba(250, 250, 250, .62);   /* 中性白，不带蓝 */
-  --accent-deep: #345C9C;
-  --accent-text: #3C69AE;
+  --accent-deep: #15171B;
+  --accent-text: #2B2D33;
   --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .7), 0 8px 20px rgba(30, 45, 70, .14), 0 1px 3px rgba(30, 45, 70, .08);
-  --accent-soft: rgba(79, 128, 196, .12);
+  --accent-soft: rgba(43, 45, 51, .07);
   --sel-line: rgba(79, 128, 196, .5);
   --today-dim: rgba(79, 128, 196, .2);
   --sel-bg: rgba(79, 128, 196, .065);
   --sel-veil: rgba(79, 128, 196, .10);
   --sel-veil-top: rgba(255, 255, 255, .0);
-  --sel-tint: color-mix(in srgb, var(--accent) 12%, transparent);
+  --sel-tint: color-mix(in srgb, var(--cs) 12%, transparent);
   /* 玻璃：更通透（低不透明度 + 强模糊 + 提饱和 + 略提亮），再用边缘高光做出厚度，接近 Liquid Glass 的感觉 */
   --frost: rgba(248, 251, 253, .5);
   --frost-strong: rgba(250, 252, 254, .84);
@@ -89,19 +95,23 @@
   --sel: rgba(141, 176, 234, .055);
   --field: rgba(255, 255, 255, .075);
   --group-line: rgba(255, 255, 255, .06);
-  --accent: #8DB0EA;
-  --accent-base: #8DB0EA;
+  --accent: #ECEDF1;
+  --accent-base: #ECEDF1;
+  --on-accent: #1A1B1F;
+  --cs: #8DB0EA;
+  --cs-text: #BCD2F5;
+  --cs-soft: rgba(141, 176, 234, .17);
   --drawer-frost: rgba(34, 34, 37, .6);
-  --accent-deep: #5F84C6;
-  --accent-text: #BCD2F5;
+  --accent-deep: #C9CBD2;
+  --accent-text: #ECEDF1;
   --ind-rim: inset 0 0 0 .5px rgba(255, 255, 255, .10), 0 8px 22px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .35);
-  --accent-soft: rgba(141, 176, 234, .17);
+  --accent-soft: rgba(236, 237, 241, .12);
   --sel-line: rgba(141, 176, 234, .62);
   --today-dim: rgba(141, 176, 234, .28);
   --sel-bg: rgba(141, 176, 234, .14);
   --sel-veil: rgba(141, 176, 234, .16);
   --sel-veil-top: rgba(141, 176, 234, .04);
-  --sel-tint: color-mix(in srgb, var(--accent) 20%, transparent);
+  --sel-tint: color-mix(in srgb, var(--cs) 20%, transparent);
   --sel-tint-pct: 20%;
   /* 深色的玻璃：不铺灰，铺一层更深、更透的底，靠上沿的细高光显出玻璃感（灰底像雾蒙蒙的塑料） */
   --frost: rgba(16, 16, 20, .4);
@@ -235,7 +245,7 @@ body .weekdays { display: none; }
   transition: background .22s var(--ease), color .22s var(--ease);
 }
 /* 今天：只用主色文字；选中：实心圆（今天被选中时用主色实心圆） */
-.cell.today .num, .wcol.today .wnum { color: var(--accent-text); font-weight: 650; }
+.cell.today .num, .wcol.today .wnum { color: var(--cs-text); font-weight: 650; }
 /* 选中：整格灰蓝浅底 + 一层盖在事件上的淡淡薄纱和描边；数字为主色实心圆，点选时轻轻弹一下 */
 /* 选中：一块平的主色淡底，在事件下面（半透明的事件会透出这层颜色），没有边框、没有遮罩 */
 .cell.sel::before, .wcol.sel::before { background: var(--sel-tint); }
@@ -245,7 +255,7 @@ body .weekdays { display: none; }
 }
 .num, .wnum { z-index: 3; }
 .mlabel { position: absolute; top: 3px; left: 5px; font-size: 8.5px; color: var(--accent-text); font-weight: 650; white-space: nowrap; z-index: 3; }
-.cell.sel .num, .wcol.sel .wnum { background: var(--accent); color: #fff; font-weight: 650; animation: pop .32s var(--ease-spring); }
+.cell.sel .num, .wcol.sel .wnum { background: var(--cs); color: #fff; font-weight: 650; animation: pop .32s var(--ease-spring); }
 @keyframes pop { 0% { transform: scale(.82); } 100% { transform: scale(1); } }
 /* 选中的不是今天：选中日期用空心圈；今天改为稍小、颜色更淡的实心圈 */
 .cell.sel:not(.today) .num, .wcol.sel:not(.today) .wnum {
@@ -267,8 +277,12 @@ body .weekdays { display: none; }
   white-space: nowrap; overflow: hidden;
   background: var(--cg, var(--c)); color: #fff; font-weight: 600;   /* --cg：优先级渐变（store.js 的 MC.priGrad） */
 }
-/* 中文：字小一点、字距大一点、离边远一点，事件多的时候不挤（2026-11-24 用户定的） */
-:root:lang(zh) .chip { font-size: 9px; letter-spacing: .04em; padding: 0 4px 0 6px; }   /* 字往右挪一点，不贴着左端的渐变 */
+/* 只有中文字小一号（.cj，calendar.js 的 chipText 包的），英文、数字和字距保持原样（2026-11-24 用户定的：只改中文，不要整条变细变长） */
+.chip .cj { font-size: .947em; letter-spacing: .02em; }
+/* 标题放不下时：截断处最后 10px 里的一两个字按离边多近调透明（calendar.js 的 fadeOverflow 在空闲时挂 .fd 和 --fa），
+   像色条右端的渐变一样柔和，不是一刀切（跨天横条也不再用省略号）。不用 mask-image（安卓上几百个遮罩各开一层离屏画，滑动变慢） */
+.chip .fd { color: color-mix(in srgb, currentColor var(--fa), transparent); }
+:root:lang(zh) .chip { padding: 0 4px 0 6px; }   /* 字往右挪一点，不贴着左端的渐变 */
 :root:lang(zh) .chip.tm { padding-right: 8px; }   /* 右端有表示「有具体时间」的小点 */
 /* 深色：每个颜色专门设计的深色调（--cf，宝石色，不发灰不发棕）+ 带一点同色的柔白字（--ci），由 store.js 算好写在每个色条上 */
 :root[data-theme="dark"] .chip:not(.done) { background: var(--cgd, var(--cf, var(--c))); color: var(--ci, #F0F0F0); font-weight: 500; }
@@ -281,12 +295,14 @@ body .weekdays { display: none; }
   .chip.done:not(.mbar) { position: relative; }
 }
 /* 子日历（除了主日历的所有日历，body[data-cal]）：像课表的课程块（.sc-blk）一样，左边一根实色竖条 + 半透明淡底 + 一圈很淡的同色细边 + 同色深字（2026-11-24 用户定的：和主日历的彩底白字区分开） */
-body[data-cal] .chip:not(.gap) { background: color-mix(in srgb, var(--c) 17%, transparent); color: color-mix(in srgb, var(--c) 72%, #16141d);
+body[data-cal] .chip:not(.gap), .chip.sub:not(.gap) { background: color-mix(in srgb, var(--c) 17%, transparent); color: color-mix(in srgb, var(--c) 72%, #16141d);
   box-shadow: inset 3px 0 0 var(--c), inset 0 0 0 .5px color-mix(in srgb, var(--c) 35%, transparent); padding-left: 6px; border-radius: 4.5px; font-weight: 600; }
-body[data-cal] .chip.done { background: color-mix(in srgb, var(--c) 6%, transparent); color: var(--text3);
+body[data-cal] .chip.done, .chip.sub.done { background: color-mix(in srgb, var(--c) 6%, transparent); color: var(--text3);
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 35%, transparent), inset 0 0 0 .5px color-mix(in srgb, var(--c) 18%, transparent); }
-:root[data-theme="dark"] body[data-cal] .chip:not(.gap):not(.done) { background: color-mix(in srgb, var(--cf, var(--c)) 28%, transparent); color: color-mix(in srgb, var(--c) 50%, #fff);
+:root[data-theme="dark"] body[data-cal] .chip:not(.gap):not(.done), :root[data-theme="dark"] .chip.sub:not(.gap):not(.done) { background: color-mix(in srgb, var(--cf, var(--c)) 28%, transparent); color: color-mix(in srgb, var(--c) 50%, #fff);
   box-shadow: inset 3px 0 0 var(--c), inset 0 0 0 .5px color-mix(in srgb, var(--c) 30%, transparent); font-weight: 500; }
+/* 主日历里显示的分日历事件（.sub，calendar.js 的 subCls）用上面同一种样子；已完成的不叠优先级渐变 */
+body[data-cal] .chip.done::before, .chip.sub.done::before { display: none; }
 .more { font-size: 10px; color: var(--text2); padding-left: 4px; line-height: 12px; }
 .ctime { font-size: 9px; line-height: 11px; color: var(--text2); padding-left: 2px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -.02em;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
@@ -311,11 +327,11 @@ body[data-cal] .chip.done { background: color-mix(in srgb, var(--c) 6%, transpar
 .mini { min-width: 0; display: flex; flex-direction: column; padding: 6px 4px; border-radius: var(--r-m); cursor: pointer; transition: background .15s; }
 .mini:active { background: var(--field); }
 .mini h4 { margin: 0 0 4px 3px; font-size: 14px; font-weight: 680; }
-.mini.cur h4 { color: var(--accent-text); }
+.mini.cur h4 { color: var(--cs-text); }
 .mini-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); }
 .md { position: relative; display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-variant-numeric: proportional-nums; }
 .md.out { color: transparent; }
-.md.today span { background: var(--accent); color: #fff; border-radius: 50%; width: 13px; height: 13px; display: grid; place-items: center; font-weight: 700; }
+.md.today span { background: var(--cs); color: #fff; border-radius: 50%; width: 13px; height: 13px; display: grid; place-items: center; font-weight: 700; }
 .md i { position: absolute; bottom: 0; left: 50%; width: 3.5px; height: 3.5px; margin-left: -1.75px; border-radius: 50%; background: var(--c); }
 .md i.faded { opacity: .35; }
 
@@ -396,9 +412,9 @@ body[data-cal] .chip.done { background: color-mix(in srgb, var(--c) 6%, transpar
 .td-day { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 5px; border-radius: 14px; color: var(--text); }
 .td-day small { font-size: 11px; color: var(--text2); font-weight: 500; }
 .td-day b { font-size: 17px; font-weight: 500; width: 32px; height: 32px; line-height: 32px; border-radius: 16px; font-variant-numeric: tabular-nums; }
-.td-day.today b { color: var(--accent-text); font-weight: 700; }
+.td-day.today b { color: var(--cs-text); font-weight: 700; }
 .td-day.on b { background: var(--text); color: var(--bg); font-weight: 700; }
-.td-day.on.today b { background: var(--accent); color: #fff; }
+.td-day.on.today b { background: var(--cs); color: #fff; }
 .td-day i { width: 4px; height: 4px; border-radius: 2px; background: var(--text3); }
 .td-day i[hidden] { display: block; visibility: hidden; }
 .td-empty { text-align: center; color: var(--text2); font-size: 14px; margin: 12px 0 4px; }
@@ -437,7 +453,7 @@ body[data-cal] .chip.done { background: color-mix(in srgb, var(--c) 6%, transpar
 .avatar {
   position: relative; flex: none; width: 68px; height: 68px; border-radius: 50%; overflow: hidden;
   display: grid; place-items: center; font-size: 26px; font-weight: 650; color: #fff;
-  background: linear-gradient(155deg, #7E9BB8 0%, #4E6E8E 100%);
+  background: linear-gradient(155deg, #8E9097 0%, #55585F 100%);   /* 中性石墨灰，不带蓝 */
   box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--group-line);
 }
 .avatar img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
@@ -734,7 +750,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .sheet.swap { transition: opacity .2s ease, visibility 0s linear .2s !important; transform: none !important; }
 .sheet.swap.show { opacity: 1; transition: opacity .2s ease !important; }
 .sheet.swap:not(.show) { opacity: 0; }
-.cmp-save { height: 34px; padding: 0 18px; border-radius: 17px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 650; transition: opacity .2s, transform .2s var(--ease); }
+.cmp-save { height: 34px; padding: 0 18px; border-radius: 17px; background: var(--accent); color: var(--on-accent); font-size: 15px; font-weight: 650; transition: opacity .2s, transform .2s var(--ease); }
 .cmp-save:active { transform: scale(.95); }
 .cmp-save.disabled { opacity: .38; }
 .cmp-head h2 { margin: 0; font-size: 17px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
@@ -763,7 +779,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
   transition: background .2s, color .2s, box-shadow .2s;
 }
 .qchip small { font-size: 11.5px; color: var(--text2); font-weight: 500; }
-.qchip.on { background: var(--accent); color: #fff; }
+.qchip.on { background: var(--accent); color: var(--on-accent); }
 .qchip.on small { color: rgba(255, 255, 255, .78); }
 .qchip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
 .qchip.pri.on { background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--c); }
@@ -897,8 +913,8 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .pk-d { display: grid; place-items: center; font-size: 15px; font-variant-numeric: proportional-nums; }
 .pk-d span { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; transition: background .15s; }
 .pk-d.out { color: var(--text3); }
-.pk-d.today span { color: var(--accent-text); font-weight: 650; box-shadow: inset 0 0 0 1.5px var(--accent); }
-.pk-d.on span { background: var(--accent); color: #fff; font-weight: 650; box-shadow: none; }
+.pk-d.today span { color: var(--cs-text); font-weight: 650; box-shadow: inset 0 0 0 1.5px var(--cs); }
+.pk-d.on span { background: var(--cs); color: #fff; font-weight: 650; box-shadow: none; }
 .group { background: var(--surface); border-radius: var(--r-l); overflow: hidden; box-shadow: inset 0 0 0 .5px var(--group-line); }
 .pk-rows { margin-top: 12px; }
 .pk-row { display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 0 14px; font-size: 16px; width: 100%; text-align: left; }
@@ -952,7 +968,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .help-body { overflow-y: auto; padding: 0 20px 20px; user-select: text; -webkit-user-select: text; }
 .steps { list-style: none; counter-reset: s; margin: 4px 0 0; padding: 0; }
 .steps li { counter-increment: s; position: relative; padding: 0 0 18px 40px; font-size: 15px; line-height: 1.6; }
-.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: var(--accent); }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--on-accent); background: var(--accent); }
 .steps li:not(:last-child)::after { content: ""; position: absolute; left: 12.5px; top: 30px; bottom: 4px; width: 1px; background: var(--group-line); }
 .steps b { font-weight: 650; }
 .steps code, .help-body code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: var(--field); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
@@ -1026,7 +1042,7 @@ html.locked .lock { display: grid; }
 .cfm p { margin: 0 4px 18px; font-size: 15px; line-height: 1.5; text-align: center; white-space: normal; word-break: break-word; user-select: text; -webkit-user-select: text; }
 .cfm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .cfm-btns button { padding: 11px 8px; border-radius: 999px; font-size: 15px; font-weight: 600; background: var(--field); }
-.cfm-btns button.strong { background: var(--accent); color: #fff; }
+.cfm-btns button.strong { background: var(--accent); color: var(--on-accent); }
 .cfm-btns button.danger { background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); }
 .cfm-btns button:active { opacity: .75; }
 
@@ -1087,15 +1103,15 @@ html.locked .lock { display: grid; }
   background: var(--accent-soft); transform-origin: left center;
 }
 @supports (background: color-mix(in srgb, red 50%, blue)) {
-  .chooser .pk-d.rng::before { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); } /* 不透明，重叠处不会出现接缝 */
+  .chooser .pk-d.rng::before { background: color-mix(in srgb, var(--cs) 16%, var(--surface)); } /* 不透明，重叠处不会出现接缝 */
 }
 .chooser .pk-d.rs::before, .chooser .pk-d.rl::before { left: 3px; border-top-left-radius: 17px; border-bottom-left-radius: 17px; }
 .chooser .pk-d.re::before, .chooser .pk-d.rr::before { right: 3px; border-top-right-radius: 17px; border-bottom-right-radius: 17px; }
-.chooser .pk-d.rs span, .chooser .pk-d.re span { background: var(--accent); color: #fff; font-weight: 650; box-shadow: none; }
+.chooser .pk-d.rs span, .chooser .pk-d.re span { background: var(--cs); color: #fff; font-weight: 650; box-shadow: none; }
 .chooser.anim .pk-d.rng::before { animation: rngIn .26s cubic-bezier(.3, .8, .3, 1) both; animation-delay: calc(var(--k, 0) * 24ms); }
 .chooser.anim .pk-d.re span { animation: pop .3s var(--ease-spring) both; animation-delay: calc(var(--k, 0) * 24ms); }
 @keyframes rngIn { from { transform: scaleX(0); opacity: .2; } to { transform: none; opacity: 1; } }
-.range-ok { height: 38px; padding: 0 18px; border-radius: 19px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; animation: rise .25s var(--ease); }
+.range-ok { height: 38px; padding: 0 18px; border-radius: 19px; background: var(--cs); color: #fff; font-size: 14px; font-weight: 600; animation: rise .25s var(--ease); }
 
 /* ---------- 课表 ---------- */
 #page-sched { background: var(--bg-grouped); }
@@ -1126,9 +1142,9 @@ html.locked .lock { display: grid; }
 .sc-dh { text-align: center; padding: 8px 0 6px; display: flex; flex-direction: column; gap: 1px; }
 .sc-dh span { font-size: calc(11.5px * max(var(--fs, 1), .85)); font-weight: 600; color: var(--text2); }
 .sc-dh b { font-size: calc(13px * max(var(--fs, 1), .85)); font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
-.sc-dh.we span, .sc-dh.we b { color: var(--accent-text); }
-.sc-dh.today b { display: inline-block; align-self: center; min-width: 34px; padding: 1px 6px; border-radius: 10px; background: var(--accent); color: #fff; }
-.sc-dh.today span { color: var(--accent-text); }
+.sc-dh.we span, .sc-dh.we b { color: var(--cs-text); }
+.sc-dh.today b { display: inline-block; align-self: center; min-width: 34px; padding: 1px 6px; border-radius: 10px; background: var(--cs); color: #fff; }
+.sc-dh.today span { color: var(--cs-text); }
 .sc-main { position: relative; display: grid; grid-template-columns: var(--hw) 1fr; }
 .sc-hours { position: sticky; left: 0; z-index: 6; background: var(--surface); } /* 横向滚动时盖住滑过来的课程和时间线 */
 .sc-corner { position: sticky; left: 0; z-index: 2; background: var(--surface); }
@@ -1142,14 +1158,14 @@ html.locked .lock { display: grid; }
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 15%, transparent) 0%, color-mix(in srgb, var(--accent) 7%, transparent) 100%); /* 半透明：时间线能透出来 */
   box-shadow: 0 0 0 .5px color-mix(in srgb, var(--accent) 30%, transparent), 0 6px 18px rgba(40, 70, 105, .16), 0 1px 3px rgba(40, 70, 105, .1);
 }
-:root[data-theme="dark"] .sc-col.today { box-shadow: 0 0 0 .5px color-mix(in srgb, var(--accent) 45%, transparent), 0 6px 20px rgba(0, 0, 0, .55); }
+:root[data-theme="dark"] .sc-col.today { box-shadow: 0 0 0 .5px color-mix(in srgb, var(--cs) 45%, transparent), 0 6px 20px rgba(0, 0, 0, .55); }
 .sc-col.today + .sc-col { border-left-color: transparent; }
 .sc-col.thin { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--text3) 14%, transparent) 6px 7px); }
-.sc-col.thin.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 20%, var(--surface)), color-mix(in srgb, var(--accent) 10%, var(--surface))); }
+.sc-col.thin.today { background: linear-gradient(180deg, color-mix(in srgb, var(--cs) 20%, var(--surface)), color-mix(in srgb, var(--cs) 10%, var(--surface))); }
 .sc-dh.thin span { font-size: 10px; }
 .sc-dh.thin b { font-size: 11px; }
 .sc-dh.today { position: relative; }
-.sc-dh.today::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: 0; height: 2.5px; border-radius: 2px; background: var(--accent); }
+.sc-dh.today::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: 0; height: 2.5px; border-radius: 2px; background: var(--cs); }
 .sc-blk {
   position: absolute; z-index: 1; border-radius: 10px; padding: 5px 5px 5px 8px; text-align: left; overflow: hidden;
   display: flex; flex-direction: column; gap: 1px; line-height: 1.22; color: var(--text);
@@ -1256,7 +1272,7 @@ html.locked .lock { display: grid; }
 .cp-next { margin-top: 8px; padding: 9px 12px; border-radius: 17px; background: var(--field); font-size: 13px; color: var(--text2); }
 .cp-next.live { color: var(--accent-text); background: var(--accent-soft); font-weight: 600; }
 .cp-acts { display: flex; justify-content: flex-end; margin-top: 12px; }
-.cp-edit { height: 36px; padding: 0 20px; border-radius: 18px; background: var(--accent); color: #fff; font-size: 14.5px; font-weight: 650; }
+.cp-edit { height: 36px; padding: 0 20px; border-radius: 18px; background: var(--accent); color: var(--on-accent); font-size: 14.5px; font-weight: 650; }
 .cp-edit:active { transform: scale(.96); }
 
 /* 选择月份和周 */
@@ -1275,11 +1291,11 @@ html.locked .lock { display: grid; }
 .wp-week em, .wp-row em { font-style: normal; font-size: 10px; color: var(--text3); }
 .wp-row { width: 100%; padding: 7px 4px; border-radius: 16px; font-size: 14px; font-variant-numeric: tabular-nums; transition: background .15s; }
 .wp-row:active { background: var(--field); }
-.wp-row.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--sel-line); }
+.wp-row.on { background: var(--cs-soft); box-shadow: inset 0 0 0 1px var(--sel-line); }
 .wp-row span { position: relative; }
 .wp-row span.out { color: var(--text3); }
-.wp-row span.today { color: var(--accent-text); font-weight: 750; }
-.wp-row span i { position: absolute; left: 50%; bottom: -5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent); }
+.wp-row span.today { color: var(--cs-text); font-weight: 750; }
+.wp-row span i { position: absolute; left: 50%; bottom: -5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--cs); }
 
 /* ---------- 左侧日历栏 ---------- */
 .drawer-scrim {
@@ -1412,7 +1428,7 @@ body[data-cal][data-page="cal"] .fab.accent { box-shadow: 0 6px 18px color-mix(i
 /* ---------- 跨天的全天事件：连成一整条 ---------- */
 .wrow { position: relative; --ct: 39px; } /* --ct：格子里第一条事件的顶部（数字下方） */
 .chip.gap { visibility: hidden; }
-.mbar, .wbar { position: absolute; z-index: 1; /* 在选中底色上面 */ pointer-events: none; --il: 3px; --ir: 3px; text-overflow: ellipsis; }
+.mbar, .wbar { position: absolute; z-index: 1; /* 在选中底色上面 */ pointer-events: none; --il: 3px; --ir: 3px; text-overflow: clip; }
 .mbar.ol, .wbar.ol { --il: 0px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .mbar.or, .wbar.or { --ir: 0px; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .mbar {
@@ -1860,7 +1876,7 @@ body.cal-m #page-cal { padding-top: 0; }
 /* 周视图：每列顶上先让开顶部的标题板（安全区下 52px），再写星期、日期；只影响周视图 */
 body.cal-w .wcol { padding-top: 58px; }
 .wwd { font-size: 11px; color: var(--text2); text-align: center; line-height: 1; margin-bottom: 2px; }
-.wcol.today .wwd { color: var(--accent-text); font-weight: 650; }
+.wcol.today .wwd { color: var(--cs-text); font-weight: 650; }
 body.cal-w .wbar { top: calc(109px + var(--s) * 23px); }   /* 列顶留白 58 + 星期 13 + 日期 38 */
 /* ---------- 顶部标题板（用户定的：放弃悬浮胶囊和星期条，改回一块半透明的板） ----------
    从屏幕最顶上（状态栏、灵动岛后面）一直到吸附线：底边正好落在吸附线上（--snap-y，calendar.js 的 measure() 按布局位置算）。

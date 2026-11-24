@@ -159,8 +159,59 @@
     }));
     return { evsBy, bars, occ };
   }
+  // 色条上的标题：连续的中文包进 .cj（只有中文小一号，英文、数字不变，2026-11-24 用户定的）；放不下时右端几像素淡出（fadeOverflow）。
+  // 不再多包一层：每多一个 span，几百个色条每次重画都慢一截（安卓模拟器实测两层 span 慢约 10%）
+  const CJK = /[\u2E80-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]+/g;
+  const chipText = s => esc(s).replace(CJK, m => `<span class="cj">${m}</span>`);
+  // 放不下的标题右端淡出（用户要的：被截断的地方别一刀切，带一点虚化）。
+  // 不用 mask-image：几百个遮罩在安卓上每个都要单独开一层离屏画，滑动时慢帧更慢（2026-11-24 模拟器实测 90 分位多 25–35ms）。
+  // 现在：画完、浏览器空闲时，只对放不下的色条找出截断处最后 FADE_W px 里的那一两个字，按离边多近把字色调透明（越靠边越淡）。
+  // 只是普通文字换了个带透明度的颜色，不开新层，画起来和不淡出一样省；量和改都在空闲时分批做，不拖慢画月视图、滑动
+  const FADE_W = 10;
+  let fadeJob = 0;
+  const idle = window.requestIdleCallback ? (f => requestIdleCallback(f, { timeout: 600 })) : (f => setTimeout(() => f({ timeRemaining: () => 8 }), 120));
+  const unidle = window.cancelIdleCallback ? cancelIdleCallback : clearTimeout;
+  // 量：返回之后要做的改动（一批先全部量完再一起改，不来回触发排版）
+  function fadeChip(ct, rg) {
+    const edge = ct.getBoundingClientRect().right - (parseFloat(getComputedStyle(ct).paddingRight) || 0);   // 字被截断的位置：色条内容区的右边
+    const chars = [], w = document.createTreeWalker(ct, NodeFilter.SHOW_TEXT);
+    for (let n; (n = w.nextNode());) for (let i = 0; i < n.length; i++) { const c = n.data.charCodeAt(i); if (c < 0xDC00 || c > 0xDFFF) chars.push([n, i, c >= 0xD800 && c < 0xDC00 ? 2 : 1]); }
+    const box = k => { const [n, i, l] = chars[k]; rg.setStart(n, i); rg.setEnd(n, i + l); return rg.getBoundingClientRect(); };
+    let lo = 0, hi = chars.length;   // 二分找第一个右边进入淡出区的字
+    while (lo < hi) { const m = (lo + hi) >> 1; if (box(m).right > edge - FADE_W) hi = m; else lo = m + 1; }
+    const hits = [];
+    for (let k = lo; k < chars.length; k++) {
+      const b = box(k); if (b.left >= edge) break;
+      const a = Math.max(.12, Math.min(1, (edge - (b.left + b.right) / 2) / FADE_W));   // 字的中心离边越近越淡
+      if (a < .98) hits.push([k, a]);
+    }
+    return () => {
+      for (let j = hits.length - 1; j >= 0; j--) {   // 从后往前拆文字节点，前面的偏移不受影响
+        const [k, a] = hits[j], [n, i, l] = chars[k];
+        const mid = n.splitText(i); mid.splitText(l);
+        const s = document.createElement('span'); s.className = 'fd'; s.style.setProperty('--fa', Math.round(a * 100) + '%');
+        mid.replaceWith(s); s.appendChild(mid);
+      }
+    };
+  }
+  function fadeOverflow(root) {
+    if (fadeJob) unidle(fadeJob);
+    let list = null;
+    const run = dl => {
+      fadeJob = 0;
+      if (!root.isConnected) return;
+      if (!list) { const all = [...root.querySelectorAll('.chip:not(.gap)')], ov = all.map(s => s.scrollWidth > s.clientWidth + 1); list = all.filter((s, i) => ov[i]); }   // 先一次读完宽度（周视图的事件块会换行，不会算成放不下）
+      const rg = document.createRange(), writes = [];
+      while (list.length && dl.timeRemaining() > 3) writes.push(fadeChip(list.shift(), rg));   // 一次只做到这一帧空闲用完，剩下的下次空闲再做
+      writes.forEach(f => f());
+      if (list.length) fadeJob = idle(run);
+    };
+    fadeJob = idle(run);
+  }
+  // 分日历（记录日历、纪念日历）的事件在主日历里显示时，也用分日历那种「左边一根竖条 + 淡底 + 同色字」（.sub），和主日历自己的事件分开（用户定的）
+  const subCls = e => (e.cal && !document.body.dataset.cal ? ' sub' : '');
   const chipHTML = (e, cls = '', style = '') =>
-    `<div class="chip${cls}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}${style}">${esc(e.title)}</div>`;
+    `<div class="chip${cls}${subCls(e)}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}${style}">${chipText(e.title)}</div>`;
   // 一天的格子：跨天横条的位置留空，单天事件放在自己的行上
   // 放得下就全显示；放不下时留一行显示「+n」，空间太小则只显示一行
   // 有时间的事件：高度够就在色条下面加一行时间（先试完整时间段，不够就每个只占一行），
@@ -239,6 +290,7 @@
 
     track.style.cssText = '';
     track.innerHTML = h + `<div class="mframe${moving ? ' moving' : ''}" aria-hidden="true"><div class="mf-in" id="mframePath"></div></div>`;
+    fadeOverflow(track);
     setT(0, TOP - (BUF * rowH + scrollY));
     monthTitle();
     drawFrame();
@@ -504,7 +556,7 @@
       if (ds === t) cls.push('today');
       if (ds === selected) cls.push('sel');
       const chips = lay.evsBy[i].filter(e => !spans(e)).map(e =>
-        `<div class="chip${e.done ? ' done' : ''}" style="${MC.toneVars(e)}">${esc(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
+        `<div class="chip${subCls(e)}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}">${chipText(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
       h += `<div class="${cls.join(' ')}" data-date="${ds}"><div class="wwd">${MC.WD[d.getDay()]}</div><div class="wnum">${d.getDate()}</div>${lanes ? '<div class="wlanes"></div>' : ''}${chips}</div>`;
     }
     for (const b of lay.bars) {
@@ -516,6 +568,7 @@
   function renderWeek() {
     track.style.cssText = `position:relative;height:100%`;
     track.innerHTML = weekPanelHTML(MC.addDays(weekAnchor, -7), 0) + weekPanelHTML(weekAnchor, W) + weekPanelHTML(MC.addDays(weekAnchor, 7), 2 * W);
+    fadeOverflow(track);
     setT(-W, 0);
     const mid = MC.addDays(weekAnchor, 3), end = MC.addDays(weekAnchor, 6);
     const w1 = $('#calTitle'), w2 = $('#calSub');

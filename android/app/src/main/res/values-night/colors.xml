@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="accent">#8DB0EA</color>
+    <color name="accent">#ECEDF1</color>
+    <color name="sel">#8DB0EA</color>
     <color name="app_bg">#141416</color>
     <color name="w_bg">#1B1C21</color>
     <color name="w_line">#292A2F</color>

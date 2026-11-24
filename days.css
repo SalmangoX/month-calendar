@@ -505,7 +505,7 @@ button.dp-glyph:active { transform: translate(-50%, -50%) scale(.95); }
 .dm-month { padding: 10px 6px 14px; }
 .dm-month + .dm-month { border-top: .5px solid var(--group-line); }
 .dm-month h3 { margin: 4px 6px 8px; font-size: 18px; font-weight: 700; }
-.dm-month.now h3 { color: var(--accent-text); }
+.dm-month.now h3 { color: var(--cs-text); }   /* 月历里的本月：日历选区的蓝 */
 .dm-month .mc { height: 46px; }
 .dm-month .mc b { width: 32px; height: 32px; font-size: 15px; }
 

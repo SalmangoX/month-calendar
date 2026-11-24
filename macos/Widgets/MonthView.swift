@@ -274,17 +274,44 @@ struct MonthView: View {
                        startPoint: .leading, endPoint: .trailing)
     }
 
+    /// 色条上的字：中文小一号（0.947 倍，和网页 .chip .cj、安卓 chipText 一样），英文、数字不变【联动:优先级色条】
+    static func chipText(_ s: String, weight: Font.Weight) -> Text {
+        func cjk(_ c: Character) -> Bool { c.unicodeScalars.first.map { let v = $0.value; return (0x2E80...0x9FFF).contains(v) || (0xF900...0xFAFF).contains(v) || (0x3000...0x303F).contains(v) || (0xFF00...0xFFEF).contains(v) } ?? false }
+        var out = AttributedString(), run = "", runCJK = false
+        func flush() { guard !run.isEmpty else { return }; var a = AttributedString(run); a.font = .system(size: chipFS * (runCJK ? 0.947 : 1), weight: weight); out += a; run = "" }
+        for ch in s { let k = cjk(ch); if k != runCJK { flush(); runCJK = k }; run.append(ch) }
+        flush()
+        return Text(out)
+    }
+    /// 分日历（记录日历、纪念日历）的事件在主日历里：左边一根竖条 + 淡底 + 同色字（和网页 .chip.sub 一样，用户定的）；玻璃样式照旧
+    private func isSub(_ e: CEvent, _ pal: Pal) -> Bool { !e.cal.isEmpty && !pal.glass }
+    private func subInk(_ col: UInt32, _ pal: Pal, soft: Bool) -> Color {
+        if soft { return Color(argb: pal.dark ? 0xFF6E_7178 : 0xFFA4_A6AD) }
+        func mix(_ b: UInt32, _ k: Double) -> Color {
+            func ch(_ v: UInt32, _ sh: UInt32) -> Double { Double((v >> sh) & 0xFF) / 255 }
+            return Color(red: ch(col, 16) * k + ch(b, 16) * (1 - k), green: ch(col, 8) * k + ch(b, 8) * (1 - k), blue: ch(col, 0) * k + ch(b, 0) * (1 - k))
+        }
+        return pal.dark ? mix(0xFFFF_FFFF, 0.5) : mix(0xFF16_141D, 0.72)
+    }
+    @ViewBuilder private func subFill(_ col: UInt32, soft: Bool, stripe: Bool) -> some View {
+        ZStack(alignment: .leading) {
+            Rectangle().fill(Color(argb: col).opacity(soft ? 0.07 : 0.2))
+            if stripe { Rectangle().fill(Color(argb: col).opacity(soft ? 0.35 : 1)).frame(width: 3) }
+        }
+    }
+
     /// tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致）
     // 【联动:优先级色条】见 CLAUDE.md「联动分组」
     private func chip(_ e: CEvent, soft: Bool, out: Bool = false, width: CGFloat, pal: Pal, tm: Bool = false) -> some View {
-        let ink = pal.chip(e, entry.data, soft: soft, out: out).1
-        return Text(e.displayTitle)
-            .font(.system(size: MonthView.chipFS, weight: pal.dark ? .medium : MonthView.chipW))
+        let sub = isSub(e, pal), col = pal.base(e, entry.data)
+        let ink = sub ? subInk(col, pal, soft: soft || out) : pal.chip(e, entry.data, soft: soft, out: out).1
+        let lead: CGFloat = sub ? 4.5 : 1.5
+        return MonthView.chipText(e.displayTitle, weight: pal.dark ? .medium : MonthView.chipW)
             .strikethrough(e.done)
             .foregroundStyle(ink)
             .lineLimit(1)
             .fixedSize()
-            .padding(.leading, 1.5)
+            .padding(.leading, lead)
             .frame(width: max(0, width - (tm ? 7 : 0) - 1.5), height: MonthView.chipH, alignment: .leading)
             .clipped()
             .mask(MonthView.fade(max(1, width - (tm ? 7 : 0) - 1.5)))   // 放不下的字在色条里面渐隐，不再一刀切到边上（像冲出格子）
@@ -292,7 +319,10 @@ struct MonthView: View {
             .overlay(alignment: .trailing) {
                 if tm { Circle().fill(ink).frame(width: 3.5, height: 3.5).opacity(0.75).padding(.trailing, 3) }
             }
-            .background(RoundedRectangle(cornerRadius: MonthView.chipR).fill(pal.chipFill(e, entry.data, soft: soft, out: out)))
+            .background {
+                if sub { subFill(col, soft: soft || out, stripe: true).clipShape(RoundedRectangle(cornerRadius: MonthView.chipR)) }
+                else { RoundedRectangle(cornerRadius: MonthView.chipR).fill(pal.chipFill(e, entry.data, soft: soft, out: out)) }
+            }
             .padding(.horizontal, 1)
             .accentable()
     }
@@ -300,23 +330,27 @@ struct MonthView: View {
     /// 跨天横条：和格子里的色条同样的颜色、圆角、字号；延续到上一周 / 下一周的一端是平的
     private func bar(_ s: WeekLanes.Seg, wk: [YMD], ym: YMD, cw: CGFloat, pal: Pal) -> some View {
         let out = !(s.a...s.b).contains { wk[$0].m == ym.m }
-        let ink = pal.chip(s.e, entry.data, soft: s.e.done || out, out: out).1
+        let sub = isSub(s.e, pal), col = pal.base(s.e, entry.data)
+        let ink = sub ? subInk(col, pal, soft: s.e.done || out) : pal.chip(s.e, entry.data, soft: s.e.done || out, out: out).1
         let x0 = CGFloat(s.a) * (cw + MonthView.sp) + (s.openL ? 0 : 1)
         let x1 = CGFloat(s.b) * (cw + MonthView.sp) + cw - (s.openR ? 0 : 1)
         let y = MonthView.cellTop + MonthView.dateH + 1 + CGFloat(s.slot) * MonthView.slot
         let rl: CGFloat = s.openL ? 0 : MonthView.chipR, rr: CGFloat = s.openR ? 0 : MonthView.chipR
-        return Text(s.e.displayTitle)
-            .font(.system(size: MonthView.chipFS, weight: pal.dark ? .medium : MonthView.chipW))
+        let shape = UnevenRoundedRectangle(topLeadingRadius: rl, bottomLeadingRadius: rl, bottomTrailingRadius: rr, topTrailingRadius: rr)
+        return MonthView.chipText(s.e.displayTitle, weight: pal.dark ? .medium : MonthView.chipW)
             .strikethrough(s.e.done)
             .foregroundStyle(ink)
             .lineLimit(1)
             .fixedSize()
-            .padding(.leading, 2.5)
+            .padding(.leading, sub && !s.openL ? 5 : 2.5)
             .frame(width: max(0, x1 - x0 - (s.openR ? 0 : 1.5)), height: MonthView.chipH, alignment: .leading)
             .clipped()
             .mask(MonthView.fade(max(1, x1 - x0 - (s.openR ? 0 : 1.5))))
             .frame(width: max(0, x1 - x0), height: MonthView.chipH, alignment: .leading)
-            .background(UnevenRoundedRectangle(topLeadingRadius: rl, bottomLeadingRadius: rl, bottomTrailingRadius: rr, topTrailingRadius: rr).fill(pal.chipFill(s.e, entry.data, soft: s.e.done || out, out: out)))
+            .background {
+                if sub { subFill(col, soft: s.e.done || out, stripe: !s.openL).clipShape(shape) }
+                else { shape.fill(pal.chipFill(s.e, entry.data, soft: s.e.done || out, out: out)) }
+            }
             .accentable()
             .offset(x: x0, y: y)
     }

@@ -168,7 +168,7 @@ struct MenuBarView: View {
                     Image(systemName: "arrow.down.circle").foregroundStyle(pal.accentText)
                     Text(I18n.t("Mac 版有新版本 {0}", v.version)).font(.system(size: 12, weight: .medium)).foregroundStyle(Color.primary)
                     Spacer(minLength: 0)
-                    Button(I18n.t("更新…")) { updater.install() }.glassButton(prominent: true).tint(pal.accent).controlSize(.small)
+                    Button(I18n.t("更新…")) { updater.install() }.glassButton(prominent: true).tint(pal.btnTint).controlSize(.small)
                 }
                 .padding(.horizontal, 10).padding(.vertical, 8)
                 .glassPanel(12)
@@ -223,7 +223,7 @@ struct MenuBarView: View {
                     .font(.system(size: 12, weight: isToday ? .bold : .regular))
                     .foregroundStyle(isToday ? .white : inMonth ? Color.primary : Color(nsColor: .tertiaryLabelColor))
                     .frame(width: 24, height: 24)
-                    .background { if isToday { Circle().fill(pal.accent) } else if isSel { Circle().fill(pal.todayCell) } }
+                    .background { if isToday { Circle().fill(pal.sel) } else if isSel { Circle().fill(pal.todayCell) } }
                 HStack(spacing: 2) {
                     ForEach(Array(dots.enumerated()), id: \.offset) { _, e in
                         Circle().fill(Color(argb: pal.base(e, d))).frame(width: 4, height: 4)
@@ -286,7 +286,7 @@ struct MenuBarView: View {
             GlassGroup {
                 HStack(spacing: 6) {
                     Button(I18n.t("打开节律")) { (NSApp.delegate as? AppDelegate)?.main?.show() }
-                        .glassButton(prominent: true).tint(pal.accent)
+                        .glassButton(prominent: true).tint(pal.btnTint)
                         .fixedSize() // 按钮文字完整显示，挤不下时让右边的同步时间换行
                     Button { Task { await engine.pull() } } label: {
                         Image(systemName: "arrow.triangle.2.circlepath")

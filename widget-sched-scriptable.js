@@ -87,7 +87,7 @@ String(args.widgetParameter || "").split(/[\s,;，]+/).forEach(p => { if (/^(lig
 const dyn = (l, d, a = 1) => forced === "light" ? new Color(l, a) : forced === "dark" ? new Color(d, a) : Color.dynamic(new Color(l, a), new Color(d, a));
 const C = {
   bg: dyn("#ECF2F5", "#1B1C21"), card: dyn("#FFFFFF", "#2A2B30"),
-  text: dyn("#171B20", "#EEEEF1"), text2: dyn("#6E757E", "#8C8E97"), accent: dyn("#4F80C4", "#8DB0EA"),
+  text: dyn("#171B20", "#EEEEF1"), text2: dyn("#6E757E", "#8C8E97"), accent: dyn("#2B2D33", "#ECEDF1"), sel: dyn("#4F80C4", "#8DB0EA"),   // 主色中性黑白；今天用日历选区的蓝
 };
 // 【联动:课程颜色】见 CLAUDE.md「联动分组」
 const toneOf = code => { const h = HUES.has(code) ? HUES.get(code) : 240; if (!TONE_CACHE.has(h)) TONE_CACHE.set(h, courseTone(h)); return TONE_CACHE.get(h); };
@@ -241,7 +241,7 @@ function weekLayout(w, courses, now, offline) {
     const isToday = ymdL(date) === today;
     if (isToday) { col.backgroundColor = dyn("#E2E9F1", "#2B3644"); col.cornerRadius = 9; }
     const hd = col.addStack(); hd.addSpacer();
-    addText(hd, `${wkD(d)} ${date.getDate()}`, Font.semiboldSystemFont(9.5), isToday ? C.accent : C.text2); hd.addSpacer();
+    addText(hd, `${wkD(d)} ${date.getDate()}`, Font.semiboldSystemFont(9.5), isToday ? C.sel : C.text2); hd.addSpacer();
     col.addSpacer(3);
     for (const c of list.slice(0, list.length > 4 ? 3 : 4)) {
       const ch = col.addStack(); ch.layoutVertically(); ch.size = new Size(0, 0);
@@ -265,8 +265,8 @@ function gridLayout(w, courses, now, offline) {
   const key = Object.keys(LARGE).map(Number).sort((a, b) => b - a).find(x => x <= sw) || 320;
   const [W, H] = LARGE[key];
   const dark = forced ? forced === "dark" : Device.isUsingDarkAppearance();
-  const P = dark ? { bg: "#1B1C21", text: "#EEEEF1", text2: "#8C8E97", line: "#2F3035", accent: "#8DB0EA", today: "#1E2735" }
-                 : { bg: "#ECF2F5", text: "#171B20", text2: "#6E757E", line: "#DAE1E5", accent: "#4F80C4", today: "#E1E8F6" };
+  const P = dark ? { bg: "#1B1C21", text: "#EEEEF1", text2: "#8C8E97", line: "#2F3035", accent: "#ECEDF1", sel: "#8DB0EA", today: "#1E2735" }
+                 : { bg: "#ECF2F5", text: "#171B20", text2: "#6E757E", line: "#DAE1E5", accent: "#2B2D33", sel: "#4F80C4", today: "#E1E8F6" };
   const mon = mondayOf(now), todayS = ymdL(now);
   const days = [];
   let minH = 8, maxH = 18;
@@ -296,7 +296,7 @@ function gridLayout(w, courses, now, offline) {
   days.forEach((x, i) => { if (ymdL(x.date) === todayS) round(gx + i * colW + 1, pad + headH, colW - 2, H - pad - (pad + headH), 8, P.today); });
   days.forEach((x, i) => {
     const t = ymdL(x.date) === todayS;
-    text(`${wkD(x.d)} ${x.date.getDate()}`, gx + i * colW, pad + headH + 3, colW, 14, t ? Font.boldSystemFont(9.5) : Font.mediumSystemFont(9.5), t ? P.accent : P.text2, "c");
+    text(`${wkD(x.d)} ${x.date.getDate()}`, gx + i * colW, pad + headH + 3, colW, 14, t ? Font.boldSystemFont(9.5) : Font.mediumSystemFont(9.5), t ? P.sel : P.text2, "c");
   });
   for (let h = minH; h <= maxH; h++) {
     const y = gy + (h - minH) * hourH;
@@ -374,7 +374,7 @@ function monthLayout(w, courses, now, offline) {
       const cell = row.addStack(); cell.layoutVertically(); cell.size = new Size(0, 0); cell.setPadding(1.5, 1, 0, 1);
       cell.borderColor = dyn("#DAE1E5", "#2F3035"); cell.borderWidth = 0.3;
       const nr = cell.addStack(); nr.addSpacer(2);
-      if (ds === today) { const b = nr.addStack(); b.backgroundColor = C.accent; b.cornerRadius = 7; b.setPadding(0, 3, 0, 3); addText(b, String(date.getDate()), Font.boldSystemFont(9.5), Color.white()); }
+      if (ds === today) { const b = nr.addStack(); b.backgroundColor = C.sel; b.cornerRadius = 7; b.setPadding(0, 3, 0, 3); addText(b, String(date.getDate()), Font.boldSystemFont(9.5), Color.white()); }
       else addText(nr, String(date.getDate()), Font.mediumSystemFont(10), out ? C.text2 : C.text);
       nr.addSpacer();
       const list = courses.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));

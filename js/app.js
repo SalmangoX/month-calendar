@@ -760,7 +760,7 @@
   };
   const CHEV = '<span class="chev"><svg viewBox="0 0 8 13"><path d="M1.5 1.5l5 5-5 5"/></svg></span>';
   // 图标颜色：中性的灰底块 + 实心、饱和的彩色图形（App 里所有图标底块都是这一套）。[浅色, 深色]
-  const SET_TONES = { rose: ['#E04A63', '#FF6F86'], coral: ['#E25B3A', '#FF8366'], apricot: ['#E08A16', '#FFB547'], sage: ['#2FA352', '#58D27C'], jade: ['#109E8C', '#3FD3BE'], teal: ['#1A93B8', '#4CC3E2'], sky: ['#2F7BE0', '#5EA8FF'], periwinkle: ['#5260DB', '#8492FF'], lavender: ['#8A55DB', '#B48CFF'], orchid: ['#BD48BA', '#E27BDD'] };
+  const SET_TONES = { rose: ['#E04A63', '#FF6F86'], coral: ['#E25B3A', '#FF8366'], apricot: ['#E08A16', '#FFB547'], sage: ['#2FA352', '#58D27C'], jade: ['#109E8C', '#3FD3BE'], teal: ['#5E8A3A', '#93C06A'], sky: ['#5D6472', '#AAB0BC'], periwinkle: ['#7C6B90', '#B6A6CB'],   /* 2026-11-24：界面里不要蓝色，原来的青、天蓝、长春花蓝换成苔绿、石墨灰、灰紫（键名没改，免得到处找） */ lavender: ['#8A55DB', '#B48CFF'], orchid: ['#BD48BA', '#E27BDD'] };
   const DT = s => (MC.Days ? MC.Days.T(s) : s); // 纪念日历（js/days.js）的文字
   const COURSE_LEADS = [0, 5, 10, 15, 20, 30, 45, 60];
   const leadText = m => (m ? `开始前 ${m} 分钟` : '开始时');

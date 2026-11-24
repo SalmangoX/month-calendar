@@ -42,7 +42,7 @@ const wkName = i => (isZh() ? "周" + "日一二三四五六"[i] : wdShort(i));
 const monName = m => (LANG === "en" ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m] : LANG === "fr" ? ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."][m] : `${m + 1}月`);
 const mdName = (m, d) => (LANG === "en" ? `${monName(m)} ${d}` : LANG === "fr" ? `${d} ${monName(m)}` : `${m + 1}月${d}日`);
 
-const ACCENT_HEX = ["#4F80C4", "#8DB0EA"]; // 浅色 / 深色
+const ACCENT_HEX = ["#2B2D33", "#ECEDF1"]; // 浅色 / 深色：主色中性黑白（和 App 的 --accent 一致，不要蓝色）
 
 // ---------- 参数 ----------
 let gistId = CONFIG.GIST_ID;
@@ -244,16 +244,29 @@ function chipLabel(e) {
   if (e.done) label = Array.from(label).map(c => c + "\u0336").join(""); // 已完成：删除线
   return label;
 }
+// 分日历（记录日历、纪念日历）的事件在主日历里：左边一根竖条 + 淡底 + 同色字（和应用 .chip.sub 一样，用户定的）
+// （Scriptable 的文字不能一段一段换字号、也不能渐隐，中文小一号和截断渐隐只在 App、原生小组件里有）
+// solid：跨天横条要不透明（底下的格子线不透出来），淡底先叠在背景色上
+function subColors(e, out, solid) {
+  const h = calHex(e) || PHEX[e.priority] || PHEX[0], soft = e.done || out;
+  if (solid) { const [aL, aD] = soft ? [0.07, 0.1] : [0.2, 0.5], d = soft ? h : darkTone(h)[0];
+    const c = subColors(e, out); return { ...c, bg: dyn(hex(over(h, aL, BG_L)), hex(over(d, aD, BG_D))), bar: soft ? dyn(hex(over(h, 0.35, BG_L)), hex(over(h, 0.35, BG_D))) : hex(h) }; }
+  return soft ? { bg: dyn(hex(h, 0.07), hex(h, 0.1)), bar: hex(h, 0.35), fg: dyn(new Color("#A4A6AD"), new Color("#6E7178")) }
+    : { bg: dyn(hex(h, 0.2), hex(darkTone(h)[0], 0.5)), bar: hex(h), fg: dyn(new Color(over(h, 0.72, "#16141D")), new Color(over(h, 0.5, "#FFFFFF"))) };
+}
+function subStripe(stack, color, h) { const s = stack.addStack(); s.size = new Size(3, h); s.backgroundColor = color; stack.addSpacer(2); }
 // tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致）
 function addChip(parent, e, width, h, fs, out, tm) {
-  const { bg, fg } = chipColors(e.priority, e.done, out, calHex(e));
+  const sub = e.cal ? subColors(e, out) : null;
+  const { bg, fg } = sub || chipColors(e.priority, e.done, out, calHex(e));
   const ch = parent.addStack();
   ch.size = new Size(width, h);
   ch.backgroundColor = bg;
-  { const gr = chipGrad(e.priority, e.done, out, calHex(e)); if (gr) ch.backgroundGradient = gr; }
+  if (!sub) { const gr = chipGrad(e.priority, e.done, out, calHex(e)); if (gr) ch.backgroundGradient = gr; }
   ch.cornerRadius = 3;
-  ch.setPadding(0, 1.5, 0, 0.5);
+  ch.setPadding(0, sub ? 0 : 1.5, 0, 0.5);
   ch.centerAlignContent();
+  if (sub) subStripe(ch, sub.bar, h);
   // 课程类标题（如「MAT 2348 Mid」）在小组件里只显示课程编号，避免省略号和多余空白
   const label = chipLabel(e);
   const tx = addText(ch, label, chipFont(fs), fg, { lines: 1 });
@@ -428,7 +441,8 @@ function largeLayout(w, idx, offline) {
 
 // 一整条横条。只有一边延续时，用「平的一小段 + 圆角段」稍微叠在一起，做出一边方、一边圆
 function addBar(parent, g, width) {
-  const e = g.e, { bg, fg } = barColors(e.priority, e.done, g.out, calHex(e)), h = 13, R = 3;
+  const sub = g.e.cal ? subColors(g.e, g.out, true) : null;
+  const e = g.e, { bg, fg } = sub || barColors(e.priority, e.done, g.out, calHex(e)), h = 13, R = 3;
   const outer = parent.addStack();
   outer.size = new Size(width, h + 1);
   outer.layoutVertically();
@@ -442,10 +456,11 @@ function addBar(parent, g, width) {
   const body = bar.addStack();
   body.size = new Size(0, h);
   body.backgroundColor = bg;
-  { const gr = chipGrad(e.priority, e.done, g.out, calHex(e), true); if (gr) body.backgroundGradient = gr; }
+  if (!sub) { const gr = chipGrad(e.priority, e.done, g.out, calHex(e), true); if (gr) body.backgroundGradient = gr; }
   body.cornerRadius = g.ol && g.or ? 0 : R;
-  body.setPadding(0, g.ol && !g.or ? 0.5 : 1.5, 0, 0.5);
+  body.setPadding(0, sub && !g.ol ? 0 : g.ol && !g.or ? 0.5 : 1.5, 0, 0.5);
   body.centerAlignContent();
+  if (sub && !g.ol) subStripe(body, sub.bar, h);
   const tx = addText(body, chipLabel(e), chipFont(9), fg, { lines: 1 });
   tx.minimumScaleFactor = 0.85;
   body.addSpacer();

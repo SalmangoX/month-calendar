@@ -17,6 +17,7 @@ import android.graphics.drawable.Icon;
 import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
 import android.util.SizeF;
 import android.widget.RemoteViews;
@@ -261,6 +262,28 @@ final class Widgets {
     private static final int[] DARK_INK = {0xFFE8E9EB, 0xFFDDEBFD, 0xFFFCE5D3, 0xFFFFE2DE};
 
     private static int alpha(int col, int a) { return (col & 0x00FFFFFF) | (a << 24); }
+    /** 按比例混两个颜色（k 是 a 的比例，和网页 color-mix 一样） */
+    private static int mix(int a, int b, float k) {
+        int r = Math.round(((a >> 16) & 255) * k + ((b >> 16) & 255) * (1 - k)), g = Math.round(((a >> 8) & 255) * k + ((b >> 8) & 255) * (1 - k)), bl = Math.round((a & 255) * k + (b & 255) * (1 - k));
+        return 0xFF000000 | (r << 16) | (g << 8) | bl;
+    }
+
+    /** 中文小一号：色条上的中文按 0.947 倍（9.5 → 9，和网页 .chip .cj 一样），英文、数字不变【联动:优先级色条】 */
+    static final float CJK_K = 0.947f;
+    static boolean isCjk(char ch) { return (ch >= 0x2E80 && ch <= 0x9FFF) || (ch >= 0xF900 && ch <= 0xFAFF) || (ch >= 0x3000 && ch <= 0x303F) || (ch >= 0xFF00 && ch <= 0xFFEF); }
+    private static CharSequence chipText(String title, boolean strike) {
+        SpannableString s = new SpannableString(title);
+        for (int i = 0; i < title.length();) {
+            if (!isCjk(title.charAt(i))) { i++; continue; }
+            int j = i; while (j < title.length() && isCjk(title.charAt(j))) j++;
+            s.setSpan(new RelativeSizeSpan(CJK_K), i, j, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            i = j;
+        }
+        if (strike) s.setSpan(new StrikethroughSpan(), 0, s.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return s;
+    }
+    /** 分日历事件的字色（左竖条样式）：浅色 72% 事件色 + 深字，深色 50% 事件色 + 白（和网页 .chip.sub 一样）；已完成 / 别的月份用淡灰 */
+    private static int subInk(int col, boolean dark, boolean soft) { return soft ? (dark ? 0xFF6E7178 : 0xFFA4A6AD) : dark ? mix(col, 0xFFFFFFFF, .5f) : mix(col, 0xFF16141D, .72f); }
 
     /** 格子里一行的高度：色条 13.5dp + 上间距 1dp（与 widget_month.xml 一致） */
     private static final float SLOT_DP = 14.5f;
@@ -292,15 +315,37 @@ final class Widgets {
             Integer cc = Data.CUR != null ? Data.CUR.calColorOf(e) : null;
             int col = cc != null ? cc : c.getColor(PCOL[e.priority]);
             int[] dk = cc != null ? CourseColors.darkTone(cc) : new int[]{DARK_FILL[e.priority], DARK_INK[e.priority]};
-            // 颜色和格子里的色条一样：浅色实色 + 白字；深色用专门的深色调 + 柔白字；已完成 / 不在本月用淡色（与 p*_soft 相同的透明度）
-            fill.setColor(softy ? alpha(col, dark ? 0x4D : 0x40) : dark ? dk[0] : col);
-            cv.drawPath(barPath(x0, y, x1 - x0, h, rad, g.openL, g.openR), fill);
-            text.setColor(softy ? col : dark ? dk[1] : WHITE);
+            boolean sub = !e.cal.isEmpty();   // 分日历的事件：左边一根竖条 + 淡底 + 同色字（和格子里的 sub_chip 一样）
+            android.graphics.Path path = barPath(x0, y, x1 - x0, h, rad, g.openL, g.openR);
+            int ink;
+            if (sub) {
+                fill.setColor(alpha(col, softy ? 0x12 : 0x33));
+                cv.drawPath(path, fill);
+                if (!g.openL) { cv.save(); cv.clipPath(path); fill.setColor(softy ? alpha(col, 0x59) : col); cv.drawRect(x0, y, x0 + 3, y + h, fill); cv.restore(); }
+                ink = subInk(col, dark, softy);
+            } else {
+                // 颜色和格子里的色条一样：浅色实色 + 白字；深色用专门的深色调 + 柔白字；已完成 / 不在本月用淡色（与 p*_soft 相同的透明度）
+                fill.setColor(softy ? alpha(col, dark ? 0x4D : 0x40) : dark ? dk[0] : col);
+                cv.drawPath(path, fill);
+                ink = softy ? col : dark ? dk[1] : WHITE;
+            }
             text.setStrikeThruText(e.done);
+            float tx = x0 + (sub && !g.openL ? 5f : 2.5f), right = x1 - 1f, ty = y + h / 2f - (fm.ascent + fm.descent) / 2f;
+            // 放不下的字在右端 6dp 里渐隐，不一刀切（和网页、格子里的色条一样）
+            text.setShader(new android.graphics.LinearGradient(right - 6f, 0, right, 0, ink, alpha(ink, 0), android.graphics.Shader.TileMode.CLAMP));
             cv.save();
-            cv.clipRect(x0 + 1.5f, y, x1 - 1f, y + h);
+            cv.clipRect(x0 + 1.5f, y, right, y + h);
             String title = e.title.isEmpty() ? I18n.t("（无标题）") : e.title;
-            cv.drawText(title, x0 + 2.5f, y + h / 2f - (fm.ascent + fm.descent) / 2f, text);
+            for (int i = 0; i < title.length() && tx < right;) {   // 中文小一号：一段一段画
+                boolean cj = isCjk(title.charAt(i)); int j = i;
+                while (j < title.length() && isCjk(title.charAt(j)) == cj) j++;
+                text.setTextSize(cj ? 9f * CJK_K : 9f);
+                String run = title.substring(i, j);
+                cv.drawText(run, tx, ty, text);
+                tx += text.measureText(run);
+                i = j;
+            }
+            text.setShader(null); text.setTextSize(9f);
             cv.restore();
         }
         return bm;
@@ -337,14 +382,18 @@ final class Widgets {
         if (tm) rv.setTextViewCompoundDrawables(vid, 0, 0, e.done || !inMonth ? R.drawable.tm_dot_soft : R.drawable.tm_dot, 0);
         String title = e.title.isEmpty() ? I18n.t("（无标题）") : e.title;
         rv.setViewVisibility(vid, android.view.View.VISIBLE);
-        if (e.done) {
-            SpannableString s = new SpannableString(title);
-            s.setSpan(new StrikethroughSpan(), 0, s.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            rv.setTextViewText(vid, s);
-        } else {
-            rv.setTextViewText(vid, title);
-        }
+        rv.setTextViewText(vid, chipText(title, e.done));   // 中文小一号；放不下时右端渐隐（widget_month.xml 的 requiresFadingEdge）
         Integer cc = Data.CUR != null ? Data.CUR.calColorOf(e) : null;
+        if (!e.cal.isEmpty()) {   // 分日历的事件在主日历里：左边一根竖条 + 淡底 + 同色字（和网页 .chip.sub 一样，用户定的）
+            int col = cc != null ? cc : c.getColor(PCOL[e.priority]);
+            boolean soft = e.done || !inMonth;
+            rv.setInt(vid, "setBackgroundResource", R.drawable.sub_chip);
+            rv.setColorStateList(vid, "setBackgroundTintList", ColorStateList.valueOf(soft ? alpha(col, 0x59) : col), ColorStateList.valueOf(soft ? alpha(col, 0x59) : col));
+            rv.setColorInt(vid, "setTextColor", subInk(col, false, soft), subInk(col, true, soft));
+            float d = c.getResources().getDisplayMetrics().density;
+            rv.setViewPadding(vid, Math.round(5 * d), 0, Math.round(1 * d), 0);   // 字让开竖条
+            return;
+        }
         if (cc != null) { // 记录日历的颜色：和应用一致，深色用同一套算法生成的深色调
             int[] dk = CourseColors.darkTone(cc);
             rv.setInt(vid, "setBackgroundResource", R.drawable.cal_chip);
@@ -553,7 +602,7 @@ final class Widgets {
             if (!show) continue;
             boolean isToday = date.equals(today);
             rv.setTextViewText(WKH[i], I18n.wk((i + 1) % 7) + "\n" + date.getDayOfMonth());
-            rv.setTextColor(WKH[i], isToday ? c.getColor(R.color.accent) : c.getColor(R.color.w_text2));
+            rv.setTextColor(WKH[i], isToday ? c.getColor(R.color.sel) : c.getColor(R.color.w_text2));
             if (isToday) rv.setInt(WKC[i], "setBackgroundResource", R.drawable.wk_today);
             int shown = l.size() > 5 ? 4 : l.size();
             for (int k = 0; k < 5; k++) {

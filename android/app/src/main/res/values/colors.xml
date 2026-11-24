@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 与网页 styles.css / widget.html 相同的配色 -->
-    <color name="accent">#4F80C4</color>
+    <color name="accent">#2B2D33</color>
+    <!-- 日历选区的蓝（网页里的 cs 变量）：今天、选中的日子；主色 accent 是中性黑白（用户定的：界面里不要蓝色） -->
+    <color name="sel">#4F80C4</color>
     <color name="app_bg">#F7FAFC</color>
     <color name="w_bg">#ECF2F5</color>
     <color name="w_line">#DAE1E5</color>
