@@ -1412,8 +1412,11 @@ html.locked .lock { display: grid; }
 .dr-tick { flex: none; width: 22px; height: 22px; color: var(--text); opacity: 0; transform: scale(.6); transition: opacity .2s, transform .3s var(--ease-spring); }
 .dr-tick svg { width: 22px; height: 22px; stroke-width: 2.6; }
 .dr-row.on .dr-tick { opacity: 1; transform: none; }
-.dr-more { flex: none; width: 36px; height: 36px; margin-right: 4px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
-.dr-more:active { background: var(--field); }
+/* 「⋯」：看到的还是 36 的圆，点按范围是整行高 × 52 宽（2026-11-25 用户说点得差一点就点不到）；中心位置不变，小窗口照样以三个点为中心展开 */
+.dr-more { flex: none; position: relative; width: 52px; height: 60px; margin: -12px -4px -12px 0; border-radius: 0; display: grid; place-items: center; color: var(--text2); background: none; }
+.dr-more::before { content: ""; position: absolute; left: 8px; top: 12px; width: 36px; height: 36px; border-radius: 50%; pointer-events: none; }
+.dr-more:active::before { background: var(--field); }
+.dr-more svg { position: relative; }
 .dr-more svg { width: 18px; height: 18px; }
 /* 新建日历：一颗液态玻璃胶囊（和月份胶囊同一种玻璃），左边是品牌渐变的加号圆 */
 .dr-add {

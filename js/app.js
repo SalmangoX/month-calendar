@@ -102,7 +102,10 @@
     if (page === 'sched' && page !== v) showPage('cal'); else placeInd(false);
   }
   let calDrawn = '';
-  const calKey = () => [MC.data.updatedAt, MC.activeCal(), MC.todayStr(), JSON.stringify(MC.settings), document.documentElement.lang, document.documentElement.dataset.theme, innerWidth, innerHeight].join('|');
+  // 窗口大小只在 resize 时记一次：画完日历当场读 innerWidth 会逼浏览器把整页样式、排版算完（手机实测换日历时多出 22ms）
+  let winSize = '';
+  addEventListener('resize', () => { winSize = innerWidth + 'x' + innerHeight; }, { passive: true });
+  const calKey = () => [MC.data.updatedAt, MC.activeCal(), MC.todayStr(), JSON.stringify(MC.settings), document.documentElement.lang, document.documentElement.dataset.theme, winSize].join('|');
   { // 记下日历页开着时最后一次画的是什么状态（日历页藏着时画的不算：那时量不到尺寸，回来还得重画）
     const raw = MC.Cal.render;
     MC.Cal.render = function () { const r = raw.apply(this, arguments); calDrawn = document.body.dataset.page === 'cal' && $('#page-cal').classList.contains('active') ? calKey() : ''; return r; };
@@ -1894,13 +1897,9 @@
       void el.offsetWidth;
       setTimeout(() => { el.style.transition = t; el.style.visibility = v; }, 60);   // 不挂在 rAF 上：页面在后台时 rAF 不跑，过渡会一直被关着
     };
+    // 顺序按用户最可能先点的来：设置页排第一（2026-11-25 在用户手机上实测：打开 2.3 秒就进设置，第一帧 208–258ms；预热跑完以后进只有 25ms），
+    // 然后是切换日历的整页淡入淡出，再是新建面板、日卡片、弹出卡片、小菜单
     const steps = [
-      done => { try { if (!busy() && MC.Editor.prewarm) MC.Editor.prewarm(); } catch (e) {} flash($('#composer'), done); },
-      done => flash($('#preview'), done),
-      done => flash($('#formSheet'), done),
-      done => flash(document.querySelector('.popover'), done),
-      // 用户说刚打开 App 第一次进设置、第一次切换日历都卡一下：设置页第一次要生成整页、第一次画它的图标底块和分组卡片；
-      // 切换日历是整页（#pages）一起淡出淡入，第一次要为「整页带透明度」现场编译绘制程序。都在这里提前做一遍
       done => {
         const sp = $('#page-set');
         if (!sp || page === 'set' || busy()) return done();
@@ -1913,11 +1912,15 @@
         const a = host.animate([{ opacity: 1, transform: 'none' }, { opacity: .995, transform: 'translateY(.01px) scale(.9999)' }], { duration: 120 });
         a.onfinish = a.oncancel = () => done();
       },
+      done => { try { if (!busy() && MC.Editor.prewarm) MC.Editor.prewarm(); } catch (e) {} flash($('#composer'), done); },
+      done => flash($('#preview'), done),
+      done => flash($('#formSheet'), done),
+      done => flash(document.querySelector('.popover'), done),
     ];
     let i = 0;
     // 忙的时候这一步先不做，过一会儿再试（不跳过）；等太久（20 秒）就算了
     const t0 = performance.now();
     const next = () => { if (i >= steps.length) return; setTimeout(() => idle(function run() { if (busy()) { if (performance.now() - t0 < 20000) setTimeout(() => idle(run), 600); return; } steps[i++](next); }), 250); };
     next();
-  }, 2600);   // 在侧拉菜单的预热（约 1.5 秒）之后
+  }, 250);   // 页面一画好就开始（以前等 2.6 秒，用户打开就进设置时还没轮到）
 })();

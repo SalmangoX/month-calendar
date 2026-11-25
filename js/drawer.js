@@ -158,12 +158,7 @@
   list.addEventListener('click', e => {
     const b = e.target.closest('[data-act]'); if (!b || swallowed()) return;
     const id = b.closest('.dr-row').dataset.id;
-    if (b.dataset.act === 'pick') {
-      // 先让侧拉菜单收起、让开了再播换日历的动画（动画本身不变）：菜单的玻璃（模糊 + 折射）盖在正在淡出淡入的页面上时，
-      // 每一帧都要把底下变了的页面重新模糊、折射一遍（安卓上菜单开着一帧要几百毫秒），整段切换就像掉帧一样（2026-11-25 用户说卡的要死）
-      if (id !== MC.activeCal()) list.querySelectorAll('.dr-row').forEach(r => r.classList.toggle('on', r.dataset.id === id));   // 对勾马上挪过去，点了就有反馈
-      D.close(); D.pick(id, true); return;
-    }
+    if (b.dataset.act === 'pick') { D.pick(id); setTimeout(D.close, 140); return; }
     const c = MC.cal(id); if (c) UI.menu(b, menuOf(c), v => D.act(id, v), { center: true });   // 以「⋯」为正中心展开
   });
   // 长按子日历拖动排序：记录日历、纪念日历各自一组，只在自己那一组里挪（顺序存在 cal.order，会同步）【联动:侧拉菜单】iPhone / Mac 原生在 GlassDrawer 的 reorder
@@ -212,17 +207,8 @@
 
   // 切换日历：不再整页一下子闪过去——先淡出、稍微缩一点往下沉，换好内容后再从略大一点淡入回来（不用模糊：会让里面的液态玻璃失效）
   let swapping = false;
-  D.pick = (id, afterDrawer) => {
+  D.pick = id => {
     if (id === MC.activeCal() || swapping) return;
-    // 从网页侧拉菜单点的：等菜单收到只剩一小截（或最多 0.26 秒）再开始，见上面 list 的 click
-    if (afterDrawer && pos > W * .3) {
-      swapping = true;
-      let went = false;
-      const go = () => { if (went) return; went = true; swapping = false; D.pick(id); };
-      const t0 = performance.now(), wait = () => { if (went) return; if (pos > W * .3 && performance.now() - t0 < 260) requestAnimationFrame(wait); else go(); };
-      requestAnimationFrame(wait); setTimeout(go, 300);   // 后台时 rAF 不跑，也照样切
-      return;
-    }
     try { navigator.vibrate && navigator.vibrate(6); } catch (err) {}
     const host = $('#pages'), swap = () => { MC.setActiveCal(id); D.paint(); render(); MC.Cal.render(); };
     if (!host || !host.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { swap(); return; }
@@ -371,7 +357,9 @@
     const btn = $('#drawerAdd');
     if (reduceMo.matches || !document.body.animate) { btn.classList.toggle('empty', opening); done && done(); return; }
     const p = pillRect(), c = KS.getBoundingClientRect();
-    const box = (x, y, w, h, r) => ({ left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', borderRadius: r + 'px' });
+    // 水滴固定成卡片大小，每一帧只改 transform（位移 + 缩放）和按缩放补偿过的圆角，看起来和直接改宽高一样；
+    // 以前每帧改 left / top / width / height，每一帧都要重新排版、重算玻璃，安卓上一帧一帧地卡（2026-11-25 用户说）。同 ui.js 的 dropPop
+    const box = (x, y, w, h, r) => { const sx = w / c.width, sy = h / c.height; return { transform: `translate(${x - c.left}px, ${y - c.top}px) scale(${sx}, ${sy})`, borderRadius: `${r / sx}px / ${r / sy}px` }; };
     const cx = c.left + c.width / 2, cy = c.top + c.height / 2, pcx = p.left + p.width / 2;
     // 一步到位：中途不停。先被拉长（底还粘在胶囊上，像水滴被拉出去），然后一口气弹开成卡片，略微冲过一点再回来
     const top1 = p.top - (p.top - cy) * .5, bw = 104;
@@ -383,6 +371,7 @@
     ];
     const offs = [0, .3, .78, 1];
     const blob = document.createElement('div'); blob.className = 'ks-blob'; document.body.appendChild(blob);
+    Object.assign(blob.style, { left: c.left + 'px', top: c.top + 'px', width: c.width + 'px', height: c.height + 'px', transformOrigin: '0 0', willChange: 'transform' });
     btn.classList.add('empty');
     KS.classList.add('morph'); KS.style.opacity = '0';
     const kf = opening ? frames.map((f, k) => ({ ...f, offset: offs[k] }))

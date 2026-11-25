@@ -1492,7 +1492,7 @@ struct GlassDrawer: View {
                 // 「⋯」：以这三个点为中心展开一个带开关的小窗口（GlassDrawer 的 moreCard）
                 Button { navTick(); m.moreRow = m.moreRow == r.key ? nil : r.key } label: {   // 动画由 onChange 里的水滴统一负责，这里不再套一层（会卡一下）
                     Image(systemName: "ellipsis").font(.system(size: 15, weight: .semibold)).foregroundStyle(.secondary)
-                        .frame(width: 36, height: 36).contentShape(Circle())
+                        .frame(width: 36, height: 36).frame(width: 52, height: 56).contentShape(Rectangle())   // 看到的 36，点按范围 52 × 56（用户嫌点不准）
                 }
                 .buttonStyle(.plain)
                 .background(GeometryReader { g in Color.clear.preference(key: DotsKey.self, value: [r.key: g.frame(in: .named("drawer"))]) })

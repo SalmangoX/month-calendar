@@ -131,7 +131,7 @@
     el.classList.remove('measure');
     const typing = !!el.querySelector('input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea');
     let y;
-    if (top) y = Math.min(Math.max(sT + 64, H * .1), Math.max(sT + 10, H - sB - 10 - h));   // 屏幕上方往下一点，键盘不挡
+    if (top) y = Math.max(sT + 64, Math.min((H - h) * .42, H - sB - 10 - h));   // 比正中略高一点：不贴顶，名称框在上半屏，键盘弹出也不挡（2026-11-25 用户嫌太靠上）
     else if (mid) y = Math.max(sT + 10, Math.min(H - sB - 10 - h, (H - h) / 2));      // 屏幕正中
     else if (typing) y = sT + 14;                                                        // 要打字：放在上方，键盘不挡
     else if (fr.bottom + 8 + h <= H - sB - 10) y = fr.bottom + 8;                   // 那一条下面
@@ -364,7 +364,9 @@
     pop.classList.add('grow');   // 所有菜单都从点的那个按钮里长出来（同样的位置、大小、圆角），再展开成菜单；不回弹
     pop.classList.add('show');
     pop.style.setProperty('--cc', getComputedStyle(anchor).getPropertyValue('--cc').trim() || 'var(--accent)');   // 开关填充用那一行日历的颜色
-    const r = anchor.getBoundingClientRect();
+    let r = anchor.getBoundingClientRect();
+    // 侧拉菜单的「⋯」点按范围比看到的大（52 × 60）：水滴还是从看到的那颗 36 的小圆长出来，中心不变
+    if (anchor.classList && anchor.classList.contains('dr-more')) r = new DOMRect(r.left + (r.width - 36) / 2, r.top + (r.height - 36) / 2, 36, 36);
     const pw = pop.offsetWidth, ph = pop.offsetHeight;
     let left = Math.min(Math.max(10, r.left + r.width / 2 - pw / 2), window.innerWidth - pw - 10);
     if (r.left < 80) left = Math.max(10, r.left);

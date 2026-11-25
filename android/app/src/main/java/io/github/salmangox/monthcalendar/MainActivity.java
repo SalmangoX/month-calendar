@@ -21,6 +21,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.accessibility.AccessibilityManager;
+import android.view.accessibility.AccessibilityNodeProvider;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -81,7 +83,19 @@ public class MainActivity extends androidx.activity.ComponentActivity {
         getWindow().setDecorFitsSystemWindows(false);
         getWindow().setNavigationBarContrastEnforced(false);
         root = new FrameLayout(this);
-        web = new WebView(this);
+        // 无障碍：三星手机默认开着 Bixby、智能文案帮写、三星 Pass 等几个无障碍服务（都不是读屏），它们一来要网页的无障碍内容，
+        // WebView 就在网页每改一次时把整页的无障碍树重建一遍（2026-11-25 在用户手机上实测：切换日历时一帧里 20–35ms 花在这上面）。
+        // 没开读屏（触摸浏览）时不把网页的无障碍内容交出去，内核就不去建；开了读屏照常，读屏用户不受影响
+        AccessibilityManager am = (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
+        web = new WebView(this) {
+            @Override public AccessibilityNodeProvider getAccessibilityNodeProvider() {
+                return am != null && am.isTouchExplorationEnabled() ? super.getAccessibilityNodeProvider() : null;
+            }
+        };
+        Runnable a11y = () -> web.setImportantForAccessibility(am != null && am.isTouchExplorationEnabled()
+                ? View.IMPORTANT_FOR_ACCESSIBILITY_AUTO : View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        a11y.run();
+        if (am != null) am.addTouchExplorationStateChangeListener(on -> a11y.run());
         root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
         // 网页放在状态栏、导航条和键盘之间，不被遮挡
