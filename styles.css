@@ -346,6 +346,9 @@ body[data-cal] .chip.done::before, .chip.sub.done::before { display: none; }
 .cal-body.pv-float .preview { position: absolute; left: 10px; right: 10px; margin: 0; bottom: var(--bar-space); z-index: 5;
   transform-origin: top center; animation: pvDown .28s var(--ease); }
 .cal-body.pv-float.pv-up .preview { transform-origin: bottom center; animation-name: pvUp; }
+/* 往上展开的卡片：标题留在卡片顶上，事件放在卡片底部（离点的那一行、离手指近，好勾完成，用户定的）；底下没有底栏，不用留出 72px */
+.cal-body.pv-up .pv-list { flex: 0 1 auto; margin-top: auto; padding-bottom: 10px; }
+.cal-body.pv-up .pv-empty { margin-top: auto; padding-bottom: 26px; }
 @keyframes pvDown { from { opacity: 0; transform: translateY(-10px) scaleY(.96); } to { opacity: 1; transform: none; } }
 @keyframes pvUp { from { opacity: 0; transform: translateY(10px) scaleY(.96); } to { opacity: 1; transform: none; } }
 .pv-head { display: flex; align-items: center; justify-content: space-between; padding: 15px 14px 8px 18px; flex: none; }
