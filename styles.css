@@ -349,6 +349,16 @@ body[data-cal] .chip.done::before, .chip.sub.done::before { display: none; }
 /* 往上展开的卡片：高度跟着内容（calendar.js 的 placeCard 只定底边和最高高度），整张贴在那一行上面，事件紧接在标题下面、离那一行和手指近；
    底下没有底栏，不用留出 72px（2026-11-25 用户嫌事件太靠下、中间空太多） */
 .cal-body.pv-up .pv-list { flex: 0 1 auto; min-height: 0; padding-bottom: 12px; }
+/* 往下展开的卡片底边已经让开底栏，列表底下不用再留 72px 给时钟和 logo */
+.cal-body.pv-float:not(.pv-up) .pv-list { padding-bottom: 12px; }
+/* 事件放不下：列表底部 40px 淡出，上面压一颗「还有 n 项」小胶囊（calendar.js 的 paintMore），点了往下翻；中性色，不用蓝 */
+.preview .pv-list.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent); }
+.preview { position: relative; }
+.pv-more { position: absolute; left: 50%; transform: translateX(-50%); z-index: 2; height: 26px; padding: 0 12px; border-radius: 13px;
+  font-size: 12px; font-weight: 600; color: var(--text2); white-space: nowrap;
+  background: color-mix(in srgb, var(--surface) 88%, transparent); box-shadow: 0 0 0 .5px var(--group-line), 0 2px 8px rgba(0, 0, 0, .08); }
+.pv-more::after { content: ""; display: inline-block; width: 5px; height: 5px; margin: 0 0 3px 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); vertical-align: middle; }
+.pv-more:active { transform: translateX(-50%) scale(.95); }
 .cal-body.pv-up .pv-empty { padding-bottom: 22px; }
 @keyframes pvDown { from { opacity: 0; transform: translateY(-10px) scaleY(.96); } to { opacity: 1; transform: none; } }
 @keyframes pvUp { from { opacity: 0; transform: translateY(10px) scaleY(.96); } to { opacity: 1; transform: none; } }

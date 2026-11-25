@@ -768,9 +768,19 @@
       preview.style.bottom = Math.max(0, b.bottom - top + gap) + 'px';
       preview.style.maxHeight = Math.max(120, top - snapY - gap * 2) + 'px';
     } else {
+      // 往下展开：卡片底边停在底栏（时间胶囊、logo，还有 logo 上方的「回到今天」）上面，不压它们，底栏也不再挪进卡片
+      // （2026-11-25 用户定的：以前底栏挪进卡片底部，事件一多就被时间胶囊、logo 压住）。网页这份底栏在 App 里只是看不见、位置还在，可以量
+      try { updateBack(); } catch (e) {}
+      const lf = document.querySelector('#bubbleLogo .face') || document.getElementById('bubbleLogo'), lr = lf && lf.getBoundingClientRect();
+      let ceil = b.bottom;
+      if (lr && lr.height) {
+        ceil = lr.top;
+        if (backShown) ceil = Math.min(ceil, (lr.top + lr.bottom) / 2 - 62 - 23);   // 「回到今天」：中心在 logo 中心上方 62，直径 46
+      }
       preview.style.top = (bottom - b.top + gap) + 'px'; preview.style.maxHeight = '';
-      preview.style.bottom = '';   // 底边由 CSS 定在底栏上面（var(--bar-space)），和以前一样，底栏的时钟和 logo 挪进卡片底部
+      preview.style.bottom = Math.max(0, b.bottom - ceil + 10) + 'px';
     }
+    queueMore();   // 卡片高度变了：重新数还有几项没露出来
   }
   // 挪行：约 0.24 秒减速滑到位（以前用弹簧、停稳了卡片才出来，用户嫌慢、卡）
   const quickScroll = (to, done) => glide(scrollY, to, 80, monthH, done);
@@ -836,8 +846,31 @@
         ? `<ul class="pv-list">${evs.map(e => UI.itemHTML(e)).join('')}</ul>`
         : `<div class="pv-empty">暂无安排<small>点右下角 ＋ 添加</small></div>`}`;
     $('#pvClose').onclick = () => closePreview();
+    queueMore();
   }
   UI.bindList(preview);
+  // 卡片里的事件放不下（往下展开的卡片停在底栏上面，往上展开的最高到标题板）：列表底部淡出 + 一颗「还有 n 项」小胶囊（用户选的），
+  // 数的是还没露出来的事件；往下滚时跟着变少，滚到底就收起；点一下往下翻一屏
+  let moreRaf = 0;
+  function paintMore() {
+    moreRaf = 0;
+    const l = preview.querySelector('.pv-list');
+    let m = preview.querySelector('.pv-more');
+    const lb = l && l.getBoundingClientRect().bottom;
+    const n = l && l.scrollHeight > l.clientHeight + 2 ? [...l.querySelectorAll(':scope > .item')].filter(it => { const r = it.getBoundingClientRect(); return (r.top + r.bottom) / 2 > lb - 4; }).length : 0;
+    if (l) l.classList.toggle('more', n > 0);
+    if (!n) { if (m) m.remove(); return; }
+    if (!m) {
+      m = document.createElement('button'); m.type = 'button'; m.className = 'pv-more';
+      m.onclick = e => { e.stopPropagation(); l.scrollBy({ top: l.clientHeight * .8, behavior: 'smooth' }); };
+      preview.appendChild(m);
+    }
+    const txt = MC.t(`还有 ${n} 项`);
+    if (m.textContent !== txt) m.textContent = txt;
+    m.style.bottom = Math.max(6, preview.getBoundingClientRect().bottom - lb + 6) + 'px';
+  }
+  const queueMore = () => { if (!moreRaf) moreRaf = requestAnimationFrame(paintMore); };
+  preview.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('pv-list')) queueMore(); }, true);
 
   // 当天预览：整张卡片往下拉就收起（往上、往下展开的都一样，用户定的）；在事件列表上要列表已经在最顶上才算，点按不触发；往上拖有阻尼回弹
   (() => {
@@ -898,6 +931,7 @@
     popGlass();
     renderPreview();
     try { updateBack(); } catch (e) {}
+    if (body.classList.contains('pv-float')) placeCard();   // 换到今天 / 别的日子：「回到今天」出现或消失，卡片底边跟着让
   }
   Cal.select = ds => { selected = ds; };
 
