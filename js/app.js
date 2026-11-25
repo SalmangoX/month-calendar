@@ -1870,7 +1870,17 @@
     const flash = (el, done) => {
       if (!el || busy() || el.classList.contains('show')) return done();
       el.classList.add('warm-up');
-      requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => { el.classList.remove('warm-up'); done(); }, 80)));
+      requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => { unwarm(el); done(); }, 80)));
+    };
+    // 去掉 .warm-up 时过渡也跟着恢复：面板透明度一下回到 1，却要 0.34 秒才从原位滑回屏幕外（visibility 也延迟藏），
+    // 看起来就是一张卡片从底下冒出来又滑走。所以收尾这一下不带过渡、直接藏好，下一帧再把过渡还回去
+    const unwarm = el => {
+      const t = el.style.transition, v = el.style.visibility;
+      el.style.transition = 'none';
+      if (!el.classList.contains('show')) el.style.visibility = 'hidden';
+      el.classList.remove('warm-up');
+      void el.offsetWidth;
+      setTimeout(() => { el.style.transition = t; el.style.visibility = v; }, 60);   // 不挂在 rAF 上：页面在后台时 rAF 不跑，过渡会一直被关着
     };
     const steps = [
       done => { try { if (!busy() && MC.Editor.prewarm) MC.Editor.prewarm(); } catch (e) {} flash($('#composer'), done); },
