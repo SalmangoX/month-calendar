@@ -270,7 +270,8 @@ struct MonthView: View {
 
     /// 文字末尾 6pt 渐隐（宽度 w 内）
     static func fade(_ w: CGFloat) -> LinearGradient {
-        LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: max(0, 1 - 6 / w)), .init(color: .clear, location: 1)],
+        // 只淡最后 7pt、最淡留 45%（和 App 一样；全淡到透明时正常大小下看不见字，用户嫌太过）
+        LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: max(0, 1 - 7 / w)), .init(color: .black.opacity(0.45), location: 1)],
                        startPoint: .leading, endPoint: .trailing)
     }
 

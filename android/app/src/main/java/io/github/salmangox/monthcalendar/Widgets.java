@@ -332,7 +332,7 @@ final class Widgets {
             text.setStrikeThruText(e.done);
             float tx = x0 + (sub && !g.openL ? 5f : 2.5f), right = x1 - 1f, ty = y + h / 2f - (fm.ascent + fm.descent) / 2f;
             // 放不下的字在右端 6dp 里渐隐，不一刀切（和网页、格子里的色条一样）
-            text.setShader(new android.graphics.LinearGradient(right - 6f, 0, right, 0, ink, alpha(ink, 0), android.graphics.Shader.TileMode.CLAMP));
+            text.setShader(new android.graphics.LinearGradient(right - 7f, 0, right, 0, ink, alpha(ink, Math.round(((ink >>> 24) & 255) * .45f)), android.graphics.Shader.TileMode.CLAMP));   // 最淡留 45%（和 App 一样）
             cv.save();
             cv.clipRect(x0 + 1.5f, y, right, y + h);
             String title = e.title.isEmpty() ? I18n.t("（无标题）") : e.title;

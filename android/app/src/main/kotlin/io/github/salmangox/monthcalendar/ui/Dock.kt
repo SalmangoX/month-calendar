@@ -317,7 +317,7 @@ private fun LogoCluster(m: DockModel, d: DockModel.Dock, modifier: Modifier) {
                 Tap(
                     Modifier.align(Alignment.Center)
                         .offset { IntOffset((cos(rad) * r * z * v * density.density).roundToInt(), (-sin(rad) * r * z * v * density.density).roundToInt()) }
-                        .size((DockModel.FAN + 12).dp).graphicsLayer { alpha = v.coerceIn(0f, 1f); val s = (.35f + .65f * v) * hs * z; scaleX = s; scaleY = s },
+                        .size((DockModel.FAN + 34).dp).graphicsLayer {   /* 点按热区 84（圆面 50）：用户嫌点不准 */ alpha = v.coerceIn(0f, 1f); val s = (.35f + .65f * v) * hs * z; scaleX = s; scaleY = s },
                     label = if (id == "add") tr("添加事件") else if (id == "stat") (if (inStat) tr("返回") else tr("统计")) else if (d.set) tr("返回") else tr("设置"), haptic = false, onClick = { m.fan(id) },
                 ) { mod ->
                     val face = if (id == "add") mod.size(DockModel.FAN.dp).clip(CircleShape).background(t.brand)
@@ -457,7 +457,7 @@ class FanFX {
 private const val ZOOM = 1.12f
 private const val DROP_TIP = 12f; private const val DROP_TIP_HOT = 15f
 /** 离 logo 中心多远断开成独立的一滴（出了扇形这一块）；手指离按钮中心多近算拖到上面（放宽，手小也点得准） */
-private const val DROP_SNAP = 150f; const val FAN_HOT = 84f; private const val PICK_MIN = 36f; private const val PICK_ANG = 40.0
+private const val DROP_SNAP = 150f; const val FAN_HOT = 100f; private const val PICK_MIN = 30f; private const val PICK_ANG = 50.0   // 拖动感应放宽（用户嫌识别不上）
 
 /** 像水的表面张力：刚拉出来时颈很粗、根部张得开，越拉越细（不会细成一根线），拉到 snap 就断开（和网页 dropGeom 一样）；null = 还在 logo 里，FloatArray(0) = 已断开，否则 [w, a1, a2] */
 private fun dropGeom(d: Float, r1: Float, r2: Float, snap: Float): FloatArray? {

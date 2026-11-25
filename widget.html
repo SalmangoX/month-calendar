@@ -43,7 +43,7 @@
   .chip.done { background:var(--cgo, color-mix(in srgb, var(--c) var(--mix), transparent)); color:color-mix(in srgb, var(--c) 72%, var(--text2)); text-decoration:line-through; }
   /* 和应用一致：只有中文小一号（.cj），英文、数字不变；放不下的字在右端 6px 渐隐（小组件是静态页，用遮罩没关系）【联动:优先级色条】 */
   .chip .cj { font-size:.947em; letter-spacing:.02em; }
-  .chip .t { display:block; overflow:hidden; -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 6px), transparent); mask-image:linear-gradient(90deg, #000 calc(100% - 6px), transparent); }
+  .chip .t { display:block; overflow:hidden; -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 7px), rgba(0,0,0,.45)); mask-image:linear-gradient(90deg, #000 calc(100% - 7px), rgba(0,0,0,.45)); }   /* 只淡最后 7px、最淡留 45%（和 App 一样） */
   /* 分日历（记录日历、纪念日历）的事件：左边一根竖条 + 淡底 + 同色字（和应用 .chip.sub 一样） */
   .chip.sub { background:color-mix(in srgb, var(--c) 20%, transparent); color:color-mix(in srgb, var(--c) 72%, #16141d); box-shadow:inset 3px 0 0 var(--c); padding-left:4.5px; }
   .chip.sub.done { background:color-mix(in srgb, var(--c) 7%, transparent); color:var(--text3); box-shadow:inset 3px 0 0 color-mix(in srgb, var(--c) 35%, transparent); }

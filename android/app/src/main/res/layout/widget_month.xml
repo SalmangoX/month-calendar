@@ -65,17 +65,17 @@
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e0_1" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e0_2" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <LinearLayout android:id="@+id/g0" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -102,17 +102,17 @@
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e1_1" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e1_2" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <LinearLayout android:id="@+id/g1" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -139,17 +139,17 @@
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e2_1" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e2_2" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <LinearLayout android:id="@+id/g2" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -176,17 +176,17 @@
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e3_1" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e3_2" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <LinearLayout android:id="@+id/g3" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -213,17 +213,17 @@
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e4_1" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e4_2" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <LinearLayout android:id="@+id/g4" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -250,17 +250,17 @@
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e5_1" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e5_2" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <LinearLayout android:id="@+id/g5" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -287,17 +287,17 @@
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e6_1" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e6_2" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <LinearLayout android:id="@+id/g6" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -333,17 +333,17 @@
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e7_1" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e7_2" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <LinearLayout android:id="@+id/g7" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -370,17 +370,17 @@
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e8_1" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e8_2" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <LinearLayout android:id="@+id/g8" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -407,17 +407,17 @@
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e9_1" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <TextView android:id="@+id/e9_2" android:layout_width="match_parent" android:layout_height="13.5dp"
                     android:layout_marginLeft="1dp" android:layout_marginRight="1dp" android:layout_marginTop="1dp"
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
-                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="6dp" android:visibility="gone" />
+                    android:singleLine="true" android:ellipsize="none" android:requiresFadingEdge="horizontal" android:fadingEdgeLength="3dp" android:visibility="gone" />
                 <LinearLayout android:id="@+id/g9" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">

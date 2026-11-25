@@ -176,7 +176,7 @@
   // 不用 mask-image：几百个遮罩在安卓上每个都要单独开一层离屏画，滑动时慢帧更慢（2026-11-24 模拟器实测 90 分位多 25–35ms）。
   // 现在：画完、浏览器空闲时，只对放不下的色条找出截断处最后 FADE_W px 里的那一两个字，按离边多近把字色调透明（越靠边越淡）。
   // 只是普通文字换了个带透明度的颜色，不开新层，画起来和不淡出一样省；量和改都在空闲时分批做，不拖慢画月视图、滑动
-  const FADE_W = 10;
+  const FADE_W = 7, FADE_MIN = .45;   // 2026-11-25 用户嫌太淡、正常大小下看不见字：只淡最后 7px，最淡也留 45%
   let fadeJob = 0;
   const idle = window.requestIdleCallback ? (f => requestIdleCallback(f, { timeout: 600 })) : (f => setTimeout(() => f({ timeRemaining: () => 8 }), 120));
   const unidle = window.cancelIdleCallback ? cancelIdleCallback : clearTimeout;
@@ -191,7 +191,7 @@
     const hits = [];
     for (let k = lo; k < chars.length; k++) {
       const b = box(k); if (b.left >= edge) break;
-      const a = Math.max(.12, Math.min(1, (edge - (b.left + b.right) / 2) / FADE_W));   // 字的中心离边越近越淡
+      const a = Math.min(1, FADE_MIN + (1 - FADE_MIN) * Math.max(0, (edge - (b.left + b.right) / 2) / FADE_W));   // 字的中心离边越近越淡（最淡 FADE_MIN）
       if (a < .98) hits.push([k, a]);
     }
     return () => {
@@ -696,7 +696,7 @@
     else renderYear();
     if (previewOpen && view !== 'year') renderPreview();
     // 卡片开着时重画（比如在卡片里勾选完成）：同一天、同一个方向、日历没滚动，卡片位置就不变，不再量（量格子位置要逼整页排版）
-    if (fl) { if (placedKey !== `${selected}|${pvMode}|${scrollY}|${rowH}`) placeCard(); } else { preview.style.top = ''; preview.style.bottom = ''; placedKey = ''; }
+    if (fl) { if (placedKey !== `${selected}|${pvMode}|${scrollY}|${rowH}`) placeCard(); } else { preview.style.top = ''; preview.style.bottom = ''; preview.style.maxHeight = ''; placedKey = ''; }
   }
   // ---------- 月视图的日卡片：按选中那一行在屏幕上的第几行决定往哪边展开（用户定的） ----------
   // 行号按吸附线下面看得见的行数：第 1–5 行 + 只露一半的第 6 行（吸附线上面、压在标题板下的那一行不算）。
@@ -724,11 +724,13 @@
     const top = r.top - shift * rowH, bottom = r.bottom - shift * rowH;
     pvRow = v;
     if (pvMode === 'up') {
-      const snapY = top - v * rowH;   // 吸附线（标题板底边）：看得见的第一行的顶
-      preview.style.top = (snapY - b.top + gap) + 'px';
+      // 往上展开：卡片贴在那一行上面，高度跟着内容走（事件紧接在标题下面，中间不空一大块，用户定的），最高到吸附线（标题板底边），再多就在卡片里滚
+      const snapY = top - v * rowH;   // 吸附线：看得见的第一行的顶
+      preview.style.top = 'auto';
       preview.style.bottom = Math.max(0, b.bottom - top + gap) + 'px';
     } else {
-      preview.style.top = (bottom - b.top + gap) + 'px';
+      preview.style.maxHeight = Math.max(120, top - snapY - gap * 2) + 'px';
+      preview.style.top = (bottom - b.top + gap) + 'px'; preview.style.maxHeight = '';
       preview.style.bottom = '';   // 底边由 CSS 定在底栏上面（var(--bar-space)），和以前一样，底栏的时钟和 logo 挪进卡片底部
     }
   }
@@ -765,7 +767,7 @@
     resetCard();
     if (!fl) { render(); return; }
     body.classList.remove('previewing', 'pv-float', 'pv-up');
-    preview.style.top = ''; preview.style.bottom = '';
+    preview.style.top = ''; preview.style.bottom = ''; preview.style.maxHeight = '';
     try { updateBack(); } catch (e) {}
     if (restore && base && view === 'month') {
       stopAnim();   // 展开时的挪行还没走完就收起：先停在当前位置，再滑回去（不然那段动画走完又停在挪过的位置）
