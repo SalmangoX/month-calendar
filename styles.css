@@ -1377,6 +1377,7 @@ html.locked .lock { display: grid; }
 .drawer.warm { visibility: visible; transform: none !important; opacity: .01; pointer-events: none; }
 /* 冷启动预热（app.js 的 warmUp）：新建面板、日卡片、弹出卡片、小菜单在原位以 1% 透明度画两帧，看不见、点不到 */
 .warm-up { visibility: visible !important; opacity: .01 !important; transform: none !important; translate: none !important; pointer-events: none !important; transition: none !important; animation: none !important; }
+.page.warm-up { display: flex !important; z-index: 0; }   /* 设置页预热：在原位画两帧（app.js 的 warmUp） */
 #preview.warm-up { display: flex !important; position: fixed !important; left: 8px; right: 8px; top: 25%; height: 45%; z-index: 1; }
 .drawer > * { position: relative; z-index: 1; }
 .drawer.vis { visibility: visible; }
@@ -1390,6 +1391,9 @@ html.locked .lock { display: grid; }
 .dr-empty { margin: 4px 12px; font-size: 13px; line-height: 1.6; color: var(--text2); }
 .dr-row { position: relative; display: flex; align-items: center; border-radius: 20px; margin-bottom: 4px; transition: background .2s; }
 /* 长按拖动排序：拿起来的那一行浮起（略放大、带投影），同组的其它行让位 */
+/* 合集：挂在别的日历下面的那一行缩进一格，左边一根淡淡的竖线连着上面的日历（drawer.js 的 recTree）【联动:侧拉菜单】原生 GlassDrawer.row 的 child */
+.dr-row.child { margin-left: 22px; }
+.dr-row.child::before { content: ""; position: absolute; left: -12px; top: -4px; bottom: 50%; width: 9px; border-left: 1.5px solid var(--line, rgba(0, 0, 0, .12)); border-bottom: 1.5px solid var(--line, rgba(0, 0, 0, .12)); border-bottom-left-radius: 8px; pointer-events: none; }
 .drawer .reordering .dr-row.shift { transition: transform .22s cubic-bezier(.2, .8, .3, 1); }
 .drawer .dr-row.lifted { z-index: 3; background: var(--surface); box-shadow: 0 14px 34px rgba(14, 24, 40, .2), 0 3px 8px rgba(14, 24, 40, .1); transition: box-shadow .2s, transform .18s cubic-bezier(.2, .8, .3, 1); }
 .drawer .reordering .dr-row.lifted { transition: box-shadow .2s; }

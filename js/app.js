@@ -1887,6 +1887,20 @@
       done => flash($('#preview'), done),
       done => flash($('#formSheet'), done),
       done => flash(document.querySelector('.popover'), done),
+      // 用户说刚打开 App 第一次进设置、第一次切换日历都卡一下：设置页第一次要生成整页、第一次画它的图标底块和分组卡片；
+      // 切换日历是整页（#pages）一起淡出淡入，第一次要为「整页带透明度」现场编译绘制程序。都在这里提前做一遍
+      done => {
+        const sp = $('#page-set');
+        if (!sp || page === 'set' || busy()) return done();
+        try { renderSettings(); } catch (e) {}
+        flash(sp, done);
+      },
+      done => {
+        const host = $('#pages');
+        if (!host || !host.animate || busy()) return done();
+        const a = host.animate([{ opacity: 1, transform: 'none' }, { opacity: .995, transform: 'translateY(.01px) scale(.9999)' }], { duration: 120 });
+        a.onfinish = a.oncancel = () => done();
+      },
     ];
     let i = 0;
     const next = () => { if (i < steps.length) { const s = steps[i++]; setTimeout(() => idle(() => s(next)), 250); } };

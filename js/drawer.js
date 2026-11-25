@@ -109,12 +109,19 @@
     film: 'film.fill', game: 'gamecontroller.fill', camera: 'camera.fill', gym: 'dumbbell.fill', plant: 'leaf.fill', coffee: 'cup.and.saucer.fill', paw: 'pawprint.fill',
     cat: 'cat.fill', dog: 'dog.fill', lantern: 'lamp.ceiling.fill', tree: 'tree.fill', moon: 'moon.fill', spark: 'sparkles', tent: 'tent.fill', trophy: 'trophy.fill',
     calendar: 'calendar', syringe: 'syringe.fill', pumpkin: 'leaf.circle.fill', stroller: 'stroller.fill' };
+  // 合集（「并入…」）：被并入的日历挂在目标日历下面、缩进一格；打开目标日历时一起显示，随时「拆开」【联动:侧拉菜单】原生 GlassDrawer 的 child / mainKids
+  const subOf = (c, n, days) => {
+    const k = c.kind !== 'days' ? MC.kidsOf(c.id).length : 0;
+    return (days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日页') + (k ? ` · 含 ${k} 个日历` : '');
+  };
+  // 记录日历按合集排：独立的（或合集本身）一个一个来，挂在它下面的紧跟在后面
+  const recTree = () => MC.data.cals.filter(c => c.kind !== 'days' && MC.hostOf(c) === null).flatMap(c => [c, ...MC.kidsOf(c.id)]);
   function row(c, i) {
     const on = c.id === MC.activeCal(), n = MC.countIn(c.id);
-    const days = c.kind === 'days';
+    const days = c.kind === 'days', child = MC.hostOf(c) !== null;
     const flags = c.id ? `${c.showInMain ? `<span title="显示在主日历">${LAYERS}</span>` : ''}${c.notify && !days ? `<span title="通知已开">${BELL}</span>` : ''}` : '';
-    const sub = (days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日页') + (flags ? `<span class="dr-flags">${flags}</span>` : '');
-    return `<div class="dr-row${on ? ' on' : ''}" style="--cc:${c.id ? c.color : 'var(--accent-base)'};--i:${i}" data-id="${esc(c.id)}">
+    const sub = subOf(c, n, days) + (flags ? `<span class="dr-flags">${flags}</span>` : '');
+    return `<div class="dr-row${on ? ' on' : ''}${child ? ' child' : ''}" style="--cc:${c.id ? c.color : 'var(--accent-base)'};--i:${i}" data-id="${esc(c.id)}">
       <button class="dr-pick" data-act="pick" aria-pressed="${on}">
         <span class="dr-ico">${days ? daysIcon(c) : c.id ? ICON_REC : ICON_MAIN}</span>
         <span class="dr-txt"><b>${esc(c.name)}</b><small>${sub}</small></span>
@@ -125,16 +132,23 @@
   }
   // 侧拉菜单的列表：数据没变就不重画（拉出来的那一下不再整块重排，快速侧拉不卡一下）
   let drawnKey = '';
+  // 手指按在列表上时不重画：按下和松手之间整块换掉，点击就落空了（刚打开 App 时同步拉下数据、刚拉出菜单时最容易碰上），等松手再画
+  let pressing = false, owed = false;
+  list.addEventListener('pointerdown', () => { pressing = true; }, true);
+  const unpress = () => { if (!pressing) return; pressing = false; if (owed) { owed = false; setTimeout(render, 0); } };   // 等这一下的 click 处理完
+  document.addEventListener('pointerup', unpress, true); document.addEventListener('pointercancel', unpress, true);
   function render() {
     const key = [MC.data.updatedAt, MC.activeCal(), MC.data.cals.length, document.documentElement.lang].join('|');
     if (key === drawnKey && list.firstElementChild) return;
+    if (pressing && list.firstElementChild && !rd) { owed = true; return; }
     drawnKey = key;
     const cals = MC.data.cals;
-    let h = row(MC.MAIN_CAL, 1);
-    const recs = cals.filter(c => c.kind !== 'days'), dayCals = cals.filter(c => c.kind === 'days');
-    h += `<p class="dr-sec">记录日历</p>`;
+    const mainKids = MC.kidsOf('');
+    let h = row(MC.MAIN_CAL, 1) + mainKids.map(c => row(c, 1)).join('');
+    const recs = recTree(), dayCals = cals.filter(c => c.kind === 'days');
+    if (recs.length || !mainKids.length) h += `<p class="dr-sec">记录日历</p>`;
     if (recs.length) h += recs.map((c, i) => row(c, i + 2)).join('');
-    else h += `<p class="dr-empty" style="--i:2">记录日历和待办分开显示，可以分别设置是否显示在主日历、是否通知。</p>`;
+    else if (!mainKids.length) h += `<p class="dr-empty" style="--i:2">记录日历和待办分开显示，可以分别设置是否显示在主日历、是否通知。</p>`;
     if (dayCals.length) {
       const k = recs.length + 3;
       h += `<p class="dr-sec" style="--i:${k}">${T('纪念日历')}</p>` + dayCals.map((c, i) => row(c, k + i + 1)).join('');
@@ -151,7 +165,7 @@
   let rd = null;
   list.addEventListener('pointerdown', e => {
     const r = e.target.closest('.dr-row'), c = r && r.dataset.id && MC.cal(r.dataset.id);
-    if (!c || e.target.closest('[data-act="more"]') || e.button) return;
+    if (!c || e.target.closest('[data-act="more"]') || e.button || MC.hostOf(c) !== null) return;   // 挂在合集里的日历跟着合集走，不单独拖
     const x0 = e.clientX, y0 = e.clientY;
     const stop = () => { clearTimeout(tm); document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', stop); document.removeEventListener('pointercancel', stop); };
     const mv = ev => { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) stop(); };   // 先动了就是滚动列表，不算长按
@@ -160,7 +174,7 @@
   });
   function startReorder(r, c, y0) {
     const days = c.kind === 'days';
-    const rows = [...list.querySelectorAll('.dr-row[data-id]')].filter(x => { const k = x.dataset.id && MC.cal(x.dataset.id); return k && (k.kind === 'days') === days; });
+    const rows = [...list.querySelectorAll('.dr-row[data-id]:not(.child)')].filter(x => { const k = x.dataset.id && MC.cal(x.dataset.id); return k && (k.kind === 'days') === days; });
     if (rows.length < 2) return;
     const idx = rows.indexOf(r), h = r.getBoundingClientRect().height + 4;
     rd = { r, rows, idx, to: idx, y0, h, days };
@@ -214,7 +228,7 @@
     out.onfinish = go; setTimeout(go, 220);
   };
   // 「更多」菜单：记录日历和纪念日历的选项不同
-  const menuOf = c => (c.kind === 'days'
+  const menuOf = c => fold(c, c.kind === 'days'
     ? [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: T('名称、颜色和图标'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }]
     : [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: '通知', value: 'notify', on: c.notify, sw: true },
       { label: '无需完成', value: 'nodone', on: !!c.noDone, sw: true },   // 整个日历的事件都只负责提醒：不用勾完成、不算逾期（cal.noDone，不写进各个事件）
@@ -222,6 +236,18 @@
       { label: '名称、颜色和等级', value: 'edit' },
       { label: '并入…', value: 'merge' },
       { label: '删除这个日历', value: 'del', danger: true }]);
+  // 合集的菜单：挂在别人下面的换成「从「X」拆开」（并入主日历的不再有「在主日历显示」开关：一直显示）；自己是合集的换成「拆开合集」
+  function fold(c, m) {
+    if (c.kind === 'days') return m;
+    const host = MC.hostOf(c), kids = MC.kidsOf(c.id).length;
+    if (host !== null) return m.filter(x => !(host === '' && x.value === 'main')).map(x => (x.value === 'merge' ? { label: `从「${MC.cal(host).name}」拆开`, value: 'split' } : x));
+    return kids ? m.map(x => (x.value === 'merge' ? { label: '拆开合集', value: 'splitAll' } : x)) : m;
+  }
+  // 把 c 从合集里拆出来，变回独立的日历（并入主日历前「在主日历显示」是什么样就还原成什么样）
+  const unhook = (c, t) => {
+    if (c.under === MC.UNDER_MAIN) c.showInMain = !!c.underWas;
+    delete c.under; delete c.underWas; c.updatedAt = t;
+  };
   // 从「⋯」菜单里再弹出的菜单挂在哪：网页侧拉菜单里的那一行；iPhone / Mac 上网页的侧拉菜单藏在屏幕外面，那一行的位置不能用（原生菜单会弹到屏幕外，看起来像什么都没有），改用屏幕中间
   function anchorFor(c) {
     const row = document.querySelector(`#drawerList [data-id="${CSS.escape(c.id)}"]`), rr = row && row.getBoundingClientRect();
@@ -254,21 +280,29 @@
       });
     }
     else if (v === 'merge') {
-      // 并入…：选并到主日历还是另一个子日历；当前子日历的事件全部转移过去，然后删掉它（不可逆，要说清楚）
-      const others = MC.data.cals.filter(x => x.kind !== 'days' && x.id !== c.id);
+      // 并入…（2026-11-25 用户定的：不能撤销不好）：不再把事件转过去再删掉，而是挂到目标日历下面成一个合集——
+      // 打开目标日历时两边的事件一起显示、各自保留颜色；事件本身不动，随时在「⋯」里拆开。目标只能是主日历或独立的记录日历（不套娃）
+      const others = MC.data.cals.filter(x => x.kind !== 'days' && x.id !== c.id && MC.hostOf(x) === null);
       const items = [{ label: '主日历', value: '' }, ...others.map(x => ({ label: `「${x.name}」`, value: x.id, icon: `<span class="cs-dot" style="--c:${x.color}"></span>` }))];
       const a = anchorFor(c);
       UI.menu(a.el, items, async to => {
         a.done();
         if (to === undefined) return;
-        const n = MC.countIn(c.id), dest = to ? `「${MC.cal(to).name}」` : '主日历';
-        if (!(await UI.confirm(`把「${c.name}」的 ${n} 条事件全部转移到${dest}，然后删掉「${c.name}」？\n这一步不能撤销：转过去以后分不出哪些原来属于「${c.name}」。`, { ok: `并入${dest}`, danger: true }))) return;
-        const t = Date.now(), rated = to && MC.rateOn(to);
-        MC.data.events.forEach(e => { if (e.cal === c.id) { e.cal = to; if (!rated) { e.rate = 0; e.segs = {}; } e.updatedAt = t; } });
-        MC.data.cals = MC.data.cals.filter(x => x.id !== c.id); MC.data.deleted['cal:' + c.id] = t;
-        if (MC.settings.activeCal === c.id) { MC.settings.activeCal = to; MC.saveSettings(); }
-        MC.commit(); MC.reindex && MC.reindex(); D.paint(); render(); MC.Cal.render(); UI.toast(`已把「${c.name}」并入${dest}`);
+        const dest = to ? `「${MC.cal(to).name}」` : '主日历';
+        if (!(await UI.confirm(`把「${c.name}」并入${dest}？\n「${c.name}」会挂在${dest}下面，打开${dest}时两边的事件一起显示。事件不会改动，随时可以在「⋯」里拆开。`, { ok: '并入' }))) return;
+        const t = Date.now();
+        if (to) c.under = to; else { c.underWas = !!c.showInMain; c.under = MC.UNDER_MAIN; c.showInMain = true; }   // 并入主日历：也打开「在主日历显示」，小组件、原生那边不用另外认合集
+        c.updatedAt = t;
+        MC.commit(); if (MC.onCalChange) MC.onCalChange(); D.paint(); render(); MC.Cal.render();
+        UI.toast(`已把「${c.name}」并入${dest}，可以在「⋯」里拆开`);
       }, { center: true });
+    }
+    else if (v === 'split' || v === 'splitAll') {
+      const list = v === 'split' ? [c] : MC.kidsOf(c.id), t = Date.now(), host = v === 'split' ? MC.hostOf(c) : c.id;
+      const hn = host ? `「${MC.cal(host).name}」` : '主日历';
+      list.forEach(x => unhook(x, t));
+      MC.commit(); if (MC.onCalChange) MC.onCalChange(); D.paint(); render(); MC.Cal.render();
+      UI.toast(v === 'split' ? `已把「${c.name}」从${hn}拆开` : `已拆开${hn}这个合集`);
     }
     else if (v === 'del') {
       const n = MC.countIn(c.id), days = c.kind === 'days';
@@ -287,12 +321,13 @@
       const n = MC.countIn(c.id), days = c.kind === 'days';
       return { id: c.id, name: c.name, color: c.id ? c.color : '', kind: days ? 'days' : c.id ? 'rec' : 'main', on: c.id === MC.activeCal(), sf: days ? SF_OF[c.icon] || 'heart.fill' : '',
         sub: tr(days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日页'),
-        inMain: !!c.showInMain, notify: !!c.notify && !days,
+        inMain: !!c.showInMain, notify: !!c.notify && !days, child: MC.hostOf(c) !== null,
         menu: c.id ? menuOf(c).map(m => ({ ...m, label: tr(m.label) })) : [] };
     };
     const cals = MC.data.cals;
     return { title: tr('日历'), sub: tr('每个日历的内容分开显示'), main: item(MC.MAIN_CAL),
-      recTitle: tr('记录日历'), recs: cals.filter(c => c.kind !== 'days').map(item), recEmpty: tr('记录日历和待办分开显示，可以分别设置是否显示在主日历、是否通知。'),
+      mainKids: MC.kidsOf('').map(item),
+      recTitle: tr('记录日历'), recs: recTree().map(item), recEmpty: tr('记录日历和待办分开显示，可以分别设置是否显示在主日历、是否通知。'),
       daysTitle: tr(T('纪念日历')), days: cals.filter(c => c.kind === 'days').map(item),
       add: [{ label: tr(T('新建记录日历')), value: 'rec' }, { label: tr(T('新建纪念日历')), value: 'days' }], addLabel: tr('新建子日历'),
       // iPhone / Mac 原生画的「新建子日历」介绍卡片用的文字（和网页 #calKindSheet 一样）
@@ -455,7 +490,9 @@
   // 以前一律吃 300ms，刚拉出菜单马上点「⋯」，这一下真正的点按也被吃掉了
   let swallow = false, swallowAt = 0, downAt = -1;
   document.addEventListener('pointerdown', e => { downAt = e.timeStamp; }, true);
-  const eat = () => { swallow = true; swallowAt = performance.now(); setTimeout(() => (swallow = false), 300); };
+  // 以手势结束那一刻（松手事件自己的时间戳）为界，不用处理事件时的 performance.now()：冷启动主线程一卡，松手事件晚到几百毫秒，
+  // 这期间手指已经又点了一下（时间戳比处理时刻早），以前会被当成手势补发的点击吃掉——刚拉出菜单马上点日历点不进去
+  const eat = (ts = performance.now()) => { swallow = true; swallowAt = ts; setTimeout(() => (swallow = false), 300); };
   const swallowed = () => swallow && downAt <= swallowAt;
   // 松手前 90ms 的速度（px/s）。时间一律用事件自己的时间戳（e.timeStamp，手指真正动 / 松开的那一刻）：
   // 以前用处理事件时的 performance.now()，主线程一卡（冷启动 GPU 还没热好时一帧 200ms+），松手事件晚到，速度就被算成 0，拉得再快也弹回去
@@ -522,7 +559,7 @@
     if (t) { s.push([ts, t.clientX]); apply(Math.max(0, t.clientX - g.x0)); }
     g = null;
     if (!was) return;
-    eat();
+    eat(ts);
     release(vel(s, ts), pos);
   };
   pg.addEventListener('touchend', pageEnd, true);
@@ -575,7 +612,7 @@
       const t = was && e && e.changedTouches && e.changedTouches[0];
       if (t) { s.push([ts, t.clientX]); apply(Math.max(0, c2.p0 + t.clientX - c2.x0)); }
       c2 = null;
-      if (was) { eat(); release(vel(s, ts), pos); }
+      if (was) { eat(ts); release(vel(s, ts), pos); }
       else if (!moved && pos !== W) animateTo(W);                      // 按住时被打断的动画接着完成
     };
     n.addEventListener('touchend', end);

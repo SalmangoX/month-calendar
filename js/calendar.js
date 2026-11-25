@@ -181,6 +181,8 @@
   // 现在：画完、浏览器空闲时，只对放不下的色条找出截断处最后 FADE_W px 里的那一两个字，按离边多近把字色调透明（越靠边越淡）。
   // 只是普通文字换了个带透明度的颜色，不开新层，画起来和不淡出一样省；量和改都在空闲时分批做，不拖慢画月视图、滑动
   const FADE_W = 7, FADE_MIN = .45;   // 2026-11-25 用户嫌太淡、正常大小下看不见字：只淡最后 7px，最淡也留 45%
+  // 分日历那种「淡底 + 同色字」的色条（.sub、子日历里的）本来对比就低，再淡到 45% 像糊掉了（2026-11-25 用户说）：只淡最后 5px、最淡留 72%
+  const FADE_SUB_W = 5, FADE_SUB_MIN = .72;
   let fadeJob = 0;
   // 切换日历这类整页淡入时，空闲活（补画缓冲行、色条淡出）先停一停，等动画播完再做：不然它们改了 DOM，下一帧又要重算样式排版，淡入一路掉帧
   let holdTo = 0;
@@ -190,16 +192,17 @@
   const unidle = window.cancelIdleCallback ? cancelIdleCallback : clearTimeout;
   // 量：返回之后要做的改动（一批先全部量完再一起改，不来回触发排版）
   function fadeChip(ct, rg) {
+    const soft = ct.classList.contains('sub') || !!document.body.dataset.cal, FW = soft ? FADE_SUB_W : FADE_W, FM = soft ? FADE_SUB_MIN : FADE_MIN;
     const edge = ct.getBoundingClientRect().right - (parseFloat(getComputedStyle(ct).paddingRight) || 0);   // 字被截断的位置：色条内容区的右边
     const chars = [], w = document.createTreeWalker(ct, NodeFilter.SHOW_TEXT);
     for (let n; (n = w.nextNode());) for (let i = 0; i < n.length; i++) { const c = n.data.charCodeAt(i); if (c < 0xDC00 || c > 0xDFFF) chars.push([n, i, c >= 0xD800 && c < 0xDC00 ? 2 : 1]); }
     const box = k => { const [n, i, l] = chars[k]; rg.setStart(n, i); rg.setEnd(n, i + l); return rg.getBoundingClientRect(); };
     let lo = 0, hi = chars.length;   // 二分找第一个右边进入淡出区的字
-    while (lo < hi) { const m = (lo + hi) >> 1; if (box(m).right > edge - FADE_W) hi = m; else lo = m + 1; }
+    while (lo < hi) { const m = (lo + hi) >> 1; if (box(m).right > edge - FW) hi = m; else lo = m + 1; }
     const hits = [];
     for (let k = lo; k < chars.length; k++) {
       const b = box(k); if (b.left >= edge) break;
-      const a = Math.min(1, FADE_MIN + (1 - FADE_MIN) * Math.max(0, (edge - (b.left + b.right) / 2) / FADE_W));   // 字的中心离边越近越淡（最淡 FADE_MIN）
+      const a = Math.min(1, FM + (1 - FM) * Math.max(0, (edge - (b.left + b.right) / 2) / FW));   // 字的中心离边越近越淡（最淡 FM）
       if (a < .98) hits.push([k, a]);
     }
     return () => {

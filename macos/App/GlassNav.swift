@@ -17,12 +17,13 @@ final class NavModel: ObservableObject {
     struct Row: Decodable, Identifiable {
         let id: String, name: String, color: String, kind: String, on: Bool, sub: String, inMain: Bool, notify: Bool, menu: [Item]
         let sf: String?   // 纪念日历自己选的图标（网页给的系统符号名）
+        let child: Bool?  // 合集：挂在上面那个日历下面（「并入…」），缩进一格、不单独拖动（网页 drawer.js 的 recTree）
         var key: String { id.isEmpty ? "_main" : id }
     }
     /// 新建子日历的介绍卡片用的文字（网页 MC.Drawer.model 的 kinds）
     struct Kind: Decodable { let name, desc, eg: String; let big, unit, tag: String? }
     struct Kinds: Decodable { let title, lead, cancel: String; let rec, days: Kind }
-    struct Drawer: Decodable { let title, sub, recTitle, recEmpty, daysTitle: String; let main: Row; var recs, days: [Row]; let add: [Item]; let addLabel: String?; let kinds: Kinds? }
+    struct Drawer: Decodable { let title, sub, recTitle, recEmpty, daysTitle: String; let main: Row; var recs, days: [Row]; let mainKids: [Row]?; let add: [Item]; let addLabel: String?; let kinds: Kinds? }
 
     @Published var tabs: [Tab] = []
     @Published var page = "cal"
@@ -1147,7 +1148,7 @@ struct GlassDrawer: View {
                     .scaleEffect(x: 1 + stretch / 300, y: 1 - stretch / 1600, anchor: .leading)
                     .offset(x: min(0, m.drawerPull)) // 往回推：整块跟着移动
                     .transition(.move(edge: .leading).combined(with: .opacity))
-                if let key = moreShown, let r = ([d.main] + d.recs + d.days).first(where: { $0.key == key }), let a = dots[key] { moreCard(r, at: a) }
+                if let key = moreShown, let r = ([d.main] + (d.mainKids ?? []) + d.recs + d.days).first(where: { $0.key == key }), let a = dots[key] { moreCard(r, at: a) }
                 if let pf = pill { pillAndKinds(d, pf).offset(x: min(0, m.drawerPull)).transition(.move(edge: .leading).combined(with: .opacity)) }
             }
         }
@@ -1193,6 +1194,7 @@ struct GlassDrawer: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 3) {
                     row(d.main)
+                    ForEach(d.mainKids ?? [], id: \.id) { row($0) }   // 并入主日历的日历挂在主日历下面
                     section(d.recTitle)
                     if d.recs.isEmpty {
                         Text(d.recEmpty).font(.system(size: 12)).foregroundStyle(.secondary).padding(.horizontal, 12).padding(.vertical, 4)
@@ -1453,7 +1455,7 @@ struct GlassDrawer: View {
                                 withTransaction(t) { rKey = nil; rDY = 0; m.reorder(group, from: from, to: to) }
                             }
                         }
-                )
+                , including: r.child == true ? .subviews : .all)   // 挂在合集里的日历跟着合集走，不单独拖
         }
     }
 
@@ -1500,6 +1502,7 @@ struct GlassDrawer: View {
         .background {
             if r.on { RoundedRectangle(cornerRadius: 15, style: .continuous).fill(Color.white.opacity(scheme == .dark ? 0.1 : 0.62)).shadow(color: .black.opacity(scheme == .dark ? 0 : 0.06), radius: 2, y: 1) }   // 选中：中性的白色高亮，不染日历色
         }
+        .padding(.leading, r.child == true ? 22 : 0)   // 合集：缩进一格（网页 .dr-row.child）
         .id(r.key)
     }
 }

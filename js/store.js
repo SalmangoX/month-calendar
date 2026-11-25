@@ -353,6 +353,10 @@
       rateLabels: MC.normRateLabels(c.rateLabels), // 4 个等级的名称（可自定义，整个日历通用），从低到高
       presets: normPresets(c.presets), // 常用事件：存好名称，添加时一点就填上（time / endTime 记住上次用的时段）
       ...(Number.isFinite(Number(c.order)) && c.order !== null && c.order !== '' ? { order: Number(c.order) } : {}),   // 侧拉菜单里的顺序（长按拖动排过才有；没有按创建时间）【联动:同步数据】
+      // 合集（「⋯」→「并入…」，2026-11-25 用户定的：不再把事件转过去再删掉，可以随时拆开）：under = 挂在哪个日历下面（日历 id，主日历是 '@main'），
+      // 打开那个日历时它的事件一起显示；事件本身不动。underWas = 并入主日历之前「在主日历显示」开没开，拆开时还原【联动:同步数据】
+      ...(c.kind !== 'days' && c.under ? { under: String(c.under).slice(0, 40) } : {}),
+      ...(c.kind !== 'days' && c.under === '@main' ? { underWas: !!c.underWas } : {}),
       kind: c.kind === 'days' ? 'days' : '', // 'days' = 纪念日历（倒数日 / 纪念日），其余为记录日历
       createdAt: c.createdAt || t, updatedAt: c.updatedAt || c.createdAt || t };
   }
@@ -509,15 +513,20 @@
     }
     return out;
   }
+  // 合集：挂在 host 下面的日历（host 为 '' = 主日历）。挂靠的日历已经删了的不算
+  MC.UNDER_MAIN = '@main';
+  MC.hostOf = c => { const u = c && c.kind !== 'days' && c.under; if (!u) return null; if (u === MC.UNDER_MAIN) return ''; const h = MC.cal(u); return h && h.id && !h.under && h.kind !== 'days' ? h.id : null; };
+  MC.kidsOf = id => MC.data.cals.filter(c => MC.hostOf(c) === (id || ''));
   MC.reindex = () => {
     const act = MC.activeCal();
-    const shown = new Set(MC.data.cals.filter(c => c.showInMain && c.kind !== 'days').map(c => c.id));
+    const kids = act ? new Set(MC.kidsOf(act).map(c => c.id)) : null;   // 打开的是合集：挂在它下面的日历的事件一起显示
+    const shown = new Set(MC.data.cals.filter(c => (c.showInMain || MC.hostOf(c) === '') && c.kind !== 'days').map(c => c.id));   // 并入主日历的也算
     const shownDays = new Set(MC.data.cals.filter(c => c.showInMain && c.kind === 'days').map(c => c.id));
     MC.inMainView = e => !e.cal || shown.has(e.cal) || shownDays.has(e.cal);   // 主日历看到的：主日历自己的 + 设为「在主日历显示」的记录日历和纪念日历
     MC.mainByDate = indexOf(MC.data.events.filter(e => !e.cal));
     const dv = shownDays.size ? dayEvents(shownDays) : [];
     MC.mainViewByDate = shown.size || dv.length ? indexOf(MC.data.events.filter(MC.inMainView).concat(dv)) : MC.mainByDate;
-    MC.byDate = act ? indexOf(MC.data.events.filter(e => e.cal === act)) : MC.mainViewByDate;
+    MC.byDate = act ? indexOf(MC.data.events.filter(e => e.cal === act || (kids.size && kids.has(e.cal)))) : MC.mainViewByDate;
   };
   MC.reindex();
   MC.eventsOn = ds => MC.byDate.get(ds) || [];      // 当前日历
@@ -597,6 +606,7 @@
     MC.data.days = MC.data.days.filter(x => x.cal !== id);
     MC.data.books = MC.data.books.filter(b => b.cal !== id);
     MC.data.cals = MC.data.cals.filter(c => c.id !== id);
+    for (const c of MC.data.cals) if (c.under === id) { delete c.under; c.updatedAt = t; }   // 合集删了：挂在下面的日历变回独立的
     MC.data.deleted['cal:' + id] = t;
     if (MC.settings.activeCal === id) { MC.settings.activeCal = ''; MC.saveSettings(); }
     MC.commit();
@@ -667,7 +677,7 @@
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
       .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, JSON.stringify(e.segs || {}), e.done, !!e.noDone, e.note, e.time, e.endTime, e.remind, (e.remindMore || []).join(','), e.updatedAt]);
-    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, !!c.noDone, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), JSON.stringify(c.presets || []), c.icon || '', c.updatedAt]);
+    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, !!c.noDone, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), JSON.stringify(c.presets || []), c.icon || '', c.under || '', c.updatedAt]);
     const ds = [...(d.days || []), ...(d.books || [])].map(x => x.id + ':' + (x.updatedAt || 0)).sort();
     return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, (d.courseRemind || {}).updatedAt || 0, d.coursesAt || 0, cs, ds, (d.album || {}).gist || '']);
   }
