@@ -10,7 +10,8 @@ trap 'rm -rf "$TMP"' EXIT
 
 echo "→ 下载最新源码…"
 curl -fsSL "https://codeload.github.com/$REPO/zip/refs/heads/main" -o "$TMP/src.zip"
-unzip -q "$TMP/src.zip" -d "$TMP"
+# 用系统自带的 ditto 解压：macOS 的 unzip 认不出压缩包里的中文文件名（ios/安装说明.md），会报「write error (disk full?)」停下来
+ditto -x -k "$TMP/src.zip" "$TMP" || { echo "❌ 解压失败"; exit 1; }
 SRC=$(find "$TMP" -maxdepth 2 -type d -name macos | head -1)
 [ -n "$SRC" ] || { echo "❌ 仓库里没有 macos 文件夹"; exit 1; }
 
