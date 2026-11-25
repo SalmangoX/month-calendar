@@ -225,7 +225,7 @@ final class Engine: ObservableObject {
             for k in 0..<7 {
                 let day = YMD.today.adding(k), t = day.at(minutes: d.dailyMin)
                 if t <= now { continue }
-                let open = d.on(day).filter { !$0.done }.count
+                let open = d.on(day).filter { !$0.done && !$0.noDone }.count   // 无需完成的、纪念日不算【联动:提醒】
                 let c = UNMutableNotificationContent()
                 c.title = open > 0 ? I18n.t("查看今日未完成事件") : I18n.t("今日事件已完成")
                 c.body = open > 0 ? I18n.t("今天还有 {0} 件事未完成，点开查看。", open) : I18n.t("今天的事件都完成了。")

@@ -223,7 +223,7 @@
   const LKEY = 'mcal.localSent';
   // 每日未完成提醒的内容
   Push.digest = ds => {
-    const n = MC.mainViewOn(ds).filter(e => !e.done && !e.dv).length; // 今日任务：主日历 + 设为在主日历显示的记录日历
+    const n = MC.mainViewOn(ds).filter(e => MC.isTask(e) && !e.done).length; // 今日任务：主日历 + 设为在主日历显示的记录日历；无需完成的不算【联动:提醒】
     return n ? { title: MC.t('查看今日未完成事件'), body: MC.t(`今天还有 ${n} 件事未完成，点开查看。`) }
              : { title: MC.t('今日事件已完成'), body: MC.t('今天的事件都完成了。') };
   };
@@ -241,7 +241,7 @@
     try { sent = JSON.parse(localStorage.getItem(LKEY) || '{}'); } catch (e) {}
     const due = [];
     for (const e of MC.data.events) {
-      if (e.done || !MC.notifies(e)) continue; // 记录日历没开通知就不提醒
+      if (MC.doneOf(e) || !MC.notifies(e)) continue;   // 无需完成的照常提醒（这就是它的用途） // 记录日历没开通知就不提醒
       for (const ft of MC.fireTimes(e)) {   // 一个事件可以有好几个提醒，每个各发一次
         if (ft > now || ft < now - 3 * 60000) continue;
         const key = `${e.id}@${ft}`;

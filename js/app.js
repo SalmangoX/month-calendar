@@ -212,7 +212,7 @@
     const ws = MC.weekStartOf(new Date());
     let strip = '<div class="td-week">';
     for (let k = 0; k < 7; k++) {
-      const d = MC.addDays(ws, k), ds = MC.ymd(d), has = MC.mainViewOn(ds).some(e => !e.done && !e.dv);
+      const d = MC.addDays(ws, k), ds = MC.ymd(d), has = MC.mainViewOn(ds).some(e => MC.isTask(e) && !e.done);   // 无需完成的不算「还有没做完的」
       strip += `<button class="td-day${ds === tdDay ? ' on' : ''}${ds === t ? ' today' : ''}" data-day="${ds}"><small>${MC.WD[d.getDay()]}</small><b>${d.getDate()}</b><i${has ? '' : ' hidden'}></i></button>`;
     }
     strip += '</div>';
@@ -221,11 +221,11 @@
     // 上面的本周日期条、逾期、全天固定不动，只有下面的时间线滚动（滚的时候不会盖到上面）
     let h = strip;
     // 已逾期（只在看今天时）
-    const overdue = isToday ? MC.data.events.filter(e => MC.inMainView(e) && !e.done && MC.endDate(e) < t).sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b)) : [];
+    const overdue = isToday ? MC.data.events.filter(e => MC.inMainView(e) && MC.isOverdue(e)).sort((a, b) => a.date.localeCompare(b.date) || MC.cmp(a, b)) : [];
     if (overdue.length) h += `<section class="sec"><h3 class="over"><span>已逾期</span><span class="sec-r"><button class="sec-act" data-sec="overdue">全部移到今天</button><span>${overdue.length}</span></span></h3><ul class="card glass-panel">${overdue.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul></section>`;
     // 没有具体时间的（全天、待办）：未完成在前
-    const allDay = [...untimed.filter(e => !e.done), ...untimed.filter(e => e.done)];
-    if (allDay.length) h += `<section class="sec"><h3><span>全天</span><span>${untimed.filter(e => !e.done).length || ''}</span></h3><ul class="card glass-panel">${allDay.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
+    const allDay = [...untimed.filter(e => !MC.doneOf(e)), ...untimed.filter(MC.doneOf)];
+    if (allDay.length) h += `<section class="sec"><h3><span>全天</span><span>${untimed.filter(e => MC.isTask(e) && !e.done).length || ''}</span></h3><ul class="card glass-panel">${allDay.map(e => UI.itemHTML(e)).join('')}</ul></section>`;
     // 时间线：显示 8 点到 21 点，事件或现在的时间超出这个范围就跟着放宽
     const toMin = x => { const [a, b] = x.split(':').map(Number); return a * 60 + b; };
     const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
@@ -243,9 +243,9 @@
     for (const x of span) {
       const top = (x.a / 60 - sH) * tlH, ht = Math.max(22, (x.b - x.a) / 60 * tlH - 2), w = 100 / x.lanes;
       const e = x.e, tiny = ht < 38;
-      tl += `<li class="item td-ev${e.done ? ' done' : ''}${tiny ? ' tiny' : ''}${e.dv ? ' dvi' : ''}" data-id="${e.id}" data-a="${x.a}" data-b="${x.b}" style="--c:${MC.evColor(e)};top:${top}px;height:${ht}px;left:calc(${x.lane * w}% + 1px);width:calc(${w}% - 3px)">
+      tl += `<li class="item td-ev${MC.doneOf(e) ? ' done' : ''}${tiny ? ' tiny' : ''}${e.dv ? ' dvi' : ''}" data-id="${e.id}" data-a="${x.a}" data-b="${x.b}" style="--c:${MC.evColor(e)};top:${top}px;height:${ht}px;left:calc(${x.lane * w}% + 1px);width:calc(${w}% - 3px)">
         <button class="td-ev-main" data-act="open"><b>${esc(e.title)}</b>${tiny ? '' : `<small>${esc(MC.fmtRange(e.time, e.endTime))}${e.note ? ' · ' + esc(e.note) : ''}</small>`}</button>
-        ${e.dv ? '' : `<button class="td-ck" data-act="toggle" aria-label="${e.done ? '标为未完成' : '完成'}"></button>`}</li>`;   // 纪念日只读，没有完成按钮
+        ${!MC.isTask(e) ? '' : `<button class="td-ck" data-act="toggle" aria-label="${e.done ? '标为未完成' : '完成'}"></button>`}</li>`;   // 纪念日只读，没有完成按钮
     }
     tl += '</ul>';
     if (isToday && nowMin >= sH * 60 && nowMin <= eH * 60) tl += `<div class="td-now" data-m="${nowMin}" style="top:${(nowMin / 60 - sH) * tlH}px"><span>${MC.fmtTime(`${MC.pad(now.getHours())}:${MC.pad(now.getMinutes())}`, true)}</span></div>`;
@@ -269,7 +269,7 @@
     if (d) { tdDay = d.dataset.day; renderToday(); return; }
     if (!e.target.closest('[data-sec="overdue"]')) return;
     const t = MC.todayStr();
-    const list = MC.data.events.filter(x => MC.inMainView(x) && !x.done && MC.endDate(x) < t);
+    const list = MC.data.events.filter(x => MC.inMainView(x) && MC.isOverdue(x));
     if (list.length) UI.moveEvents(list, t, `已把 ${list.length} 个事件移到今天`);
   });
   // ---------- 今日时间线：两指捏合缩放（以两指中间那个钟点为中心，缩放时它不跑）----------
@@ -525,7 +525,7 @@
       if (open) {
         const dl = x.l.map(durOf).filter(d => d !== null), sp = segPoints(x.l);
         const sl = SLOTS.map(s => ({ s, l: sp.filter(p => p.clock >= s[1] * 60 && p.clock < s[2] * 60) })).filter(y => y.l.length).sort((a, b) => mean(b.l.map(p => p.v)) - mean(a.l.map(p => p.v)));
-        const cells = [['完成', `${Math.round(x.l.filter(e => e.done).length / x.l.length * 100)}%`], dl.length ? ['平均时长', fmtDur(mean(dl))] : null, sl.length > 1 ? ['最好时段', sl[0].s[0]] : null].filter(Boolean);
+        const tk = x.l.filter(MC.isTask), cells = [tk.length ? ['完成', `${Math.round(tk.filter(e => e.done).length / tk.length * 100)}%`] : null, dl.length ? ['平均时长', fmtDur(mean(dl))] : null, sl.length > 1 ? ['最好时段', sl[0].s[0]] : null].filter(Boolean);
         const shown = rs.allEv ? [...x.l].reverse() : [...x.l].reverse().slice(0, 5);
         det = `<div class="rs-det"><div class="rs-cells">${cells.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
           <ul class="rs-list">${shown.map(e => UI.itemHTML(e, { showDate: true })).join('')}</ul>
@@ -593,7 +593,7 @@
     : range === 'month' ? `${span[0].getFullYear()}年${span[0].getMonth() + 1}月` : `${span[0].getFullYear()}年`;
   // 卡片的一页：时间 + 大数字 + 一句话 + 等级分布条 + 几个小数字
   function rsPage(c, range, labels) {
-    const { off, span, evs, rated, cmp } = rsSum(c, range), avg = avgOf(rated), done = evs.filter(e => e.done).length;
+    const { off, span, evs, rated, cmp } = rsSum(c, range), avg = avgOf(rated), tasks = evs.filter(MC.isTask), done = tasks.filter(e => e.done).length;   // 完成率只算要勾完成的（无需完成的不算）
     const nav = span ? `<div class="rs-pnav"><button data-step="-1" aria-label="上一个">‹</button><span>${rsLabel(range, span)}</span><button data-step="1" aria-label="下一个"${off >= 0 ? ' disabled' : ''}>›</button></div>`
       : `<div class="rs-pnav"><span>${rsLabel(range, span)}</span></div>`;
     const n = v => rated.filter(e => e.rate === v).length;
@@ -604,7 +604,7 @@
       <div class="rs-big">${rated.length ? f1(avg) : '–'}<small> / 4</small></div>
       <p class="rs-say">${!evs.length ? '这段时间还没有记录' : rated.length ? `整体是「${lvText(labels, avg)}」` : '还没有评级'}</p>
       ${bar}
-      <div class="rs-meta">${evs.length ? [`<span><b>${evs.length}</b> 条记录</span>`, `<span>完成 <b>${Math.round(done / evs.length * 100)}%</b></span>`,
+      <div class="rs-meta">${evs.length ? [`<span><b>${evs.length}</b> 条记录</span>`, tasks.length ? `<span>完成 <b>${Math.round(done / tasks.length * 100)}%</b></span>` : '',
         evs.length - rated.length ? `<span>${evs.length - rated.length} 条没评级</span>` : '', cmp ? `<span>${cmp}</span>` : ''].filter(Boolean).join('') : ''}</div>
     </div>`;
   }

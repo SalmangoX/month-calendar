@@ -292,7 +292,7 @@ final class Engine {
 
     private static void showDaily(Context c, Data d, LocalDate day) {
         int open = 0;
-        for (Data.Event e : d.on(day)) if (!e.done) open++; // 今日任务：主日历 + 设为在主日历显示的记录日历（d.on 已按这个规则）
+        for (Data.Event e : d.on(day)) if (!e.done && !e.noDone) open++;   // 无需完成的、纪念日不算【联动:提醒】 // 今日任务：主日历 + 设为在主日历显示的记录日历（d.on 已按这个规则）
         String title = open > 0 ? I18n.t("查看今日未完成事件") : I18n.t("今日事件已完成");
         String body = open > 0 ? I18n.t("今天还有 {0} 件事未完成，点开查看。", open) : I18n.t("今天的事件都完成了。");
         Notification n = builder(c, CH_DAILY)

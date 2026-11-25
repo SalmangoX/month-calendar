@@ -195,10 +195,11 @@ async function loadData() {
     throw e;
   }
 }
-let SHOWN = new Set();
+let SHOWN = new Set(), ND_CALS = new Set();
 function indexEvents(events) {
   const by = {};
   for (const e of events) {
+    if (e.noDone || (e.cal && ND_CALS.has(e.cal))) { e.noDone = true; e.done = false; }   // 无需完成：不画已完成、不算进完成计数【联动:提醒】
     if (e.cal && !SHOWN.has(e.cal)) continue; // 主日历 + 设为在主日历显示的记录日历
     const n = e.days > 1 && !e.time ? e.days : 1, [y, m, d] = e.date.split("-").map(Number);
     for (let k = 0; k < n; k++) { const ds = ymd(new Date(y, m - 1, d + k)); (by[ds] = by[ds] || []).push(e); }
@@ -209,7 +210,7 @@ function indexEvents(events) {
 function monthStats(idx, y, m) {
   const prefix = `${y}-${pad(m + 1)}-`;
   let total = 0, done = 0;
-  for (const k in idx) if (k.startsWith(prefix)) { total += idx[k].length; done += idx[k].filter(e => e.done).length; }
+  for (const k in idx) if (k.startsWith(prefix)) { const l = idx[k].filter(e => !e.noDone); total += l.length; done += l.filter(e => e.done).length; }
   return { total, done };
 }
 
@@ -565,7 +566,8 @@ function mediumLayout(w, idx, offline) {
   rh.centerAlignContent();
   addText(rh, tr("今天 · {0}", wkName(now.getDay())), Font.boldSystemFont(12), C.text);
   rh.addSpacer();
-  if (today.length) addText(rh, `${today.filter(e => e.done).length}/${today.length}`, Font.mediumSystemFont(9), C.text2);
+  const tk = today.filter(e => !e.noDone);
+  if (tk.length) addText(rh, `${tk.filter(e => e.done).length}/${tk.length}`, Font.mediumSystemFont(9), C.text2);
   right.addSpacer(5);
   let lines = 0; const MAX = 6;
   const showN = today.length > MAX ? MAX - 1 : today.length;
@@ -657,7 +659,7 @@ const family = config.runsInWidget ? (config.widgetFamily || "large") : "large";
 let widget;
 try {
   const { data, offline } = await loadData();
-  const idx = (SHOWN = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id)), CALC = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color.toUpperCase()])), indexEvents(data.events || []));
+  const idx = (SHOWN = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id)), CALC = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color.toUpperCase()])), ND_CALS = new Set((data.cals || []).filter(c => c && c.noDone).map(c => c.id)), indexEvents(data.events || []));
   widget = new ListWidget();
   widget.backgroundColor = C.bg;
   if (family === "large" || family === "extraLarge") largeLayout(widget, idx, offline);
@@ -687,7 +689,7 @@ if (args.queryParameters && args.queryParameters.tap === "1") {
     let pw;
     try {
       const { data, offline } = await loadData();
-      const idx = (SHOWN = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id)), CALC = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color.toUpperCase()])), indexEvents(data.events || []));
+      const idx = (SHOWN = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id)), CALC = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color.toUpperCase()])), ND_CALS = new Set((data.cals || []).filter(c => c && c.noDone).map(c => c.id)), indexEvents(data.events || []));
       pw = new ListWidget(); pw.backgroundColor = C.bg;
       if (fam === "large") largeLayout(pw, idx, offline);
       else if (fam === "medium") mediumLayout(pw, idx, offline);

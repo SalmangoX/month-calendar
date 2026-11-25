@@ -220,7 +220,7 @@
   // 分日历（记录日历、纪念日历）的事件在主日历里显示时，也用分日历那种「左边一根竖条 + 淡底 + 同色字」（.sub），和主日历自己的事件分开（用户定的）
   const subCls = e => (e.cal && !document.body.dataset.cal ? ' sub' : '');
   const chipHTML = (e, cls = '', style = '') =>
-    `<div class="chip${cls}${subCls(e)}${MC.toneCls(e)}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}${style}">${chipText(e.title)}</div>`;
+    `<div class="chip${cls}${subCls(e)}${MC.toneCls(e)}${MC.doneOf(e) ? ' done' : ''}" style="${MC.toneVars(e)}${style}">${chipText(e.title)}</div>`;
   // 一天的格子：跨天横条的位置留空，单天事件放在自己的行上
   // 放得下就全显示；放不下时留一行显示「+n」，空间太小则只显示一行
   // 有时间的事件：高度够就在色条下面加一行时间（先试完整时间段，不够就每个只占一行），
@@ -251,7 +251,7 @@
       if (e.time && mode && s > lastBar) {
         const one = mode === 'short' || oneLine(e);
         const t = mode === 'full' ? MC.fmtRange(e.time, e.endTime, '–\u200b') : oneLine(e) ? rangeOf(e) : MC.fmtTime(e.time);
-        h += `<div class="ctime${one ? ' one' : ''}${e.done ? ' done' : ''}">${esc(t)}</div>`;
+        h += `<div class="ctime${one ? ' one' : ''}${MC.doneOf(e) ? ' done' : ''}">${esc(t)}</div>`;
       }
     }
     if (more) h += `<div class="more">+${hidden}</div>`;
@@ -353,7 +353,7 @@
   // 统计某段日期里的事件：跨好几天的事件只算一个
   function tally(prefix) {
     const seen = new Set(); let total = 0, done = 0;
-    for (const [k, arr] of MC.byDate) if (k.startsWith(prefix)) for (const e of arr) if (!e.dv && !seen.has(e.id)) { seen.add(e.id); total++; if (e.done) done++; }
+    for (const [k, arr] of MC.byDate) if (k.startsWith(prefix)) for (const e of arr) if (MC.isTask(e) && !seen.has(e.id)) { seen.add(e.id); total++; if (e.done) done++; }   // 纪念日、无需完成的不算
     return { total, done };
   }
   // 中文用汉字月份（十一月），其他语言写「11月」交给翻译换成当地的月份名
@@ -567,7 +567,7 @@
       if (ds === t) cls.push('today');
       if (ds === selected) cls.push('sel');
       const chips = lay.evsBy[i].filter(e => !spans(e)).map(e =>
-        `<div class="chip${subCls(e)}${MC.toneCls(e)}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}">${chipText(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
+        `<div class="chip${subCls(e)}${MC.toneCls(e)}${MC.doneOf(e) ? ' done' : ''}" style="${MC.toneVars(e)}">${chipText(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
       h += `<div class="${cls.join(' ')}" data-date="${ds}"><div class="wwd">${MC.WD[d.getDay()]}</div><div class="wnum">${d.getDate()}</div>${lanes ? '<div class="wlanes"></div>' : ''}${chips}</div>`;
     }
     for (const b of lay.bars) {
@@ -601,7 +601,7 @@
         const evs = MC.eventsOn(ds);
         let dot = '';
         if (evs.length) {
-          const open = evs.filter(e => !e.done);
+          const open = evs.filter(e => !MC.doneOf(e));
           const top = (open.length ? open : evs)[0];
           dot = `<i class="${open.length ? '' : 'faded'}" style="--c:${MC.evColor(top)}"></i>`;
         }
@@ -784,7 +784,7 @@
   // ---------- 当日预览 ----------
   function renderPreview() {
     const d = MC.parse(selected);
-    const evs = MC.eventsOn(selected), tasks = evs.filter(e => !e.dv);   // 纪念日不算「项」，也不算完成
+    const evs = MC.eventsOn(selected), tasks = evs.filter(MC.isTask);   // 纪念日、无需完成的不算「项」，也不算完成
     const done = tasks.filter(e => e.done).length;
     preview.innerHTML = `
       <div class="pv-head">

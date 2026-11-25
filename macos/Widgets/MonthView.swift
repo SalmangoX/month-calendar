@@ -111,7 +111,7 @@ struct MonthView: View {
         var seen = Set<String>(), done = 0
         var day = ym
         while day.m == ym.m {
-            for e in entry.data.on(day) where seen.insert(e.id).inserted { if e.done { done += 1 } }
+            for e in entry.data.on(day) where !e.noDone && seen.insert(e.id).inserted { if e.done { done += 1 } }   // 无需完成的、纪念日不算
             day = day.adding(1)
         }
         return (done, seen.count)

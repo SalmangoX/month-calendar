@@ -290,6 +290,7 @@
       rate: [1, 2, 3, 4].includes(Number(e.rate)) ? Number(e.rate) : 0,
       segs: normSegs(e.segs), // 分段评价：事件时间段里每半小时一段，{ '10:00': 1–4, '10:30': … }（键是这一段的开始时间） // 记录日历的等级（1–4，0 = 未评级）；只在开了「等级评分」的记录日历里使用
       done: !!e.done, note: String(e.note || ''),
+      noDone: !!e.noDone, // 无需完成：只负责提醒，不用勾完成、不算逾期、不进完成计数和每日未完成提醒（同步字段；所在子日历的 cal.noDone 也算，见 MC.isTask）【联动:同步数据】
       time: /^\d{2}:\d{2}$/.test(e.time || '') ? e.time : '',
       endTime: /^\d{2}:\d{2}$/.test(e.endTime || '') && e.time ? e.endTime : '',
       ...MC.withReminds([e.remind, ...(Array.isArray(e.remindMore) ? e.remindMore : [])]),
@@ -346,6 +347,7 @@
       icon: /^[a-z]{2,12}$/.test(c.icon || '') ? c.icon : '', // 纪念日历自己的图标（js/days.js 的 ICONS 里的名字），空 = 心形【联动:同步数据】
       showInMain: !!c.showInMain, // 事件也显示在主日历里（纪念日历：每个日子出现的那天显示在主日历）
       notify: !!c.notify,         // 这个日历的事件到点提醒
+      noDone: c.kind !== 'days' && !!c.noDone, // 整个日历的事件都「无需完成」：只提醒，不用勾完成、不算逾期（「⋯」菜单里的开关）【联动:同步数据】
       remindDef: c.kind === 'days' ? [] : MC.remindsOf({ remindMore: c.remindDef }), // 记录日历的统一提醒（提前几分钟，可以几个）：新加的事件默认带上【联动:提醒】
       rateOn: c.kind !== 'days' && !!c.rateOn, // 记录日历：不按优先级，改用 4 个等级给事件评级并统计
       rateLabels: MC.normRateLabels(c.rateLabels), // 4 个等级的名称（可自定义，整个日历通用），从低到高
@@ -414,7 +416,7 @@
       for (const ds of MC.repeatDates(e.date, e.rep.freq, ymd(MC.addDays(today, h))).slice(1)) {
         const id = `${sid}-${ds}`;
         if (have.has(id) || MC.data.deleted[id]) continue;
-        add.push(MC.makeEvent({ id, cal: e.cal, date: ds, title: e.title, note: e.note, priority: e.priority, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, remindMore: e.remindMore || [], series: sid, rep: e.rep, done: false }));
+        add.push(MC.makeEvent({ id, cal: e.cal, date: ds, title: e.title, note: e.note, priority: e.priority, days: e.days, time: e.time, endTime: e.endTime, remind: e.remind, remindMore: e.remindMore || [], series: sid, rep: e.rep, done: false, noDone: !!e.noDone }));
       }
     }
     if (add.length) MC.addEvents(add);
@@ -440,7 +442,7 @@
   MC.saveSettings();
 
   const sortPri = e => (MC.rateOn(e.cal) ? 0 : e.priority); // 开了等级评分的记录日历不按优先级排序
-  const cmp = (a, b) => (a.done - b.done) || (sortPri(b) - sortPri(a)) || ((a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0) || (a.createdAt - b.createdAt);
+  const cmp = (a, b) => (MC.doneOf(a) - MC.doneOf(b)) || (sortPri(b) - sortPri(a)) || ((a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0) || (a.createdAt - b.createdAt);
   MC.cmp = cmp;
   // 当前在日历页显示的是哪个日历（'' = 主日历）。每个日历的事件各自独立：
   // 日历页只显示当前日历；主日历还会带上打开了「在主日历显示」的记录日历；
@@ -459,6 +461,14 @@
   MC.inCal = (e, id) => (e.cal || '') === (id || '');
   MC.mainEvents = () => MC.data.events.filter(e => !e.cal);
   // 记录日历的事件是否提醒：主日历永远提醒（由通知总开关控制），记录日历看自己的开关
+  // 要不要勾完成：纪念日（只读）、标了「无需完成」的事件、整个子日历设为「无需完成」（cal.noDone）里的事件都不算任务——
+  // 没有完成框、不算逾期、不进完成计数和每日未完成提醒、不画已完成的样子（以前勾过的 done 留着，改回需要完成时还在）【联动:提醒】
+  MC.noDoneOf = e => !!e && (!!e.noDone || !!(e.cal && (MC.cal(e.cal) || {}).noDone));
+  MC.isTask = e => !!e && !e.dv && !MC.noDoneOf(e);
+  // 已逾期只看这个月的（1 号那天看过去一周的）：更早的不再一直挂着（2026-11-25 用户定的）【联动:提醒】
+  MC.overdueFrom = () => { const t = new Date(); return ymd(t.getDate() === 1 ? MC.addDays(t, -7) : new Date(t.getFullYear(), t.getMonth(), 1)); };
+  MC.isOverdue = e => { if (!MC.isTask(e) || e.done) return false; const end = MC.endDate(e); return end < MC.todayStr() && end >= MC.overdueFrom(); };
+  MC.doneOf = e => !!e && !!e.done && MC.isTask(e);   // 显示用的「已完成」
   MC.notifies = e => !e.cal || !!(MC.cal(e.cal) || {}).notify;
   // 等级评分：开了之后这个记录日历里的事件不再按优先级排序 / 着色，改用 4 个等级（名称可自定义）
   MC.rateOn = id => { const c = id ? MC.cal(id) : null; return !!(c && c.kind !== 'days' && c.rateOn); };
@@ -656,8 +666,8 @@
   MC.sameData = (a, b) => signature(a) === signature(b);
   function signature(d) {
     const ev = [...d.events].sort((x, y) => (x.id < y.id ? -1 : 1))
-      .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, JSON.stringify(e.segs || {}), e.done, e.note, e.time, e.endTime, e.remind, (e.remindMore || []).join(','), e.updatedAt]);
-    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), JSON.stringify(c.presets || []), c.icon || '', c.updatedAt]);
+      .map(e => [e.id, e.cal || '', e.date, e.days, e.rep && e.rep.forever, e.title, e.priority, e.rate, JSON.stringify(e.segs || {}), e.done, !!e.noDone, e.note, e.time, e.endTime, e.remind, (e.remindMore || []).join(','), e.updatedAt]);
+    const cs = [...(d.cals || [])].sort((x, y) => (x.id < y.id ? -1 : 1)).map(c => [c.id, c.name, c.color, !!c.showInMain, !!c.notify, !!c.noDone, c.kind || '', !!c.rateOn, (c.rateLabels || []).join('|'), JSON.stringify(c.presets || []), c.icon || '', c.updatedAt]);
     const ds = [...(d.days || []), ...(d.books || [])].map(x => x.id + ':' + (x.updatedAt || 0)).sort();
     return JSON.stringify([ev, Object.keys(d.deleted || {}).sort(), (d.profile || {}).updatedAt || 0, (d.daily || {}).updatedAt || 0, (d.courseRemind || {}).updatedAt || 0, d.coursesAt || 0, cs, ds, (d.album || {}).gist || '']);
   }
@@ -875,7 +885,7 @@
     const alarm = (trigger, text) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(text), 'TRIGGER:' + trigger, 'END:VALARM'];
     for (const e of d.events) {
       const rl = MC.effReminds(e);
-      if (e.done || !rl.length || e.date < from || e.date > to) continue;
+      if (MC.doneOf(e) || !rl.length || e.date < from || e.date > to) continue;
       L.push('BEGIN:VEVENT', `UID:${e.id}@mcal`, 'DTSTAMP:' + stamp, 'SUMMARY:' + icsEsc(e.title));
       if (e.note) L.push('DESCRIPTION:' + icsEsc(e.note));
       if (e.time) {

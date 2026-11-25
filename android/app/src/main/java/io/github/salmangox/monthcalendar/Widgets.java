@@ -447,12 +447,12 @@ final class Widgets {
                 .setHasStableIds(false).setViewTypeCount(2);
         int n = 0;
         long key = 0;
-        // 已逾期：最近 30 天内结束、还没完成的
+        // 已逾期：这个月里（1 号那天看过去一周）结束、还没完成的；无需完成的不算（Data.overdueFrom）
         List<Data.Event> over = new ArrayList<>();
         for (Data.Event e : d.events) {
-            if (e.done || (!e.cal.isEmpty() && !d.shownCals.contains(e.cal))) continue; // 记录日历：设为在主日历显示的才算
+            if (e.done || e.noDone || (!e.cal.isEmpty() && !d.shownCals.contains(e.cal))) continue; // 记录日历：设为在主日历显示的才算
             LocalDate end = e.end();
-            if (end.isBefore(today) && !end.isBefore(today.minusDays(30))) over.add(e);
+            if (end.isBefore(today) && !end.isBefore(Data.overdueFrom(today))) over.add(e);
         }
         over.sort((x, y) -> y.date.compareTo(x.date));
         if (!over.isEmpty()) {

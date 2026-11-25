@@ -215,6 +215,7 @@
   const menuOf = c => (c.kind === 'days'
     ? [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: T('名称、颜色和图标'), value: 'edit' }, { label: T('删除这个日历'), value: 'del', danger: true }]
     : [{ label: '在主日历显示', value: 'main', on: c.showInMain, sw: true }, { label: '通知', value: 'notify', on: c.notify, sw: true },
+      { label: '无需完成', value: 'nodone', on: !!c.noDone, sw: true },   // 整个日历的事件都只负责提醒：不用勾完成、不算逾期（cal.noDone，不写进各个事件）
       { label: '统一提醒…', value: 'remindAll' },   // 一键给这个日历里所有事件设提醒（可以几个），新加的也默认带上
       { label: '名称、颜色和等级', value: 'edit' },
       { label: '并入…', value: 'merge' },
@@ -231,6 +232,7 @@
     const c = MC.cal(id); if (!c) return;
     if (v === 'main') { MC.updateCal(c, { showInMain: !c.showInMain }); MC.reindex(); render(); MC.Cal.render(); UI.toast(c.showInMain ? (c.kind === 'days' ? `「${c.name}」的日子会显示在主日历` : `「${c.name}」的事件会显示在主日历`) : `「${c.name}」不再显示在主日历`); }
     else if (v === 'notify') { MC.updateCal(c, { notify: !c.notify }); render(); UI.toast(c.notify ? `已打开「${c.name}」的通知` : `已关闭「${c.name}」的通知`); }
+    else if (v === 'nodone') { MC.updateCal(c, { noDone: !c.noDone }); render(); MC.Cal.render(); UI.toast(c.noDone ? `「${c.name}」的事件都无需完成：只提醒，不算逾期` : `「${c.name}」的事件改回需要完成`); }
     else if (v === 'edit') calForm(c);
     else if (v === 'remindAll') {
       // 统一提醒：对这个子日历生效（cal.remindDef）——里面的每个事件到点都按这几个提前量提醒，以后加进来的也一样；

@@ -120,6 +120,9 @@ const sent = sentDoc.sent || {};
 webpush.setVapidDetails(info.subject && /^https:|^mailto:/.test(info.subject) ? info.subject : 'mailto:noreply@example.com', info.publicKey, VAPID_PRIVATE);
 
 const notifyCals = new Set((data.cals || []).filter(c => c && c.notify).map(c => c.id));
+// 无需完成：事件自己标的（e.noDone）或整个子日历设的（cal.noDone）——照常提醒，但不算「已完成」也不进每日未完成提醒【联动:提醒】
+const noDoneCals = new Set((data.cals || []).filter(c => c && c.noDone).map(c => c.id));
+const noDone = e => !!e.noDone || (!!e.cal && noDoneCals.has(e.cal));
 // 日历的统一提醒（remindDef）：对这个日历里的每个事件都生效，和事件自己的提醒合在一起（不写进事件）
 const calRemind = new Map((data.cals || []).filter(c => c && Array.isArray(c.remindDef) && c.remindDef.length).map(c => [c.id, c.remindDef]));
 const now = Date.now();
@@ -128,7 +131,7 @@ let count = 0, changed = false;
 for (const sub of info.subs) {
   const tz = sub.tz || 'UTC';
   evLoop: for (const e of data.events || []) {
-    if (e.done || (e.cal && !notifyCals.has(e.cal))) continue; // 记录日历只有打开通知才提醒
+    if ((e.done && !noDone(e)) || (e.cal && !notifyCals.has(e.cal))) continue; // 记录日历只有打开通知才提醒
     for (const ft of fireTimes(e, tz)) {   // 每个提醒各发一次
       if (ft > now || ft < now - LOOKBACK || ft < (sub.addedAt || 0)) continue;
       const tag = `${e.id}@${ft}`;
@@ -160,7 +163,7 @@ if (daily.on) {
   if (ft <= now && ft > now - LOOKBACK) {
     // 今日任务：主日历 + 设为在主日历显示的记录日历（和应用今日页一致）
     const shownCals = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id));
-    const open = (data.events || []).filter(e => e.date === ds && !e.done && (!e.cal || shownCals.has(e.cal)));
+    const open = (data.events || []).filter(e => e.date === ds && !e.done && !noDone(e) && (!e.cal || shownCals.has(e.cal)));
     const msg = open.length ? { title: L().openT, body: L().openB(open.length) } : { title: L().doneT, body: L().doneB };
     const tag = `daily@${ds}`;
     for (const sub of info.subs) {

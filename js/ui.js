@@ -491,6 +491,8 @@
   UI.rateMenuItems = (calId, cur) => [{ label: '未评级', value: 0, on: !cur }, ...MC.RATE_ORDER.map(v => ({ label: MC.rateLabels(calId)[v - 1], value: v, on: cur === v, icon: `<span class="lvdot lv${v}"></span>` }))];
   UI.priMenuItems = cur => MC.PRI_ASC.map(p => ({ label: p.full, value: p.v, on: p.v === cur, icon: UI.flagSVG(p.v) }));
   const checkSVG = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  // 无需完成的事件（只负责提醒）：完成框换成一个中性的小铃铛，点它和点整行一样打开编辑
+  const bellSVG = '<svg viewBox="0 0 24 24"><path d="M6.5 16V11a5.5 5.5 0 0 1 11 0v5l1.5 1.5h-14z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>';
 
   // opts: { showDate: true } 在副标题显示日期
   UI.itemHTML = (e, opts = {}) => {
@@ -498,7 +500,7 @@
     const bits = [];
     const multi = e.days > 1;
     if (opts.showDate) {
-      const cls = e.done ? '' : MC.dayDiff(MC.endDate(e)) < 0 ? 'over' : 'due';
+      const cls = MC.isOverdue(e) ? 'over' : !MC.isTask(e) || e.done || MC.dayDiff(MC.endDate(e)) < 0 ? '' : 'due';   // 无需完成的、本月以前的不标逾期
       bits.push(`<span class="${cls}">${MC.dateLabel(e.date)}${multi ? '–' + MC.dateLabel(MC.endDate(e)) : ''}</span>`);
     } else if (multi) bits.push(`<span>${MC.dateLabel(e.date)}–${MC.dateLabel(MC.endDate(e))} · 共 ${e.days} 天</span>`);
     const tl = MC.timeLabel(e);
@@ -515,8 +517,9 @@
       <span class="check dv-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.8-4.6-7.8-10.6a4.3 4.3 0 0 1 7.8-2.6 4.3 4.3 0 0 1 7.8 2.6c0 6-7.8 10.6-7.8 10.6z"/></svg></span>
       <div class="item-main" data-act="open"><div class="item-title"><span class="ttxt">${esc(e.title)}</span></div>${bits.length ? `<div class="item-sub">${bits.join(' · ')}</div>` : ''}</div>
     </li>`;
-    return `<li class="item${e.done ? ' done' : ''}${e.done && UI.justDone === e.id ? ' just-done' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)}">
-      <button class="check" data-act="toggle" aria-label="${e.done ? '标为未完成' : '标为完成'}">${checkSVG}</button>
+    const nd = MC.noDoneOf(e), dn = !nd && e.done;
+    return `<li class="item${dn ? ' done' : ''}${nd ? ' nodone' : ''}${dn && UI.justDone === e.id ? ' just-done' : ''}" data-id="${e.id}" style="--c:${MC.evColor(e)}">
+      ${nd ? `<span class="check nd-mark" title="无需完成">${bellSVG}</span>` : `<button class="check" data-act="toggle" aria-label="${e.done ? '标为未完成' : '标为完成'}">${checkSVG}</button>`}
       <div class="item-main" data-act="open">
         <div class="item-title"><span class="ttxt">${esc(e.title)}</span></div>
         ${bits.length ? `<div class="item-sub">${bits.join(' · ')}</div>` : ''}
@@ -710,13 +713,17 @@
   };
   UI.itemMenu = (anchor, e) => {
     const today = MC.todayStr(), tmr = MC.ymd(MC.addDays(new Date(), 1));
-    const items = [{ label: e.done ? '标为未完成' : '标为完成', value: 'toggle' }];
-    if (!e.done && e.date !== today) items.push({ label: '移到今天', value: 'today' });
-    if (!e.done && e.date !== tmr) items.push({ label: '移到明天', value: 'tmr' });
+    const nd = MC.noDoneOf(e), byCal = nd && !e.noDone;   // byCal：整个子日历设成了无需完成，这一条改不了
+    const items = nd ? [] : [{ label: e.done ? '标为未完成' : '标为完成', value: 'toggle' }];   // 无需完成的没有「标为完成」
+    const dn = !nd && e.done;
+    if (!dn && e.date !== today) items.push({ label: '移到今天', value: 'today' });
+    if (!dn && e.date !== tmr) items.push({ label: '移到明天', value: 'tmr' });
+    if (!byCal) items.push({ label: nd ? '改为需要完成' : '设为无需完成', value: 'nodone' });
     items.push({ label: MC.rateOn(e.cal) ? '等级' : '优先级', value: 'pri' }, { label: '编辑', value: 'edit' }, { label: '删除', value: 'del', danger: true });
     UI.menu(anchor, items, v => {
       if (!MC.data.events.includes(e)) return;
       if (v === 'toggle') { if (!e.done) { UI.justDone = e.id; UI.doneFeedback(); } MC.updateEvent(e, { done: !e.done }); }
+      else if (v === 'nodone') { MC.updateEvent(e, { noDone: !e.noDone }); UI.toast(e.noDone ? '无需完成：只提醒，不算逾期' : '已改为需要完成'); }
       else if (v === 'today') UI.moveEvents([e], today, '已移到今天');
       else if (v === 'tmr') UI.moveEvents([e], tmr, '已移到明天');
       else if (v === 'pri') setTimeout(() => (MC.rateOn(e.cal) ? UI.menu(anchor, UI.rateMenuItems(e.cal, e.rate), p => MC.updateEvent(e, { rate: p })) : UI.menu(anchor, UI.priMenuItems(e.priority), p => MC.updateEvent(e, { priority: p }))), 60);
@@ -806,7 +813,7 @@
         UI.confirm(`删除「${e.title}」？`, { ok: '删除', danger: true }).then(ok => { closeOpen(); if (ok) UI.removeEvents([e], `已删除「${e.title}」`); });
         return;
       }
-      if (act === 'toggle') {
+      if (act === 'toggle' && MC.isTask(e)) {
         UI.justDone = e.done ? null : e.id;  // 刚勾选完成的那一条播放划线动画
         if (!e.done) UI.doneFeedback();      // 只在勾上完成时：一声 + 一点点触感
         MC.updateEvent(e, { done: !e.done });

@@ -47,9 +47,9 @@ struct TodayView: View {
     private func rows() -> [Row] {
         let d = entry.data, today = entry.today
         var out: [Row] = []
-        // 已逾期：最近 30 天内结束、还没完成的
+        // 已逾期：这个月里（1 号那天看过去一周）结束、还没完成的；无需完成的不算
         let over = d.events.filter { e in
-            !e.done && d.visible(e) && e.end < today && !(e.end < today.adding(-30))
+            !e.done && !e.noDone && d.visible(e) && e.end < today && !(e.end < CalData.overdueFrom(today))
         }.sorted { $0.date > $1.date }
         if !over.isEmpty {
             out.append(.head(I18n.t("已逾期"), true))
@@ -83,7 +83,7 @@ struct TodayView: View {
     #if os(iOS)
     /// iPhone 中号：左边像系统日历一样大大地写日期，右边是列表（不再一列字、右半边空着）
     private func medium(_ pal: Pal) -> some View {
-        let t = entry.today, left = entry.data.on(t).filter { !$0.done }.count
+        let t = entry.today, left = entry.data.on(t).filter { !$0.done && !$0.noDone }.count
         return HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 0) {
                 Text(I18n.wk(t.jsDay)).font(.system(size: 12, weight: .semibold)).foregroundStyle(pal.text).accentable()

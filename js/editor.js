@@ -12,6 +12,7 @@
   const SVG_CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
   const SVG_BELL = '<svg viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
   const SVG_REPEAT = '<svg viewBox="0 0 24 24"><path d="M5 10V9a3 3 0 0 1 3-3h10l-3-3M19 14v1a3 3 0 0 1-3 3H6l3 3"/></svg>';
+  const SVG_ND = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12h7"/></svg>';   // 无需完成：一个圆里一道横线（不用勾）
   const SVG_END = '<svg viewBox="0 0 24 24"><path d="M5 12h11M13 7l5 5-5 5M20 5v14"/></svg>';
 
   // ======================= 添加 / 编辑 =======================
@@ -19,9 +20,11 @@
   const newHeading = () => (newCal && MC.cal(newCal) ? `添加到「${MC.cal(newCal).name}」` : '新建事件');
   const draft = {};
   function resetDraft(date) {
-    Object.assign(draft, { title: '', note: '', priority: 0, rate: 0, segs: {}, date, days: 1, time: '', endTime: '', remind: null, remindMore: [], repeat: 'none', until: '', done: false });
+    Object.assign(draft, { title: '', note: '', priority: 0, rate: 0, segs: {}, date, days: 1, time: '', endTime: '', remind: null, remindMore: [], repeat: 'none', until: '', done: false, noDone: false });
   }
   // 所在子日历的统一提醒（对日历里每个事件都生效，不写进事件）：提醒那一行写「跟随日历」
+  // 所在子日历整个设成了「无需完成」（cal.noDone）：事件自己的开关跟着日历、改不了
+  function calNoDone() { const id = mode === 'edit' && editing ? editing.cal : newCal; return !!(id && (MC.cal(id) || {}).noDone); }
   function calDef() { const id = mode === 'edit' && editing ? editing.cal : newCal, c = id && MC.cal(id); return (c && c.remindDef) || []; }
   function remindText(l, hasTime) {
     const d = calDef();
@@ -113,7 +116,7 @@
     SS.querySelector('.sm-t1').textContent = `${here}里叫这个名字的 ${list.length} 条`;
     const wd = d => '周' + MC.WD[MC.parse(d).getDay()];
     SS.querySelector('.sm-list').innerHTML = list.map(x => `<button type="button" class="srow sm-row" data-id="${esc(x.id)}">${CK}
-      <span class="sm-main"><b>${esc(MC.dateLabel(x.date))} ${MC.parse(x.date).getFullYear() !== new Date().getFullYear() ? MC.parse(x.date).getFullYear() + ' ' : ''}${wd(x.date)}<i>${esc(MC.timeLabel(x) || '全天')}</i>${x.done ? '<em>已完成</em>' : ''}${x.id === e.id ? '<em class="cur">正在编辑</em>' : ''}</b>
+      <span class="sm-main"><b>${esc(MC.dateLabel(x.date))} ${MC.parse(x.date).getFullYear() !== new Date().getFullYear() ? MC.parse(x.date).getFullYear() + ' ' : ''}${wd(x.date)}<i>${esc(MC.timeLabel(x) || '全天')}</i>${MC.doneOf(x) ? '<em>已完成</em>' : ''}${x.id === e.id ? '<em class="cur">正在编辑</em>' : ''}</b>
       ${x.note ? `<small>${esc(x.note.slice(0, 60))}</small>` : ''}</span></button>`).join('');
     SS.querySelector('.sm-to').innerHTML = targets.map(c => `<button type="button" class="srow ch-row" data-to="${esc(c.id)}">${c.id ? `<span class="cs-dot" style="--c:${c.color}"></span>` : ''}<span class="slabel">${esc(c.name === '主日历' ? '主日历' : `「${c.name}」`)}</span>${TK}</button>`).join('')
       || '<p class="hint" style="margin:14px">还没有别的记录日历</p>';
@@ -235,6 +238,7 @@
       : UI.priBar(draft.priority);
     $('#cmpSave').classList.toggle('disabled', !$('#cmpTitle').value.trim());
     $('#cmpDone').setAttribute('aria-pressed', String(!!draft.done));
+    $('#cmpDone').hidden = !!draft.noDone || calNoDone();   // 无需完成的事件没有「已完成」
     paintSame();
   }
   function growTitle() {
@@ -258,7 +262,7 @@
       return;
     }
     if (!editing || !MC.data.events.includes(editing)) return;
-    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, segs: MC.pruneSegs(draft.segs, draft.time, draft.endTime), date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, remindMore: draft.remindMore || [], done: draft.done };
+    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, segs: MC.pruneSegs(draft.segs, draft.time, draft.endTime), date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, remindMore: draft.remindMore || [], done: draft.done, noDone: !!draft.noDone };
     const changed = Object.keys(fields).some(k => (k === 'segs' ? JSON.stringify(fields.segs) !== JSON.stringify(editing.segs || {}) : k === 'remindMore' ? JSON.stringify(fields.remindMore) !== JSON.stringify(editing.remindMore || []) : (fields[k] ?? null) !== (editing[k] ?? null)));
     if (!changed) return;
     if (!title) { UI.toast('名称为空，修改没有保存'); return; }
@@ -297,7 +301,7 @@
   Editor.openEdit = e => {
     mode = 'edit'; editing = e;
     segSel = 0;
-    Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, rate: e.rate || 0, segs: { ...(e.segs || {}) }, date: e.date, days: e.days || 1, time: e.time, endTime: e.endTime, remind: e.remind, remindMore: [...(e.remindMore || [])], repeat: 'none', until: '', done: e.done });
+    Object.assign(draft, { title: e.title, note: e.note, priority: e.priority, rate: e.rate || 0, segs: { ...(e.segs || {}) }, date: e.date, days: e.days || 1, time: e.time, endTime: e.endTime, remind: e.remind, remindMore: [...(e.remindMore || [])], repeat: 'none', until: '', done: e.done, noDone: !!e.noDone });
     $('#cmpTitle').value = e.title; $('#cmpNote').value = e.note;
     $('#cmpHeading').textContent = '编辑事件';
     $('#cmpClear').hidden = true;
@@ -371,7 +375,7 @@
       setTimeout(() => (t.placeholder = '准备做什么？'), 1800);
       return;
     }
-    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, segs: MC.pruneSegs(draft.segs, draft.time, draft.endTime), date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, remindMore: draft.remindMore || [] };
+    const fields = { title, note, priority: draft.priority, rate: draft.rate || 0, segs: MC.pruneSegs(draft.segs, draft.time, draft.endTime), date: draft.date, days: draft.time ? 1 : (draft.days || 1), time: draft.time, endTime: draft.endTime, remind: draft.remind, remindMore: draft.remindMore || [], noDone: !!draft.noDone };
     if (mode === 'edit') {
       MC.updateEvent(editing, { ...fields, done: draft.done });
       closeComposer(false);
@@ -401,7 +405,7 @@
   const newPk = opts => { const d = MC.parse(opts.date); return {
       date: opts.date, days: opts.days || 1, time: opts.time || '', endTime: opts.endTime || '',
       remind: opts.remind === undefined ? null : opts.remind, remindMore: opts.remindMore || [],
-      repeat: opts.repeat || 'none', until: opts.until || '',
+      repeat: opts.repeat || 'none', until: opts.until || '', noDone: !!opts.noDone, ndCal: !!opts.ndCal,
       allowRepeat: !!opts.allowRepeat, dateOnly: !!opts.dateOnly,
       tab: opts.endTime ? 'range' : 'date',
       cal: { y: d.getFullYear(), m: d.getMonth() },
@@ -439,14 +443,15 @@
   }
   function mountInline() {
     inlineCtx.host = $('#cmpPkBody'); inlineCtx.tabs = $('#cmpPkTabs');
-    inlineCtx.pk = newPk({ ...draft, allowRepeat: mode === 'new' });
+    inlineCtx.pk = newPk({ ...draft, allowRepeat: mode === 'new', ndCal: calNoDone() });
     useCtx(inlineCtx); paintTabs(); renderPicker();
   }
   function commitInline() {
     if (!pkInline) return;
     const endTime = pk.tab === 'range' && pk.endTime && pk.endTime > pk.time ? pk.endTime : '';
-    Object.assign(draft, { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime, remind: pk.remind, remindMore: pk.remindMore || [], repeat: pk.repeat, until: pk.until && pk.until >= pk.date ? pk.until : '' });
+    Object.assign(draft, { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime, remind: pk.remind, remindMore: pk.remindMore || [], repeat: pk.repeat, until: pk.until && pk.until >= pk.date ? pk.until : '', noDone: !!pk.noDone });
     paintPresets(); paintSegs();
+    $('#cmpDone').hidden = !!draft.noDone || calNoDone();
   }
   function paintTabs() { PT.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === pk.tab)); }
   const onTabs = e => {
@@ -463,7 +468,7 @@
   $('#pkOk').onclick = () => {
     useCtx(sheetCtx);
     if (pk.until && pk.until < pk.date) pk.until = '';
-    const out = { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime: pk.tab === 'range' ? pk.endTime : '', remind: pk.remind, remindMore: pk.remindMore || [], repeat: pk.repeat, until: pk.until };
+    const out = { date: pk.date, days: pk.time ? 1 : pk.days, time: pk.time, endTime: pk.tab === 'range' ? pk.endTime : '', remind: pk.remind, remindMore: pk.remindMore || [], repeat: pk.repeat, until: pk.until, noDone: !!pk.noDone };
     if (out.endTime && out.endTime <= out.time) out.endTime = '';
     UI.close('datePicker');
     pkCb && pkCb(out);
@@ -555,6 +560,8 @@
         if (pk.chooser && pk.chooser.key === 'until') h += chooserHTML('until');
       }
     }
+    // 无需完成：只负责提醒（比如每年都有的日子），不用勾完成、不算逾期、不进完成计数和每日未完成提醒；整个子日历设了的跟着日历
+    h += `<label class="pk-row nd-row">${SVG_ND}<span>无需完成<small>${pk.ndCal ? '跟随日历：这个日历里的事件都无需完成' : '只提醒，不用勾完成，不算逾期'}</small></span><input type="checkbox" class="switch" data-nd ${pk.noDone || pk.ndCal ? 'checked' : ''}${pk.ndCal ? ' disabled' : ''}></label>`;
     return h;
   }
   function renderPicker() {
@@ -627,6 +634,7 @@
   }
   const onBodyChange = e => {
     useCtx(e.currentTarget.id === 'cmpPkBody' ? inlineCtx : sheetCtx);
+    if (e.target.matches('[data-nd]')) { pk.noDone = e.target.checked; commitInline(); return; }
     if (e.target.id === 'pkAllDay') {
       if (e.target.checked) { pk.time = ''; pk.endTime = ''; }
       else { pk.time = nextHour(); pk.endTime = plusHour(pk.time); pk.days = 1; }
@@ -889,14 +897,15 @@
       else { rows = []; localStorage.removeItem(BATCH_KEY); proceed(); }
     });
   });
-  const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, rate: 0, date, days: 1, time: '', endTime: '', remind: null, remindMore: [], repeat: 'none', until: '', ...extra });
+  const blankRow = (date, extra = {}) => ({ title: '', note: '', priority: 0, rate: 0, date, days: 1, time: '', endTime: '', remind: null, remindMore: [], repeat: 'none', until: '', noDone: false, ...extra });
   // 行里日期按钮上的摘要：日期 + 时间，有提醒 / 重复时各加一个小图标
   const I_BELL = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="有提醒"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
   const I_REP = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="重复"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"/></svg>';
+  const I_ND = '<svg class="b-ic" viewBox="0 0 24 24" aria-label="无需完成"><circle cx="12" cy="12" r="8"/><path d="M8.5 12h7"/></svg>';
   const whenHTML = r => {
     const d = MC.dayDiff(r.date) === 0 ? '今天' : MC.dateLabel(r.date);
     const t = r.time ? ` ${esc(MC.fmtTime(r.time))}` : r.days > 1 ? ` · ${r.days} 天` : '';
-    return `<span>${esc(d)}${t}</span>`;
+    return `<span>${esc(d)}${t}</span>${r.noDone ? I_ND : ''}`;   // 无需完成：日期后面一个小圆横线
   };
   // 第三行的「提醒」「重复」两个小框：没设时是灰的「提醒」「重复」，设了就显示选的是什么
   const remindHTML = r => { const l = MC.remindsOf(r); return `${I_BELL}<span>${l.length ? esc(shortRemind(l[0], !!r.time) + (l.length > 1 ? ` +${l.length - 1}` : '')) : '提醒'}</span>`; };
@@ -1047,7 +1056,7 @@
     else if (a.dataset.act === 'date') {
       document.activeElement && document.activeElement.blur();
       // 和单个添加一样的完整选择：日期、时间段、多天、提醒、重复
-      Editor.openPicker({ ...r, allowRepeat: true }, s => { Object.assign(r, s); paintBatchTools(el, r); saveBatchDraft(); });
+      Editor.openPicker({ ...r, allowRepeat: true, ndCal: calNoDone() }, s => { Object.assign(r, s); paintBatchTools(el, r); saveBatchDraft(); });
     }
     else if (a.dataset.act === 'remind') {
       document.activeElement && document.activeElement.blur();
@@ -1132,7 +1141,7 @@
     if (!valid.length) { UI.toast('至少填写一个名称'); return; }
     let all = [], repeated = 0;
     for (const r of valid) {
-      const fields = { title: r.title.trim(), note: r.note.trim(), priority: r.priority, rate: MC.rateOn(newCal) ? (r.rate || 0) : 0, date: r.date, days: r.time ? 1 : (r.days || 1), time: r.time, endTime: r.endTime, remind: r.remind, remindMore: r.remindMore || [] };
+      const fields = { title: r.title.trim(), note: r.note.trim(), priority: r.priority, rate: MC.rateOn(newCal) ? (r.rate || 0) : 0, date: r.date, days: r.time ? 1 : (r.days || 1), time: r.time, endTime: r.endTime, remind: r.remind, remindMore: r.remindMore || [], noDone: !!r.noDone };
       const b = buildEvents(fields, r.repeat, r.until);
       if (b.rep) repeated++;
       all = all.concat(b.events);

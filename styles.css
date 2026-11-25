@@ -369,6 +369,9 @@ body[data-cal] .chip.done::before, .chip.sub.done::before { display: none; }
 .item.done .check { background: var(--c); }
 .check.dv-mark { border: 0; color: var(--c); }   /* 主日历里显示的纪念日：一颗同色的心，不能勾选 */
 .check.dv-mark svg { width: 17px; height: 17px; fill: currentColor; stroke: none; opacity: 1; }
+/* 无需完成（只负责提醒）：完成框换成中性的小铃铛，不能勾选，不随事件颜色、不用蓝色 */
+.check.nd-mark { border: 0; color: var(--text2); }
+.check.nd-mark svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
 .item.done .check svg { opacity: 1; }
 .item-main { flex: 1; min-width: 0; cursor: pointer; }
 .item-title { font-size: 15.5px; line-height: 1.35; word-break: break-word; }
@@ -865,7 +868,7 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .b-opt { color: var(--text2); }
 .b-when span, .b-opt span { overflow: hidden; text-overflow: ellipsis; }
 .b-opt.on { color: var(--accent-text); }
-.b-opt .b-ic { width: 15px; height: 15px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.b-when .b-ic, .b-opt .b-ic { width: 15px; height: 15px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---------- 液态玻璃拖动条（优先级 / 等级）：一条浅浅的槽，选中的那格上停着一颗玻璃水滴（和底部菜单栏的一样） ---------- */
 .lgbar { position: relative; display: flex; padding: 3px; border-radius: 999px; background: var(--field); touch-action: pan-y; -webkit-user-select: none; user-select: none; }
@@ -935,6 +938,10 @@ body:not([data-page="cal"]) .back-today { display: none; }
 .pk-row svg { width: 20px; height: 20px; color: var(--text2); }
 .pk-row .grow-val { margin-left: auto; color: var(--text2); font-size: 14.5px; }
 .pk-row .grow-val.on { color: var(--accent-text); font-weight: 600; }
+/* 无需完成那一行：名称下面一行小字说明，开关在最右 */
+.pk-row.nd-row > span:not(.mi-sw) { flex: 1; min-width: 0; }
+.pk-row.nd-row small { display: block; font-size: 12px; color: var(--text2); margin-top: 1px; }
+.pk-row.nd-row:has(input:disabled) { opacity: .6; }
 .pk-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pk-card { border-radius: var(--r-l); padding: 12px 14px; text-align: left; background: var(--surface); box-shadow: inset 0 0 0 .5px var(--group-line); }
 .pk-card.active { box-shadow: inset 0 0 0 1.5px var(--accent); }

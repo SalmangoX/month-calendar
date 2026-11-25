@@ -151,7 +151,9 @@
   function render(data) {
     const now = new Date(), y = now.getFullYear(), m = now.getMonth(), t = ymd(now);
     const by = {}, shown = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id));
+    const ndCals = new Set((data.cals || []).filter(c => c && c.noDone).map(c => c.id));   // 整个日历无需完成【联动:提醒】
     for (const e of data.events || []) {
+      if (e.noDone || (e.cal && ndCals.has(e.cal))) { e.noDone = true; e.done = false; }   // 无需完成：不画已完成、不算进完成计数
       if (e.cal && !shown.has(e.cal)) continue; // 主日历 + 设为在主日历显示的记录日历
       const n = e.days > 1 && !e.time ? e.days : 1, [yy, mm, dd] = e.date.split('-').map(Number);
       for (let k = 0; k < n; k++) { const ds = ymd(new Date(yy, mm - 1, dd + k)); (by[ds] = by[ds] || []).push(e); }
@@ -159,7 +161,7 @@
     for (const k in by) by[k].sort((a,b) => (a.done-b.done) || (RANK(b.priority)-RANK(a.priority)) || (a.createdAt-b.createdAt));
     const prefix = `${y}-${pad(m+1)}-`;
     let total = 0, done = 0;
-    for (const k in by) if (k.startsWith(prefix)) { total += by[k].length; done += by[k].filter(e => e.done).length; }
+    for (const k in by) if (k.startsWith(prefix)) { const l = by[k].filter(e => !e.noDone); total += l.length; done += l.filter(e => e.done).length; }
 
     const first = new Date(y, m, 1);
     const off = (first.getDay() - WS + 7) % 7;

@@ -39,6 +39,8 @@ final class Data {
         LocalDate date;
         int priority, days = 1;
         boolean done, hasRemind;
+        /** 无需完成：事件自己标的（noDone）或所在子日历整个设的（cal.noDone）——照常提醒，但不画已完成、不算逾期、不进每日未完成提醒（和网页 MC.isTask 一样）【联动:同步数据】 */
+        boolean noDone;
         long remind, createdAt;
         /** 所有提醒（提前几分钟，去重、从小到大）：remind 是第一个，remindMore 是另外加的（和网页 MC.remindsOf 一样）【联动:提醒】 */
         long[] reminds = new long[0];
@@ -196,6 +198,7 @@ final class Data {
                 String col = c.optString("color");
                 if (col.matches("#[0-9a-fA-F]{6}")) d.calColor.put(id, 0xFF000000 | Integer.parseInt(col.substring(1), 16));
                 if (c.optBoolean("notify")) d.notifyCals.add(id);
+                if (c.optBoolean("noDone") && !"days".equals(c.optString("kind"))) for (Event e : d.events) if (id.equals(e.cal)) { e.noDone = true; e.done = false; }   // 整个日历无需完成【联动:提醒】
                 if ("days".equals(c.optString("kind"))) d.dayCals.put(id, c.optString("name"));
                 // 日历的统一提醒（remindDef）：对这个日历里的每个事件都生效，到点时和事件自己的提醒合在一起（不写进事件）【联动:提醒】
                 JSONArray rd = c.optJSONArray("remindDef");
@@ -304,7 +307,8 @@ final class Data {
         x.note = e.optString("note");
         int p = e.optInt("priority", 0);
         x.priority = p < 0 || p > 3 ? 0 : p;
-        x.done = e.optBoolean("done");
+        x.noDone = e.optBoolean("noDone");
+        x.done = e.optBoolean("done") && !x.noDone;
         String t = e.optString("time");
         x.time = TIME.matcher(t).matches() ? t : "";
         String et = e.optString("endTime");
@@ -360,12 +364,15 @@ final class Data {
             for (int k = -62; k <= 400; k++) {
                 LocalDate day = today.plusDays(k);
                 if (day.isBefore(y.date) || !y.occ(day).equals(day)) continue;
-                Event e = new Event(); e.id = "dayv:" + y.id; e.cal = y.cal; e.date = day; e.title = y.title; e.time = y.time;
+                Event e = new Event(); e.id = "dayv:" + y.id; e.cal = y.cal; e.date = day; e.title = y.title; e.time = y.time; e.noDone = true;   // 纪念日只读，不用勾完成
                 byDate.computeIfAbsent(day, x -> new ArrayList<>()).add(e);
             }
         }
         for (List<Event> l : byDate.values()) l.sort(ORDER);
     }
+
+    /** 已逾期只看这个月的（1 号那天看过去一周的），和网页 MC.overdueFrom 一样【联动:提醒】 */
+    static LocalDate overdueFrom(LocalDate today) { return today.getDayOfMonth() == 1 ? today.minusDays(7) : today.withDayOfMonth(1); }
 
     List<Event> on(LocalDate d) {
         List<Event> l = byDate.get(d);

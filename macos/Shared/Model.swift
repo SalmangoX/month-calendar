@@ -96,6 +96,8 @@ struct CEvent {
     var date = YMD(y: 1970, m: 1, d: 1)
     var priority = 0, days = 1
     var done = false
+    /// 无需完成：事件自己标的（noDone）或所在子日历整个设的（cal.noDone）——照常提醒，但不画已完成、不算逾期、不进每日未完成提醒（和网页 MC.isTask 一样）【联动:同步数据】
+    var noDone = false
     var remind: Int64? = nil
     /// 所有提醒（提前几分钟，去重、从小到大）：remind 是第一个，remindMore 是另外加的（和网页 MC.remindsOf 一样）【联动:提醒】
     var reminds: [Int64] = []
@@ -227,6 +229,8 @@ final class CalData {
     func notifies(_ e: CEvent) -> Bool { e.cal.isEmpty || notifyCals.contains(e.cal) }
     func visible(_ e: CEvent) -> Bool { e.cal.isEmpty || shownCals.contains(e.cal) }
     func on(_ d: YMD) -> [CEvent] { byDate[d] ?? [] }
+    /// 已逾期只看这个月的（1 号那天看过去一周的），和网页 MC.overdueFrom 一样【联动:提醒】
+    static func overdueFrom(_ today: YMD) -> YMD { today.d == 1 ? today.adding(-7) : YMD(y: today.y, m: today.m, d: 1) }
     func courses(on d: YMD) -> [Course] { courses.filter { $0.on(d) } }
 
     /// 「跟随地区」= 用系统的 12 / 24 小时设置
@@ -262,6 +266,9 @@ final class CalData {
             let col = c.str("color")
             if col.count == 7, col.hasPrefix("#"), let v = UInt32(col.dropFirst(), radix: 16) { d.calColor[id] = 0xFF00_0000 | v }
             if c.bool("notify") { d.notifyCals.insert(id) }
+            if c.bool("noDone") && c.str("kind") != "days" {   // 整个日历无需完成【联动:提醒】
+                for k in d.events.indices where d.events[k].cal == id { d.events[k].noDone = true; d.events[k].done = false }
+            }
             if c.str("kind") == "days" { dayCals.insert(id) }
             // 日历的统一提醒（remindDef）：对这个日历里的每个事件都生效，到点时和事件自己的提醒合在一起（不写进事件）【联动:提醒】
             let def = ((c["remindDef"] as? [Any]) ?? []).compactMap { ($0 as? NSNumber)?.int64Value }.filter { $0 >= 0 }
@@ -317,7 +324,7 @@ final class CalData {
             for k in -62...400 {
                 let day = today.adding(k)
                 guard !(day < y.date), y.occ(day) == day else { continue }
-                var e = CEvent(); e.id = "dayv:" + y.id; e.cal = y.cal; e.date = day; e.title = y.title; e.time = y.time
+                var e = CEvent(); e.id = "dayv:" + y.id; e.cal = y.cal; e.date = day; e.title = y.title; e.time = y.time; e.noDone = true
                 d.byDate[day, default: []].append(e)
             }
         }
@@ -331,7 +338,8 @@ final class CalData {
         x.date = date
         x.id = e.str("id"); x.cal = e.str("cal"); x.title = e.str("title"); x.note = e.str("note")
         let p = e.int("priority"); x.priority = (0...3).contains(p) ? p : 0
-        x.done = e.bool("done")
+        x.noDone = e.bool("noDone")
+        x.done = e.bool("done") && !x.noDone
         let t = e.str("time"); x.time = isTime(t) ? t : ""
         let et = e.str("endTime"); x.endTime = !x.time.isEmpty && isTime(et) ? et : ""
         if let n = e["remind"] as? NSNumber { x.remind = n.int64Value }
