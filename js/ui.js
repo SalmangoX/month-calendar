@@ -364,9 +364,7 @@
     pop.classList.add('grow');   // 所有菜单都从点的那个按钮里长出来（同样的位置、大小、圆角），再展开成菜单；不回弹
     pop.classList.add('show');
     pop.style.setProperty('--cc', getComputedStyle(anchor).getPropertyValue('--cc').trim() || 'var(--accent)');   // 开关填充用那一行日历的颜色
-    let r = anchor.getBoundingClientRect();
-    // 侧拉菜单的「⋯」点按范围比看到的大（52 × 60）：水滴还是从看到的那颗 36 的小圆长出来，中心不变
-    if (anchor.classList && anchor.classList.contains('dr-more')) r = new DOMRect(r.left + (r.width - 36) / 2, r.top + (r.height - 36) / 2, 36, 36);
+    const r = anchor.getBoundingClientRect();
     const pw = pop.offsetWidth, ph = pop.offsetHeight;
     let left = Math.min(Math.max(10, r.left + r.width / 2 - pw / 2), window.innerWidth - pw - 10);
     if (r.left < 80) left = Math.max(10, r.left);

@@ -70,11 +70,12 @@
     if (anim) anim.stop();
     const opening = target > 0;
     isOpen = opening;
+    if (!opening && card.id) setTimeout(() => { if (!isOpen) closeCard(true); }, 380);   // 卡片跟着菜单一起滑走，收完再拿掉
     el.setAttribute('aria-hidden', String(!opening));
     scrim.classList.toggle('live', opening);
     if (reduce.matches || !el.animate) { apply(target); anim = null; return; }
     // 拉出：顺滑地吸到位置上，不过冲（用户定的）；只有用力甩出来时才带一点点回弹。收起：干脆利落不过冲
-    anim = glide(target, opening ? springPts(pos, target, v, 430, Math.abs(v) > 900 ? 34 : 44, false) : springPts(pos, target, v, 520, 48, true));
+    anim = glide(target, opening ? springPts(pos, target, v, 430, Math.abs(v) > 900 ? 34 : 44, false) : springPts(pos, target, v, 760, 56, true));
   }
   D.isOpen = () => isOpen;
   D.reorder = ids => { MC.reorderCals(ids); render(); };   // iPhone / Mac 原生侧拉菜单拖动排好后交过来
@@ -109,7 +110,6 @@
   const TICK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   const BELL = '<svg viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
   const LAYERS = '<svg viewBox="0 0 24 24"><path d="M12 4l8.5 4.5L12 13 3.5 8.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg>';
-  const MORE = '<svg viewBox="0 0 24 24" class="filled"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg>';
   // 纪念日历自己的图标：和纪念日的日子同一套实心图标（js/days.js 的 svgOf / ICON_GROUPS），空 = 心形
   const DP = () => (MC.Days && MC.Days.parts) || null;
   const daysIcon = c => { const P = DP(), ic = c && c.icon; return P && ic && P.ICONS[ic] ? P.svgOf(ic) : ICON_DAYS; };
@@ -132,13 +132,15 @@
     const days = c.kind === 'days', child = MC.hostOf(c) !== null;
     const flags = c.id ? `${c.showInMain ? `<span title="显示在主日历">${LAYERS}</span>` : ''}${c.notify && !days ? `<span title="通知已开">${BELL}</span>` : ''}` : '';
     const sub = subOf(c, n, days) + (flags ? `<span class="dr-flags">${flags}</span>` : '');
-    return `<div class="dr-row${on ? ' on' : ''}${child ? ' child' : ''}" style="--cc:${c.id ? c.color : 'var(--accent-base)'};--i:${i}" data-id="${esc(c.id)}">
+    // 分日历：左边的图标就是菜单按钮（点它，或长按这一行，从这一行拉出编辑卡片），右下角一颗小角标提示能点（2026-11-25 用户定的：不要右边的「⋯」）
+    const ico = `<span class="dr-ico">${days ? daysIcon(c) : c.id ? ICON_REC : ICON_MAIN}</span>`;
+    return `<div class="dr-row${on ? ' on' : ''}${child ? ' child' : ''}${c.id ? ' sub' : ''}" style="--cc:${c.id ? c.color : 'var(--accent-base)'};--i:${i}" data-id="${esc(c.id)}">
+      ${c.id ? `<button class="dr-icob" data-act="menu" aria-label="编辑「${esc(c.name)}」">${ico}<span class="dr-dot" aria-hidden="true"><i></i><i></i><i></i></span></button>` : ''}
       <button class="dr-pick" data-act="pick" aria-pressed="${on}">
-        <span class="dr-ico">${days ? daysIcon(c) : c.id ? ICON_REC : ICON_MAIN}</span>
+        ${c.id ? '' : ico}
         <span class="dr-txt"><b>${esc(c.name)}</b><small>${sub}</small></span>
         <span class="dr-tick" aria-hidden="true">${TICK}</span>
       </button>
-      ${c.id ? `<button class="dr-more" data-act="more" aria-label="编辑「${esc(c.name)}」">${MORE}</button>` : ''}
     </div>`;
   }
   // 侧拉菜单的列表：数据没变就不重画（拉出来的那一下不再整块重排，快速侧拉不卡一下）
@@ -165,34 +167,47 @@
       h += `<p class="dr-sec" style="--i:${k}">${T('纪念日历')}</p>` + dayCals.map((c, i) => row(c, k + i + 1)).join('');
     }
     list.innerHTML = h;
+    if (card.id) { const r = rowOf(card.id); if (r) { r.classList.add('menu-open'); r.after(card.el); } else closeCard(true); }
   }
   list.addEventListener('click', e => {
     const b = e.target.closest('[data-act]'); if (!b || swallowed()) return;
     const id = b.closest('.dr-row').dataset.id;
-    if (b.dataset.act === 'pick') { D.pick(id); setTimeout(D.close, 140); return; }
-    const c = MC.cal(id); if (c) UI.menu(b, menuOf(c), v => D.act(id, v), { center: true });   // 以「⋯」为正中心展开
+    // 点日历：菜单马上开始收（以前等 0.14 秒、收的尾巴又长，菜单挡着屏幕大半边，实测要 0.75 秒才看清切换）；
+    // 换内容放到菜单动起来的下一帧做，不和收菜单的第一帧抢时间
+    if (b.dataset.act === 'pick') { if (id !== MC.activeCal()) list.querySelectorAll('.dr-row').forEach(r => r.classList.toggle('on', r.dataset.id === id)); D.close(); requestAnimationFrame(() => setTimeout(() => D.pick(id), 0)); return; }
+    if (b.dataset.act === 'menu') { if (card.id === id) closeCard(); else { buzz(); openCard(id); } }
   });
   // 长按子日历拖动排序：记录日历、纪念日历各自一组，只在自己那一组里挪（顺序存在 cal.order，会同步）【联动:侧拉菜单】iPhone / Mac 原生在 GlassDrawer 的 reorder
   let rd = null;
   list.addEventListener('pointerdown', e => {
     const r = e.target.closest('.dr-row'), c = r && r.dataset.id && MC.cal(r.dataset.id);
-    if (!c || e.target.closest('[data-act="more"]') || e.button || MC.hostOf(c) !== null) return;   // 挂在合集里的日历跟着合集走，不单独拖
+    if (!c || !c.id || e.target.closest('[data-act="menu"]') || e.button || card.id) return;
     const x0 = e.clientX, y0 = e.clientY;
     const stop = () => { clearTimeout(tm); document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', stop); document.removeEventListener('pointercancel', stop); };
     const mv = ev => { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) stop(); };   // 先动了就是滚动列表，不算长按
-    const tm = setTimeout(() => { stop(); startReorder(r, c, y0); }, 420);
+    // 长按：到时间马上拉出编辑卡片（不用等松手，2026-11-25 用户定的）；卡片出来后手指接着拖动 = 收起卡片、开始排序
+    // （挂在合集里的日历跟着合集走，不单独拖）
+    const tm = setTimeout(() => {
+      stop(); buzz(); openCard(c.id);
+      const canDrag = MC.hostOf(c) === null;
+      const drag = ev => { if (Math.abs(ev.clientY - y0) > 10 || Math.abs(ev.clientX - x0) > 10) { off(); if (canDrag) { closeCard(true); startReorder(rowOf(c.id) || r, c, y0); } } };
+      const off = () => { document.removeEventListener('pointermove', drag); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up); };
+      const up = () => { off(); eat(); };   // 松手那一下不算点开这个日历
+      document.addEventListener('pointermove', drag); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+    }, 420);
     document.addEventListener('pointermove', mv); document.addEventListener('pointerup', stop); document.addEventListener('pointercancel', stop);
   });
   function startReorder(r, c, y0) {
     const days = c.kind === 'days';
     const rows = [...list.querySelectorAll('.dr-row[data-id]:not(.child)')].filter(x => { const k = x.dataset.id && MC.cal(x.dataset.id); return k && (k.kind === 'days') === days; });
-    if (rows.length < 2) return;
+    if (rows.length < 2) return false;
     const idx = rows.indexOf(r), h = r.getBoundingClientRect().height + 4;
-    rd = { r, rows, idx, to: idx, y0, h, days };
+    rd = { r, rows, idx, to: idx, y0, h, days, moved: 0 };
     try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(10); } catch (err) {}
     list.classList.add('reordering'); r.classList.add('lifted');
     rows.forEach(x => { if (x !== r) x.classList.add('shift'); });
     const move = ev => {
+      rd.moved = Math.max(rd.moved, Math.abs(ev.clientY - y0));
       const dy = Math.max((0 - idx) * h - 10, Math.min((rows.length - 1 - idx) * h + 10, ev.clientY - y0));
       r.style.transform = `translateY(${dy}px) scale(1.03)`;
       const to = Math.max(0, Math.min(rows.length - 1, idx + Math.round(dy / h)));
@@ -201,20 +216,127 @@
     };
     const end = () => {
       document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', end); document.removeEventListener('pointercancel', end);
-      const { to } = rd; rd = null;
+      const { to, moved } = rd; rd = null;
       eat();   // 松手那一下不算点开这个日历
       r.style.transform = `translateY(${(to - idx) * h}px)`;
+      const still = false;   // 长按时已经拉出过卡片，拖完不再打开
       setTimeout(() => {
         list.classList.remove('reordering');
         if (to !== idx) { const ids = rows.map(x => x.dataset.id); ids.splice(to, 0, ids.splice(idx, 1)[0]); MC.reorderCals(ids); }
+        rows.forEach(x => { x.classList.remove('shift', 'lifted'); x.style.transform = ''; });
         render();
-      }, 180);
+        if (still) openCard(c.id);
+      }, still ? 120 : 180);
     };
     document.addEventListener('pointermove', move); document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
+    return true;
   }
   // 拖着排序时：不让列表滚动、也不让侧拉菜单跟着左右收
   list.addEventListener('touchmove', e => { if (rd) { if (e.cancelable) e.preventDefault(); e.stopPropagation(); } }, { passive: false, capture: true });
   list.addEventListener('contextmenu', e => { if (rd || e.target.closest('.dr-row')) e.preventDefault(); });
+
+  // ---------- 分日历的编辑卡片（2026-11-25 用户定的：取代「⋯」小窗口）----------
+  // 点分日历左边的图标、或长按这一行，从这一行下面（放不下就上面）拉出一张卡片，和这一行连成一块：
+  // 最上面直接改名称、颜色（边改边存），往下是开关和选项，最后是并入 / 拆开、删除。卡片放在列表里，跟着列表滚
+  const card = { el: document.createElement('div'), id: '' };
+  card.el.className = 'dr-card';
+  const rowOf = id => list.querySelector(`.dr-row[data-id="${CSS.escape(id)}"]`);
+  const buzz = () => { try { if (!(MC.Native && MC.Native.haptic && MC.Native.haptic())) navigator.vibrate && navigator.vibrate(8); } catch (e) {} };
+  const CARD_ICONS = { remindAll: BELL, edit: '<svg viewBox="0 0 24 24"><path d="M5 19h4l10-10-4-4L5 15z"/></svg>',
+    merge: LAYERS, split: LAYERS, splitAll: LAYERS, del: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg>' };
+  function cardHTML(c) {
+    const days = c.kind === 'days', T = x => (MC.t ? MC.t(x) : x);
+    const used = MC.CAL_COLORS.includes(c.color) ? c.color : '';
+    const sw = MC.CAL_COLORS.map(x => `<button class="dc-sw${x === used ? ' on' : ''}" data-color="${x}" style="--c:${x}" aria-label="${x}"></button>`).join('');
+    const items = menuOf(c).map(m => m.sw
+      ? `<label class="dc-opt"><span>${esc(T(m.label))}</span><input type="checkbox" class="switch" data-v="${m.value}"${m.on ? ' checked' : ''}></label>`
+      : `<button class="dc-opt act${m.danger ? ' danger' : ''}" data-v="${m.value}"><i>${CARD_ICONS[m.value] || ''}</i><span>${esc(T(m.value === 'edit' ? (days ? '图标…' : '等级评分…') : m.label))}</span></button>`).join('');
+    return `<div class="dc-in">
+      <input class="dc-name" value="${esc(c.name)}" maxlength="24" enterkeyhint="done" aria-label="名称" placeholder="${esc(T('日历名称'))}">
+      <div class="dc-sws">${sw}</div>
+      <div class="dc-opts">${items}</div>
+    </div>`;
+  }
+  // 卡片插在这一行下面、占自己的位置，把下面的几行往下推开（2026-11-25 用户说盖在别的日历上不好看）：
+  // 卡片从这一行的下边沿竖直方向长出来，后面几行同时往下滑，一起只动 transform（不逐帧改高度）
+  const after = el => { const a = []; for (let x = el.nextElementSibling; x; x = x.nextElementSibling) a.push(x); return a; };
+  function openCard(id) {
+    const c = MC.cal(id), r = rowOf(id);
+    if (!c || !c.id || !r) return;
+    if (card.id) closeCard(true);
+    card.id = id; card.el.dataset.for = id; card.el.style.setProperty('--cc', c.color);
+    card.el.innerHTML = cardHTML(c);
+    card.el.style.marginLeft = getComputedStyle(r).marginLeft;   // 合集里缩进的那一行，卡片也跟着缩进
+    card.el.getAnimations({ subtree: true }).forEach(x => x.cancel());   // 上一次收起留下的（停在透明那一帧）先清掉
+    r.after(card.el);
+    r.classList.add('menu-open');
+    const h = card.el.offsetHeight + parseFloat(getComputedStyle(card.el).marginBottom || 0);
+    // 卡片整张露出来：超出列表可见范围的部分把列表往上滚
+    const lr = list.getBoundingClientRect(), cr = card.el.getBoundingClientRect();
+    if (cr.bottom > lr.bottom - 6) { list.scrollBy({ top: Math.min(cr.bottom - lr.bottom + 10, cr.top - lr.top - 70), behavior: 'smooth' }); }
+    if (reduce.matches || !card.el.animate) return;
+    const opt = { duration: 260, easing: 'cubic-bezier(.2,.9,.25,1)' };
+    card.el.style.transformOrigin = '50% 0%';
+    card.el.animate([{ transform: 'scaleY(.12)', opacity: .3 }, { transform: 'none', opacity: 1 }], opt);
+    card.el.firstElementChild.animate([{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { duration: 170, delay: 70, easing: 'ease-out', fill: 'backwards' });
+    after(card.el).forEach(x => x.animate([{ translate: `0 ${-h}px` }, { translate: '0 0' }], opt));   // 后面几行从原来的位置被推下去
+  }
+  function closeCard(now) {
+    if (!card.id) return;
+    const id = card.id, r = rowOf(id), el = card.el;
+    card.id = '';
+    flushName();
+    const done = () => { if (card.id) return; el.getAnimations({ subtree: true }).forEach(x => x.cancel()); next.forEach(x => x.getAnimations().forEach(a => a.cancel())); el.remove(); if (r) r.classList.remove('menu-open'); };
+    const next = el.parentNode ? after(el) : [];
+    if (now || reduce.matches || !el.animate || !el.parentNode) { done(); return; }
+    const h = el.offsetHeight + parseFloat(getComputedStyle(el).marginBottom || 0);
+    const opt = { duration: 190, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' };
+    el.animate([{ transform: 'none', opacity: 1 }, { transform: 'scaleY(.12)', opacity: 0 }], opt).onfinish = done;
+    next.forEach(x => x.animate([{ translate: '0 0' }, { translate: `0 ${-h}px` }], opt));   // 后面几行收回来，放完拿掉卡片，它们正好落回原位
+    setTimeout(done, 280);
+  }
+  D.closeCard = closeCard;
+  // 改名：边打边存（停 0.35 秒存一次），收起卡片时把没存的存掉
+  let nameT = 0;
+  const flushName = () => {
+    clearTimeout(nameT);
+    const inp = card.el.querySelector('.dc-name'), id = card.el.dataset.for;
+    const c = id && MC.cal(id); if (!inp || !c) return;
+    const v = inp.value.trim().slice(0, 24);
+    if (!v || v === c.name) return;
+    MC.updateCal(c, { name: v });
+    const r = rowOf(c.id); if (r) { r.querySelector('.dr-txt b').textContent = v; r.querySelector('.dr-icob').setAttribute('aria-label', `编辑「${v}」`); }
+    if (MC.activeCal() === c.id) D.paint();
+  };
+  card.el.addEventListener('input', e => { if (e.target.classList.contains('dc-name')) { clearTimeout(nameT); nameT = setTimeout(flushName, 350); } });
+  card.el.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('dc-name')) { e.preventDefault(); e.target.blur(); flushName(); } });
+  card.el.addEventListener('focusout', e => { if (e.target.classList.contains('dc-name')) flushName(); });
+  // 颜色：点一下就换，这一行、标题、日历里的色条马上跟着变
+  let calT = 0;
+  card.el.addEventListener('click', e => {
+    const sw = e.target.closest('.dc-sw'), c = MC.cal(card.id);
+    if (sw && c) {
+      card.el.querySelectorAll('.dc-sw.on').forEach(x => x.classList.remove('on')); sw.classList.add('on');
+      MC.updateCal(c, { color: sw.dataset.color }); buzz();
+      card.el.style.setProperty('--cc', c.color);
+      const r = rowOf(c.id); if (r) r.style.setProperty('--cc', c.color);
+      if (MC.activeCal() === c.id) D.paint();
+      clearTimeout(calT); calT = setTimeout(() => { MC.reindex(); MC.Cal.render(); }, 160);
+      return;
+    }
+    const b = e.target.closest('.dc-opt.act'); if (!b || !c) return;
+    const v = b.dataset.v, id = c.id;
+    closeCard();
+    setTimeout(() => D.act(id, v), 120);   // 先收起卡片，再弹它要的确认框 / 选择窗口
+  });
+  // 开关：原地切换，卡片不收
+  card.el.addEventListener('change', e => { const v = e.target.dataset && e.target.dataset.v; if (v && card.id) { buzz(); D.act(card.id, v); } });
+  // 点卡片外面（包括别的行）：只收起卡片，这一下不当成切换日历
+  document.addEventListener('pointerdown', e => {
+    if (!card.id || card.el.contains(e.target)) return;
+    const r = rowOf(card.id); if (r && r.querySelector('.dr-icob') && r.querySelector('.dr-icob').contains(e.target)) return;   // 再点一下图标：交给 click 收起
+    closeCard(); eat();
+  }, true);
 
   // 切换日历（2026-11-25 用户在手机上从五种里选的「直接」）：内容马上换，只有日历内容那一块从半透明、略小一点快速清晰起来（0.2 秒），
   // 标题板不动、不先淡出、不整屏变暗缩放（以前整屏一起变暗缩小再放大，用户嫌难受）

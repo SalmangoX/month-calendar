@@ -1416,12 +1416,38 @@ html.locked .lock { display: grid; }
 .dr-tick { flex: none; width: 22px; height: 22px; color: var(--text); opacity: 0; transform: scale(.6); transition: opacity .2s, transform .3s var(--ease-spring); }
 .dr-tick svg { width: 22px; height: 22px; stroke-width: 2.6; }
 .dr-row.on .dr-tick { opacity: 1; transform: none; }
-/* 「⋯」：看到的还是 36 的圆，点按范围是整行高 × 52 宽（2026-11-25 用户说点得差一点就点不到）；中心位置不变，小窗口照样以三个点为中心展开 */
-.dr-more { flex: none; position: relative; width: 52px; height: 60px; margin: -12px -4px -12px 0; border-radius: 0; display: grid; place-items: center; color: var(--text2); background: none; }
-.dr-more::before { content: ""; position: absolute; left: 8px; top: 12px; width: 36px; height: 36px; border-radius: 50%; pointer-events: none; }
-.dr-more:active::before { background: var(--field); }
-.dr-more svg { position: relative; }
-.dr-more svg { width: 18px; height: 18px; }
+/* 分日历：左边的图标就是菜单按钮（点它或长按这一行拉出编辑卡片，drawer.js 的 openCard），右下角一颗小角标提示能点；
+   点按范围 56 × 60，图标块还是 36、图形 24，和字的间距还是 18（2026-11-25 用户定的：不要右边的「⋯」）【联动:侧拉菜单】 */
+.dr-icob { flex: none; position: relative; width: 56px; height: 60px; margin-right: -8px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--cc); -webkit-tap-highlight-color: transparent; }
+.dr-icob .dr-ico { transition: transform .14s ease; }
+.dr-icob:active .dr-ico { transform: scale(.9); }
+.dr-row.sub .dr-pick { padding-left: 8px; }
+.dr-dot { position: absolute; left: 35px; top: 37px; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; gap: 1.6px;
+  background: var(--dc-dot, #fff); box-shadow: 0 1px 3px rgba(14, 24, 40, .2), 0 0 0 .5px rgba(0, 0, 0, .06); pointer-events: none; }
+.dr-dot i { width: 2.6px; height: 2.6px; border-radius: 50%; background: var(--text2); }
+:root[data-theme="dark"] .dr-dot { --dc-dot: #3A3A3F; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+/* 编辑卡片：插在这一行下面、把下面几行推开，和这一行连成一块（这一行底色和卡片一样，接缝处小圆角）（drawer.js 的 openCard） */
+.drawer { --dc-bg: #FBFBFC; }   /* 不透明：半透明会把后面那几行的字透出来 */
+:root[data-theme="dark"] .drawer { --dc-bg: #2E2E32; }
+.dr-row.menu-open { z-index: 2; background: var(--dc-bg); box-shadow: 0 1px 3px rgba(14, 24, 40, .06); border-radius: 20px 20px 0 0; margin-bottom: 0; }
+.drawer .dr-card { position: relative; z-index: 1; box-sizing: border-box; margin: 0 0 8px; background: var(--dc-bg); border-radius: 0 0 22px 22px;
+  box-shadow: 0 10px 24px rgba(14, 24, 40, .1), 0 2px 6px rgba(14, 24, 40, .05); -webkit-user-select: text; user-select: text; }
+:root[data-theme="dark"] .drawer .dr-row.menu-open { box-shadow: none; }
+:root[data-theme="dark"] .drawer .dr-card { box-shadow: 0 10px 24px rgba(0, 0, 0, .35); }
+.dc-in { padding: 4px 14px 10px; }
+.dc-name { display: block; width: 100%; box-sizing: border-box; font: inherit; font-size: 17px; font-weight: 650; color: var(--text); background: var(--field); border: 0; border-radius: 14px; padding: 11px 14px; outline: none; }
+.dc-name:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--cc) 50%, transparent); }
+.dc-sws { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px 0; justify-items: center; padding: 14px 0 12px; }
+.dc-sw { width: 26px; height: 26px; border-radius: 50%; border: 0; padding: 0; background: var(--c); -webkit-tap-highlight-color: transparent; transition: transform .14s ease; }
+.dc-sw:active { transform: scale(.88); }
+.dc-sw.on { box-shadow: 0 0 0 2.5px var(--dc-bg), 0 0 0 4.5px var(--c); }
+.dc-opts { border-top: .5px solid var(--line); padding-top: 2px; }
+.dc-opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 2px; box-sizing: border-box; font: inherit; font-size: 15px; color: var(--text); background: none; border: 0; text-align: left; -webkit-tap-highlight-color: transparent; }
+label.dc-opt { justify-content: space-between; }
+.dc-opt.act i { flex: none; width: 22px; height: 22px; display: grid; place-items: center; color: var(--text2); }
+.dc-opt.act i svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.dc-opt.act:active { opacity: .55; }
+.dc-opt.danger, .dc-opt.danger i { color: var(--red); }
 /* 新建日历：一颗液态玻璃胶囊（和月份胶囊同一种玻璃），左边是品牌渐变的加号圆 */
 .dr-add {
   flex: none; margin: 4px 12px 12px; height: 52px; border-radius: 999px;
