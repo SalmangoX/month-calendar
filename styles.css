@@ -1377,6 +1377,10 @@ html.locked .lock { display: grid; }
 :root[data-theme="dark"].lg-refract .drawer::after { -webkit-backdrop-filter: blur(30px) saturate(289%); backdrop-filter: blur(30px) saturate(289%); }
 :root[data-theme="dark"] .drawer::before { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
 :root[data-theme="dark"].lg-refract .dr-ring i { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }
+/* 「⋯」小窗口从侧拉菜单里展开的那 0.3 秒（ui.js 的 dropPop 挂 .rf-hold）：外圈只停掉折射，模糊、饱和、提亮照旧。
+   折射（feTurbulence 噪声）安卓上每一帧都要从头算，小窗口一动每帧几百毫秒；展开完马上恢复（用户 2026-11-25 同意的） */
+.lg-refract .drawer.rf-hold .dr-ring i { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05); backdrop-filter: blur(2px) saturate(200%) brightness(1.05); }
+:root[data-theme="dark"].lg-refract .drawer.rf-hold .dr-ring i { -webkit-backdrop-filter: blur(2px) saturate(170%); backdrop-filter: blur(2px) saturate(170%); }
 /* 侧拉菜单外圈的透明液态玻璃、中间的磨砂卡片：任何状态（拉动、滚动、有面板盖着）都保持原样，不为省性能改样子（用户定的） */
 /* 预热（drawer.js）：App 打开后空闲时在原位画两帧，透明度 1%，看不见、不接点按 */
 .drawer.warm { visibility: visible; transform: none !important; opacity: .01; pointer-events: none; }
