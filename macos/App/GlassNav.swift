@@ -23,7 +23,7 @@ final class NavModel: ObservableObject {
     /// 新建子日历的介绍卡片用的文字（网页 MC.Drawer.model 的 kinds）
     struct Kind: Decodable { let name, desc, eg: String; let big, unit, tag: String? }
     struct Kinds: Decodable { let title, lead, cancel: String; let rec, days: Kind }
-    struct Drawer: Decodable { let title, sub, recTitle, recEmpty, daysTitle: String; let main: Row; var recs, days: [Row]; let mainKids: [Row]?; let add: [Item]; let addLabel: String?; let kinds: Kinds? }
+    struct Drawer: Decodable { let title, sub, recTitle, recEmpty, daysTitle: String; let main: Row; var recs, days: [Row]; let mainKids: [Row]?; let colors: [String]?; let namePH: String?; let add: [Item]; let addLabel: String?; let kinds: Kinds? }
 
     @Published var tabs: [Tab] = []
     @Published var page = "cal"
@@ -197,7 +197,7 @@ final class NavModel: ObservableObject {
         }
     }
 
-    /// 侧拉菜单里：新建子日历的介绍卡片开着；某一行的「⋯」小窗口开着（行的 key）
+    /// 侧拉菜单里：新建子日历的介绍卡片开着；某一行的编辑卡片开着（行的 key，GlassDrawer.editCard）
     @Published var kindsOpen = false
     @Published var moreRow: String? = nil
     func closeDrawer() {
@@ -249,16 +249,26 @@ final class NavModel: ObservableObject {
         let js = String(data: (try? JSONSerialization.data(withJSONObject: ids)) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
         eval("MC.Drawer.reorder(\(js))") { [weak self] _ in self?.refresh() }
     }
+    /// 点日历：侧栏马上收（以前等 0.18 秒，侧栏挡着看不清切换；和网页一样），换内容放到下一轮
     func pick(_ id: String) {
-        eval("MC.Drawer.pick(\(Self.q(id)))", nil)
-        refresh()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in self?.closeDrawer() }
+        closeDrawer()
+        DispatchQueue.main.async { [weak self] in self?.eval("MC.Drawer.pick(\(Self.q(id)))", nil); self?.refresh() }
     }
-    /// 开关类的选项留在栏里刷新；其他的（编辑、删除、并入…）会弹出网页的表单 / 确认框 / 选择菜单，先把栏收起来，不然原生的栏盖在它们上面
+    /// 开关类的选项（在主日历显示、通知、无需完成）留在栏里刷新，编辑卡片不收；其他的（统一提醒、等级、并入、删除…）会弹出网页的表单 /
+    /// 确认框 / 选择窗口，先把栏收起来，不然原生的栏盖在它们上面
     func act(_ id: String, _ v: String) {
-        if v != "main" && v != "notify" { closeDrawer() }
+        let stay = ["main", "notify", "nodone"].contains(v)
+        if !stay { closeDrawer() }
         eval("MC.Drawer.act(\(Self.q(id)),\(Self.q(v)))", nil)
-        if v == "main" || v == "notify" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in self?.refresh() } }
+        if stay { DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in self?.refresh() } }
+    }
+    /// 编辑卡片里改名、换色（网页 MC.Drawer.edit 存好、同步），存完刷新这一栏【联动:侧拉菜单】
+    func edit(_ id: String, name: String? = nil, color: String? = nil) {
+        var f: [String: String] = [:]
+        if let name { f["name"] = name }
+        if let color { f["color"] = color }
+        let js = String(data: (try? JSONSerialization.data(withJSONObject: f)) ?? Data("{}".utf8), encoding: .utf8) ?? "{}"
+        eval("MC.Drawer.edit(\(Self.q(id)),\(js))") { [weak self] _ in self?.refresh() }
     }
     func addCal(_ kind: String) { closeDrawer(); eval("MC.Drawer.add(\(Self.q(kind)))", nil) }
 
@@ -1115,7 +1125,6 @@ struct GlassDrawer: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hLock: Bool? // 这次拖动是横着的（拉侧栏）还是竖着的（滚列表）
     @Namespace private var ns
-    @State private var dots: [String: CGRect] = [:]   // 每一行「⋯」的位置（drawer 坐标）
     @State private var pill: CGRect? = nil              // 「新建子日历」胶囊的位置（drawer 坐标）
     @State private var kPhase = 0                       // 介绍卡片：0 藏在胶囊里 · 1 小水滴 · 2 卡片
     @State private var kindsH: CGFloat = 400
@@ -1127,8 +1136,10 @@ struct GlassDrawer: View {
     @State private var rTo = 0
     @State private var rDY: CGFloat = 0
     @State private var rEnded = Date.distantPast
-    @State private var moreShown: String? = nil         // 「⋯」小窗口正在画的那一行（收起动画放完才清掉）
-    @State private var moreUp = false                   // 小窗口：false 是三个点上的一颗小水滴，true 是展开的窗口
+    @State private var nameDraft = ""                   // 编辑卡片里正在改的名称
+    @State private var lpAt = Date.distantPast           // 长按拉出卡片的时刻：紧接着松手的那一下（按钮会当成点按）不算
+    @State private var nameTask: DispatchWorkItem? = nil
+    private let cardAnim: Animation = .spring(response: 0.28, dampingFraction: 0.92)   // 卡片展开 / 收起：干脆，不晃
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -1148,25 +1159,17 @@ struct GlassDrawer: View {
                     .scaleEffect(x: 1 + stretch / 300, y: 1 - stretch / 1600, anchor: .leading)
                     .offset(x: min(0, m.drawerPull)) // 往回推：整块跟着移动
                     .transition(.move(edge: .leading).combined(with: .opacity))
-                if let key = moreShown, let r = ([d.main] + (d.mainKids ?? []) + d.recs + d.days).first(where: { $0.key == key }), let a = dots[key] { moreCard(r, at: a) }
                 if let pf = pill { pillAndKinds(d, pf).offset(x: min(0, m.drawerPull)).transition(.move(edge: .leading).combined(with: .opacity)) }
             }
         }
         .coordinateSpace(name: "drawer")
         .onChange(of: m.kindsOpen) { _, o in morphKinds(o) }   // 放在一直都在的这一层：卡片那一层被拿掉时也能收到
         .onChange(of: m.drawerOpen) { _, o in if !o, !m.kindsOpen { kTask?.cancel(); kPhase = 0 } }
-        .onChange(of: m.moreRow) { _, k in
-            // 「⋯」：先在三个点上放一颗小水滴，下一帧一口气拉伸成窗口；收起时缩回水滴，放完再拿掉
-            if let k {
-                var t = Transaction(); t.disablesAnimations = true
-                withTransaction(t) { moreShown = k; moreUp = false }
-                DispatchQueue.main.async { withAnimation(.spring(response: 0.26, dampingFraction: 0.92)) { moreUp = true } }   // 干脆、不晃
-            } else if moreShown != nil {
-                withAnimation(.spring(response: 0.2, dampingFraction: 0.9)) { moreUp = false }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { if m.moreRow == nil { moreShown = nil } }
-            }
+        .onChange(of: m.moreRow) { old, k in
+            // 编辑卡片换了一行（或收起）：上一行没存的名称先存掉，再把输入框换成这一行的名称
+            if let old, old != k { flushName(old) }
+            if let k, let r = allRows.first(where: { $0.key == k }) { nameDraft = r.name }
         }
-        .onPreferenceChange(DotsKey.self) { dots = $0 }
         .onPreferenceChange(PillKey.self) { pill = $0.width > 0 ? $0 : nil }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         // 打开时，在窗口任何地方（包括侧栏里面）左右拖都是拉动日历栏；和列表的上下滚动同时识别，
@@ -1191,23 +1194,32 @@ struct GlassDrawer: View {
                 Text(d.sub).font(.system(size: 12)).foregroundStyle(.secondary)
             }
             .padding(.horizontal, 20).padding(.top, 22).padding(.bottom, 12)
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 3) {
                     row(d.main)
-                    ForEach(d.mainKids ?? [], id: \.id) { row($0) }   // 并入主日历的日历挂在主日历下面
+                    ForEach(d.mainKids ?? [], id: \.id) { k in   // 并入主日历的日历挂在主日历下面（跟着主日历，不单独排序）
+                        row(k).simultaneousGesture(LongPressGesture(minimumDuration: 0.4).onEnded { _ in if m.moreRow != k.key { lpAt = Date(); openCard(k) } })
+                        if m.moreRow == k.key { editCard(k, d) }
+                    }
                     section(d.recTitle)
                     if d.recs.isEmpty {
                         Text(d.recEmpty).font(.system(size: 12)).foregroundStyle(.secondary).padding(.horizontal, 12).padding(.vertical, 4)
                     }
-                    reorderable(d.recs, group: "rec")
+                    reorderable(d.recs, group: "rec", d)
                     if !d.days.isEmpty {
                         section(d.daysTitle)
-                        reorderable(d.days, group: "days")
+                        reorderable(d.days, group: "days", d)
                     }
                 }
                 .padding(.horizontal, 10).padding(.bottom, 8)
             }
             .scrollDisabled(rKey != nil)   // 拖着排序时列表不滚
+            .onChange(of: m.moreRow) { _, k in   // 打开编辑卡片：展开得差不多了，把列表滚到卡片整张露出来（不被底下的「新建子日历」挡住）
+                guard let k else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { if m.moreRow == k { withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(k + "#card", anchor: .bottom) } } }   // 等展开动画放完再量
+            }
+            }
             // 新建子日历：这里只占位置并报出位置；胶囊本身画在 GlassDrawer 的玻璃容器里（和介绍卡片同一个容器，卡片才能从它分离出去）
             Color.clear
                 .background(GeometryReader { g in Color.clear.preference(key: PillKey.self, value: g.frame(in: .named("drawer"))) })
@@ -1233,55 +1245,6 @@ struct GlassDrawer: View {
         #if os(macOS)
         .padding(.top, 26) // 让开窗口左上角的红黄绿按钮
         #endif
-    }
-
-    // ---------- 「⋯」小窗口：以三个点为正中心向四周展开（靠边时往里收，不出屏幕），开关类的选项是开关，点了原地切换 ----------
-    @ViewBuilder private func moreCard(_ r: NavModel.Row, at a: CGRect) -> some View {
-        GeometryReader { g in
-            let w: CGFloat = 248, rowH: CGFloat = 46, h = CGFloat(r.menu.count) * rowH + 12
-            let x = min(max(a.midX, w / 2 + 12), g.size.width - w / 2 - 12)
-            let y = min(max(a.midY, h / 2 + 50), g.size.height - h / 2 - 30)
-            ZStack {
-                Color.black.opacity(0.001).contentShape(Rectangle())
-                    .onTapGesture { m.moreRow = nil }
-                    .allowsHitTesting(moreUp)
-                VStack(spacing: 0) {
-                    ForEach(Array(r.menu.enumerated()), id: \.element.id) { i, it in
-                        if i > 0 { Divider().padding(.leading, 16).opacity(0.5) }
-                        if it.sw == true || (it.on != nil && it.danger != true) {
-                            Toggle(isOn: Binding(get: { it.on ?? false }, set: { _ in navTick(); m.act(r.id, it.value) })) {
-                                Text(it.label).font(.system(size: 15, weight: .medium))
-                            }
-                            .toggleStyle(FillToggle())
-                            .padding(.horizontal, 16).frame(height: rowH)
-                        } else {
-                            Button {
-                                m.moreRow = nil
-                                m.act(r.id, it.value)
-                            } label: {
-                                HStack {
-                                    Text(it.label).font(.system(size: 15, weight: .medium)).foregroundStyle(it.danger == true ? Color(argb: Pal.RED) : Color.primary)
-                                    Spacer(minLength: 0)
-                                }
-                                .padding(.horizontal, 16).frame(height: rowH).contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .padding(.vertical, 6)
-                .frame(width: w, height: h)
-                .opacity(moreUp ? 1 : 0)
-                .animation(moreUp ? .easeOut(duration: 0.12).delay(0.05) : .easeIn(duration: 0.06), value: moreUp)   // 字等玻璃拉开再出来，收起时先收字
-                // 玻璃本身是一颗水滴：合着时是三个点上 30pt 的小圆，弹簧一口气拉伸成窗口（带一点果冻回弹），收起时缩回小圆
-                .frame(width: moreUp ? w : 30, height: moreUp ? h : 30, alignment: .center)
-                .clipShape(RoundedRectangle(cornerRadius: moreUp ? 22 : 15, style: .continuous))
-                .glassEffect(NavGlass.chrome(scheme), in: RoundedRectangle(cornerRadius: moreUp ? 22 : 15, style: .continuous))
-                .shadow(color: .black.opacity(moreUp ? (scheme == .dark ? 0.4 : 0.14) : 0), radius: 24, y: 10)
-                .position(x: moreUp ? x : a.midX, y: moreUp ? y : a.midY)
-                .allowsHitTesting(moreUp)
-            }
-        }
     }
 
     // ---------- 新建子日历：胶囊和介绍卡片在同一个液态玻璃容器里 ----------
@@ -1422,7 +1385,7 @@ struct GlassDrawer: View {
 
     // 长按一行拖动排序：拿起来的那一行浮起（略放大、带投影）跟着手指，同组的其它行让位；松手按位置排好
     private static let rowH: CGFloat = 63   // 行高 60 + 间距 3
-    @ViewBuilder private func reorderable(_ rows: [NavModel.Row], group: String) -> some View {
+    @ViewBuilder private func reorderable(_ rows: [NavModel.Row], group: String, _ d: NavModel.Drawer) -> some View {
         ForEach(Array(rows.enumerated()), id: \.element.id) { k, r in
             let lifted = rKey == r.key
             let inGroup = rGroup == group && rKey != nil
@@ -1435,18 +1398,25 @@ struct GlassDrawer: View {
                 .animation(.spring(response: 0.24, dampingFraction: 0.86), value: shift)
                 .animation(.spring(response: 0.22, dampingFraction: 0.8), value: lifted)
                 .simultaneousGesture(
+                    // 长按：到时间马上拉出编辑卡片（不等松手）；卡片出来后手指接着拖 = 收起卡片、开始排序（和网页一样，2026-11-25 用户定的）
                     LongPressGesture(minimumDuration: 0.4)
                         .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("drawer")))
                         .onChanged { v in
                             guard case .second(true, let drag) = v else { return }
-                            if rKey == nil { rKey = r.key; rGroup = group; rFrom = k; rTo = k; rDY = 0; navTick() }
+                            let t = drag?.translation ?? .zero
+                            if rKey == nil && hypot(t.width, t.height) < 10 { return }   // 还没拖：卡片由下面单独的长按手势打开
+                            if r.child == true { return }   // 挂在合集里的日历跟着合集走，不单独拖
+                            if rKey == nil {
+                                if m.moreRow != nil { var tr = Transaction(); tr.disablesAnimations = true; withTransaction(tr) { m.moreRow = nil } }
+                                rKey = r.key; rGroup = group; rFrom = k; rTo = k; rDY = 0; navTick()
+                            }
                             let dy = max(-CGFloat(k) * Self.rowH - 10, min(CGFloat(rows.count - 1 - k) * Self.rowH + 10, drag?.translation.height ?? 0))
                             rDY = dy
                             let to = max(0, min(rows.count - 1, k + Int((dy / Self.rowH).rounded())))
                             if to != rTo { rTo = to; navTick() }
                         }
                         .onEnded { _ in
-                            guard rKey == r.key else { return }
+                            guard rKey == r.key else { rEnded = Date(); return }   // 只是长按打开了卡片：松手那一下不算点开这个日历
                             let from = rFrom, to = rTo
                             withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) { rDY = CGFloat(to - from) * Self.rowH }
                             rEnded = Date()
@@ -1455,24 +1425,48 @@ struct GlassDrawer: View {
                                 withTransaction(t) { rKey = nil; rDY = 0; m.reorder(group, from: from, to: to) }
                             }
                         }
-                , including: r.child == true ? .subviews : .all)   // 挂在合集里的日历跟着合集走，不单独拖
+                )
+                // 长按够 0.4 秒（手指还按着）就拉出编辑卡片；上面的组合手势只管接着拖动排序
+                .simultaneousGesture(LongPressGesture(minimumDuration: 0.4).onEnded { _ in if rKey == nil && m.moreRow != r.key { lpAt = Date(); openCard(r) } })
+            if m.moreRow == r.key { editCard(r, d) }   // 编辑卡片插在这一行下面，把下面几行推开
         }
     }
 
     private func row(_ r: NavModel.Row) -> some View {
         let color = Color(hex: r.color) ?? Pal(dark: scheme == .dark).accent
         let icon = r.kind == "days" ? (r.sf ?? "heart.fill") : r.kind == "rec" ? "bookmark.fill" : "calendar"
-        return HStack(spacing: 6) {
-            Button { if Date().timeIntervalSince(rEnded) > 0.4 { m.pick(r.id) } } label: {   // 刚拖完排序松手的那一下不算点开
+        let hasMenu = !r.menu.isEmpty, open = m.moreRow == r.key
+        // 和网页同一套：中性的灰底块 + 实心、饱和的彩色图形（系统的 calendar 只有空心的，主日历自己画一个实心日历）
+        let tile = Color(argb: scheme == .dark ? 0xFF2A_2A2E : 0xFFEF_F1F4)
+        let glyph = Group {
+            if r.kind == "main" { SolidCalendarGlyph(color: color, tile: tile).frame(width: 22, height: 22) }
+            else { Image(systemName: icon).font(.system(size: 19, weight: .bold)).symbolRenderingMode(.monochrome).foregroundStyle(color) }
+        }
+        .frame(width: 36, height: 36)
+        .background(tile, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        return HStack(spacing: 0) {
+            if hasMenu {
+                // 分日历：左边的图标就是菜单按钮，右下角一颗小圆点角标提示能点（和网页 .dr-icob / .dr-dot 一样，不要右边的「⋯」）
+                Button { if eatRelease() { return }; navTick(); withAnimation(cardAnim) { m.moreRow = open ? nil : r.key } } label: {
+                    glyph
+                        .overlay(alignment: .bottomTrailing) {
+                            Image(systemName: "ellipsis").font(.system(size: 7.5, weight: .heavy)).foregroundStyle(.secondary)
+                                .frame(width: 16, height: 16)
+                                .background(Circle().fill(Color(argb: scheme == .dark ? 0xFF3A_3A3F : 0xFFFF_FFFF)).shadow(color: .black.opacity(scheme == .dark ? 0.5 : 0.2), radius: 1.5, y: 1))
+                                .offset(x: 5, y: 5)
+                        }
+                        .frame(width: 46, height: 36, alignment: .leading)
+                        .contentShape(Rectangle().inset(by: -10))   // 点按范围比看到的大
+                }
+                .buttonStyle(PressScale())
+            }
+            Button {
+                if eatRelease() { return }   // 长按拉出卡片后松手：不算点这一行
+                if m.moreRow != nil { withAnimation(cardAnim) { m.moreRow = nil }; return }   // 卡片开着：这一下只收起卡片，不切换日历
+                if Date().timeIntervalSince(rEnded) > 0.4 { m.pick(r.id) }   // 刚拖完排序 / 长按完松手的那一下不算点开
+            } label: {
                 HStack(spacing: 18) {   // 用户在预览里定的：行高 60、图标底块 36、图形 24（网页 svg 尺寸）、间距 18，和网页 .dr-pick 一样
-                    // 和网页同一套：中性的灰底块 + 实心、饱和的彩色图形（系统的 calendar 只有空心的，主日历自己画一个实心日历）
-                    let tile = Color(argb: scheme == .dark ? 0xFF2A_2A2E : 0xFFEF_F1F4)
-                    Group {
-                        if r.kind == "main" { SolidCalendarGlyph(color: color, tile: tile).frame(width: 22, height: 22) }
-                        else { Image(systemName: icon).font(.system(size: 19, weight: .bold)).symbolRenderingMode(.monochrome).foregroundStyle(color) }
-                    }
-                    .frame(width: 36, height: 36)
-                    .background(tile, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                    if !hasMenu { glyph }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(r.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
                         HStack(spacing: 5) {
@@ -1485,29 +1479,110 @@ struct GlassDrawer: View {
                     Spacer(minLength: 0)
                     if r.on { Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(Color.primary) }
                 }
+                .padding(.leading, hasMenu ? 8 : 0)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if !r.menu.isEmpty {
-                // 「⋯」：以这三个点为中心展开一个带开关的小窗口（GlassDrawer 的 moreCard）
-                Button { navTick(); m.moreRow = m.moreRow == r.key ? nil : r.key } label: {   // 动画由 onChange 里的水滴统一负责，这里不再套一层（会卡一下）
-                    Image(systemName: "ellipsis").font(.system(size: 15, weight: .semibold)).foregroundStyle(.secondary)
-                        .frame(width: 36, height: 36).frame(width: 52, height: 56).contentShape(Rectangle())   // 看到的 36，点按范围 52 × 56（用户嫌点不准）
-                }
-                .buttonStyle(.plain)
-                .background(GeometryReader { g in Color.clear.preference(key: DotsKey.self, value: [r.key: g.frame(in: .named("drawer"))]) })
-            }
         }
         .padding(.horizontal, 10).padding(.vertical, 12)
         .background {
-            if r.on { RoundedRectangle(cornerRadius: 15, style: .continuous).fill(Color.white.opacity(scheme == .dark ? 0.1 : 0.62)).shadow(color: .black.opacity(scheme == .dark ? 0 : 0.06), radius: 2, y: 1) }   // 选中：中性的白色高亮，不染日历色
+            if open { UnevenRoundedRectangle(topLeadingRadius: 15, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 15, style: .continuous).fill(cardBG) }   // 和下面的编辑卡片连成一块
+            else if r.on { RoundedRectangle(cornerRadius: 15, style: .continuous).fill(Color.white.opacity(scheme == .dark ? 0.1 : 0.62)).shadow(color: .black.opacity(scheme == .dark ? 0 : 0.06), radius: 2, y: 1) }   // 选中：中性的白色高亮，不染日历色
         }
         .padding(.leading, r.child == true ? 22 : 0)   // 合集：缩进一格（网页 .dr-row.child）
         .id(r.key)
     }
+
+    // ---------- 分日历的编辑卡片（和网页 drawer.js 的 openCard / cardHTML 一样，2026-11-25 用户定的，取代「⋯」小窗口）----------
+    // 插在这一行下面、把下面几行推开，和这一行连成一块：最上面直接改名称、颜色（边改边存），往下是开关和选项，最后是并入 / 拆开、删除【联动:侧拉菜单】
+    private var cardBG: Color { Color(argb: scheme == .dark ? 0xFF2E_2E32 : 0xFFFB_FBFC) }   // 不透明：半透明会把后面的字透出来
+    private var allRows: [NavModel.Row] { guard let d = m.drawer else { return [] }; return (d.mainKids ?? []) + d.recs + d.days }
+    /// 长按拉出卡片以后，手指松开时按钮照样会报一次点按：吃掉这一下（只吃一次）
+    private func eatRelease() -> Bool {
+        guard Date().timeIntervalSince(lpAt) < 4 else { return false }
+        lpAt = .distantPast; return true
+    }
+    private func openCard(_ r: NavModel.Row) {
+        guard !r.menu.isEmpty else { return }
+        navTick(); withAnimation(cardAnim) { m.moreRow = r.key }
+    }
+    private func flushName(_ key: String) {
+        nameTask?.cancel(); nameTask = nil
+        guard let r = allRows.first(where: { $0.key == key }) else { return }
+        let v = nameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !v.isEmpty && v != r.name { m.edit(r.id, name: String(v.prefix(24))) }
+    }
+    private func symbol(_ v: String) -> String {
+        switch v { case "remindAll": return "bell"; case "edit": return "pencil"; case "merge", "split", "splitAll": return "square.3.layers.3d"; case "del": return "trash"; default: return "circle" }
+    }
+    @ViewBuilder private func editCard(_ r: NavModel.Row, _ d: NavModel.Drawer) -> some View {
+        let red = Color(argb: Pal.RED)
+        VStack(alignment: .leading, spacing: 0) {
+            TextField(d.namePH ?? "", text: $nameDraft)
+                .textFieldStyle(.plain)
+                .font(.system(size: 16, weight: .semibold))
+                .padding(.horizontal, 14).frame(height: 44)
+                .background(Color.primary.opacity(scheme == .dark ? 0.08 : 0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .onSubmit { flushName(r.key) }
+                .onChange(of: nameDraft) { _, _ in   // 边打边存：停 0.35 秒存一次
+                    nameTask?.cancel()
+                    let w = DispatchWorkItem { flushName(r.key) }
+                    nameTask = w
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: w)
+                }
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 10) {
+                ForEach(d.colors ?? [], id: \.self) { hex in
+                    let c = Color(hex: hex) ?? .gray, on = hex.lowercased() == r.color.lowercased()
+                    Button { navTick(); m.edit(r.id, color: hex) } label: {
+                        Circle().fill(c).frame(width: 26, height: 26)
+                            .overlay(Circle().strokeBorder(c, lineWidth: 2).padding(-4.5).opacity(on ? 1 : 0))
+                            .frame(width: 36, height: 36).contentShape(Circle())
+                    }
+                    .buttonStyle(PressScale())
+                }
+            }
+            .padding(.vertical, 10)
+            Divider().opacity(0.6)
+            ForEach(Array(r.menu.enumerated()), id: \.element.id) { _, it in
+                if it.sw == true {
+                    Toggle(isOn: Binding(get: { it.on ?? false }, set: { _ in navTick(); m.act(r.id, it.value) })) {
+                        Text(it.label).font(.system(size: 15))
+                    }
+                    .toggleStyle(FillToggle())
+                    .frame(height: 46)
+                } else {
+                    Button {
+                        navTick(); flushName(r.key); m.moreRow = nil
+                        m.act(r.id, it.value)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: symbol(it.value)).font(.system(size: 16, weight: .medium)).frame(width: 22)
+                                .foregroundStyle(it.danger == true ? red : Color.secondary)
+                            Text(it.label).font(.system(size: 15)).foregroundStyle(it.danger == true ? red : Color.primary)
+                            Spacer(minLength: 0)
+                        }
+                        .frame(height: 46).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, 14).padding(.top, 4).padding(.bottom, 6)
+        .background {
+            UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 22, bottomTrailingRadius: 22, topTrailingRadius: 0, style: .continuous)
+                .fill(cardBG)
+                .shadow(color: .black.opacity(scheme == .dark ? 0.35 : 0.1), radius: 12, y: 8)
+        }
+        .padding(.leading, r.child == true ? 22 : 0)
+        .padding(.top, -3).padding(.bottom, 6)   // 往上贴住这一行（列表行间距 3），连成一块
+        .id(r.key + "#card")
+        // 从这一行的下边沿竖直方向长出来，后面几行跟着往下滑（VStack 重新排版由 cardAnim 带动画）
+        .transition(.asymmetric(insertion: .scale(scale: 0.12, anchor: .top).combined(with: .opacity),
+                                removal: .scale(scale: 0.12, anchor: .top).combined(with: .opacity)))
+        .zIndex(-1)
+    }
 }
 
-/// 侧拉菜单每一行「⋯」的位置（drawer 坐标），小窗口以它为中心展开
 /// 侧拉菜单里「新建子日历」胶囊的位置（drawer 坐标）
 struct KindsHKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
@@ -1517,10 +1592,6 @@ struct KindsHKey: PreferenceKey {
 struct PillKey: PreferenceKey {
     static var defaultValue: CGRect = .zero
     static func reduce(value: inout CGRect, nextValue: () -> CGRect) { let n = nextValue(); if n.width > 0 { value = n } }
-}
-struct DotsKey: PreferenceKey {
-    static var defaultValue: [String: CGRect] = [:]
-    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) { value.merge(nextValue()) { $1 } }
 }
 /// 「⋯」小窗口里的开关（用户定的样子）：一颗系统的透明液态玻璃水滴。关着时玻璃下面是淡淡凹陷的空底；
 /// 打开后 Cadence logo 的渐变色（淡紫 → 雾紫粉 → 杏）像一团气体在玻璃下面涨开、由模糊变清晰，充满到饱满，被玻璃折射着；

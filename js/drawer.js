@@ -296,6 +296,18 @@
     setTimeout(done, 280);
   }
   D.closeCard = closeCard;
+  // iPhone / Mac 原生编辑卡片（GlassDrawer.editCard）改名、换色交过来【联动:侧拉菜单】
+  D.edit = (id, f = {}) => {
+    const c = MC.cal(id); if (!c || !c.id) return;
+    const v = {};
+    if (typeof f.name === 'string' && f.name.trim() && f.name.trim() !== c.name) v.name = f.name.trim().slice(0, 24);
+    if (f.color && MC.CAL_COLORS.includes(f.color) && f.color !== c.color) v.color = f.color;
+    if (!Object.keys(v).length) return;
+    MC.updateCal(c, v);
+    if (MC.activeCal() === c.id) D.paint();
+    render();
+    if (v.color) { MC.reindex(); MC.Cal.render(); }
+  };
   // 改名：边打边存（停 0.35 秒存一次），收起卡片时把没存的存掉
   let nameT = 0;
   const flushName = () => {
@@ -448,10 +460,11 @@
       return { id: c.id, name: c.name, color: c.id ? c.color : '', kind: days ? 'days' : c.id ? 'rec' : 'main', on: c.id === MC.activeCal(), sf: days ? SF_OF[c.icon] || 'heart.fill' : '',
         sub: tr(days ? (n ? T('{0} 个日子').replace('{0}', n) : T('还没有日子')) : c.id ? (n ? `${n} 条记录` : '还没有记录') : '待办，也显示在今日页'),
         inMain: !!c.showInMain, notify: !!c.notify && !days, child: MC.hostOf(c) !== null,
-        menu: c.id ? menuOf(c).map(m => ({ ...m, label: tr(m.label) })) : [] };
+        menu: c.id ? menuOf(c).map(m => ({ ...m, label: tr(m.value === 'edit' ? (days ? '图标…' : '等级评分…') : m.label) })) : [] };   // 和网页编辑卡片同一套文字
     };
     const cals = MC.data.cals;
     return { title: tr('日历'), sub: tr('每个日历的内容分开显示'), main: item(MC.MAIN_CAL),
+      colors: MC.CAL_COLORS, namePH: tr('日历名称'),   // iPhone / Mac 原生编辑卡片用：颜色两排各 7 个、名称输入框的占位字
       mainKids: MC.kidsOf('').map(item),
       recTitle: tr('记录日历'), recs: recTree().map(item), recEmpty: tr('记录日历和待办分开显示，可以分别设置是否显示在主日历、是否通知。'),
       daysTitle: tr(T('纪念日历')), days: cals.filter(c => c.kind === 'days').map(item),
