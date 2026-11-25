@@ -42,11 +42,15 @@
   // 视口大小由 ResizeObserver 记下（它在排版之后才通知，读它不逼排版）；视口、窗口、视图、卡片状态都没变就沿用上次量的
   let measKey = '', vpSize = '';
   try { new ResizeObserver(es => { const r = es[es.length - 1].contentRect; vpSize = Math.round(r.width) + 'x' + Math.round(r.height); }).observe(vp); } catch (e) { vpSize = null; }
+  // 窗口尺寸也在 resize 时记下：安卓 WebView 里读 innerWidth / innerHeight 会逼浏览器当场把整页样式和排版算一遍
+  // （切换日历刚改了 body 的属性，这一遍要几十毫秒，新内容放进来后还得再算一遍，等于白算）
+  let winSize = innerWidth + 'x' + innerHeight;
+  addEventListener('resize', () => { winSize = innerWidth + 'x' + innerHeight; });
   function measure() {
     document.body.classList.toggle('cal-m', view === 'month');
     document.body.classList.toggle('cal-w', view === 'week');   // 周视图：列的顶上让开悬浮的月份胶囊
     const pv = body.classList.contains('previewing') && !body.classList.contains('pv-float');   // 月视图的卡片浮在上面，日历不缩
-    const key = vpSize == null ? '' : `${vpSize}|${innerWidth}x${innerHeight}|${view}|${pv}`;
+    const key = vpSize == null ? '' : `${vpSize}|${winSize}|${view}|${pv}`;
     if (key && key === measKey && rowH) return;
     measKey = key;
     W = vp.clientWidth; H = vp.clientHeight;
@@ -178,6 +182,10 @@
   // 只是普通文字换了个带透明度的颜色，不开新层，画起来和不淡出一样省；量和改都在空闲时分批做，不拖慢画月视图、滑动
   const FADE_W = 7, FADE_MIN = .45;   // 2026-11-25 用户嫌太淡、正常大小下看不见字：只淡最后 7px，最淡也留 45%
   let fadeJob = 0;
+  // 切换日历这类整页淡入时，空闲活（补画缓冲行、色条淡出）先停一停，等动画播完再做：不然它们改了 DOM，下一帧又要重算样式排版，淡入一路掉帧
+  let holdTo = 0;
+  Cal.hold = ms => { holdTo = Math.max(holdTo, performance.now() + ms); };
+  const held = () => performance.now() < holdTo;
   const idle = window.requestIdleCallback ? (f => requestIdleCallback(f, { timeout: 600 })) : (f => setTimeout(() => f({ timeRemaining: () => 8 }), 120));
   const unidle = window.cancelIdleCallback ? cancelIdleCallback : clearTimeout;
   // 量：返回之后要做的改动（一批先全部量完再一起改，不来回触发排版）
@@ -209,6 +217,7 @@
     const run = dl => {
       fadeJob = 0;
       if (!root.isConnected) return;
+      if (held()) { fadeJob = idle(run); return; }
       if (!list) { const all = [...root.querySelectorAll('.chip:not(.gap)')], ov = all.map(s => s.scrollWidth > s.clientWidth + 1); list = all.filter((s, i) => ov[i]); }   // 先一次读完宽度（周视图的事件块会换行，不会算成放不下）
       const rg = document.createRange(), writes = [];
       while (list.length && dl.timeRemaining() > 3) writes.push(fadeChip(list.shift(), rg));   // 一次只做到这一帧空闲用完，剩下的下次空闲再做
@@ -275,27 +284,34 @@
     }
     return h;
   }
+  // 一行（一周）的 HTML；lite：只画日期、不画事件（看不见的缓冲行先这样，空闲时再补，见 renderMonth）
+  function rowHTML(r, start, fk, t, lite) {
+    let h = `<div class="wrow" style="height:${rowH}px"${lite ? ` data-lr="${r}"` : ''}>`;
+    const days = [];
+    for (let c = 0; c < 7; c++) days.push(MC.ymd(MC.addDays(start, r * 7 + c)));
+    const lay = lite ? null : layWeek(days), lims = lay ? lay.occ.map(limitOf) : null;
+    for (let c = 0; c < 7; c++) {
+      const d = MC.addDays(start, r * 7 + c), ds = days[c];
+      const cls = ['cell'];
+      if (d.getFullYear() * 12 + d.getMonth() !== fk) cls.push('out');
+      if (ds === t) cls.push('today');
+      if (ds === selected) cls.push('sel');
+      if (d.getDate() === 1) cls.push('first');
+      h += `<div class="${cls.join(' ')}" data-date="${ds}">${d.getDate() === 1 ? `<span class="mlabel">${d.getMonth() + 1}月</span>` : ''}<div class="num">${d.getDate()}</div><div class="chips">${lay ? cellChips(lay.occ[c], lims[c]) : ''}</div></div>`;
+    }
+    return h + (lay ? barsHTML(lay, days, lims) : '') + '</div>';
+  }
+  // 性能：月视图上下各预先画了 BUF 周（共 30 行），屏幕上只看得见 7 行。以前每次重画（切换日历、勾选完成……）30 行都画全，
+  // 切换日历时这一下正好卡在淡出和淡入之间（用户说「淡出 → 停一下 → 淡入」很明显）。现在只同步画看得见的那几行（上下各多 2 行），
+  // 其余的行先只画日期，空闲时一行一行补上事件——往外滑好几行才看得到它们
+  let fillGen = 0;
   function renderMonth() {
     computeFocus();
     const fk = focus.y * 12 + focus.m, t = MC.todayStr();
     const start = MC.addDays(anchor, -BUF * 7);
-    let h = '';
-    for (let r = 0; r < 6 + BUF * 2; r++) {
-      h += `<div class="wrow" style="height:${rowH}px">`;
-      const days = [];
-      for (let c = 0; c < 7; c++) days.push(MC.ymd(MC.addDays(start, r * 7 + c)));
-      const lay = layWeek(days), lims = lay.occ.map(limitOf);
-      for (let c = 0; c < 7; c++) {
-        const d = MC.addDays(start, r * 7 + c), ds = days[c];
-        const cls = ['cell'];
-        if (d.getFullYear() * 12 + d.getMonth() !== fk) cls.push('out');
-        if (ds === t) cls.push('today');
-        if (ds === selected) cls.push('sel');
-        if (d.getDate() === 1) cls.push('first');
-        h += `<div class="${cls.join(' ')}" data-date="${ds}">${d.getDate() === 1 ? `<span class="mlabel">${d.getMonth() + 1}月</span>` : ''}<div class="num">${d.getDate()}</div><div class="chips">${cellChips(lay.occ[c], lims[c])}</div></div>`;
-      }
-      h += barsHTML(lay, days, lims) + '</div>';
-    }
+    const ctr = BUF + Math.round(scrollY / (rowH || 1)), lo = ctr - 2, hi = ctr + 8;   // 看得见的大约是 ctr 到 ctr + 6
+    let h = '', lazy = 0;
+    for (let r = 0; r < 6 + BUF * 2; r++) { const lite = r < lo || r > hi; if (lite) lazy++; h += rowHTML(r, start, fk, t, lite); }
 
     track.style.cssText = '';
     track.innerHTML = h + `<div class="mframe${moving ? ' moving' : ''}" aria-hidden="true"><div class="mf-in" id="mframePath"></div></div>`;
@@ -303,6 +319,28 @@
     setT(0, TOP - (BUF * rowH + scrollY));
     monthTitle();
     drawFrame();
+    if (lazy) fillLazy(++fillGen, start);
+  }
+  function fillLazy(gen, start) {
+    const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 400 }) : setTimeout(() => f({ timeRemaining: () => 8 }), 60));
+    const step = dl => {
+      if (gen !== fillGen || view !== 'month') return;   // 又重画过了 / 换了视图：这一轮作废
+      if (held()) { idle(step); return; }
+      const rows = track.querySelectorAll('.wrow[data-lr]'); if (!rows.length) return;
+      const fk = focus.y * 12 + focus.m, t = MC.todayStr();
+      // 离看得见的地方近的先补
+      const ctr = BUF + Math.round(scrollY / (rowH || 1));
+      const list = [...rows].sort((a, b) => Math.abs(+a.dataset.lr - ctr) - Math.abs(+b.dataset.lr - ctr));
+      let n = 0;
+      for (const row of list) {
+        if (n && dl.timeRemaining() < 4) break;
+        row.insertAdjacentHTML('afterend', rowHTML(+row.dataset.lr, start, fk, t, false));
+        row.remove(); n++;
+      }
+      fadeOverflow(track);
+      if (track.querySelector('.wrow[data-lr]')) idle(step);
+    };
+    idle(step);
   }
   // 月份交替的地方：一根 Cadence logo 色（雾紫 → 丁香 → 暖沙）缓缓流动的细线，沿着交界呈阶梯形；两侧不画（用户定的：只留月份交替那一条）
   // 本月开头那条（和上个月的交界）、本月结尾那条（和下个月的交界）

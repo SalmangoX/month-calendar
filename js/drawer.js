@@ -202,12 +202,12 @@
     setTimeout(() => (swapping = false), 800);   // 兜底：后台时动画事件不一定来，别卡住以后的切换
     const go = () => {
       if (went) return; went = true;
+      if (MC.Cal.hold) MC.Cal.hold(380);   // 淡入（340ms）播完前不做空闲补画
       swap();
-      requestAnimationFrame(() => {
-        out.cancel();
-        const back = host.animate([{ opacity: .3, transform: 'translateY(-4px) scale(1.012)' }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.2,.8,.2,1)' });
-        back.onfinish = back.oncancel = () => { swapping = false; };
-      });
+      // 换好内容马上接淡入（以前隔一帧再开始，淡出结束后白停一帧）：新内容和淡入第一帧一起画出来，不会闪
+      out.cancel();
+      const back = host.animate([{ opacity: .3, transform: 'translateY(-4px) scale(1.012)' }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      back.onfinish = back.oncancel = () => { swapping = false; };
     };
     out.onfinish = go; setTimeout(go, 220);
   };
