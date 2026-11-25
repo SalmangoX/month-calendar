@@ -10,40 +10,53 @@
   let W = 0, EW = 1, pos = 0, isOpen = false, anim = null;
   const rubber = (x, d) => (1 - 1 / (x * .55 / d + 1)) * d;
 
-  // ---------- 弹簧 ----------
-  function spring(from, to, v, k, c, onUpdate, onDone) {
-    let x = from, vel = v, last = performance.now(), id = 0, stopped = false;
-    const step = now => {
-      if (stopped) return;
-      // 按真实经过的时间推进（以前每帧最多算 34ms：安卓冷启动后 GPU 还没热好、一帧 200–300ms 时，菜单要 1.4 秒以上才挪到位，
-      // 这期间点「⋯」点到的是后面的遮罩）。帧慢就一步多算几小步，不会算飞；超过 0.12 秒的（后台回来）也只算 0.12 秒
-      const dt = Math.min(.12, Math.max(.001, (now - last) / 1000)); last = now;
-      const n = Math.max(4, Math.ceil(dt / .0085)), h = dt / n;
-      for (let i = 0; i < n; i++) { vel += (-k * (x - to) - c * vel) * h; x += vel * h; }
-      if (Math.abs(x - to) < .25 && Math.abs(vel) < 8) { onUpdate(to, 0); stopped = true; onDone && onDone(); return; }
-      onUpdate(x, vel);
-      id = requestAnimationFrame(step);
-    };
-    id = requestAnimationFrame(step);
-    return { stop() { stopped = true; cancelAnimationFrame(id); } };
-  }
-
   // ---------- 画面 ----------
-  // p：面板露出的宽度（0 = 收起，W = 完全拉出，大于 W 时像果冻一样被拉长）
-  function apply(p, v = 0) {
-    pos = p;
+  // p：面板露出的宽度（0 = 收起，W = 完全拉出，大于 W 时像果冻一样被拉长）；v：速度（甩动时轻微拉长压扁）
+  function look(p, v = 0) {
     const over = Math.max(0, p - W);
     const x = Math.max(0, Math.min(p, W)) - W;
     const stretch = over ? rubber(over, 34) / EW : 0;       // 拉过头：向右拉长
     const sp = Math.min(.045, Math.abs(v) / 26000);                     // 甩动时轻微拉长压扁
     const sx = 1 + stretch + sp, sy = 1 - sp * .55 - stretch * .25;
-    el.style.transform = `translate3d(${x.toFixed(2)}px,0,0) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
-    const pr = W ? Math.max(0, Math.min(1, p / W)) : 0;
+    return { tf: `translate3d(${x.toFixed(2)}px,0,0) scale(${sx.toFixed(4)},${sy.toFixed(4)})`, pr: W ? Math.max(0, Math.min(1, p / W)) : 0 };
+  }
+  function apply(p, v = 0) {
+    pos = p;
+    const { tf, pr } = look(p, v);
+    el.style.transform = tf;
     el.style.setProperty('--pr', pr.toFixed(3));
     scrim.style.opacity = pr.toFixed(3);
     const vis = p > .5;
     el.classList.toggle('vis', vis);
     scrim.classList.toggle('vis', vis);
+  }
+  // 拉开 / 收起（含拖动松手后的回弹）：同一条弹簧，先按 1/120 秒算好每一帧的位置，换成关键帧交给浏览器自己跑（合成线程），
+  // 不再每一帧等网页主线程用 JS 推。2026-11-25 在用户手机上实测：收起时丢帧 平均 10 → 6.3（同一条曲线，看起来一样）
+  function springPts(from, to, v, k, c, clamp) {
+    const pts = []; let x = from, vel = v; const h = 1 / 120 / 8;
+    for (let f = 0; f < 240; f++) {
+      for (let i = 0; i < 8; i++) { vel += (-k * (x - to) - c * vel) * h; x += vel * h; }
+      if (Math.abs(x - to) < .25 && Math.abs(vel) < 8) { pts.push([to, 0]); break; }
+      pts.push([clamp ? Math.max(0, x) : x, vel]);
+    }
+    return pts;
+  }
+  function glide(target, pts) {
+    const rows = [...el.querySelectorAll('.dr-row, .dr-sec, .dr-empty')];
+    const iOf = r => parseFloat(r.style.getPropertyValue('--i') || getComputedStyle(r).getPropertyValue('--i')) || 1;
+    const fr = [[pos, 0], ...pts].map(([p, v]) => look(p, v)), dur = pts.length / 120 * 1000;
+    const opt = { duration: dur, fill: 'forwards' };
+    const anims = [el.animate(fr.map(f => ({ transform: f.tf })), opt), scrim.animate(fr.map(f => ({ opacity: f.pr })), opt),
+      ...rows.map(r => { const i = iOf(r); return r.animate(fr.map(f => ({ transform: `translate3d(${((1 - f.pr) * -22 * i).toFixed(2)}px,0,0)` })), opt); })];
+    if (target > .5) { el.classList.add('vis'); scrim.classList.add('vis'); }   // 拉出：一开始就要看得见；收起：放完再藏
+    const t0 = performance.now();
+    let over = false;
+    const end = (p, v) => { if (over) return; over = true; apply(p, v); anims.forEach(a => a.cancel()); if (anim === ctl) anim = null; };
+    // 中途被手指打断：停在此刻的位置（按经过的时间找到那一帧），接着交给手势
+    const ctl = { stop() { const k = Math.min(pts.length - 1, Math.max(0, Math.round((performance.now() - t0) / (1000 / 120)) - 1)); end(...pts[k]); } };
+    anims[0].onfinish = () => end(target, 0);
+    setTimeout(() => end(target, 0), dur + 200);   // 后台时动画事件不一定来，照样收尾
+    return ctl;
   }
   function measure() { EW = el.offsetWidth || 1; W = EW + GAP; }
   // 预热（安卓）：用户说冷启动后头几次拉菜单卡、之后才顺——手机 GPU 第一次画某种模糊 / 渐变要现场编译绘制程序。
@@ -59,11 +72,9 @@
     isOpen = opening;
     el.setAttribute('aria-hidden', String(!opening));
     scrim.classList.toggle('live', opening);
-    if (reduce.matches) { apply(target); anim = null; return; }
+    if (reduce.matches || !el.animate) { apply(target); anim = null; return; }
     // 拉出：顺滑地吸到位置上，不过冲（用户定的）；只有用力甩出来时才带一点点回弹。收起：干脆利落不过冲
-    anim = opening
-      ? spring(pos, target, v, 430, Math.abs(v) > 900 ? 34 : 44, apply, () => (anim = null))
-      : spring(pos, target, v, 520, 48, (p, vv) => apply(Math.max(0, p), vv), () => (anim = null));
+    anim = glide(target, opening ? springPts(pos, target, v, 430, Math.abs(v) > 900 ? 34 : 44, false) : springPts(pos, target, v, 520, 48, true));
   }
   D.isOpen = () => isOpen;
   D.reorder = ids => { MC.reorderCals(ids); render(); };   // iPhone / Mac 原生侧拉菜单拖动排好后交过来
@@ -205,27 +216,20 @@
   list.addEventListener('touchmove', e => { if (rd) { if (e.cancelable) e.preventDefault(); e.stopPropagation(); } }, { passive: false, capture: true });
   list.addEventListener('contextmenu', e => { if (rd || e.target.closest('.dr-row')) e.preventDefault(); });
 
-  // 切换日历：不再整页一下子闪过去——先淡出、稍微缩一点往下沉，换好内容后再从略大一点淡入回来（不用模糊：会让里面的液态玻璃失效）
+  // 切换日历（2026-11-25 用户在手机上从五种里选的「直接」）：内容马上换，只有日历内容那一块从半透明、略小一点快速清晰起来（0.2 秒），
+  // 标题板不动、不先淡出、不整屏变暗缩放（以前整屏一起变暗缩小再放大，用户嫌难受）
   let swapping = false;
   D.pick = id => {
     if (id === MC.activeCal() || swapping) return;
     try { navigator.vibrate && navigator.vibrate(6); } catch (err) {}
-    const host = $('#pages'), swap = () => { MC.setActiveCal(id); D.paint(); render(); MC.Cal.render(); };
-    if (!host || !host.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { swap(); return; }
+    if (MC.Cal.hold) MC.Cal.hold(300);   // 清晰起来之前不做空闲补画
+    MC.setActiveCal(id); D.paint(); render(); MC.Cal.render();
+    const body = document.querySelector('.page.active #calBody') || document.querySelector('.page.active');
+    if (!body || !body.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     swapping = true;
-    const out = host.animate([{ opacity: 1, transform: 'none' }, { opacity: .3, transform: 'translateY(6px) scale(.985)' }], { duration: 150, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards' });
-    let went = false;
-    setTimeout(() => (swapping = false), 800);   // 兜底：后台时动画事件不一定来，别卡住以后的切换
-    const go = () => {
-      if (went) return; went = true;
-      if (MC.Cal.hold) MC.Cal.hold(380);   // 淡入（340ms）播完前不做空闲补画
-      swap();
-      // 换好内容马上接淡入（以前隔一帧再开始，淡出结束后白停一帧）：新内容和淡入第一帧一起画出来，不会闪
-      out.cancel();
-      const back = host.animate([{ opacity: .3, transform: 'translateY(-4px) scale(1.012)' }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.2,.8,.2,1)' });
-      back.onfinish = back.oncancel = () => { swapping = false; };
-    };
-    out.onfinish = go; setTimeout(go, 220);
+    const a = body.animate([{ opacity: .35, transform: 'scale(.99)' }, { opacity: 1, transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    a.onfinish = a.oncancel = () => { swapping = false; };
+    setTimeout(() => (swapping = false), 400);   // 兜底：后台时动画事件不一定来
   };
   // 「更多」菜单：记录日历和纪念日历的选项不同
   const menuOf = c => fold(c, c.kind === 'days'

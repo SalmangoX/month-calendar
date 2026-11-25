@@ -134,6 +134,10 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+/* 点按不等双击（2026-11-25 在用户手机上实测）：安卓 App 冷启动时 WebView 会开着「双击缩放」检测，每次点按都要等约 0.3 秒
+   看会不会有第二下，快速补点的两下还会被当成双击、一个点击都不发——刚拉出侧拉菜单点日历、点「⋯」、点「新建子日历」都没反应。
+   页面不需要双击缩放，整页关掉：点下去 60ms 左右就是点击 */
+html, body { touch-action: manipulation; }
 html, body {
   margin: 0; height: 100%;
   background: var(--bg); color: var(--text);
