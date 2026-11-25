@@ -766,8 +766,8 @@
       const snapY = top - v * rowH;   // 吸附线：看得见的第一行的顶
       preview.style.top = 'auto';
       preview.style.bottom = Math.max(0, b.bottom - top + gap) + 'px';
-    } else {
       preview.style.maxHeight = Math.max(120, top - snapY - gap * 2) + 'px';
+    } else {
       preview.style.top = (bottom - b.top + gap) + 'px'; preview.style.maxHeight = '';
       preview.style.bottom = '';   // 底边由 CSS 定在底栏上面（var(--bar-space)），和以前一样，底栏的时钟和 logo 挪进卡片底部
     }
