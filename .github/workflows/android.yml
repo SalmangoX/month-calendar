@@ -6,6 +6,9 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/android.yml'
+      # 改了版本号也重新打包（2026-11-25 用户定的）：安装包的版本号是打包时从 version.json 读的，
+      # 以前只有原生代码改了才打包，界面上显示 1.5.x、安装包还停在 1.4.2
+      - 'version.json'
   workflow_dispatch:
 
 permissions:
