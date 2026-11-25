@@ -268,6 +268,8 @@
   function closeComposer(save) { skipCloseSave = !save; UI.close('composer'); }
   Editor.closeComposerSilently = () => closeComposer(false);
 
+  // 冷启动预热（app.js 的 warmUp）：先把新建面板的内容生成一遍，不打开、不碰存储；真正打开时会重新生成
+  Editor.prewarm = () => { if (UI.isOpen('composer')) return; mode = 'new'; editing = null; newCal = ''; resetDraft(MC.todayStr()); paintComposer(); mountInline(); };
   Editor.openNew = (date, cal, pinDate) => { // pinDate：明确点了某一天（长按日期），草稿也改用这一天
     mode = 'new'; editing = null;
     segSel = 0;

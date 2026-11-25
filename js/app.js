@@ -1852,4 +1852,28 @@
       UI.toast(`安卓 App 有新版本 ${up.name}，到 设置 → 安卓 App 下载`);
     }).catch(() => {}), 4000);
   }
+
+  // ---------- 冷启动预热（安卓）----------
+  // 用户说冷启动后每个功能第一次都卡、之后才顺：安卓 WebView 不跨启动保存 GPU 编译好的绘制程序，每种模糊 / 渐变 / 阴影第一次画到屏幕上都要现场编译。
+  // App 打开后空闲时，把主要界面在原位以 1% 透明度各画两帧（styles.css 的 .warm-up；侧拉菜单在 drawer.js 里先做），
+  // 看不见、点不到、不改数据、不碰原生底栏；用户已经打开了面板就跳过。一块一块隔开做，不连成一个长帧
+  setTimeout(() => {
+    if (!document.documentElement.classList.contains('in-android')) return;
+    const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 1500 }) : setTimeout(f, 200));
+    const busy = () => UI.anyOpen() || (UI.confirmOpen && UI.confirmOpen()) || document.hidden || !!document.querySelector('#calBody.previewing, #calDrawer.vis');
+    const flash = (el, done) => {
+      if (!el || busy() || el.classList.contains('show')) return done();
+      el.classList.add('warm-up');
+      requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => { el.classList.remove('warm-up'); done(); }, 80)));
+    };
+    const steps = [
+      done => { try { if (!busy() && MC.Editor.prewarm) MC.Editor.prewarm(); } catch (e) {} flash($('#composer'), done); },
+      done => flash($('#preview'), done),
+      done => flash($('#formSheet'), done),
+      done => flash(document.querySelector('.popover'), done),
+    ];
+    let i = 0;
+    const next = () => { if (i < steps.length) { const s = steps[i++]; setTimeout(() => idle(() => s(next)), 250); } };
+    next();
+  }, 2600);   // 在侧拉菜单的预热（约 1.5 秒）之后
 })();

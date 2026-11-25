@@ -1353,6 +1353,9 @@ html.locked .lock { display: grid; }
 :root[data-theme="dark"].ui-open .drawer::after { background: rgb(38, 38, 42); }
 /* 预热（drawer.js）：App 打开后空闲时在原位画两帧，透明度 1%，看不见、不接点按 */
 .drawer.warm { visibility: visible; transform: none !important; opacity: .01; pointer-events: none; }
+/* 冷启动预热（app.js 的 warmUp）：新建面板、日卡片、弹出卡片、小菜单在原位以 1% 透明度画两帧，看不见、点不到 */
+.warm-up { visibility: visible !important; opacity: .01 !important; transform: none !important; translate: none !important; pointer-events: none !important; transition: none !important; animation: none !important; }
+#preview.warm-up { display: flex !important; position: fixed !important; left: 8px; right: 8px; top: 25%; height: 45%; z-index: 1; }
 :root[data-theme="dark"] .drawer::after { box-shadow: inset 0 0 0 .6px rgba(255, 255, 255, .08); }
 .drawer > * { position: relative; z-index: 1; }
 .drawer.vis { visibility: visible; }

@@ -1,0 +1,6 @@
+# 节律自己的原生代码（底栏的时钟胶囊、logo 扇形、拖动的水滴和粒子，相机，小组件，提醒……）的基线配置：
+# 装好后由系统在空闲时提前编译成机器码，冷启动后第一次用这些功能不用再边解释边编译（用户说每次冷启动后第一次都卡）。
+# 从 GitHub 下载安装（不经过应用商店）也会生效：profileinstaller（Compose 自带依赖）会在首次启动时把它交给系统。
+# Compose 库自己的部分由各个库自带的基线配置覆盖。
+HSPLio/github/salmangox/monthcalendar/**;->**(**)**
+Lio/github/salmangox/monthcalendar/**;
