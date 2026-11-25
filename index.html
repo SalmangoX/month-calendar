@@ -176,7 +176,6 @@
 <!-- 左侧日历栏：在日历页从左往右滑动拉出 -->
 <div class="drawer-scrim" id="drawerScrim"></div>
 <aside class="drawer" id="calDrawer" aria-label="选择日历" aria-hidden="true">
-  <div class="dr-ring" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
   <header class="dr-head"><h2>日历</h2><p>每个日历的内容分开显示</p></header>
   <div class="dr-list" id="drawerList"></div>
   <button class="dr-add lgbtn tap" id="drawerAdd">
@@ -606,6 +605,11 @@
   <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="1" seed="9" result="n"/>
   <feGaussianBlur in="n" stdDeviation="1.4" result="nb"/>
   <feDisplacementMap in="SourceGraphic" in2="nb" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+</filter><filter id="lg-refract-dr" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+  <!-- 侧拉菜单外圈的透明液态玻璃（用户 2026-11-25 选的 A）：比 lg-refract 折射更强、纹理更密，不加模糊，看得见后面的字被弯过去 -->
+  <feTurbulence type="fractalNoise" baseFrequency="0.016 0.026" numOctaves="1" seed="9" result="n"/>
+  <feGaussianBlur in="n" stdDeviation="1.4" result="nb"/>
+  <feDisplacementMap in="SourceGraphic" in2="nb" scale="26" xChannelSelector="R" yChannelSelector="G"/>
 </filter><filter id="lg-refract-soft" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
   <feTurbulence type="fractalNoise" baseFrequency="0.01 0.018" numOctaves="1" seed="9" result="n"/>
   <feGaussianBlur in="n" stdDeviation="1.6" result="nb"/>

@@ -1354,40 +1354,30 @@ html.locked .lock { display: grid; }
 /* 边缘的玻璃：轻模糊 + 提亮 + 高光边，支持的话再加真折射 */
 .drawer::before { inset: 0; border-radius: inherit;
   background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .06) 55%, rgba(255, 255, 255, .14));
+  -webkit-backdrop-filter: blur(3px) saturate(190%) brightness(1.05); backdrop-filter: blur(3px) saturate(190%) brightness(1.05);
   box-shadow: var(--glass-rim); }
-/* 边缘玻璃的滤镜（模糊 + 提饱和 + 提亮 + 折射）放在 .dr-ring 的四条细带上，只算看得见的那一圈：
-   以前整块铺满侧拉菜单（中间被磨砂卡片盖住、看不见），带折射的滤镜按整块面积算，「⋯」小窗口每动一帧都要重算，安卓上每帧 900ms → 250ms。
-   顺序和以前一样：细带先把后面的页面模糊、折射，上面再盖 ::before 的渐变和高光边（::before 不再带滤镜） */
-.dr-ring { position: absolute !important; inset: 0; z-index: -1 !important; border-radius: inherit; pointer-events: none; }
-.dr-ring i { position: absolute; display: block;
-  -webkit-backdrop-filter: blur(3px) saturate(190%) brightness(1.05); backdrop-filter: blur(3px) saturate(190%) brightness(1.05); }
-.dr-ring i:nth-child(1) { left: 0; right: 0; top: 0; height: 30px; border-radius: 30px 30px 0 0; }
-.dr-ring i:nth-child(2) { left: 0; right: 0; bottom: 0; height: 30px; border-radius: 0 0 30px 30px; }
-.dr-ring i:nth-child(3) { left: 0; top: 30px; bottom: 30px; width: 7px; }
-.dr-ring i:nth-child(4) { right: 0; top: 30px; bottom: 30px; width: 7px; }
-.lg-refract .dr-ring i { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); backdrop-filter: blur(2px) saturate(200%) brightness(1.05) url(#lg-refract); }
+/* 支持折射时外圈是透明液态玻璃（用户 2026-11-25 选的 A：以前带模糊 + 白层，看起来像磨砂）：不模糊、只提一点饱和和亮度，
+   靠更强的折射（#lg-refract-dr）和一圈高光边看出是玻璃；中间的磨砂卡片不变。不许为性能改这一圈的样子（CLAUDE.md） */
+.lg-refract .drawer::before { -webkit-backdrop-filter: saturate(165%) brightness(1.06) url(#lg-refract-dr); backdrop-filter: saturate(165%) brightness(1.06) url(#lg-refract-dr);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, .08));
+  box-shadow: inset 0 1.2px 0 rgba(255, 255, 255, .95), inset 1px 0 0 rgba(255, 255, 255, .45), inset -1px 0 0 rgba(255, 255, 255, .45), inset 0 -1px 0 rgba(255, 255, 255, .6),
+    inset 0 0 0 .5px rgba(255, 255, 255, .35), 0 0 0 .5px rgba(0, 0, 0, .06); }
 /* 中间的磨砂卡片：往里收 7px，圆角 23 */
 .drawer::after { inset: 7px; border-radius: 23px;
   background: var(--drawer-frost);
-  /* 以前它后面整块都垫着外圈玻璃（先提饱和、提亮了一遍），现在中间那块下面是原始画面：把外圈那一道并进来（饱和、提亮都是线性的，两道相乘等于一道），看起来和以前一样。
-     外圈无折射：190% × 170% ≈ 323%、提亮 1.05；有折射：200% × 170% = 340%、提亮 1.05；深色有折射：170% × 170% ≈ 289%、不提亮 */
-  -webkit-backdrop-filter: blur(30px) saturate(323%) brightness(1.05); backdrop-filter: blur(30px) saturate(323%) brightness(1.05);
+  -webkit-backdrop-filter: blur(30px) saturate(170%); backdrop-filter: blur(30px) saturate(170%);
   box-shadow: inset 0 0 0 .6px rgba(255, 255, 255, .5), 0 1px 4px rgba(14, 24, 40, .06); }
-.lg-refract .drawer::after { -webkit-backdrop-filter: blur(30px) saturate(340%) brightness(1.05); backdrop-filter: blur(30px) saturate(340%) brightness(1.05); }
-:root[data-theme="dark"].lg-refract .drawer::after { -webkit-backdrop-filter: blur(30px) saturate(289%); backdrop-filter: blur(30px) saturate(289%); }
 :root[data-theme="dark"] .drawer::before { background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%, rgba(255, 255, 255, .05)); }
-:root[data-theme="dark"].lg-refract .dr-ring i { -webkit-backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); backdrop-filter: blur(2px) saturate(170%) url(#lg-refract); }
-/* 「⋯」小窗口从侧拉菜单里展开的那 0.3 秒（ui.js 的 dropPop 挂 .rf-hold）：外圈只停掉折射，模糊、饱和、提亮照旧。
-   折射（feTurbulence 噪声）安卓上每一帧都要从头算，小窗口一动每帧几百毫秒；展开完马上恢复（用户 2026-11-25 同意的） */
-.lg-refract .drawer.rf-hold .dr-ring i { -webkit-backdrop-filter: blur(2px) saturate(200%) brightness(1.05); backdrop-filter: blur(2px) saturate(200%) brightness(1.05); }
-:root[data-theme="dark"].lg-refract .drawer.rf-hold .dr-ring i { -webkit-backdrop-filter: blur(2px) saturate(170%); backdrop-filter: blur(2px) saturate(170%); }
-/* 侧拉菜单外圈的透明液态玻璃、中间的磨砂卡片：任何状态（拉动、滚动、有面板盖着）都保持原样，不为省性能改样子（用户定的） */
+/* 深色：同样透明、不模糊；高光边压暗（液态玻璃深色模式不要白边） */
+:root[data-theme="dark"].lg-refract .drawer::before { -webkit-backdrop-filter: saturate(150%) url(#lg-refract-dr); backdrop-filter: saturate(150%) url(#lg-refract-dr);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, .03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), inset 1px 0 0 rgba(255, 255, 255, .08), inset -1px 0 0 rgba(255, 255, 255, .08), inset 0 -1px 0 rgba(255, 255, 255, .1), 0 0 0 .5px rgba(0, 0, 0, .3); }
+:root[data-theme="dark"] .drawer::after { box-shadow: inset 0 0 0 .6px rgba(255, 255, 255, .08); }
 /* 预热（drawer.js）：App 打开后空闲时在原位画两帧，透明度 1%，看不见、不接点按 */
 .drawer.warm { visibility: visible; transform: none !important; opacity: .01; pointer-events: none; }
 /* 冷启动预热（app.js 的 warmUp）：新建面板、日卡片、弹出卡片、小菜单在原位以 1% 透明度画两帧，看不见、点不到 */
 .warm-up { visibility: visible !important; opacity: .01 !important; transform: none !important; translate: none !important; pointer-events: none !important; transition: none !important; animation: none !important; }
 #preview.warm-up { display: flex !important; position: fixed !important; left: 8px; right: 8px; top: 25%; height: 45%; z-index: 1; }
-:root[data-theme="dark"] .drawer::after { box-shadow: inset 0 0 0 .6px rgba(255, 255, 255, .08); }
 .drawer > * { position: relative; z-index: 1; }
 .drawer.vis { visibility: visible; }
 .dr-head { padding: 22px 22px 10px; flex: none; }

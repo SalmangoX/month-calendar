@@ -15,8 +15,10 @@
     let x = from, vel = v, last = performance.now(), id = 0, stopped = false;
     const step = now => {
       if (stopped) return;
-      const dt = Math.min(.034, Math.max(.001, (now - last) / 1000)); last = now;
-      const n = 4, h = dt / n;
+      // 按真实经过的时间推进（以前每帧最多算 34ms：安卓冷启动后 GPU 还没热好、一帧 200–300ms 时，菜单要 1.4 秒以上才挪到位，
+      // 这期间点「⋯」点到的是后面的遮罩）。帧慢就一步多算几小步，不会算飞；超过 0.12 秒的（后台回来）也只算 0.12 秒
+      const dt = Math.min(.12, Math.max(.001, (now - last) / 1000)); last = now;
+      const n = Math.max(4, Math.ceil(dt / .0085)), h = dt / n;
       for (let i = 0; i < n; i++) { vel += (-k * (x - to) - c * vel) * h; x += vel * h; }
       if (Math.abs(x - to) < .25 && Math.abs(vel) < 8) { onUpdate(to, 0); stopped = true; onDone && onDone(); return; }
       onUpdate(x, vel);
@@ -140,7 +142,7 @@
     list.innerHTML = h;
   }
   list.addEventListener('click', e => {
-    const b = e.target.closest('[data-act]'); if (!b || swallow) return;
+    const b = e.target.closest('[data-act]'); if (!b || swallowed()) return;
     const id = b.closest('.dr-row').dataset.id;
     if (b.dataset.act === 'pick') { D.pick(id); setTimeout(D.close, 140); return; }
     const c = MC.cal(id); if (c) UI.menu(b, menuOf(c), v => D.act(id, v), { center: true });   // 以「⋯」为正中心展开
@@ -175,7 +177,7 @@
     const end = () => {
       document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', end); document.removeEventListener('pointercancel', end);
       const { to } = rd; rd = null;
-      swallow = true; setTimeout(() => (swallow = false), 300);   // 松手那一下不算点开这个日历
+      eat();   // 松手那一下不算点开这个日历
       r.style.transform = `translateY(${(to - idx) * h}px)`;
       setTimeout(() => {
         list.classList.remove('reordering');
@@ -449,9 +451,16 @@
   }
 
   // ---------- 手势 ----------
-  let swallow = false;
-  const vel = s => { // 松手前 90ms 的速度（px/s）
-    const now = performance.now(), r = s.filter(p => now - p[0] < 90);
+  // 手势（拉出 / 收起 / 拖动排序）结束后吃掉它自己补发的那次点击。只吃「手势结束前就按下去」的那一下：
+  // 以前一律吃 300ms，刚拉出菜单马上点「⋯」，这一下真正的点按也被吃掉了
+  let swallow = false, swallowAt = 0, downAt = -1;
+  document.addEventListener('pointerdown', e => { downAt = e.timeStamp; }, true);
+  const eat = () => { swallow = true; swallowAt = performance.now(); setTimeout(() => (swallow = false), 300); };
+  const swallowed = () => swallow && downAt <= swallowAt;
+  // 松手前 90ms 的速度（px/s）。时间一律用事件自己的时间戳（e.timeStamp，手指真正动 / 松开的那一刻）：
+  // 以前用处理事件时的 performance.now()，主线程一卡（冷启动 GPU 还没热好时一帧 200ms+），松手事件晚到，速度就被算成 0，拉得再快也弹回去
+  const vel = (s, now = performance.now()) => {
+    const r = s.filter(p => now - p[0] < 90);
     if (r.length < 2) return 0;
     const a = r[0], b = r[r.length - 1];
     return Math.max(-5000, Math.min(5000, (b[1] - a[1]) / Math.max(8, b[0] - a[0]) * 1000));
@@ -476,7 +485,7 @@
     if (e.target.closest('input, textarea, .wheel, .preview, .dv-noswipe')) return;
     const edge = t.clientX < 34, head = !!e.target.closest('.topbar, .weekdays');
     if (MC.Cal.view() === 'week' && !edge && !head && document.body.dataset.kind !== 'days') return;
-    g = { x0: t.clientX, y0: t.clientY, mode: 0, s: [[performance.now(), t.clientX]] };
+    g = { x0: t.clientX, y0: t.clientY, mode: 0, s: [[e.timeStamp, t.clientX]] };
   }, { capture: true, passive: true });
   pg.addEventListener('touchmove', e => {
     if (!g || g.mode < 0 || e.touches.length !== 1) return;
@@ -500,18 +509,21 @@
     }
     if (e.cancelable) e.preventDefault();
     e.stopPropagation();                                              // 日历不再跟着滚动（手指没抬起来之前一直这样）
-    g.s.push([performance.now(), t.clientX]); if (g.s.length > 10) g.s.shift();
+    g.s.push([e.timeStamp, t.clientX]); if (g.s.length > 10) g.s.shift();
     if (g.mode === 2) window.MCNative.drawerPull('move', Math.max(0, dx), 0);
-    else apply(Math.max(0, dx), vel(g.s));
+    else apply(Math.max(0, dx), vel(g.s, e.timeStamp));
   }, { capture: true, passive: false });
-  const pageEnd = () => {
+  const pageEnd = e => {
     if (!g) return;
-    const was = g.mode === 1, s = g.s;
-    if (g.mode === 2) { g = null; pageSwallow = Date.now(); window.MCNative.drawerPull('end', 0, vel(s)); return; }
+    const was = g.mode === 1, s = g.s, ts = e && e.timeStamp || performance.now();
+    if (g.mode === 2) { g = null; pageSwallow = Date.now(); window.MCNative.drawerPull('end', 0, vel(s, ts)); return; }
+    // 掉帧时最后几次 touchmove 会被合并、来不及画：松手时按手指最后的位置补上，菜单不会停在手指后面半截
+    const t = was && e && e.changedTouches && e.changedTouches[0];
+    if (t) { s.push([ts, t.clientX]); apply(Math.max(0, t.clientX - g.x0)); }
     g = null;
     if (!was) return;
-    swallow = true; setTimeout(() => (swallow = false), 300);
-    release(vel(s), pos);
+    eat();
+    release(vel(s, ts), pos);
   };
   pg.addEventListener('touchend', pageEnd, true);
   pg.addEventListener('touchcancel', () => {
@@ -539,9 +551,11 @@
     n.addEventListener('touchstart', e => {
       c2 = null;
       if (!isOpen || e.touches.length !== 1) return;
+      // 菜单还在滑进来就按在了菜单上：直接让它到位，这一下的点击按到位后的位置找按钮（见下面 el 的 click）
+      if (n === el && pos < W - .5) { reTarget = true; if (anim) { anim.stop(); anim = null; } apply(W); }
       if (anim) anim.stop();
       const t = e.touches[0];
-      c2 = { x0: t.clientX, y0: t.clientY, p0: pos, mode: 0, s: [[performance.now(), t.clientX]] };
+      c2 = { x0: t.clientX, y0: t.clientY, p0: pos, mode: 0, s: [[e.timeStamp, t.clientX]] };
     }, { passive: true });
     n.addEventListener('touchmove', e => {
       if (!c2 || c2.mode < 0) return;
@@ -552,20 +566,40 @@
         else { c2.mode = -1; if (pos !== W) animateTo(W); return; }
       }
       if (e.cancelable) e.preventDefault();
-      c2.s.push([performance.now(), t.clientX]); if (c2.s.length > 10) c2.s.shift();
-      apply(Math.max(0, c2.p0 + dx), vel(c2.s));
+      c2.s.push([e.timeStamp, t.clientX]); if (c2.s.length > 10) c2.s.shift();
+      apply(Math.max(0, c2.p0 + dx), vel(c2.s, e.timeStamp));
     }, { passive: false });
-    const end = () => {
+    const end = e => {
       if (!c2) return;
-      const was = c2.mode === 1, s = c2.s, moved = c2.mode !== 0;
+      const was = c2.mode === 1, s = c2.s, moved = c2.mode !== 0, ts = e && e.timeStamp || performance.now();
+      const t = was && e && e.changedTouches && e.changedTouches[0];
+      if (t) { s.push([ts, t.clientX]); apply(Math.max(0, c2.p0 + t.clientX - c2.x0)); }
       c2 = null;
-      if (was) { swallow = true; setTimeout(() => (swallow = false), 300); release(vel(s), pos); }
+      if (was) { eat(); release(vel(s, ts), pos); }
       else if (!moved && pos !== W) animateTo(W);                      // 按住时被打断的动画接着完成
     };
     n.addEventListener('touchend', end);
     n.addEventListener('touchcancel', end);
   });
-  scrim.addEventListener('click', () => { if (!swallow) D.close(); });
+  let reTarget = false;
+  el.addEventListener('click', e => {
+    if (!reTarget) return; reTarget = false;
+    const t = document.elementFromPoint(e.clientX, e.clientY), b = t && el.contains(t) && t.closest('button, [data-act]');
+    const cur = e.target.closest && e.target.closest('button, [data-act]');
+    if (b && b !== cur) { e.stopPropagation(); e.preventDefault(); b.click(); }
+  }, true);
+  el.addEventListener('pointerdown', () => { if (pos >= W - .5) reTarget = false; }, true);
+  // 菜单还在往外挪（没到位）时点在它将要停下的地方：直接让它到位，这一下交给手指下面的按钮（比如「⋯」），不当成点遮罩收起
+  scrim.addEventListener('click', e => {
+    if (isOpen && pos < W - .5 && e.clientX < W) {
+      if (anim) { anim.stop(); anim = null; }
+      apply(W);
+      const t = document.elementFromPoint(e.clientX, e.clientY), b = t && el.contains(t) && t.closest('button, [data-act]');
+      if (b) { swallow = false; b.click(); }   // 这是一次真正的点按，不是拉出手势补发的点击
+      return;
+    }
+    if (!swallowed()) D.close();
+  });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen && !UI.anyOpen() && !UI.menuOpen()) D.close(); });
   // 点日历页顶部的标题也能打开（电脑上用鼠标时）
   $('#page-cal .title').addEventListener('click', () => D.open());

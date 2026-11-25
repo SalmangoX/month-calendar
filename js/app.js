@@ -1764,6 +1764,12 @@
   requestAnimationFrame(() => { renderPage(); placeInd(false); });
   window.addEventListener('resize', () => setTimeout(() => { fixSafeArea(); renderPage(); placeInd(false); }, 100));
 
+  // 有新版本要整页刷新时：App 在前台就不当场刷新，等它退到后台（页面隐藏）再刷新，下次切回来就是新版本。
+  // 以前一发现就刷新：刷新请求发出后浏览器要等新页面取回来才换页（慢的时候一两秒），这期间拖 logo 进设置，刚进去就被换回主日历；
+  // 在设置里往下滑时刷新，整页换成日历，手指底下的那一天被点开成日卡片（用户 2026-11-25 在安卓真机上遇到）。想马上更新：设置里「检查更新」
+  let reloadLater = false;
+  const reloadSoon = () => { if (document.hidden) location.reload(); else reloadLater = true; };
+  document.addEventListener('visibilitychange', () => { if (document.hidden && reloadLater) location.reload(); });
   // 后台检查新版本：发现新版本就自动刷新一次
   async function checkVersion() {
     if (window.__mcMirrorVersion) return; // 从国内镜像加载的：镜像本身就是最新的，不用检查
@@ -1775,7 +1781,7 @@
         sessionStorage.setItem('mcal.vreload', version);
         const regs = navigator.serviceWorker ? await navigator.serviceWorker.getRegistrations() : [];
         await Promise.all(regs.map(x => x.update().catch(() => {})));
-        location.reload();
+        reloadSoon();
       }
     } catch (e) {}
   }
@@ -1799,7 +1805,7 @@
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!hadController || sessionStorage.getItem('mcal.reloaded')) return;
       sessionStorage.setItem('mcal.reloaded', '1');
-      location.reload();
+      reloadSoon();
     });
     setTimeout(() => sessionStorage.removeItem('mcal.reloaded'), 10000);
     navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'open') showPage('today'); });

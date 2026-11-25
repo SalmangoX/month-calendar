@@ -450,7 +450,7 @@
   });
   // 菜单从点的那个按钮里长出来：先和按钮一样的位置、大小、圆角（玻璃一直在），一口气展开成菜单，字跟着淡进来；收起倒过来缩回按钮。
   // 干脆、不回弹（用户定的：保留液态玻璃，别弹来弹去）。按钮在菜单外面也一样（从按钮的位置移过来）
-  let dropA = null, dropO = null, rfHoldT = 0;
+  let dropA = null, dropO = null;
   function dropPop(opening, ar) {
     if (!pop.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (!opening) pop.classList.remove('show', 'grow'); return; }
     if (opening) dropO = ar; else if (!dropO) { pop.classList.remove('show', 'grow'); return; }
@@ -461,9 +461,6 @@
     const kids = [...pop.children];
     pop.style.transformOrigin = '0 0';
     if (opening) {
-      // 从侧拉菜单里展开时，外圈玻璃的折射先停 0.3 秒（styles.css 的 .rf-hold），展开完恢复：折射安卓上每帧都要重算，展开动画会一路卡
-      const dr = document.getElementById('calDrawer');
-      if (dr && dr.classList.contains('vis')) { dr.classList.add('rf-hold'); clearTimeout(rfHoldT); rfHoldT = setTimeout(() => dr.classList.remove('rf-hold'), 300); }
       dropA = pop.animate([small, full], { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' });
       kids.forEach(k => k.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 130, delay: 80, easing: 'ease-out', fill: 'backwards' }));
     } else {
