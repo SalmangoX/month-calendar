@@ -1028,7 +1028,8 @@
   function fitPreview() {
     if (body.classList.contains('fan-drag')) { pvHeld = true; return; }
     pvHeld = false;
-    const on = !!calBody && calBody.classList.contains('previewing') && page() === 'cal' && body.dataset.kind !== 'days';
+    // 往上展开的日卡片（.pv-up）不在底部：时钟和 logo 不用挪
+    const on = !!calBody && calBody.classList.contains('previewing') && !calBody.classList.contains('pv-up') && page() === 'cal' && body.dataset.kind !== 'days';
     if (!on) { body.classList.remove('dock-pv'); body.style.removeProperty('--d2-pv'); return; }
     // 用不受动画影响的布局位置算：卡片弹出有位移动画，按钮挪动也有过渡
     const op = pvCard.offsetParent; if (!op || !pvCard.offsetHeight) return;

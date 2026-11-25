@@ -14,6 +14,8 @@
   let year = now0.getFullYear();
   let selected = MC.todayStr();
   let previewOpen = false;
+  // 月视图的日卡片浮在日历上、贴着选中的那一行（2026-11-24 用户定的）：pvMode = 'down'（从那一行下边往下展开）/ 'up'（在那一行上边往上展开）
+  let pvMode = null, pvRow = 0;
   let W = 0, H = 0, rowH = 0, maxChips = 2, withMore = 1, animating = false;
   let mvT = 0, mvY = null, moving = false;   // 月视图在动：星期条和虚线月框一起变淡（markMoving / endMoving）
   let focus = { y: now0.getFullYear(), m: now0.getMonth() };
@@ -40,7 +42,7 @@
     document.body.classList.toggle('cal-m', view === 'month');
     document.body.classList.toggle('cal-w', view === 'week');   // 周视图：列的顶上让开悬浮的月份胶囊
     W = vp.clientWidth; H = vp.clientHeight;
-    const pv = body.classList.contains('previewing');
+    const pv = body.classList.contains('previewing') && !body.classList.contains('pv-float');   // 月视图的卡片浮在上面，日历不缩
     if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
     // 月视图的日历区一直铺到屏幕最顶上（灵动岛、状态栏后面也画日历），行的位置往下让开安全区那一段，和以前一样
     const base = (parseFloat(getComputedStyle(vp).getPropertyValue('--cal-top')) || 0) + (view === 'month' ? safeTop() : 0);
@@ -674,13 +676,56 @@
   // 换深浅色时光的颜色、叠加方式也要换
   new MutationObserver(() => { try { paintMood(); } catch (e) {} }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   function render() {
+    if (!previewOpen || view !== 'month') pvMode = null;
+    else if (!pvMode) pvMode = pvPlan(selected).mode;   // 别处直接打开卡片（没走 select）：按现在的行号定方向，不挪
+    const fl = previewOpen && view === 'month' && !!pvMode;
     body.classList.toggle('previewing', previewOpen && view !== 'year');
+    body.classList.toggle('pv-float', fl);
+    body.classList.toggle('pv-up', fl && pvMode === 'up');
     renderWeekdays();
     measure();
     if (view === 'month') renderMonth();
     else if (view === 'week') renderWeek();
     else renderYear();
     if (previewOpen && view !== 'year') renderPreview();
+    if (fl) placeCard(); else { preview.style.top = ''; preview.style.bottom = ''; }
+  }
+  // ---------- 月视图的日卡片：按选中那一行在屏幕上的第几行决定往哪边展开（用户定的） ----------
+  // 行号按吸附线下面看得见的行数：第 1–5 行 + 只露一半的第 6 行（吸附线上面、压在标题板下的那一行不算）。
+  // 第 1、2 行：不动，卡片从那一行下边往下展开；第 3 行：先挪到第 2 行再往下展开；
+  // 第 4、5 行：不动，卡片在那一行上边往上展开；第 6 行：先挪到第 5 行再往上展开
+  const visRow = ds => {   // 选中那一周现在是看得见的第几行（0 起；吸附线下面第一行是 0）
+    const top = MC.addDays(anchor, 7 * Math.round(scrollY / rowH));
+    return Math.round((MC.weekStartOf(MC.parse(ds)) - top) / (7 * 864e5)) - 1;
+  };
+  function pvPlan(ds) {
+    const v = visRow(ds);
+    if (v <= 1) return { mode: 'down', shift: v < 0 ? v - 1 : 0 };   // 第 1、2 行（压在标题板下的也挪到第 2 行）
+    if (v === 2) return { mode: 'down', shift: 1 };                    // 第 3 行 → 第 2 行
+    if (v <= 4) return { mode: 'up', shift: 0 };                       // 第 4、5 行
+    return { mode: 'up', shift: v - 4 };                               // 第 6 行（和更下面看不见的）→ 第 5 行
+  }
+  // 卡片的位置（相对日历区 #calBody）：往下的从那一行下边到底栏上面，往上的从吸附线（标题板底边）到那一行上边
+  function placeCard() {
+    // 直接量选中那一格的实际位置（推算会差几像素，卡片压到那一行上）
+    const cell = track.querySelector(`.cell[data-date="${selected}"]`); if (!cell) return;
+    const b = body.getBoundingClientRect(), c = cell.getBoundingClientRect(), gap = 6, v = visRow(selected);
+    pvRow = v;
+    if (pvMode === 'up') {
+      const snapY = c.top - v * rowH;   // 吸附线（标题板底边）：看得见的第一行的顶
+      preview.style.top = (snapY - b.top + gap) + 'px';
+      preview.style.bottom = Math.max(0, b.bottom - c.top + gap) + 'px';
+    } else {
+      preview.style.top = (c.bottom - b.top + gap) + 'px';
+      preview.style.bottom = '';   // 底边由 CSS 定在底栏上面（var(--bar-space)），和以前一样，底栏的时钟和 logo 挪进卡片底部
+    }
+  }
+  // 卡片开着时手指滑日历：卡片收起（卡片贴着那一行，日历一动就对不上了）。不重画，免得换掉手指下面的格子
+  function dropFloat() {
+    if (!previewOpen || !body.classList.contains('pv-float')) return;
+    previewOpen = false; pvMode = null;
+    body.classList.remove('previewing', 'pv-float', 'pv-up');
+    try { updateBack(); } catch (e) {}
   }
   Cal.render = render;
   Cal.refresh = () => { if (!animating) render(); };
@@ -701,17 +746,18 @@
       ${evs.length
         ? `<ul class="pv-list">${evs.map(e => UI.itemHTML(e)).join('')}</ul>`
         : `<div class="pv-empty">暂无安排<small>点右下角 ＋ 添加</small></div>`}`;
-    $('#pvClose').onclick = () => { previewOpen = false; render(); };
+    $('#pvClose').onclick = () => { previewOpen = false; pvMode = null; render(); };
   }
   UI.bindList(preview);
 
-  // 当天预览：往下拖动收起（列表在最顶部时），往上拖有阻尼回弹
+  // 当天预览：往下拖动收起（列表在最顶部时），往上拖有阻尼回弹；往上展开的卡片（pv-up）反过来：往上拖收起（列表在最底部时）
   (() => {
     const rubber = x => (1 - 1 / (x * .55 / 120 + 1)) * 120;
-    let x0 = 0, y0 = 0, d = 0, v = 0, last = 0, lastT = 0, state = 0, sc = null, swallow = false;
+    let x0 = 0, y0 = 0, d = 0, v = 0, last = 0, lastT = 0, state = 0, sc = null, swallow = false, k = 1;
     preview.addEventListener('touchstart', e => {
       if (e.touches.length > 1) { state = 0; return; }
       sc = e.target.closest('.pv-list');
+      k = body.classList.contains('pv-up') ? -1 : 1;   // 收起的方向：往下（1）/ 往上（-1）
       state = 1; d = 0; v = 0;
       x0 = e.touches[0].clientX; y0 = last = e.touches[0].clientY; lastT = performance.now();
     }, { passive: true });
@@ -719,14 +765,15 @@
       if (!state) return;
       const x = e.touches[0].clientX, y = e.touches[0].clientY, now = performance.now();
       if (state === 1) {
-        const dy = y - y0;
+        const dy = (y - y0) * k;
         if (Math.abs(dy) < 6 || Math.abs(dy) < Math.abs(x - x0)) return;
-        if ((dy > 0 && (!sc || sc.scrollTop <= 0)) || (dy < 0 && !sc)) { state = 2; y0 = y; preview.style.transition = 'none'; }
+        const atEdge = !sc || (k > 0 ? sc.scrollTop <= 0 : sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 1);
+        if ((dy > 0 && atEdge) || (dy < 0 && !sc)) { state = 2; y0 = y; preview.style.transition = 'none'; }
         else { state = 0; return; }
       }
-      v = (y - last) / Math.max(1, now - lastT); last = y; lastT = now;
-      d = y - y0;
-      preview.style.transform = `translateY(${d >= 0 ? d : -rubber(-d)}px)`;
+      v = (y - last) * k / Math.max(1, now - lastT); last = y; lastT = now;
+      d = (y - y0) * k;
+      preview.style.transform = `translateY(${k * (d >= 0 ? d : -rubber(-d))}px)`;
       if (e.cancelable) e.preventDefault();
     }, { passive: false });
     const end = () => {
@@ -735,7 +782,7 @@
       swallow = Math.abs(d) > 4; setTimeout(() => (swallow = false), 350);
       if (d > 90 || (d > 24 && v > .5)) {
         preview.style.transition = 'transform .22s cubic-bezier(.3,.7,.4,1), opacity .22s';
-        preview.style.transform = `translateY(${preview.offsetHeight}px)`; preview.style.opacity = '0';
+        preview.style.transform = `translateY(${k * preview.offsetHeight}px)`; preview.style.opacity = '0';
         setTimeout(() => { preview.style.transition = ''; preview.style.transform = ''; preview.style.opacity = ''; previewOpen = false; render(); }, 220);
       } else {
         preview.style.transition = 'transform .45s cubic-bezier(.25,1.5,.45,1)';
@@ -755,7 +802,18 @@
     // 某一天的卡片开着：只有同一周的能直接换过去（用户定的）；点别的周就是关掉卡片
     if (previewOpen && +MC.weekStartOf(MC.parse(ds)) !== +MC.weekStartOf(MC.parse(selected))) { previewOpen = false; render(); return; }
     selected = ds;
-    if (!previewOpen) { previewOpen = true; render(); popGlass(); revealSelected(); return; }
+    if (!previewOpen && view === 'month') {
+      const plan = pvPlan(ds);
+      pvMode = plan.mode;
+      if (!plan.shift) { previewOpen = true; render(); popGlass(); return; }
+      // 要挪一行：先把那一行滚到位，停稳了卡片再展开
+      render(); popGlass();
+      recenter(1);
+      const target = Math.max(-(BUF - 1), Math.min(BUF - 1, Math.round(scrollY / rowH) + plan.shift));
+      spring(scrollY, target * rowH, 0, monthH, () => { settle(); if (selected === ds && !previewOpen) { previewOpen = true; render(); } });
+      return;
+    }
+    if (!previewOpen) { previewOpen = true; pvMode = null; render(); popGlass(); revealSelected(); return; }
     track.querySelectorAll('.sel').forEach(c => c.classList.remove('sel', 'pop'));
     track.querySelectorAll(`[data-date="${ds}"]`).forEach(c => c.classList.add('sel'));
     popGlass();
@@ -885,7 +943,7 @@
     if (samples.length > 12) samples.shift();
     if (!dragging) {
       const main = horiz ? dx : dy, cross = horiz ? dy : dx;
-      if ((Math.abs(main) > 6 && Math.abs(main) > Math.abs(cross)) || caught) { dragging = true; track.style.transition = 'none'; }
+      if ((Math.abs(main) > 6 && Math.abs(main) > Math.abs(cross)) || caught) { dragging = true; track.style.transition = 'none'; if (view === 'month') dropFloat(); }
       else return;
     }
     e.preventDefault();
@@ -1003,7 +1061,7 @@
       return;
     }
     if (view === 'month') {
-      stopAnim();
+      stopAnim(); dropFloat();   // 滚日历：浮着的日卡片收起
       const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? rowH * 6 : 1;
       scrollY += (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * unit;
       recenter(4);

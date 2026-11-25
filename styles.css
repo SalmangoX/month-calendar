@@ -339,6 +339,15 @@ body[data-cal] .chip.done::before, .chip.sub.done::before { display: none; }
 .preview { display: none; flex: 1; min-height: 0; margin: 8px 10px 4px; border-radius: var(--r-xl); flex-direction: column; overflow: hidden; }
 .cal-body.previewing .preview { display: flex; animation: rise .3s var(--ease); }
 @keyframes rise { from { transform: translateY(18px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* 月视图的日卡片浮在日历上、贴着选中的那一行（calendar.js 的 placeCard 写 top / bottom）：日历不再缩到上半屏。
+   往下展开（第 1–3 行）：从那一行下边长到底栏上面，底栏的时钟和 logo 照旧挪进卡片底部；往上展开（第 4–6 行，.pv-up）：从标题板下面到那一行上边 */
+.cal-body.pv-float { position: relative; padding-bottom: 0; }
+.cal-body.pv-float #calViewport { flex: 1 1 auto; }
+.cal-body.pv-float .preview { position: absolute; left: 10px; right: 10px; margin: 0; bottom: var(--bar-space); z-index: 5;
+  transform-origin: top center; animation: pvDown .28s var(--ease); }
+.cal-body.pv-float.pv-up .preview { transform-origin: bottom center; animation-name: pvUp; }
+@keyframes pvDown { from { opacity: 0; transform: translateY(-10px) scaleY(.96); } to { opacity: 1; transform: none; } }
+@keyframes pvUp { from { opacity: 0; transform: translateY(10px) scaleY(.96); } to { opacity: 1; transform: none; } }
 .pv-head { display: flex; align-items: center; justify-content: space-between; padding: 15px 14px 8px 18px; flex: none; }
 .pv-head h3 { margin: 0; font-size: 17px; font-weight: 680; }
 .pv-head p { margin: 3px 0 0; font-size: 12px; color: var(--text2); }
