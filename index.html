@@ -892,6 +892,7 @@
     pill.setAttribute('aria-label', page() === 'today' ? lBack.textContent : `今日 · ${lTime.textContent}`);
     sizePill();
   }
+  let pillKey = '';
   function syncPill() {
     const onToday = page() === 'today';
     lTime.classList.toggle('off', onToday);
@@ -901,6 +902,10 @@
     const backName = { sched: '日程', days: '纪念日', dsum: '总览' }[returnTo] || '日历';
     lBackTxt.textContent = backName;
     pill.setAttribute('aria-label', onToday ? '回到' + backName : `今日 · ${lTime.textContent}`);
+    // 性能：量宽度要逼整页排版；切换日历、换页都会走到这里，可胶囊里的字没变时不用再量（宽度只跟显示的那段字有关，时钟走字时 tickClock 自己会量）
+    const key = onToday + '|' + backName + '|' + lTime.innerHTML;
+    if (key === pillKey) return;
+    pillKey = key;
     sizePill();
     requestAnimationFrame(sizePill);   // 文字可能被翻译成别的语言，下一帧再量一次
   }

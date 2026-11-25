@@ -38,11 +38,18 @@
     }
     return probe.offsetHeight;
   };
+  // 性能：量尺寸要读布局（逼浏览器当场把整页排一遍），以前每次重画月视图（切换日历、勾选完成、改设置……）都量一遍，可尺寸几乎不变。
+  // 视口大小由 ResizeObserver 记下（它在排版之后才通知，读它不逼排版）；视口、窗口、视图、卡片状态都没变就沿用上次量的
+  let measKey = '', vpSize = '';
+  try { new ResizeObserver(es => { const r = es[es.length - 1].contentRect; vpSize = Math.round(r.width) + 'x' + Math.round(r.height); }).observe(vp); } catch (e) { vpSize = null; }
   function measure() {
     document.body.classList.toggle('cal-m', view === 'month');
     document.body.classList.toggle('cal-w', view === 'week');   // 周视图：列的顶上让开悬浮的月份胶囊
-    W = vp.clientWidth; H = vp.clientHeight;
     const pv = body.classList.contains('previewing') && !body.classList.contains('pv-float');   // 月视图的卡片浮在上面，日历不缩
+    const key = vpSize == null ? '' : `${vpSize}|${innerWidth}x${innerHeight}|${view}|${pv}`;
+    if (key && key === measKey && rowH) return;
+    measKey = key;
+    W = vp.clientWidth; H = vp.clientHeight;
     if (!pv || !fullH) fullH = pv ? H / 0.52 : H;
     // 月视图的日历区一直铺到屏幕最顶上（灵动岛、状态栏后面也画日历），行的位置往下让开安全区那一段，和以前一样
     const base = (parseFloat(getComputedStyle(vp).getPropertyValue('--cal-top')) || 0) + (view === 'month' ? safeTop() : 0);
@@ -213,7 +220,7 @@
   // 分日历（记录日历、纪念日历）的事件在主日历里显示时，也用分日历那种「左边一根竖条 + 淡底 + 同色字」（.sub），和主日历自己的事件分开（用户定的）
   const subCls = e => (e.cal && !document.body.dataset.cal ? ' sub' : '');
   const chipHTML = (e, cls = '', style = '') =>
-    `<div class="chip${cls}${subCls(e)}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}${style}">${chipText(e.title)}</div>`;
+    `<div class="chip${cls}${subCls(e)}${MC.toneCls(e)}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}${style}">${chipText(e.title)}</div>`;
   // 一天的格子：跨天横条的位置留空，单天事件放在自己的行上
   // 放得下就全显示；放不下时留一行显示「+n」，空间太小则只显示一行
   // 有时间的事件：高度够就在色条下面加一行时间（先试完整时间段，不够就每个只占一行），
@@ -560,7 +567,7 @@
       if (ds === t) cls.push('today');
       if (ds === selected) cls.push('sel');
       const chips = lay.evsBy[i].filter(e => !spans(e)).map(e =>
-        `<div class="chip${subCls(e)}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}">${chipText(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
+        `<div class="chip${subCls(e)}${MC.toneCls(e)}${e.done ? ' done' : ''}" style="${MC.toneVars(e)}">${chipText(e.title)}${e.time ? `<small>${esc(MC.timeLabel(e))}</small>` : ''}</div>`).join('');
       h += `<div class="${cls.join(' ')}" data-date="${ds}"><div class="wwd">${MC.WD[d.getDay()]}</div><div class="wnum">${d.getDate()}</div>${lanes ? '<div class="wlanes"></div>' : ''}${chips}</div>`;
     }
     for (const b of lay.bars) {
@@ -688,7 +695,8 @@
     else if (view === 'week') renderWeek();
     else renderYear();
     if (previewOpen && view !== 'year') renderPreview();
-    if (fl) placeCard(); else { preview.style.top = ''; preview.style.bottom = ''; }
+    // 卡片开着时重画（比如在卡片里勾选完成）：同一天、同一个方向、日历没滚动，卡片位置就不变，不再量（量格子位置要逼整页排版）
+    if (fl) { if (placedKey !== `${selected}|${pvMode}|${scrollY}|${rowH}`) placeCard(); } else { preview.style.top = ''; preview.style.bottom = ''; placedKey = ''; }
   }
   // ---------- 月视图的日卡片：按选中那一行在屏幕上的第几行决定往哪边展开（用户定的） ----------
   // 行号按吸附线下面看得见的行数：第 1–5 行 + 只露一半的第 6 行（吸附线上面、压在标题板下的那一行不算）。
@@ -707,9 +715,11 @@
   }
   // 卡片的位置（相对日历区 #calBody）：往下的从那一行下边到底栏上面，往上的从吸附线（标题板底边）到那一行上边
   // shift：日历还要再挪几行（卡片和日历同时动，卡片直接放在那一行挪完以后的位置）
+  let placedKey = '';   // 上次量卡片位置时的 天 | 方向 | 滚动位置 | 行高（render 用它判断要不要再量）
   function placeCard(shift = 0) {
     // 直接量选中那一格的实际位置（推算会差几像素，卡片压到那一行上）
     const cell = track.querySelector(`.cell[data-date="${selected}"]`); if (!cell) return;
+    placedKey = shift ? '' : `${selected}|${pvMode}|${scrollY}|${rowH}`;
     const b = body.getBoundingClientRect(), r = cell.getBoundingClientRect(), gap = 6, v = visRow(selected) - shift;
     const top = r.top - shift * rowH, bottom = r.bottom - shift * rowH;
     pvRow = v;

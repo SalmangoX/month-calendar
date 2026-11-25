@@ -109,16 +109,24 @@
     // 细条之间各多盖 .5px、最底下再铺一整层不挪的，细条接缝处（色条落在半像素上时）不露白线
     return CHIP_ROWS.filter(r => r.ind).map(({ y, h, ind }) => `${lin(ind)} 0 ${y - (y ? .25 : 0)}px / 100% ${h + .5}px no-repeat`).concat(lin(0)).join(',');
   };
-  // 性能（2026-11-24 安卓变卡的元凶）：顺着圆角的渐变一档有 8 层、好几 KB，以前每个色条的 style 里各写一整串（浅色、深色、已完成三份），
-  // 月视图几百个色条一画就是 4 MB 的样式要解析，每次重画都慢一倍多。现在三档的渐变只在 :root 定义一次（--cgl1…3 / --cgk1…3），色条上只写 var() 引用
+  // 性能：顺着圆角的渐变一档 8 层、很长。
+  // ① 2b75223 把整串写进每个色条的 style：月视图 4 MB 样式要解析，重画慢一倍多；
+  // ② 279fa91 改成 :root 上的变量 + 色条上 var() 引用：var() 每次重算样式都要把那串渐变重新解析一遍（几百个色条 = 几百遍），
+  //    打开日卡片、切换日历时重算一次 85ms（安卓模拟器）。
+  // 现在：渐变写成固定的样式规则，色条只挂一个 class（pg1–3，MC.toneCls），解析一次就好；
+  // 规则用 :where() 保持和 styles.css 里原来那几条（.chip / 深色 / 已完成 / ::before）同样的优先级，分日历、.chip.sub 等更具体的规则照样优先
   const gradSheet = document.createElement('style'); gradSheet.id = 'mcChipGrad';
-  gradSheet.textContent = ':root{' + [1, 2, 3].map(v => `--cgl${v}:${MC.chipGrad(v, false)};--cgk${v}:${MC.chipGrad(v, true)}`).join(';') + '}';
+  gradSheet.textContent = [1, 2, 3].map(v => {
+    const L = MC.chipGrad(v, false), K = MC.chipGrad(v, true);
+    return `.chip:where(.pg${v}){background:${L}}:root[data-theme="dark"] .chip:where(.pg${v}):not(.done){background:${K}}`
+      + `.chip.done:where(.pg${v}){background:transparent}.chip.done:where(.pg${v})::before{background:${L}}`;
+  }).join('');
   (document.head || document.documentElement).appendChild(gradSheet);
+  MC.toneCls = e => { const m = /^var\(--p(\d)\)$/.exec(MC.evColor(e)); return m && GRAD.light[m[1]] ? ' pg' + m[1] : ''; };
   MC.toneVars = e => {
     const c = MC.evColor(e), m = /^var\(--p(\d)\)$/.exec(c);
     const [f, i] = MC.darkTone(m ? MC.PAL.light[m[1]] : c);
-    const g = m && GRAD.light[m[1]] ? `;--cg:var(--cgl${m[1]});--cgd:var(--cgk${m[1]});--cgo:var(--cgl${m[1]});--cgob:transparent` : '';   // 已完成：--cgo 画在 ::before 上、整层按 --done-mix 变淡（半透明的几层叠在一起颜色会不对）
-    return `--c:${c};--cf:${f};--ci:${i}${g}`;
+    return `--c:${c};--cf:${f};--ci:${i}`;   // 优先级渐变由 class 给（MC.toneCls）
   };
 
   // ---------- 工具 ----------
@@ -420,7 +428,14 @@
   if (MC.settings.token && !MC.settings.vault && !MC.settings.tokenPlain) MC.settings.tokenPlain = MC.settings.token;
   delete MC.settings.token;
 
-  MC.saveData = () => localStorage.setItem(DATA_KEY, JSON.stringify(MC.data));
+  // 性能：整份数据序列化写进 localStorage（1800 个事件约 400KB，安卓模拟器一次约 20ms），以前卡在每次点按的那一帧里。
+  // 现在挪到点按之后：0.25 秒内的多次改动只写一次；App 切到后台、页面关闭 / 刷新时立刻写（pagehide / visibilitychange），不丢
+  let saveT = 0;
+  const writeData = () => { clearTimeout(saveT); saveT = 0; localStorage.setItem(DATA_KEY, JSON.stringify(MC.data)); };
+  MC.saveData = () => { if (!saveT) saveT = setTimeout(writeData, 250); };
+  MC.flushData = () => { if (saveT) writeData(); };
+  addEventListener('pagehide', () => MC.flushData());
+  document.addEventListener('visibilitychange', () => { if (document.hidden) MC.flushData(); });
   MC.saveSettings = () => localStorage.setItem(SET_KEY, JSON.stringify(MC.settings));
   MC.saveSettings();
 
@@ -430,7 +445,15 @@
   // 当前在日历页显示的是哪个日历（'' = 主日历）。每个日历的事件各自独立：
   // 日历页只显示当前日历；主日历还会带上打开了「在主日历显示」的记录日历；
   // 今日页、四象限、每日提醒只看主日历自己的事件。
-  MC.cal = id => (id ? MC.data.cals.find(c => c.id === id) : MC.MAIN_CAL) || null;
+  // 按 id 查日历：排序比较、画色条时每个事件都要查好几次，以前每次在数组里线性找。cals 数组换了或长度变了就重建（日历对象本身是引用，改字段不用重建）
+  let calArr = null, calLen = -1, calMap = new Map();
+  MC.cal = id => {
+    if (!id) return MC.MAIN_CAL;
+    const a = MC.data.cals;
+    if (a !== calArr || a.length !== calLen) { calArr = a; calLen = a.length; calMap = new Map(a.map(c => [c.id, c])); }
+    const c = calMap.get(id);
+    return c && c.id === id ? c : (a.find(x => x.id === id) || null);
+  };
   MC.activeCal = () => (MC.settings.activeCal && MC.cal(MC.settings.activeCal) ? MC.settings.activeCal : '');
   MC.setActiveCal = id => { MC.settings.activeCal = id || ''; MC.saveSettings(); MC.reindex(); if (MC.onCalChange) MC.onCalChange(); };
   MC.inCal = (e, id) => (e.cal || '') === (id || '');
