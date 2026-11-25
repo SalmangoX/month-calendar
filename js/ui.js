@@ -120,8 +120,10 @@
     const W = innerWidth, H = innerHeight;
     // 从侧拉菜单、「⋯」小菜单这种窄的地方点开的（编辑日历、统一提醒……）：不跟着那一条又窄又偏，放在屏幕中间、宽一点（2026-11-24 用户嫌贴着菜单太窄）
     const mid = !!from.closest('.drawer, .popover');
-    const w = mid ? Math.min(W - 24, 420) : Math.min(W - 16, 440, Math.max(gr.width, 300));
-    const x = mid ? (W - w) / 2 : Math.min(Math.max(8, gr.left + gr.width / 2 - w / 2), W - w - 8);
+    // 从「新建子日历」的介绍卡片点开的新建日历：正常宽度、左右居中，浮在屏幕上方往下一点（2026-11-25 用户骂过：别跟菜单一样宽、别贴着顶）
+    const top = !!from.closest('#calKindSheet');
+    const w = mid || top ? Math.min(W - 24, 420) : Math.min(W - 16, 440, Math.max(gr.width, 300));
+    const x = mid || top ? (W - w) / 2 : Math.min(Math.max(8, gr.left + gr.width / 2 - w / 2), W - w - 8);
     const maxH = H - sT - sB - 28;
     el.classList.add('pop', 'measure');
     el.style.setProperty('--pw', w + 'px'); el.style.setProperty('--pmh', maxH + 'px');
@@ -129,7 +131,8 @@
     el.classList.remove('measure');
     const typing = !!el.querySelector('input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea');
     let y;
-    if (mid) y = Math.max(sT + 10, Math.min(H - sB - 10 - h, (H - h) / 2));      // 屏幕正中
+    if (top) y = Math.min(Math.max(sT + 64, H * .1), Math.max(sT + 10, H - sB - 10 - h));   // 屏幕上方往下一点，键盘不挡
+    else if (mid) y = Math.max(sT + 10, Math.min(H - sB - 10 - h, (H - h) / 2));      // 屏幕正中
     else if (typing) y = sT + 14;                                                        // 要打字：放在上方，键盘不挡
     else if (fr.bottom + 8 + h <= H - sB - 10) y = fr.bottom + 8;                   // 那一条下面
     else if (fr.top - 8 - h >= sT + 10) y = fr.top - 8 - h;                         // 放不下就上面

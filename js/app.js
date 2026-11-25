@@ -101,9 +101,16 @@
     if (v !== 'off') { btn.dataset.page = v; btn.setAttribute('aria-label', TAB3[v].label); btn.innerHTML = TAB3[v].svg + `<span>${TAB3[v].label}</span>`; }
     if (page === 'sched' && page !== v) showPage('cal'); else placeInd(false);
   }
+  let calDrawn = '';
+  const calKey = () => [MC.data.updatedAt, MC.activeCal(), MC.todayStr(), JSON.stringify(MC.settings), document.documentElement.lang, document.documentElement.dataset.theme, innerWidth, innerHeight].join('|');
+  { // 记下日历页开着时最后一次画的是什么状态（日历页藏着时画的不算：那时量不到尺寸，回来还得重画）
+    const raw = MC.Cal.render;
+    MC.Cal.render = function () { const r = raw.apply(this, arguments); calDrawn = document.body.dataset.page === 'cal' && $('#page-cal').classList.contains('active') ? calKey() : ''; return r; };
+  }
   function renderPage() {
     if (page === 'sched') { MC.Sched.render(); return; }
-    if (page === 'cal') requestAnimationFrame(() => MC.Cal.render());
+    // 回到日历：上次画的时候（日历页开着时）以后什么都没变，就不整月重画——以前每次从设置回来都在页面淡入的动画中间重画一整个月，安卓上明显一卡
+    if (page === 'cal') { if (calKey() !== calDrawn) requestAnimationFrame(() => MC.Cal.render()); }
     else if (page === 'days' || page === 'dsum') { if (MC.Days) MC.Days.render(); }
     else if (page === 'today') renderToday();
     else if (page === 'rstat') renderRstat();
@@ -1865,8 +1872,13 @@
   // 看不见、点不到、不改数据、不碰原生底栏；用户已经打开了面板就跳过。一块一块隔开做，不连成一个长帧
   setTimeout(() => {
     if (!document.documentElement.classList.contains('in-android')) return;
-    const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 1500 }) : setTimeout(f, 200));
-    const busy = () => UI.anyOpen() || (UI.confirmOpen && UI.confirmOpen()) || document.hidden || !!document.querySelector('#calBody.previewing, #calDrawer.vis');
+    // 预热只在用户停手的时候做（2026-11-25 用户说刚打开 App 切去设置卡的要死：预热那几帧是故意画重的，正好撞上用户刚开始点、刚切页）：
+    // 不再给空闲回调设超时（超时会在动画中间硬插进来），手指 1.2 秒内碰过屏幕、不在日历页、页面在切换中都先等等
+    let lastTouch = -1e9;
+    ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(t => document.addEventListener(t, () => { lastTouch = performance.now(); }, { capture: true, passive: true }));
+    const idle = f => (window.requestIdleCallback ? requestIdleCallback(f) : setTimeout(f, 200));
+    const busy = () => UI.anyOpen() || (UI.confirmOpen && UI.confirmOpen()) || document.hidden || page !== 'cal' || performance.now() - lastTouch < 1200
+      || !!document.querySelector('#calBody.previewing, #calDrawer.vis, .page.drag, .page.swiping') || !!document.documentElement.classList.contains('ui-open');
     const flash = (el, done) => {
       if (!el || busy() || el.classList.contains('show')) return done();
       el.classList.add('warm-up');
@@ -1903,7 +1915,9 @@
       },
     ];
     let i = 0;
-    const next = () => { if (i < steps.length) { const s = steps[i++]; setTimeout(() => idle(() => s(next)), 250); } };
+    // 忙的时候这一步先不做，过一会儿再试（不跳过）；等太久（20 秒）就算了
+    const t0 = performance.now();
+    const next = () => { if (i >= steps.length) return; setTimeout(() => idle(function run() { if (busy()) { if (performance.now() - t0 < 20000) setTimeout(() => idle(run), 600); return; } steps[i++](next); }), 250); };
     next();
   }, 2600);   // 在侧拉菜单的预热（约 1.5 秒）之后
 })();

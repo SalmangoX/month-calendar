@@ -158,7 +158,12 @@
   list.addEventListener('click', e => {
     const b = e.target.closest('[data-act]'); if (!b || swallowed()) return;
     const id = b.closest('.dr-row').dataset.id;
-    if (b.dataset.act === 'pick') { D.pick(id); setTimeout(D.close, 140); return; }
+    if (b.dataset.act === 'pick') {
+      // 先让侧拉菜单收起、让开了再播换日历的动画（动画本身不变）：菜单的玻璃（模糊 + 折射）盖在正在淡出淡入的页面上时，
+      // 每一帧都要把底下变了的页面重新模糊、折射一遍（安卓上菜单开着一帧要几百毫秒），整段切换就像掉帧一样（2026-11-25 用户说卡的要死）
+      if (id !== MC.activeCal()) list.querySelectorAll('.dr-row').forEach(r => r.classList.toggle('on', r.dataset.id === id));   // 对勾马上挪过去，点了就有反馈
+      D.close(); D.pick(id, true); return;
+    }
     const c = MC.cal(id); if (c) UI.menu(b, menuOf(c), v => D.act(id, v), { center: true });   // 以「⋯」为正中心展开
   });
   // 长按子日历拖动排序：记录日历、纪念日历各自一组，只在自己那一组里挪（顺序存在 cal.order，会同步）【联动:侧拉菜单】iPhone / Mac 原生在 GlassDrawer 的 reorder
@@ -207,8 +212,17 @@
 
   // 切换日历：不再整页一下子闪过去——先淡出、稍微缩一点往下沉，换好内容后再从略大一点淡入回来（不用模糊：会让里面的液态玻璃失效）
   let swapping = false;
-  D.pick = id => {
+  D.pick = (id, afterDrawer) => {
     if (id === MC.activeCal() || swapping) return;
+    // 从网页侧拉菜单点的：等菜单收到只剩一小截（或最多 0.26 秒）再开始，见上面 list 的 click
+    if (afterDrawer && pos > W * .3) {
+      swapping = true;
+      let went = false;
+      const go = () => { if (went) return; went = true; swapping = false; D.pick(id); };
+      const t0 = performance.now(), wait = () => { if (went) return; if (pos > W * .3 && performance.now() - t0 < 260) requestAnimationFrame(wait); else go(); };
+      requestAnimationFrame(wait); setTimeout(go, 300);   // 后台时 rAF 不跑，也照样切
+      return;
+    }
     try { navigator.vibrate && navigator.vibrate(6); } catch (err) {}
     const host = $('#pages'), swap = () => { MC.setActiveCal(id); D.paint(); render(); MC.Cal.render(); };
     if (!host || !host.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { swap(); return; }
