@@ -203,7 +203,7 @@ async function loadData() {
     throw e;
   }
 }
-let SHOWN = new Set(), ND_CALS = new Set();
+let SHOWN = new Set(), ND_CALS = new Set(), CRANK = new Map();
 function indexEvents(events) {
   const by = {};
   for (const e of events) {
@@ -212,7 +212,10 @@ function indexEvents(events) {
     const n = e.days > 1 && !e.time ? e.days : 1, [y, m, d] = e.date.split("-").map(Number);
     for (let k = 0; k < n; k++) { const ds = ymd(new Date(y, m - 1, d + k)); (by[ds] = by[ds] || []).push(e); }
   }
-  for (const k in by) by[k].sort((a, b) => (a.done - b.done) || (RANK(b.priority) - RANK(a.priority)) || ((a.createdAt || 0) - (b.createdAt || 0)));
+  // 主日历的事件在前，分日历按侧拉菜单里的顺序（cal.order，没有按创建时间）在后（和 App 的 MC.cmp 一样）【联动:同步数据】
+  const rk = e => !e.cal ? -Infinity : CRANK.has(e.cal) ? CRANK.get(e.cal) : Infinity;
+  const byCal = (a, b) => a.cal === b.cal ? 0 : (rk(a) - rk(b)) || (a.cal < b.cal ? -1 : 1);
+  for (const k in by) by[k].sort((a, b) => byCal(a, b) || (a.done - b.done) || (RANK(b.priority) - RANK(a.priority)) || ((a.createdAt || 0) - (b.createdAt || 0)));
   return by;
 }
 function monthStats(idx, y, m) {
@@ -699,7 +702,7 @@ const family = config.runsInWidget ? (config.widgetFamily || "large") : "large";
 let widget;
 try {
   const { data, offline } = await loadData();
-  const idx = (SHOWN = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id)), CALC = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color.toUpperCase()])), ND_CALS = new Set((data.cals || []).filter(c => c && c.noDone).map(c => c.id)), indexEvents(data.events || []));
+  const idx = (SHOWN = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id)), CALC = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color.toUpperCase()])), ND_CALS = new Set((data.cals || []).filter(c => c && c.noDone).map(c => c.id)), CRANK = new Map((data.cals || []).filter(c => c && c.id).map(c => [c.id, Number.isFinite(c.order) ? c.order : (c.createdAt || 0)])), indexEvents(data.events || []));
   widget = new ListWidget();
   widget.backgroundColor = C.bg;
   if (family === "large" || family === "extraLarge") largeLayout(widget, idx, offline);
@@ -729,7 +732,7 @@ if (args.queryParameters && args.queryParameters.tap === "1") {
     let pw;
     try {
       const { data, offline } = await loadData();
-      const idx = (SHOWN = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id)), CALC = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color.toUpperCase()])), ND_CALS = new Set((data.cals || []).filter(c => c && c.noDone).map(c => c.id)), indexEvents(data.events || []));
+      const idx = (SHOWN = new Set((data.cals || []).filter(c => c && c.showInMain).map(c => c.id)), CALC = new Map((data.cals || []).filter(c => c && c.color).map(c => [c.id, c.color.toUpperCase()])), ND_CALS = new Set((data.cals || []).filter(c => c && c.noDone).map(c => c.id)), CRANK = new Map((data.cals || []).filter(c => c && c.id).map(c => [c.id, Number.isFinite(c.order) ? c.order : (c.createdAt || 0)])), indexEvents(data.events || []));
       pw = new ListWidget(); pw.backgroundColor = C.bg;
       if (fam === "large") largeLayout(pw, idx, offline);
       else if (fam === "medium") mediumLayout(pw, idx, offline);

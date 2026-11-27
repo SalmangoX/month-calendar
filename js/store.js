@@ -446,7 +446,11 @@
   MC.saveSettings();
 
   const sortPri = e => (MC.rateOn(e.cal) ? 0 : e.priority); // 开了等级评分的记录日历不按优先级排序
-  const cmp = (a, b) => (MC.doneOf(a) - MC.doneOf(b)) || (sortPri(b) - sortPri(a)) || ((a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0) || (a.createdAt - b.createdAt);
+  // 一天里先排主日历的事件，再排分日历的（分日历按侧拉菜单里的顺序 cal.order，同一个日历里再按下面的规则）；小组件三端一样（用户定的）
+  // 【联动:同步数据】安卓 Data.ORDER、iPhone / Mac CalData.order 同一套
+  const calRank = e => { if (!e.cal) return -Infinity; const c = MC.cal(e.cal); return c && c !== MC.MAIN_CAL ? MC.calKey(c) : Infinity; };
+  const byCal = (a, b) => { if (a.cal === b.cal) return 0; const x = calRank(a), y = calRank(b); return x < y ? -1 : x > y ? 1 : (a.cal < b.cal ? -1 : 1); };
+  const cmp = (a, b) => byCal(a, b) || (MC.doneOf(a) - MC.doneOf(b)) || (sortPri(b) - sortPri(a)) || ((a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0) || (a.createdAt - b.createdAt);
   MC.cmp = cmp;
   // 当前在日历页显示的是哪个日历（'' = 主日历）。每个日历的事件各自独立：
   // 日历页只显示当前日历；主日历还会带上打开了「在主日历显示」的记录日历；

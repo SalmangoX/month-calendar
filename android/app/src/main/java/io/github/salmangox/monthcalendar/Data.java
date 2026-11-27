@@ -155,6 +155,8 @@ final class Data {
     private final Map<LocalDate, List<Event>> byDate = new HashMap<>();
     /** 打开了「在主日历显示」的记录日历（小组件里和主日历一起显示） */
     final Set<String> shownCals = new HashSet<>();
+    /** 分日历的顺序（cal.order，没有就按创建时间，和网页 MC.calKey 一样）：一天里主日历的事件在前，分日历按这个顺序在后 */
+    final java.util.Map<String, Double> calRank = new java.util.HashMap<>();
     /** 记录日历的颜色 */
     final Map<String, Integer> calColor = new HashMap<>();
     /** 这个事件要用日历颜色吗（和网页一致：记录日历里没设优先级的事件用日历自己的颜色）；不用时返回 null */
@@ -195,6 +197,8 @@ final class Data {
                 String id = c.optString("id");
                 if (id.isEmpty()) continue;
                 if (c.optBoolean("showInMain")) d.shownCals.add(id);
+                double ord = c.optDouble("order", Double.NaN);
+                d.calRank.put(id, Double.isNaN(ord) || Double.isInfinite(ord) ? c.optDouble("createdAt", 0) : ord);
                 String col = c.optString("color");
                 if (col.matches("#[0-9a-fA-F]{6}")) d.calColor.put(id, 0xFF000000 | Integer.parseInt(col.substring(1), 16));
                 if (c.optBoolean("notify")) d.notifyCals.add(id);
@@ -341,14 +345,25 @@ final class Data {
     }
 
     // ---------- 查询 ----------
-    /** 与网页 MC.cmp 相同：未完成在前，优先级高在前，有时间的按时间，最后按创建时间 */
+    /** 与网页 MC.cmp 相同：主日历的事件在前、分日历按侧拉菜单里的顺序在后；同一个日历里未完成在前，优先级高在前，有时间的按时间，最后按创建时间【联动:同步数据】 */
     static final Comparator<Event> ORDER = (a, b) -> {
+        if (!a.cal.equals(b.cal)) {
+            double x = calRankOf(a), y = calRankOf(b);
+            if (x != y) return x < y ? -1 : 1;
+            return a.cal.compareTo(b.cal);
+        }
         if (a.done != b.done) return a.done ? 1 : -1;
         if (a.priority != b.priority) return b.priority - a.priority;
         int t = (a.time.isEmpty() ? "99" : a.time).compareTo(b.time.isEmpty() ? "99" : b.time);
         if (t != 0) return t;
         return Long.compare(a.createdAt, b.createdAt);
     };
+
+    private static double calRankOf(Event e) {
+        if (e.cal.isEmpty()) return Double.NEGATIVE_INFINITY;
+        Double r = CUR != null ? CUR.calRank.get(e.cal) : null;
+        return r != null ? r : Double.POSITIVE_INFINITY;
+    }
 
     private void index() {
         for (Event e : events) {

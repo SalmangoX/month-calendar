@@ -175,7 +175,11 @@
       const n = e.days > 1 && !e.time ? e.days : 1, [yy, mm, dd] = e.date.split('-').map(Number);
       for (let k = 0; k < n; k++) { const ds = ymd(new Date(yy, mm - 1, dd + k)); (by[ds] = by[ds] || []).push(e); }
     }
-    for (const k in by) by[k].sort((a,b) => (a.done-b.done) || (RANK(b.priority)-RANK(a.priority)) || (a.createdAt-b.createdAt));
+    // 主日历的事件在前，分日历按侧拉菜单里的顺序（cal.order，没有按创建时间）在后（和 App 的 MC.cmp 一样）【联动:同步数据】
+    const crank = new Map((data.cals || []).filter(c => c && c.id).map(c => [c.id, Number.isFinite(c.order) ? c.order : (c.createdAt || 0)]));
+    const rk = e => !e.cal ? -Infinity : crank.has(e.cal) ? crank.get(e.cal) : Infinity;
+    const byCal = (a, b) => a.cal === b.cal ? 0 : (rk(a) - rk(b)) || (a.cal < b.cal ? -1 : 1);
+    for (const k in by) by[k].sort((a,b) => byCal(a, b) || (a.done-b.done) || (RANK(b.priority)-RANK(a.priority)) || (a.createdAt-b.createdAt));
     const prefix = `${y}-${pad(m+1)}-`;
     let total = 0, done = 0;
     for (const k in by) if (k.startsWith(prefix)) { const l = by[k].filter(e => !e.noDone); total += l.length; done += l.filter(e => e.done).length; }

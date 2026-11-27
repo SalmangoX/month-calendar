@@ -215,6 +215,8 @@ final class CalData {
     var dailyMin = 13 * 60
     var clock = "auto"
     var shownCals = Set<String>()
+    /// 分日历的顺序（cal.order，没有就按创建时间，和网页 MC.calKey 一样）：一天里主日历的事件在前，分日历按这个顺序在后
+    var calRank: [String: Double] = [:]
     var calColor: [String: UInt32] = [:]
     var notifyCals = Set<String>()
     var days: [CDay] = []
@@ -263,6 +265,7 @@ final class CalData {
         for c in o.arr("cals") {
             let id = c.str("id"); if id.isEmpty { continue }
             if c.bool("showInMain") { d.shownCals.insert(id) }
+            if let o = (c["order"] as? NSNumber)?.doubleValue, o.isFinite { d.calRank[id] = o } else { d.calRank[id] = (c["createdAt"] as? NSNumber)?.doubleValue ?? 0 }
             let col = c.str("color")
             if col.count == 7, col.hasPrefix("#"), let v = UInt32(col.dropFirst(), radix: 16) { d.calColor[id] = 0xFF00_0000 | v }
             if c.bool("notify") { d.notifyCals.insert(id) }
@@ -328,7 +331,14 @@ final class CalData {
                 d.byDate[day, default: []].append(e)
             }
         }
-        for k in d.byDate.keys { d.byDate[k]?.sort(by: order) }
+        // 主日历的事件在前，分日历按侧拉菜单里的顺序在后（和网页 MC.cmp 一样）【联动:同步数据】
+        let rank = { (e: CEvent) -> Double in e.cal.isEmpty ? -.infinity : d.calRank[e.cal] ?? .infinity }
+        for k in d.byDate.keys {
+            d.byDate[k]?.sort { a, b in
+                if a.cal != b.cal { let x = rank(a), y = rank(b); return x != y ? x < y : a.cal < b.cal }
+                return order(a, b)
+            }
+        }
         return d
     }
 
