@@ -68,7 +68,8 @@ final class Widgets {
     }
 
     // ---------- 资源 id（42 个格子，按名字查一次后缓存） ----------
-    private static int[] N, CELL, MORE, DOTS, WDAY, BARS, ROW, ST, SB, SV;
+    private static int[] N, CELL, MORE, DOTS, WDAY, BARS, ROW, ST, SB, SV, STK, CNT;
+    private static int[][] SE;
     private static int[][] EV, OD;
 
     private static synchronized void ids(Context c) {
@@ -78,12 +79,16 @@ final class Widgets {
         N = new int[42]; CELL = new int[42]; MORE = new int[42]; DOTS = new int[42]; WDAY = new int[7];
         ROW = new int[6];
         for (int k = 0; k < 6; k++) ROW[k] = r.getIdentifier("row" + k, "id", pkg);
-        EV = new int[42][3]; OD = new int[42][3];
+        EV = new int[42][3]; OD = new int[42][3]; STK = new int[42]; CNT = new int[42]; SE = new int[42][2];
         for (int i = 0; i < 42; i++) {
             N[i] = r.getIdentifier("n" + i, "id", pkg);
             CELL[i] = r.getIdentifier("c" + i, "id", pkg);
             MORE[i] = r.getIdentifier("m" + i, "id", pkg);
             DOTS[i] = r.getIdentifier("g" + i, "id", pkg);
+            STK[i] = r.getIdentifier("k" + i, "id", pkg);
+            CNT[i] = r.getIdentifier("q" + i, "id", pkg);
+            SE[i][0] = r.getIdentifier("s" + i + "_0", "id", pkg);
+            SE[i][1] = r.getIdentifier("s" + i + "_1", "id", pkg);
             for (int k = 0; k < 3; k++) {
                 EV[i][k] = r.getIdentifier("e" + i + "_" + k, "id", pkg);
                 OD[i][k] = r.getIdentifier("o" + i + "_" + k, "id", pkg);
@@ -123,16 +128,16 @@ final class Widgets {
         if (sizes.isEmpty()) {
             int h = opts == null ? 0 : opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0);
             int w = opts == null ? 0 : opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
-            return monthViews(c, id, capacity(h > 0 ? h : 300), w > 0 ? w : 320);
+            return monthViews(c, id, capacity(h > 0 ? h : 300), w > 0 ? w : 320, h > 0 ? h : 300);
         }
         // 跨天横条要按实际宽度画，所以按「每格条数 + 宽度」分别生成
         Map<String, RemoteViews> byCap = new HashMap<>();
         Map<SizeF, RemoteViews> map = new HashMap<>();
         for (SizeF s : sizes) {
             int cap = capacity(s.getHeight());
-            String key = cap + "x" + Math.round(s.getWidth());
+            String key = cap + "x" + Math.round(s.getWidth()) + "x" + Math.round(s.getHeight());
             RemoteViews rv = byCap.get(key);
-            if (rv == null) { rv = monthViews(c, id, cap, s.getWidth()); byCap.put(key, rv); }
+            if (rv == null) { rv = monthViews(c, id, cap, s.getWidth(), s.getHeight()); byCap.put(key, rv); }
             map.put(s, rv);
         }
         if (byCap.size() == 1) return byCap.values().iterator().next();
@@ -148,7 +153,7 @@ final class Widgets {
         return room >= 7 ? 0 : -1;
     }
 
-    private static RemoteViews monthViews(Context c, int id, int cap, float widthDp) {
+    private static RemoteViews monthViews(Context c, int id, int cap, float widthDp, float heightDp) {
         RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_month);
         Data d = Store.data(c);
         int ws = Store.prefs(c).getInt("weekStart", 0) == 1 ? 1 : 0;
@@ -165,7 +170,8 @@ final class Widgets {
         int off0 = (jsDay - ws + 7) % 7;
         int rows = (int) Math.ceil((off0 + ym.lengthOfMonth()) / 7.0);
         for (int r = rows; r < 6; r++) if (ROW != null && ROW[r] != 0) rv.setViewVisibility(ROW[r], android.view.View.GONE);
-        CELL_W = widthDp / 7f;
+        // 格子里摆满色条后底下还剩多高（放「+n」用）：和 capacity() 同一套算法
+        float cellH = (heightDp - 4 - 30 - 15 - 0.6f) / 6f, spare = cellH - 1.5f - 17f - Math.max(cap, 0) * SLOT_DP - 3.5f;
         seams(c, rv, rows, off0, ym.lengthOfMonth(), widthDp);
 
         for (int i = 0; i < 42; i++) {
@@ -231,14 +237,24 @@ final class Widgets {
                         if (tl) timeLine(c, rv, EV[i][p++], e, in, widthDp / 7f - 4.5f);
                     }
                     if (hidden > 0) {
-                        rv.setViewVisibility(MORE[i], android.view.View.VISIBLE);
-                        rv.setTextViewText(MORE[i], "+" + hidden);
-                        if (start.plusDays(i).equals(LocalDate.now(ZoneId.systemDefault()))) {
-                            // 今天还有放不下的事：用主色小标签提醒，比其他日子的灰色「+n」醒目
-                            rv.setInt(MORE[i], "setBackgroundResource", R.drawable.more_today);
-                            rv.setTextColor(MORE[i], WHITE);
-                            rv.setTextViewText(MORE[i], " +" + hidden + " ");
+                        // 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片，颜色是被藏起来的那几条），
+                        // 格子底下还有地方就在右下角写淡淡的「+n」，没地方就写在日期右边（用户选的 C）
+                        rv.setViewVisibility(STK[i], android.view.View.VISIBLE);
+                        int e2 = 0;
+                        for (int s = lim[k]; s < o.size() && e2 < 2; s++) {
+                            Object it = o.get(s);
+                            if (it == null) continue;
+                            Data.Event he = WeekLanes.isBar(it) ? ((WeekLanes.Bar<Data.Event>) it).e : (Data.Event) it;
+                            Integer hc = d.calColorOf(he);
+                            int col = hc != null ? hc : c.getColor(PCOL[he.priority]);
+                            int a = (e2 == 0 ? 0x8C : 0x4D) / (in ? 1 : 2);
+                            rv.setViewVisibility(SE[i][e2], android.view.View.VISIBLE);
+                            rv.setColorStateList(SE[i][e2], "setImageTintList", ColorStateList.valueOf(alpha(col, a)), ColorStateList.valueOf(alpha(col, a)));
+                            e2++;
                         }
+                        int cnt = spare >= 13f ? CNT[i] : MORE[i];
+                        rv.setViewVisibility(cnt, android.view.View.VISIBLE);
+                        rv.setTextViewText(cnt, "+" + hidden);
                     }
                 }
                 final LocalDate wk0 = start.plusDays(r * 7L);
@@ -362,34 +378,6 @@ final class Widgets {
     /** 中文小一号：色条上的中文按 0.947 倍（9.5 → 9，和网页 .chip .cj 一样），英文、数字不变【联动:优先级色条】 */
     static final float CJK_K = 0.947f;
     static boolean isCjk(char ch) { return (ch >= 0x2E80 && ch <= 0x9FFF) || (ch >= 0xF900 && ch <= 0xFAFF) || (ch >= 0x3000 && ch <= 0x303F) || (ch >= 0xFF00 && ch <= 0xFFEF); }
-    /** 整月小组件一格的宽度（dp），monthViews 里设；色条截断处的渐隐按它算 */
-    private static float CELL_W = 0;
-    /**
-     * 色条的字：中文小一号；放不下时截断处像 App 一样淡出（calendar.js 的 fadeOverflow）——量出落在色条最后 7dp 里的字，
-     * 按离边多近调透明，最淡留 45%。不用系统渐隐边（它淡到完全透明，只能缩到 3dp，几乎看不出）。
-     * RemoteViews 只能带系统自带的 span，所以淡出的字用 ForegroundColorSpan 写死颜色（ink：更新时深浅色对应的字色）
-     */
-    private static CharSequence chipText(Context c, String title, boolean strike, float availDp, int ink) {
-        SpannableString s = (SpannableString) chipText(title, strike);
-        if (availDp <= 0) return s;
-        android.text.TextPaint tp = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        tp.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, c.getResources().getInteger(R.integer.chip_weight), false));
-        final float FADE = 7f, MIN = .45f;
-        float x = 0;
-        for (int i = 0; i < title.length(); ) {
-            int n = Character.charCount(title.codePointAt(i));
-            tp.setTextSize(9f * (isCjk(title.charAt(i)) ? CJK_K : 1f));
-            float w = tp.measureText(title, i, i + n), mid = x + w / 2;
-            if (x >= availDp) break;
-            if (x + w > availDp - FADE) {
-                float k = Math.max(MIN, Math.min(1f, 1f - (mid - (availDp - FADE)) / FADE * (1f - MIN)));
-                int a = Math.round(android.graphics.Color.alpha(ink) * k);
-                s.setSpan(new android.text.style.ForegroundColorSpan((ink & 0x00FFFFFF) | (a << 24)), i, i + n, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            x += w; i += n;
-        }
-        return s;
-    }
     private static CharSequence chipText(String title, boolean strike) {
         SpannableString s = new SpannableString(title);
         for (int i = 0; i < title.length();) {
@@ -498,18 +486,15 @@ final class Widgets {
 
     /** tm：有具体时间但放不下时间行 → 色条右端一个小点（和应用一致） */
     private static void chip(Context c, RemoteViews rv, int vid, Data.Event e, boolean inMonth, boolean tm) {
-        if (tm) rv.setTextViewCompoundDrawables(vid, 0, 0, e.done || !inMonth ? R.drawable.tm_dot_soft : R.drawable.tm_dot, 0);
         String title = e.title.isEmpty() ? I18n.t("（无标题）") : e.title;
         rv.setViewVisibility(vid, android.view.View.VISIBLE);
-        boolean night = (c.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        // 字能用的宽度：一格宽 − 左右外边距 2 − 左内边距（竖条样式 5，其余 1.5）− 右内边距 1 −（有时间的小点 4.5）
+        // 放不下的字直接截断（用户定的：不加省略号、不淡出，色条右边也不再点「有时间」的小点）
         Integer cc = Data.CUR != null ? Data.CUR.calColorOf(e) : null;
         boolean sub = !e.cal.isEmpty();
-        float avail = CELL_W > 0 ? CELL_W - 2f - (sub ? 5f : 1.5f) - 1f - (tm ? 4.5f : 0f) : 0;
         if (sub) {   // 分日历的事件在主日历里：左边一根竖条 + 淡底 + 同色字（和网页 .chip.sub 一样，用户定的）
             int col = cc != null ? cc : c.getColor(PCOL[e.priority]);
             boolean soft = e.done || !inMonth;
-            rv.setTextViewText(vid, chipText(c, title, e.done, avail, subInk(col, night, soft)));
+            rv.setTextViewText(vid, chipText(title, e.done));
             rv.setInt(vid, "setBackgroundResource", R.drawable.sub_chip);
             rv.setColorStateList(vid, "setBackgroundTintList", ColorStateList.valueOf(soft ? alpha(col, 0x59) : col), ColorStateList.valueOf(soft ? alpha(col, 0x59) : col));
             rv.setColorInt(vid, "setTextColor", subInk(col, false, soft), subInk(col, true, soft));
@@ -521,11 +506,11 @@ final class Widgets {
             int[] dk = CourseColors.darkTone(cc);
             rv.setInt(vid, "setBackgroundResource", R.drawable.cal_chip);
             if (e.done || !inMonth) {
-                rv.setTextViewText(vid, chipText(c, title, e.done, avail, cc));
+                rv.setTextViewText(vid, chipText(title, e.done));
                 rv.setColorStateList(vid, "setBackgroundTintList", ColorStateList.valueOf(alpha(cc, 0x40)), ColorStateList.valueOf(alpha(cc, 0x4D)));
                 rv.setTextColor(vid, cc);
             } else {
-                rv.setTextViewText(vid, chipText(c, title, e.done, avail, night ? dk[1] : WHITE));
+                rv.setTextViewText(vid, chipText(title, e.done));
                 rv.setColorStateList(vid, "setBackgroundTintList", ColorStateList.valueOf(cc), ColorStateList.valueOf(dk[0]));
                 rv.setColorInt(vid, "setTextColor", WHITE, dk[1]);
             }
@@ -533,13 +518,13 @@ final class Widgets {
         }
         if (e.done || !inMonth) {
             int ink = c.getColor(PCOL[e.priority]);
-            rv.setTextViewText(vid, chipText(c, title, e.done, avail, ink));
+            rv.setTextViewText(vid, chipText(title, e.done));
             rv.setInt(vid, "setBackgroundResource", SOFT[e.priority]);
             rv.setTextColor(vid, ink);
         } else {
-            rv.setTextViewText(vid, chipText(c, title, e.done, avail, night ? DARK_INK[e.priority] : WHITE));
+            rv.setTextViewText(vid, chipText(title, e.done));
             rv.setInt(vid, "setBackgroundResource", CHIP[e.priority]); // 底色：深色时是 52% 透明（values-night）
-            // 字色：浅色白字；深色是带 20% 事件色的柔白，和应用一致。桌面切换深浅色时自动跟着变（淡出的那一两个字按更新时的深浅色）
+            // 字色：浅色白字；深色是带 20% 事件色的柔白，和应用一致。桌面切换深浅色时自动跟着变
             rv.setColorInt(vid, "setTextColor", WHITE, DARK_INK[e.priority]);
         }
     }

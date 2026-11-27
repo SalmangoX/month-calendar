@@ -83,6 +83,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k0" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s0_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s0_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g0" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -119,6 +131,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k1" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s1_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s1_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g1" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -155,6 +179,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k2" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s2_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s2_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g2" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -191,6 +227,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k3" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s3_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s3_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g3" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -227,6 +275,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k4" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s4_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s4_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g4" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -263,6 +323,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k5" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s5_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s5_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g5" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -299,6 +371,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k6" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s6_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s6_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g6" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -351,6 +435,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k7" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s7_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s7_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q7" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g7" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -387,6 +483,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k8" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s8_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s8_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q8" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g8" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -423,6 +531,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k9" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s9_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s9_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q9" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g9" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -459,6 +579,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k10" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s10_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s10_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q10" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g10" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -495,6 +627,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k11" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s11_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s11_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q11" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g11" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -531,6 +675,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k12" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s12_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s12_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q12" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g12" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -567,6 +723,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k13" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s13_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s13_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q13" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g13" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -619,6 +787,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k14" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s14_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s14_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q14" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g14" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -655,6 +835,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k15" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s15_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s15_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q15" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g15" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -691,6 +883,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k16" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s16_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s16_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q16" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g16" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -727,6 +931,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k17" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s17_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s17_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q17" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g17" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -763,6 +979,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k18" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s18_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s18_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q18" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g18" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -799,6 +1027,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k19" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s19_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s19_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q19" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g19" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -835,6 +1075,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k20" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s20_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s20_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q20" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g20" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -887,6 +1139,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k21" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s21_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s21_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q21" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g21" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -923,6 +1187,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k22" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s22_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s22_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q22" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g22" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -959,6 +1235,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k23" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s23_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s23_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q23" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g23" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -995,6 +1283,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k24" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s24_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s24_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q24" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g24" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1031,6 +1331,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k25" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s25_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s25_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q25" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g25" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1067,6 +1379,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k26" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s26_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s26_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q26" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g26" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1103,6 +1427,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k27" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s27_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s27_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q27" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g27" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1155,6 +1491,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k28" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s28_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s28_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q28" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g28" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1191,6 +1539,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k29" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s29_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s29_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q29" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g29" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1227,6 +1587,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k30" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s30_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s30_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q30" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g30" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1263,6 +1635,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k31" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s31_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s31_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q31" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g31" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1299,6 +1683,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k32" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s32_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s32_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q32" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g32" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1335,6 +1731,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k33" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s33_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s33_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q33" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g33" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1371,6 +1779,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k34" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s34_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s34_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q34" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g34" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1423,6 +1843,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k35" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s35_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s35_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q35" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g35" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1459,6 +1891,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k36" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s36_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s36_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q36" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g36" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1495,6 +1939,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k37" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s37_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s37_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q37" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g37" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1531,6 +1987,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k38" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s38_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s38_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q38" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g38" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1567,6 +2035,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k39" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s39_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s39_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q39" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g39" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1603,6 +2083,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k40" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s40_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s40_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q40" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g40" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
@@ -1639,6 +2131,18 @@
                     android:paddingLeft="1.5dp" android:paddingRight="1dp" android:gravity="center_vertical"
                     android:textSize="9dp" android:textFontWeight="@integer/chip_weight" android:textColor="#FFFFFF"
                     android:singleLine="true" android:ellipsize="none" android:visibility="gone" />
+                <!-- 放不下的事件：最后一条色条下面露出一两层更窄更淡的同色边（像一叠卡片），右下角淡淡的「+n」（用户从三种里选的 C） -->
+                <FrameLayout android:id="@+id/k41" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <ImageView android:id="@+id/s41_0" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginLeft="6dp" android:layout_marginRight="6dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                        <ImageView android:id="@+id/s41_1" android:layout_width="match_parent" android:layout_height="1.5dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp"
+                            android:src="@drawable/stack_edge" android:scaleType="fitXY" android:visibility="gone" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/q41" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top"
+                        android:layout_marginRight="3dp" android:layout_marginTop="3.5dp" android:includeFontPadding="false"
+                        android:textSize="8.5dp" android:textColor="@color/w_text2" android:singleLine="true" android:visibility="gone" />
+                </FrameLayout>
                 <LinearLayout android:id="@+id/g41" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="1dp" android:gravity="center_horizontal" android:orientation="horizontal"
                     android:visibility="gone">
