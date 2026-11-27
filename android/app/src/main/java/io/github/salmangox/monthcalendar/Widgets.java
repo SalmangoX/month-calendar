@@ -79,7 +79,7 @@ final class Widgets {
         N = new int[42]; CELL = new int[42]; MORE = new int[42]; DOTS = new int[42]; WDAY = new int[7];
         ROW = new int[6];
         for (int k = 0; k < 6; k++) ROW[k] = r.getIdentifier("row" + k, "id", pkg);
-        EV = new int[42][3]; OD = new int[42][3]; STK = new int[42]; CNT = new int[42]; SE = new int[42][2];
+        EV = new int[42][MAX_EV]; OD = new int[42][3]; STK = new int[42]; CNT = new int[42]; SE = new int[42][2];
         for (int i = 0; i < 42; i++) {
             N[i] = r.getIdentifier("n" + i, "id", pkg);
             CELL[i] = r.getIdentifier("c" + i, "id", pkg);
@@ -89,9 +89,9 @@ final class Widgets {
             CNT[i] = r.getIdentifier("q" + i, "id", pkg);
             SE[i][0] = r.getIdentifier("s" + i + "_0", "id", pkg);
             SE[i][1] = r.getIdentifier("s" + i + "_1", "id", pkg);
-            for (int k = 0; k < 3; k++) {
+            for (int k = 0; k < 3; k++) OD[i][k] = r.getIdentifier("o" + i + "_" + k, "id", pkg);
+            for (int k = 0; k < MAX_EV; k++) {
                 EV[i][k] = r.getIdentifier("e" + i + "_" + k, "id", pkg);
-                OD[i][k] = r.getIdentifier("o" + i + "_" + k, "id", pkg);
             }
         }
         for (int k = 0; k < 7; k++) WDAY[k] = r.getIdentifier("wd" + k, "id", pkg);
@@ -145,13 +145,18 @@ final class Widgets {
     }
 
     /** 每格能放几条事件：≥1 显示色条；0 显示圆点；-1 只显示日期 */
-    private static int capacity(float heightDp) {
-        float cell = (heightDp - 4 - 30 - 15 - 0.6f) / 6f;   // 标题行 30dp（widget_month.xml 的 m_head）
+    /** 每格最多几条色条（widget_month.xml 里每格 e0–e4 五个位置） */
+    private static final int MAX_EV = 5;
+    private static int capacity(float heightDp) { return capacity(heightDp, 6); }
+    /** 按这个月实际几行算每格能放几条（以前一律按 6 行算：只有 5 行的月份每行其实高 20%，三星上明明放得下也被折叠） */
+    private static int capacity(float heightDp, int rows) {
+        float cell = (heightDp - 4 - 30 - 15 - 0.6f) / rows;   // 标题行 30dp（widget_month.xml 的 m_head）、星期行 15dp
         float room = cell - 1.5f - 17f;
         int cap = (int) Math.floor((room - 0.5f) / 14.5f);
-        if (cap >= 1) return Math.min(cap, 3);
+        if (cap >= 1) return Math.min(cap, MAX_EV);
         return room >= 7 ? 0 : -1;
     }
+
 
     private static RemoteViews monthViews(Context c, int id, int cap, float widthDp, float heightDp) {
         RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_month);
@@ -170,8 +175,9 @@ final class Widgets {
         int off0 = (jsDay - ws + 7) % 7;
         int rows = (int) Math.ceil((off0 + ym.lengthOfMonth()) / 7.0);
         for (int r = rows; r < 6; r++) if (ROW != null && ROW[r] != 0) rv.setViewVisibility(ROW[r], android.view.View.GONE);
+        cap = capacity(heightDp, rows);   // 按实际行数重算
         // 格子里摆满色条后底下还剩多高（放「+n」用）：和 capacity() 同一套算法
-        float cellH = (heightDp - 4 - 30 - 15 - 0.6f) / 6f, spare = cellH - 1.5f - 17f - Math.max(cap, 0) * SLOT_DP - 3.5f;
+        float cellH = (heightDp - 4 - 30 - 15 - 0.6f) / rows, spare = cellH - 1.5f - 17f - Math.max(cap, 0) * SLOT_DP - 3.5f;
         seams(c, rv, rows, off0, ym.lengthOfMonth(), widthDp);
 
         for (int i = 0; i < 42; i++) {
