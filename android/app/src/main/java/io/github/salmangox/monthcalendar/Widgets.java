@@ -19,6 +19,7 @@ import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
+import android.text.style.StyleSpan;
 import android.util.SizeF;
 import android.widget.RemoteViews;
 
@@ -27,6 +28,7 @@ import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.IsoFields;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +68,7 @@ final class Widgets {
     }
 
     // ---------- 资源 id（42 个格子，按名字查一次后缓存） ----------
-    private static int[] N, CELL, MORE, DOTS, WDAY, BARS, ROW;
+    private static int[] N, CELL, MORE, DOTS, WDAY, BARS, ROW, ST, SB, SV;
     private static int[][] EV, OD;
 
     private static synchronized void ids(Context c) {
@@ -88,8 +90,13 @@ final class Widgets {
             }
         }
         for (int k = 0; k < 7; k++) WDAY[k] = r.getIdentifier("wd" + k, "id", pkg);
-        BARS = new int[6];
-        for (int k = 0; k < 6; k++) BARS[k] = r.getIdentifier("b" + k, "id", pkg);
+        BARS = new int[6]; ST = new int[6]; SB = new int[6]; SV = new int[6];
+        for (int k = 0; k < 6; k++) {
+            BARS[k] = r.getIdentifier("b" + k, "id", pkg);
+            ST[k] = r.getIdentifier("st" + k, "id", pkg);   // 月份交界线：这一行顶边、底边、交界列的竖线
+            SB[k] = r.getIdentifier("sb" + k, "id", pkg);
+            SV[k] = r.getIdentifier("sv" + k, "id", pkg);
+        }
     }
 
     // ---------- 整月 ----------
@@ -134,7 +141,7 @@ final class Widgets {
 
     /** 每格能放几条事件：≥1 显示色条；0 显示圆点；-1 只显示日期 */
     private static int capacity(float heightDp) {
-        float cell = (heightDp - 4 - 26 - 15 - 0.6f) / 6f;
+        float cell = (heightDp - 4 - 30 - 15 - 0.6f) / 6f;   // 标题行 30dp（widget_month.xml 的 m_head）
         float room = cell - 1.5f - 17f;
         int cap = (int) Math.floor((room - 0.5f) / 14.5f);
         if (cap >= 1) return Math.min(cap, 3);
@@ -152,15 +159,13 @@ final class Widgets {
         int jsDay = first.getDayOfWeek().getValue() % 7; // 周日 = 0，与网页一致
         LocalDate start = first.minusDays((jsDay - ws + 7) % 7);
 
-        rv.setTextViewText(R.id.m_title, I18n.mon(ym.getMonthValue()));
-        rv.setTextViewText(R.id.m_year, String.valueOf(ym.getYear()));
-        rv.setViewVisibility(R.id.m_today, off == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
-        for (int k = 0; k < 7; k++) rv.setTextViewText(WDAY[k], I18n.wdHead((k + ws) % 7));
+        monthHead(rv, I18n.monTitle(ym.getMonthValue()), ym, off == 0, today, ws);
 
         // 这个月实际需要几行：最后一整行都是下个月的话，整行去掉（列是等分的，隐藏一格会自动重排）
         int off0 = (jsDay - ws + 7) % 7;
         int rows = (int) Math.ceil((off0 + ym.lengthOfMonth()) / 7.0);
         for (int r = rows; r < 6; r++) if (ROW != null && ROW[r] != 0) rv.setViewVisibility(ROW[r], android.view.View.GONE);
+        seams(c, rv, rows, off0, ym.lengthOfMonth(), widthDp);
 
         for (int i = 0; i < 42; i++) {
             if (i >= rows * 7) continue;
@@ -257,6 +262,91 @@ final class Widgets {
         return rv;
     }
 
+
+    // ---------- 整月标题、星期、月份交界线（和 App 月视图一样）【联动:顶部悬浮】 ----------
+    // 正文色 / 次要文字色（和 colors.xml 的 w_text / w_text2 一样；RemoteViews 按深浅色各给一个）
+    private static final int TEXT_L = 0xFF171B20, TEXT_D = 0xFFEEEEF1, TEXT2_L = 0xFF747B83, TEXT2_D = 0xFF8C8E97;
+
+    /**
+     * 编辑式标题：大号粗体月份 + 同一条基线上的眉题（显示本月时「2026　第 48 周」，今天的 ISO 周数；翻到别的月份只写年份）；
+     * 翻到别的月份时右边出现「本月」胶囊。星期一行：周末淡一点（透明度 .55），显示本月时今天那一列用正文色、加粗。
+     */
+    private static void monthHead(RemoteViews rv, String title, YearMonth ym, boolean cur, LocalDate today, int ws) {
+        rv.setTextViewText(R.id.m_title, title);
+        String y = String.valueOf(ym.getYear());
+        rv.setTextViewText(R.id.m_year, cur ? I18n.t("{0}　第 {1} 周", y, today.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR)) : y);
+        rv.setTextViewText(R.id.m_today, I18n.t("本月"));
+        rv.setViewVisibility(R.id.m_today, cur ? android.view.View.GONE : android.view.View.VISIBLE);
+        int tdw = today.getDayOfWeek().getValue() % 7;   // 周日 = 0
+        for (int k = 0; k < 7; k++) {
+            int wd = (k + ws) % 7;
+            String s = I18n.wdHead(wd);
+            if (cur && wd == tdw) {
+                SpannableString b = new SpannableString(s);
+                b.setSpan(new StyleSpan(Typeface.BOLD), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                rv.setTextViewText(WDAY[k], b);
+                rv.setColorInt(WDAY[k], "setTextColor", TEXT_L, TEXT_D);
+            } else {
+                rv.setTextViewText(WDAY[k], s);
+                int a = wd == 0 || wd == 6 ? 0x8C : 0xFF;   // 周末 55%
+                rv.setColorInt(WDAY[k], "setTextColor", alpha(TEXT2_L, a), alpha(TEXT2_D, a));
+            }
+        }
+    }
+
+    /** Cadence logo 渐变（横向，0–160dp 从紫到杏、160–320dp 再回来；和网页 .mframe i 一样） */
+    private static final int[] SEAM = {0xFF9E9AC8, 0xFFC7B3CF, 0xFFEBC7A6, 0xFFC7B3CF, 0xFF9E9AC8};
+    private static final float[] SEAM_AT = {0f, .25f, .5f, .75f, 1f};
+    private static final float SEAM_P = 320f, SEAM_W = 1.2f;
+    private static final int SEAM_A = 0xF2;   // 透明度 .95
+
+    /** 横坐标 x（dp）处的渐变色 */
+    private static int seamColor(float x) {
+        float t = (((x % SEAM_P) + SEAM_P) % SEAM_P) / (SEAM_P / 4f);
+        int i = Math.min((int) t, 3);
+        return mix(SEAM[i + 1], SEAM[i], t - i);
+    }
+
+    /**
+     * 月份交界线（和 App 的 drawFrame 一样，阶梯形，只画一条线、不框整个月；小组件里不做流动动画）：
+     * 第一行左边有上个月的日子时，线沿上个月那几格的底边走到交界列，竖着上到这一行的顶，再沿本月那几格的顶边走到最右；
+     * 最后一行右边有下个月的日子时同理。整行都是同一个月的不画。
+     * 每行有三块：顶边一条（st）、底边一条（sb）——按小组件宽度画成渐变细线图，fitXY 铺满整行宽；交界列一根竖线（sv）。
+     */
+    private static void seams(Context c, RemoteViews rv, int rows, int off0, int len, float widthDp) {
+        if (ST == null || ST[0] == 0) return;
+        if (off0 > 0) seamRow(c, rv, 0, off0, widthDp);
+        int e = off0 + len - (rows - 1) * 7;   // 最后一行里本月有几天
+        if (e > 0 && e < 7) seamRow(c, rv, rows - 1, e, widthDp);
+    }
+
+    /** 第 r 行：前 col 格底边、第 col 列左边竖线、col 往右的顶边 */
+    private static void seamRow(Context c, RemoteViews rv, int r, int col, float widthDp) {
+        float x = col * widthDp / 7f, half = SEAM_W / 2f;
+        rv.setImageViewBitmap(SB[r], seamStrip(c, widthDp, 1f, x + half));
+        rv.setViewVisibility(SB[r], android.view.View.VISIBLE);
+        rv.setImageViewBitmap(ST[r], seamStrip(c, widthDp, x - half, widthDp - 1f));
+        rv.setViewVisibility(ST[r], android.view.View.VISIBLE);
+        rv.setViewLayoutMargin(SV[r], RemoteViews.MARGIN_LEFT, x - half, android.util.TypedValue.COMPLEX_UNIT_DIP);
+        rv.setInt(SV[r], "setBackgroundColor", alpha(seamColor(x), SEAM_A));
+        rv.setViewVisibility(SV[r], android.view.View.VISIBLE);
+    }
+
+    /** 一条和小组件同宽、1.2dp 高的透明图，只在 x0–x1 之间画圆头的渐变线 */
+    private static Bitmap seamStrip(Context c, float widthDp, float x0, float x1) {
+        float sc = Math.min(2.5f, c.getResources().getDisplayMetrics().density);
+        int W = Math.max(1, Math.round(widthDp * sc)), H = Math.max(1, Math.round(SEAM_W * sc));
+        Bitmap bm = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
+        Canvas cv = new Canvas(bm);
+        cv.scale(sc, sc);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setShader(new android.graphics.LinearGradient(0, 0, SEAM_P, 0, SEAM, SEAM_AT, android.graphics.Shader.TileMode.REPEAT));
+        p.setAlpha(SEAM_A);
+        float h = H / sc;
+        cv.drawRoundRect(new RectF(Math.max(0, x0), 0, Math.min(widthDp, x1), h), h / 2f, h / 2f, p);
+        return bm;
+    }
+
     /** 深色模式的色条：专门设计的深色调和文字色（与应用 MC.PAL.dark 一致），下标 = 优先级 */
     private static final int[] DARK_FILL = {0xFF383B3F, 0xFF255593, 0xFFBB6800, 0xFFAC312C};
     private static final int[] DARK_INK = {0xFFE8E9EB, 0xFFDDEBFD, 0xFFFCE5D3, 0xFFFFE2DE};
@@ -299,7 +389,7 @@ final class Widgets {
         Bitmap bm = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
         Canvas cv = new Canvas(bm);
         cv.scale(sc, sc);
-        float cw = widthDp / 7f, h = 13.5f, rad = 3.5f;
+        float cw = widthDp / 7f, h = 13.5f, rad = 5.5f;   // 圆角约为高度的 0.41（和 App 色条 15px 高 6.5 圆角、chip_p*.xml 一样）【联动:优先级色条】
         Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
         text.setTextSize(9f);
@@ -631,10 +721,7 @@ final class Widgets {
         LocalDate first = ym.atDay(1);
         int jsDay = first.getDayOfWeek().getValue() % 7;
         LocalDate start = first.minusDays((jsDay - ws + 7) % 7);
-        rv.setTextViewText(R.id.m_title, I18n.monthSched(ym.getMonthValue()));
-        rv.setTextViewText(R.id.m_year, String.valueOf(ym.getYear()));
-        rv.setViewVisibility(R.id.m_today, off == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
-        for (int k = 0; k < 7; k++) rv.setTextViewText(WDAY[k], I18n.wdHead((k + ws) % 7));
+        monthHead(rv, I18n.monthSched(ym.getMonthValue()), ym, off == 0, today, ws);
         int perCell = Math.max(1, cap);
         // 这个月实际需要几行：最后一整行都是下个月的话，整行去掉（列是等分的，隐藏一格会自动重排）
         int off0 = (jsDay - ws + 7) % 7;

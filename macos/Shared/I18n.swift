@@ -316,6 +316,21 @@ enum I18n {
 
     /// 月份标题：「10月」/ Oct / oct.（m：1–12）
     static func mon(_ m: Int) -> String { lang == "en" ? MON_EN[m - 1] : lang == "fr" ? MON_FR[m - 1] : "\(m)月" }
+    /// 整月小组件的大标题：中文用汉字「十一月」（和 App 标题板一样，calendar.js 的 monthName），其他语言同 mon【联动:顶部悬浮】
+    static func monTitle(_ m: Int) -> String {
+        zh ? ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"][m - 1] + "月" : mon(m)
+    }
+    /// 眉题「2026　第 48 周」（calendar.js 的 eyebrowText）；w 为 0 时只写年份
+    static func eyebrow(_ y: Int, _ w: Int) -> String {
+        if w <= 0 { return String(y) }
+        switch lang {
+        case "en": return "\(y) · Week \(w)"
+        case "fr": return "\(y) · Semaine \(w)"
+        case "ja": return "\(y)　第\(w)週"
+        case "zh-Hant": return "\(y)　第 \(w) 週"
+        default: return "\(y)　第 \(w) 周"
+        }
+    }
     /// 日期：「10月20日」/ Oct 20 / 20 oct.
     static func md(_ m: Int, _ d: Int) -> String { lang == "en" ? "\(MON_EN[m - 1]) \(d)" : lang == "fr" ? "\(d) \(MON_FR[m - 1])" : "\(m)月\(d)日" }
     /// 星期表头（0 = 周日）：「日」/ S / D

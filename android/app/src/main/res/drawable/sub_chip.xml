@@ -2,7 +2,7 @@
 <!-- 分日历（记录日历、纪念日历）的事件在主日历小组件里：左边一根实色竖条 + 很淡的同色底（和网页 .chip.sub、body[data-cal] .chip 一样）。
      白色形状，代码里按事件颜色着色（setBackgroundTintList，默认 SRC_IN：竖条是实色，底是 20% 的同色） -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item><shape android:shape="rectangle"><solid android:color="#33FFFFFF" /><corners android:radius="3.5dp" /></shape></item>
+    <item><shape android:shape="rectangle"><solid android:color="#33FFFFFF" /><corners android:radius="5.5dp" /></shape></item>
     <item android:width="3dp" android:gravity="left"><shape android:shape="rectangle"><solid android:color="#FFFFFFFF" />
-        <corners android:topLeftRadius="3.5dp" android:bottomLeftRadius="3.5dp" android:topRightRadius="0dp" android:bottomRightRadius="0dp" /></shape></item>
+        <corners android:topLeftRadius="5.5dp" android:bottomLeftRadius="5.5dp" android:topRightRadius="0dp" android:bottomRightRadius="0dp" /></shape></item>
 </layer-list>

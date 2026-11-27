@@ -9,6 +9,8 @@
     <color name="w_line">#DAE1E5</color>
     <color name="w_text">#171B20</color>
     <color name="w_text2">#747B83</color>
+    <!-- 整月小组件「本月」胶囊的底：正文色 6%（和 App .cal-today 一样） -->
+    <color name="w_pill">#0F171B20</color>
     <color name="w_live">#294F80C4</color>
     <!-- 优先级（色彩心理学）：无 灰 · 低 天蓝 · 中 杏橙 · 高 朱红，和网页 styles.css 的优先级色一致 -->
     <!-- 【联动:优先级颜色】见 CLAUDE.md「联动分组」 -->

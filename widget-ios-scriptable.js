@@ -40,6 +40,14 @@ const wdShort = i => (LANG === "en" ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri",
 const wdHead = i => (LANG === "en" ? ["S", "M", "T", "W", "T", "F", "S"][i] : LANG === "fr" ? ["D", "L", "M", "M", "J", "V", "S"][i] : LANG === "ja" ? "日月火水木金土"[i] : "日一二三四五六"[i]);
 const wkName = i => (isZh() ? "周" + "日一二三四五六"[i] : wdShort(i));
 const monName = m => (LANG === "en" ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m] : LANG === "fr" ? ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."][m] : `${m + 1}月`);
+// 大标题的月份：中文用汉字（十一月），其他语言照旧（和 App 的 monthName 一样）
+const CN_M = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"];
+const bigMon = m => (isZh() ? CN_M[m] + "月" : monName(m));
+// 眉题：年份　第几周（ISO 周数，和 App calendar.js 的 isoWeek / eyebrowText 一样）【联动:顶部悬浮】
+const isoWeek = d => { const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3 - ((d.getDay() + 6) % 7)); const w1 = new Date(t.getFullYear(), 0, 4); return 1 + Math.round(((t - w1) / 864e5 - 3 + ((w1.getDay() + 6) % 7)) / 7); };
+const eyebrow = (y, w) => (LANG === "en" ? `${y} · Week ${w}` : LANG === "fr" ? `${y} · Semaine ${w}` : LANG === "ja" ? `${y}　第${w}週` : LANG === "zh-Hant" ? `${y}　第 ${w} 週` : `${y}　第 ${w} 周`);
+// Scriptable 的文字没有字距：字与字之间插一个极细空格（U+200A），近似 App 眉题的 .16em
+const spaced = t => Array.from(t).join("\u200A");
 const mdName = (m, d) => (LANG === "en" ? `${monName(m)} ${d}` : LANG === "fr" ? `${d} ${monName(m)}` : `${m + 1}月${d}日`);
 
 const ACCENT_HEX = ["#2B2D33", "#ECEDF1"]; // 浅色 / 深色：主色中性黑白（和 App 的 --accent 一致，不要蓝色）
@@ -264,8 +272,8 @@ function addChip(parent, e, width, h, fs, out, tm) {
   ch.size = new Size(width, h);
   ch.backgroundColor = bg;
   if (!sub) { const gr = chipGrad(e.priority, e.done, out, calHex(e)); if (gr) ch.backgroundGradient = gr; }
-  ch.cornerRadius = 3;
-  ch.setPadding(0, sub ? 0 : 1.5, 0, 0.5);
+  ch.cornerRadius = sub ? 4 : 5.5;   // 圆角约高度的 0.43（App 15px 高 6.5）；分日历竖条样式小一点（App 4.5）
+  ch.setPadding(0, sub ? 0 : 2.5, 0, 1);
   ch.centerAlignContent();
   if (sub) subStripe(ch, sub.bar, h);
   // 课程类标题（如「MAT 2348 Mid」）在小组件里只显示课程编号，避免省略号和多余空白
@@ -310,29 +318,38 @@ function largeLayout(w, idx, offline) {
   const rows = Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7); // 本月占几周就显示几行
   const days = monthDays(y, m).slice(0, rows * 7);
 
-  // 标题：居中月份
+  // 标题：和 App 月视图一样走「编辑式」——左对齐的大号粗体月份（中文「十一月」）+ 同一条基线上的小号眉题（年份　第几周），
+  // 完成数在右边。小组件只显示本月，眉题一直是今天的 ISO 周数【联动:顶部悬浮】
+  const HEAD = 24;
   const head = w.addStack();
-  head.size = new Size(0, 15);
-  head.centerAlignContent();
+  head.size = new Size(S.mw, HEAD);
+  head.bottomAlignContent();
+  head.addSpacer(9);
   const st = monthStats(idx, y, m);
-  const left = head.addStack(); left.size = new Size(0, 15);
-  left.addSpacer(10); addText(left, String(y), Font.mediumSystemFont(9), C.text2); left.addSpacer();
-  const mid = head.addStack(); mid.size = new Size(0, 15); mid.addSpacer();
-  addText(mid, monName(m), Font.boldSystemFont(12.5), ACCENT); mid.addSpacer();
-  const right = head.addStack(); right.size = new Size(0, 15); right.addSpacer();
-  addText(right, (st.total ? `${st.done}/${st.total}` : '') + (offline ? ' ' + tr('离线') : ''), Font.mediumSystemFont(9), C.text2); right.addSpacer(10);
-  w.addSpacer(1);
+  addText(head, bigMon(m), Font.heavySystemFont(20), C.text, { lines: 1 });
+  head.addSpacer(7);
+  // 小字和大字底边对齐时基线差了下沉部分的差（约 0.2 × 字号差），垫高一点让两行字落在同一条基线上
+  const bw = head.addStack(); bw.layoutVertically();
+  addText(bw, spaced(eyebrow(y, isoWeek(now))), Font.semiboldSystemFont(8.5), C.text2, { lines: 1 });
+  bw.addSpacer(2.5);
+  head.addSpacer();
+  const rs = head.addStack(); rs.layoutVertically();
+  addText(rs, (st.total ? `${st.done}/${st.total}` : "") + (offline ? " " + tr("离线") : ""), Font.mediumSystemFont(9), C.text2, { lines: 1 });
+  rs.addSpacer(3);
+  head.addSpacer(10);
+  w.addSpacer(2);
 
-  // 星期
+  // 星期：半粗、次要色；周末更淡，今天那一列正文色加粗（和 App 的 #weekdays 一样）
   const wr = w.addStack();
-  wr.size = new Size(0, 11);
+  wr.size = new Size(0, 12);
   for (let i = 0; i < 7; i++) {
-    const c = wr.addStack(); c.size = new Size(0, 11); c.centerAlignContent(); c.addSpacer();
-    addText(c, wdShort((i + CONFIG.WEEK_START) % 7), Font.mediumSystemFont(8), C.text2); c.addSpacer();
+    const k = (i + CONFIG.WEEK_START) % 7, td = k === now.getDay();
+    const c = wr.addStack(); c.size = new Size(0, 12); c.centerAlignContent(); c.addSpacer();
+    addText(c, wdShort(k), td ? Font.boldSystemFont(8) : Font.semiboldSystemFont(8), td ? C.text : C.text2, { opacity: !td && (k === 0 || k === 6) ? 0.55 : 1 }); c.addSpacer();
   }
   w.addSpacer(1);
 
-  const gridH = S.lh - padT - padB - 15 - 1 - 11 - 1;
+  const gridH = S.lh - padT - padB - HEAD - 2 - 12 - 1;
   // 每周之间、上下各有一条 0.5 的线，也要从高度里扣掉，否则每周会比格子高一点、被下一周盖住
   const rowH = Math.floor((gridH - (rows + 1) * 0.5) / rows);
   const numH = 15, chipH = 13, gap = 1, padTop = 2.5, SEP = 0.5, STEP = chipH + gap;
@@ -346,10 +363,34 @@ function largeLayout(w, idx, offline) {
   const sep = (b, h) => { const x = b.addStack(); x.size = new Size(SEP, h); };   // 每天之间只留缝，不画竖线（用户定的）【联动:小组件格线】
   const box = (b, w, h) => { const x = b.addStack(); x.size = new Size(w, h); x.layoutVertically(); return x; };
   // 今天：这一列画一块带小圆角的淡主色（四周留一点边），作为这一周的背景，浅色深色都合适
-  const todayImage = c => {
-    const dc = new DrawContext(); dc.size = new Size(S.mw, rowH); dc.opaque = false; dc.respectScreenScale = true;
-    const p = new Path(); p.addRoundedRect(new Rect(c * (colW + SEP) + 1.5, 1.5, colW - 3, rowH - 3), 4, 4);
+  const todayImage = (dc, c) => {
+    const p = new Path(); p.addRoundedRect(new Rect(c * (colW + SEP) + 1.5, 1.5, colW - 3, rowH - 3), 10, 10);
     dc.addPath(p); dc.setFillColor(new Color("#6F8DC6", 0.16)); dc.fillPath();
+  };
+  // 月份交界线（App calendar.js 的 drawFrame / seam）：只在本月和上 / 下个月交界的那一行画一根 Cadence logo 渐变的细线，阶梯形——
+  // 沿左边别的月份那几格的底边走到交界列、竖着上到这一行的顶、再沿右边那几格的顶边走到最右。只有那一行同时有两个月的日子才画；
+  // 小组件不动画。DrawContext 不能用渐变描边：按横坐标切成 2pt 一小段，每段用那里的渐变色画（圆头圆角靠每个拐点补一个圆点）
+  const SEAM = ["#9E9AC8", "#C7B3CF", "#EBC7A6"].map(h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)));
+  const seamColor = x => { const u = ((x % 320) + 320) % 320, t = u <= 160 ? u / 160 : (320 - u) / 160, k = t <= .5 ? 0 : 1, f = t <= .5 ? t * 2 : t * 2 - 1;
+    const [a, b] = [SEAM[k], SEAM[k + 1]]; return new Color("#" + a.map((v, i) => Math.round(v + (b[i] - v) * f).toString(16).padStart(2, "0")).join(""), 0.95); };
+  const dim = new Date(y, m + 1, 0).getDate();
+  const seamRow = (dc, kind, c) => {   // kind：top = 这一行左边是上个月；bottom = 右边是下个月
+    const LW = 1.6, R = LW / 2, X = k => Math.min(S.mw - R, Math.max(R, k * (colW + SEP) - (k > 0 && k < 7 ? SEP / 2 : 0))), Y0 = R, Y1 = rowH - R;
+    const pts = [[X(0), Y1], [X(c), Y1], [X(c), Y0], [X(7), Y0]];
+    for (let i = 1; i < pts.length; i++) {
+      const [x1, y1] = pts[i - 1], [x2, y2] = pts[i];
+      if (x1 === x2) { dc.setFillColor(seamColor(x1)); dc.fillRect(new Rect(x1 - R, Math.min(y1, y2), LW, Math.abs(y2 - y1))); continue; }
+      for (let x = x1; x < x2; x += 2) { dc.setFillColor(seamColor(x + 1)); dc.fillRect(new Rect(x, y1 - R, Math.min(2, x2 - x) + 0.01, LW)); }
+    }
+    for (const [x, yy] of pts) { dc.setFillColor(seamColor(x)); dc.fillEllipse(new Rect(x - R, yy - R, LW, LW)); }
+  };
+  const rowImage = (r, today) => {
+    const sTop = r === 0 && off > 0, b = off + dim, sBot = r === Math.floor(b / 7) && b % 7 > 0;
+    if (today < 0 && !sTop && !sBot) return null;
+    const dc = new DrawContext(); dc.size = new Size(S.mw, rowH); dc.opaque = false; dc.respectScreenScale = true;
+    if (today >= 0) todayImage(dc, today);
+    if (sTop) seamRow(dc, "top", off);
+    if (sBot) seamRow(dc, "bottom", b % 7);
     return dc.getImage();
   };
   const grid = w.addStack();
@@ -371,7 +412,7 @@ function largeLayout(w, idx, offline) {
     const row = grid.addStack();
     row.layoutVertically();
     row.size = new Size(S.mw, rowH);
-    if (dss.includes(t)) row.backgroundImage = todayImage(dss.indexOf(t));
+    { const img = rowImage(r, dss.indexOf(t)); if (img) row.backgroundImage = img; }
     // 日期
     const nb = band(row, top0);
     for (let c = 0; c < 7; c++) {
@@ -379,26 +420,25 @@ function largeLayout(w, idx, offline) {
       const d = wk[c], out = d.getMonth() !== m, isToday = dss[c] === t;
       const cell = box(nb, colW, top0);
       cell.setPadding(padTop, 1, 0, 1);
+      // 日期在格子里水平居中（和 App 一样）：左右各留一样宽的一块，「+n」放在右边那块里（右上角）
       const nr = cell.addStack();
-      nr.size = new Size(0, numH);
-      nr.centerAlignContent();
+      nr.size = new Size(colW - 2, numH);
+      nr.topAlignContent();
+      const NW = numH + 4, side = Math.max(0, (colW - 2 - NW) / 2);
+      const ls = nr.addStack(); ls.size = new Size(side, numH);
+      const mid = nr.addStack(); mid.size = new Size(NW, numH); mid.centerAlignContent();
       if (isToday) {
-        nr.addSpacer(1.5);
-        const badge = nr.addStack();
+        const badge = mid.addStack();
         badge.size = new Size(numH + 3, numH);
         badge.backgroundGradient = brandGrad(); badge.cornerRadius = numH / 2; badge.centerAlignContent();
         addText(badge, String(d.getDate()), Font.boldSystemFont(10.5), Color.white());
-      } else {
-        nr.addSpacer(3.5);
-        addText(nr, String(d.getDate()), Font.mediumSystemFont(11), out ? C.text3 : C.text);
-      }
-      nr.addSpacer();
-      if (hidden[c]) { // 放不下的事件数，放在日期右边；今天用主色小标签，更醒目
+      } else addText(mid, String(d.getDate()), Font.mediumSystemFont(11), out ? C.text3 : C.text);
+      const rsd = nr.addStack(); rsd.size = new Size(side, numH); rsd.topAlignContent();
+      if (hidden[c]) { // 放不下的事件数，在右上角；今天用品牌渐变小标签，更醒目
         if (isToday) {
-          const pill = nr.addStack(); pill.backgroundGradient = brandGrad(); pill.cornerRadius = 3; pill.setPadding(0, 3, 0, 3); pill.centerAlignContent();
-          addText(pill, `+${hidden[c]}`, Font.boldSystemFont(8), Color.white());
-        } else addText(nr, `+${hidden[c]}`, Font.mediumSystemFont(7.5), C.text2);
-        nr.addSpacer(2);
+          const pill = rsd.addStack(); pill.backgroundGradient = brandGrad(); pill.cornerRadius = 3; pill.setPadding(0, 2, 0, 2); pill.centerAlignContent();
+          const tx = addText(pill, `+${hidden[c]}`, Font.boldSystemFont(7.5), Color.white(), { lines: 1 }); tx.minimumScaleFactor = 0.7;
+        } else { const tx = addText(rsd, `+${hidden[c]}`, Font.mediumSystemFont(7.5), C.text2, { lines: 1 }); tx.minimumScaleFactor = 0.7; }
       }
       // 不要在固定高度的格子里放 addSpacer()：它最少占 8pt，会把日期圆圈压扁
     }
@@ -443,7 +483,7 @@ function largeLayout(w, idx, offline) {
 // 一整条横条。只有一边延续时，用「平的一小段 + 圆角段」稍微叠在一起，做出一边方、一边圆
 function addBar(parent, g, width) {
   const sub = g.e.cal ? subColors(g.e, g.out, true) : null;
-  const e = g.e, { bg, fg } = sub || barColors(e.priority, e.done, g.out, calHex(e)), h = 13, R = 3;
+  const e = g.e, { bg, fg } = sub || barColors(e.priority, e.done, g.out, calHex(e)), h = 13, R = sub ? 4 : 5.5;   // 圆角和单天色条一样
   const outer = parent.addStack();
   outer.size = new Size(width, h + 1);
   outer.layoutVertically();
@@ -459,7 +499,7 @@ function addBar(parent, g, width) {
   body.backgroundColor = bg;
   if (!sub) { const gr = chipGrad(e.priority, e.done, g.out, calHex(e), true); if (gr) body.backgroundGradient = gr; }
   body.cornerRadius = g.ol && g.or ? 0 : R;
-  body.setPadding(0, sub && !g.ol ? 0 : g.ol && !g.or ? 0.5 : 1.5, 0, 0.5);
+  body.setPadding(0, sub && !g.ol ? 0 : g.ol && !g.or ? 0.5 : 2.5, 0, 0.5);
   body.centerAlignContent();
   if (sub && !g.ol) subStripe(body, sub.bar, h);
   const tx = addText(body, chipLabel(e), chipFont(9), fg, { lines: 1 });

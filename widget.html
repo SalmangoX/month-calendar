@@ -25,19 +25,29 @@
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden;
     font-family:-apple-system, "Noto Sans SC", "PingFang SC", Roboto, sans-serif; }
   a.wrap { display:flex; flex-direction:column; height:100%; padding:4px 0 0; color:inherit; text-decoration:none; }
-  .head { display:flex; align-items:baseline; justify-content:space-between; padding:0 10px 1px; }
-  .head b { font-size:12.5px; color:var(--accent); }
-  .head span { font-size:9.5px; color:var(--text2); }
-  .wd { display:grid; grid-template-columns:repeat(7,1fr); font-size:8.5px; color:var(--text2); text-align:center; padding-bottom:1px; }
-  .grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border-top:.5px solid var(--line); overflow:hidden; }
+  /* 标题和 App 月视图一样走「编辑式」（styles.css 的 .topbar .title h1 / .cal-eyebrow）：左对齐的大号粗体月份 + 同一条基线上的小号眉题（年份　第几周）；
+     完成数在右边。小组件只显示本月，所以眉题一直是今天的 ISO 周数【联动:顶部悬浮】 */
+  .head { display:flex; align-items:baseline; gap:8px; height:28px; padding:2px 10px 0 9px; white-space:nowrap; overflow:hidden; }
+  .head .mo { font-size:22px; font-weight:800; letter-spacing:-.04em; line-height:1; color:var(--text); flex:none;
+    font-family:-apple-system, "SF Pro Display", system-ui, "PingFang SC", "Noto Sans SC", sans-serif; }
+  .head .brow { font-size:8.5px; font-weight:650; letter-spacing:.16em; color:var(--text2); font-variant-numeric:tabular-nums; flex:none; }
+  .head .cnt { margin-left:auto; font-size:9.5px; font-weight:500; color:var(--text2); font-variant-numeric:tabular-nums; }
+  /* 星期：半粗、拉开字距、次要色；周末更淡（.we），今天那一列正文色加粗（.td），和 App 的 #weekdays 一样 */
+  .wd { display:grid; grid-template-columns:repeat(7,1fr); height:15px; align-items:center; font-size:8.5px; font-weight:600; letter-spacing:.08em; color:var(--text2); text-align:center; }
+  .wd > div { padding-left:.08em; }   /* 字距加在每个字后面，补回左边，字才对准列中线 */
+  .wd .we { opacity:.55; }
+  .wd .td { color:var(--text); font-weight:750; opacity:1; }
+  .grid { position:relative; flex:1; min-height:0; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border-top:.5px solid var(--line); overflow:hidden; }
+  /* 月份交界线：只在本月和上 / 下个月交界的那一行画一根 Cadence logo 渐变的细线（阶梯形，和 App 的 drawFrame 一样，静态不流动） */
+  .seam { position:absolute; left:0; top:0; z-index:3; pointer-events:none; overflow:visible; }
   .c { border-bottom:.5px solid var(--line);   /* 每天之间不画竖线（用户定的）【联动:小组件格线】 */ overflow:hidden; padding:2px 1px 0; min-width:0; }
   .c:nth-child(7n) { border-right:0; }
   .c.last { border-bottom:0; } /* 最后一行（格子后面还跟着横条，不能用 nth-last-child） */
-  .n { min-width:18px; height:18px; padding:0 3px; margin:2px 0 2px 3px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; }
+  .n { min-width:18px; height:18px; padding:0 3px; margin:2px auto; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; }
   .out .n { color:var(--text3); } .out .chip { opacity:.55; }
   .today .n { background:linear-gradient(135deg, #E2B562 6%, #74A8E6 52%, #5A8DDA 96%); color:#fff; font-weight:700; }
   /* 事件色条，和应用一致：浅色实色底白字；深色用专门的深色调 + 带同色的柔白字、中等字重 */
-  .chip { height:14px; line-height:14px; font-size:9.5px; font-weight:var(--chip-weight); margin:0 1px 1px; padding:0 1.5px; border-radius:3.5px; letter-spacing:-.02em;
+  .chip { height:14px; line-height:14px; font-size:9.5px; font-weight:var(--chip-weight); margin:0 1px 1px; padding:0 2px 0 3px; border-radius:6px;   /* 圆角约高度的 0.43（App 15px 高 6.5 圆角） */ letter-spacing:-.02em;
     white-space:nowrap; overflow:hidden;
     background:var(--chip-bg); color:var(--chip-fg); }
   .chip.done { background:var(--cgo, color-mix(in srgb, var(--c) var(--mix), transparent)); color:color-mix(in srgb, var(--c) 72%, var(--text2)); text-decoration:line-through; }
@@ -45,7 +55,7 @@
   .chip .cj { font-size:.947em; letter-spacing:.02em; }
   .chip .t { display:block; overflow:hidden; -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 7px), rgba(0,0,0,.45)); mask-image:linear-gradient(90deg, #000 calc(100% - 7px), rgba(0,0,0,.45)); }   /* 只淡最后 7px、最淡留 45%（和 App 一样） */
   /* 分日历（记录日历、纪念日历）的事件：左边一根竖条 + 淡底 + 同色字（和应用 .chip.sub 一样） */
-  .chip.sub { background:color-mix(in srgb, var(--c) 20%, transparent); color:color-mix(in srgb, var(--c) 72%, #16141d); box-shadow:inset 3px 0 0 var(--c); padding-left:4.5px; }
+  .chip.sub { background:color-mix(in srgb, var(--c) 20%, transparent); color:color-mix(in srgb, var(--c) 72%, #16141d); box-shadow:inset 3px 0 0 var(--c); padding-left:4.5px; border-radius:4px; }   /* 分日历竖条样式的圆角和 App 一样小一点（15px 高 4.5） */
   .chip.sub.done { background:color-mix(in srgb, var(--c) 7%, transparent); color:var(--text3); box-shadow:inset 3px 0 0 color-mix(in srgb, var(--c) 35%, transparent); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chip.sub:not(.done) { background:color-mix(in srgb, var(--cf) 28%, transparent); color:color-mix(in srgb, var(--c) 50%, #fff); } }
   :root[data-theme="dark"] .chip.sub:not(.done) { background:color-mix(in srgb, var(--cf) 28%, transparent); color:color-mix(in srgb, var(--c) 50%, #fff); }
@@ -60,12 +70,13 @@
   /* 今天：整格叠一层淡主色；还有放不下的事件时，「+n」用主色小标签 */
   /* 今天：一块带小圆角的淡主色，四周留一点边 */
   .c { position:relative; }
-  .c.today::before { content:''; position:absolute; inset:1.5px 1.5px 2px; border-radius:4px; background:color-mix(in srgb, var(--cs) 12%, transparent); pointer-events:none; }
+  .c.today::before { content:''; position:absolute; inset:1.5px 1.5px 2px; border-radius:10px; background:color-mix(in srgb, var(--cs) 12%, transparent); pointer-events:none; }
   :root[data-theme="dark"] .c.today::before { background:color-mix(in srgb, var(--cs) 20%, transparent); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .c.today::before { background:color-mix(in srgb, var(--cs) 20%, transparent); } }
   .c > * { position:relative; }
-  .nr { display:flex; align-items:center; justify-content:space-between; padding-right:2px; }
-  .c.today .more { display:inline-block; color:#fff; background:linear-gradient(135deg, #E2B562 6%, #74A8E6 52%, #5A8DDA 96%); border-radius:4px; padding:0 3px; font-weight:700; margin-left:2px; }
+  .nr { position:relative; display:flex; align-items:center; justify-content:center; }   /* 日期在格子里水平居中（和 App 一样） */
+  .nr .more { position:absolute; right:1px; top:2px; line-height:11px; padding-left:0; }   /* 「+n」照旧在右上角 */
+  .c.today .more { display:inline-block; color:#fff; background:linear-gradient(135deg, #E2B562 6%, #74A8E6 52%, #5A8DDA 96%); border-radius:4px; padding:0 2.5px; font-weight:700; top:0; }
   /* 跨天的全天事件：作为网格里横跨几列的一项，叠在格子上面连成一条 */
   .bar { z-index:1; align-self:start; pointer-events:none; margin:calc(24px + var(--s) * 15px) 2px 0; }
   .bar.ol { margin-left:0; border-top-left-radius:0; border-bottom-left-radius:0; }
@@ -111,6 +122,12 @@
   const wdHead = i => (LANG === "en" ? ["S", "M", "T", "W", "T", "F", "S"][i] : LANG === "fr" ? ["D", "L", "M", "M", "J", "V", "S"][i] : LANG === "ja" ? "日月火水木金土"[i] : "日一二三四五六"[i]);
   const wkName = i => (isZh() ? "周" + "日一二三四五六"[i] : wdShort(i));
   const monName = m => (LANG === "en" ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m] : LANG === "fr" ? ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."][m] : `${m + 1}月`);
+  // 大标题的月份：中文用汉字（十一月），其他语言照旧（和 App 的 monthName 一样）
+  const CN_M = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+  const bigMon = m => (isZh() ? CN_M[m] + '月' : monName(m));
+  // 眉题：年份　第几周（ISO 周数，和 App calendar.js 的 isoWeek / eyebrowText 一样）
+  const isoWeek = d => { const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3 - ((d.getDay() + 6) % 7)); const w1 = new Date(t.getFullYear(), 0, 4); return 1 + Math.round(((t - w1) / 864e5 - 3 + ((w1.getDay() + 6) % 7)) / 7); };
+  const eyebrow = (y, w) => (LANG === 'en' ? `${y} · Week ${w}` : LANG === 'fr' ? `${y} · Semaine ${w}` : LANG === 'ja' ? `${y}　第${w}週` : LANG === 'zh-Hant' ? `${y}　第 ${w} 週` : `${y}　第 ${w} 周`);
   const mdName = (m, d) => (LANG === "en" ? `${monName(m)} ${d}` : LANG === "fr" ? `${d} ${monName(m)}` : `${m + 1}月${d}日`);
 
   const pad = n => String(n).padStart(2,'0');
@@ -168,7 +185,7 @@
     let rows = Math.ceil((off + new Date(y, m + 1, 0).getDate()) / 7); // 只显示本月所在的几周
     // 兜底：最后一行如果全是下个月的日子，整行去掉，绝不出现一整行别月的日期
     while (rows > 1 && (off + (rows - 1) * 7) >= (off + new Date(y, m + 1, 0).getDate())) rows--;
-    const gridH = window.innerHeight - 30;
+    const gridH = window.innerHeight - 4 - 28 - 15;   // 上边距 + 标题 + 星期
     const rowH = gridH / rows;
     const max = Math.max(1, Math.floor((rowH - 24) / 15));
     CLOCK = (data.profile && data.profile.clock) || 'auto';
@@ -239,9 +256,22 @@
     }
     cells += bars;
     let wd = '';
-    for (let i = 0; i < 7; i++) wd += `<div>${wdShort((i + WS) % 7)}</div>`;
-    root.innerHTML = `<div class="head"><b>${monName(m)}</b><span>${total ? tr('完成 {0}/{1}', done, total) : tr('本月暂无事件')}</span></div>
+    for (let i = 0; i < 7; i++) { const k = (i + WS) % 7; wd += `<div class="${k === 0 || k === 6 ? 'we' : ''}${k === now.getDay() ? ' td' : ''}">${wdShort(k)}</div>`; }
+    root.innerHTML = `<div class="head"><b class="mo">${bigMon(m)}</b><span class="brow">${eyebrow(y, isoWeek(now))}</span><span class="cnt">${total ? tr('完成 {0}/{1}', done, total) : tr('本月暂无事件')}</span></div>
       <div class="wd">${wd}</div><div class="grid" style="grid-template-rows:repeat(${rows},minmax(0,1fr))">${cells}</div>`;
+    drawSeam(root.querySelector('.grid'), rows, off, off + new Date(y, m + 1, 0).getDate());
+  }
+  // 月份交界线（App calendar.js 的 drawFrame / seam）：第 k 格（从第一行第一格数）之前的交界——
+  // 沿左边别的月份那几格的底边走到交界列、竖着上到这一行的顶、再沿右边那几格的顶边走到最右。只有那一行同时有两个月的日子才画
+  function drawSeam(grid, rows, a, b) {
+    if (!grid) return;
+    const W = grid.clientWidth, H = grid.clientHeight, cw = W / 7, rh = H / rows, R = .7;
+    const X = c => Math.min(W - R, Math.max(R, c * cw)), Y = r => Math.min(H - R, Math.max(R, r * rh));
+    const seam = k => { const r = Math.floor(k / 7), c = k % 7; return c === 0 || r >= rows ? null : `M${X(0)} ${Y(r + 1)}H${X(c)}V${Y(r)}H${X(7)}`; };
+    const d = [seam(a), seam(b)].filter(Boolean).join('');
+    if (!d) return;
+    // Cadence logo 渐变 #9E9AC8 → #C7B3CF → #EBC7A6，横向每 160px 往返一次（周期 320）
+    grid.insertAdjacentHTML('beforeend', `<svg class="seam" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><defs><linearGradient id="seamG" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="320" y2="0" spreadMethod="repeat"><stop offset="0" stop-color="#9E9AC8"/><stop offset=".25" stop-color="#C7B3CF"/><stop offset=".5" stop-color="#EBC7A6"/><stop offset=".75" stop-color="#C7B3CF"/><stop offset="1" stop-color="#9E9AC8"/></linearGradient></defs><path d="${d}" fill="none" stroke="url(#seamG)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/></svg>`);
   }
 
   // 课表模式：今天还没上完的课（今天没课就显示下一个有课的日子）

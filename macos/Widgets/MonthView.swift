@@ -17,14 +17,16 @@ struct MonthView: View {
 
     #if os(macOS)
     // Mac 桌面上看得比手机远，字和色条比 iOS / 安卓大一档（样式不变）
-    private static let headH: CGFloat = 26, wdH: CGFloat = 15, topPad: CGFloat = 4, sp: CGFloat = 0.6
+    private static let headH: CGFloat = 32, wdH: CGFloat = 16, topPad: CGFloat = 4, sp: CGFloat = 0.6
     private static let slot: CGFloat = 16.5, chipH: CGFloat = 15.5, dateH: CGFloat = 18, cellTop: CGFloat = 1.5
-    private static let dateFS: CGFloat = 12.5, chipFS: CGFloat = 10.5, wdFS: CGFloat = 10, chipR: CGFloat = 3.5
+    private static let dateFS: CGFloat = 12.5, chipFS: CGFloat = 10.5, wdFS: CGFloat = 10, chipR: CGFloat = 6.5
+    private static let titleFS: CGFloat = 20, browFS: CGFloat = 9.5, headPad: CGFloat = 12
     #else
     // iPhone：和网页版的 Scriptable 小组件同一套尺寸（字小一号、细，色条矮），手机上看着清爽不挤
-    private static let headH: CGFloat = 19, wdH: CGFloat = 12, topPad: CGFloat = 3, sp: CGFloat = 0.5
+    private static let headH: CGFloat = 23, wdH: CGFloat = 12, topPad: CGFloat = 3, sp: CGFloat = 0.5
     private static let slot: CGFloat = 14, chipH: CGFloat = 13, dateH: CGFloat = 15, cellTop: CGFloat = 2.5 // 和 Scriptable 版一样：色条 13、日期行 15
-    private static let dateFS: CGFloat = 11, chipFS: CGFloat = 9, wdFS: CGFloat = 8, chipR: CGFloat = 3
+    private static let dateFS: CGFloat = 11, chipFS: CGFloat = 9, wdFS: CGFloat = 8, chipR: CGFloat = 5.5
+    private static let titleFS: CGFloat = 16, browFS: CGFloat = 7.5, headPad: CGFloat = 10
     #endif
 
     /// 每格能放几条事件：≥1 显示色条；0 显示圆点；-1 只显示日期
@@ -49,8 +51,11 @@ struct MonthView: View {
                 VStack(spacing: 0) {
                     header(ym, pal)
                     HStack(spacing: MonthView.sp) {
+                        // 和 App 标题板底下的星期一行一样：半粗、拉开字距，周末更淡，今天那一列更深【联动:顶部悬浮】
                         ForEach(0..<7, id: \.self) { k in
-                            Text(I18n.wdHead((k + entry.weekStart) % 7)).font(.system(size: MonthView.wdFS, weight: .medium)).foregroundStyle(pal.text2).frame(width: cw)
+                            let wd = (k + entry.weekStart) % 7, td = entry.moff == 0 && wd == today.jsDay
+                            Text(I18n.wdHead(wd)).font(.system(size: MonthView.wdFS, weight: td ? .heavy : .semibold)).tracking(MonthView.wdFS * 0.08)
+                                .foregroundStyle(td ? pal.text : pal.text2).opacity(td || (wd != 0 && wd != 6) ? 1 : 0.55).frame(width: cw)
                         }
                     }
                     .frame(height: MonthView.wdH)
@@ -68,44 +73,62 @@ struct MonthView: View {
                             for r in 0..<rows { ctx.fill(Path(CGRect(x: 0, y: CGFloat(r) * (rowH + sp), width: size.width, height: sp)), with: .color(pal.line)) }
                         }
                     }
+                    .overlay { seams(days, ym: ym, rows: rows, cw: cw, rowH: rowH, pal: pal) }
                 }
                 .padding(.top, MonthView.topPad)
             }
         }
     }
 
-    #if os(iOS)
-    /// iPhone：和 Scriptable 小组件一样——左边年份，中间主色的月份，右边本月完成数；翻月的小箭头放在最右边
+    /// 标题：和 App 的标题板同一套「编辑式」版式（用户选的 B）——左边大号粗体月份（中文写汉字「十一月」），
+    /// 同一条基线上跟一行拉开字距的小眉题「2026　第 48 周」（本月时是今天那一周；翻到别的月份只写年份）；
+    /// 右边：iPhone 本月完成数、翻到别的月份时一颗浅色「本月」胶囊、‹ ›【联动:顶部悬浮】
     private func header(_ ym: YMD, _ pal: Pal) -> some View {
-        let st = monthStats(ym)
-        return ZStack {
-            Text(I18n.mon(ym.m)).font(.system(size: 12.5, weight: .bold)).foregroundStyle(pal.text).accentable()
-            HStack(spacing: 0) {
-                Text(String(ym.y)).font(.system(size: 9, weight: .medium)).foregroundStyle(pal.text2)
-                Spacer(minLength: 0)
-                if entry.moff != 0 {
-                    Button(intent: ShiftMonthIntent(delta: 0)) {
-                        Text(I18n.t("本月")).font(.system(size: 9, weight: .bold)).foregroundStyle(pal.text)
-                            .padding(.horizontal, 5).frame(height: MonthView.headH).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain).accentable()
-                } else if st.1 > 0 {
-                    Text("\(st.0)/\(st.1)").font(.system(size: 9, weight: .medium)).monospacedDigit().foregroundStyle(pal.text2).padding(.trailing, 3)
+        let wk = entry.moff == 0 ? Calendar(identifier: .iso8601).component(.weekOfYear, from: entry.today.date) : 0
+        #if os(macOS)
+        let btnFS: CGFloat = 11, chevW: CGFloat = 34
+        #else
+        let btnFS: CGFloat = 9, chevW: CGFloat = 22
+        let st = entry.moff == 0 ? monthStats(ym) : (0, 0)
+        #endif
+        return HStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: MonthView.titleFS * 0.45) {
+                Text(I18n.monTitle(ym.m)).font(.system(size: MonthView.titleFS, weight: .heavy)).tracking(-MonthView.titleFS * 0.04)
+                    .foregroundStyle(pal.text).accentable()
+                Text(I18n.eyebrow(ym.y, wk)).font(.system(size: MonthView.browFS, weight: .semibold)).tracking(MonthView.browFS * 0.16)
+                    .monospacedDigit().foregroundStyle(pal.text2)
+            }
+            .lineLimit(1)
+            Spacer(minLength: 4)
+            #if os(iOS)
+            if st.1 > 0 {
+                Text("\(st.0)/\(st.1)").font(.system(size: 9, weight: .medium)).monospacedDigit().foregroundStyle(pal.text2).padding(.trailing, 3)
+            }
+            #endif
+            if entry.moff != 0 {
+                // 和 App 标题板右边的「今天」一样：正文色 6% 的浅色胶囊
+                Button(intent: ShiftMonthIntent(delta: 0)) {
+                    Text(I18n.t("本月")).font(.system(size: btnFS, weight: .semibold)).foregroundStyle(pal.text)
+                        .padding(.horizontal, btnFS * 0.75).frame(height: btnFS * 1.9)
+                        .background(Capsule().fill(pal.text.opacity(0.06)))
+                        .frame(height: MonthView.headH).contentShape(Rectangle())
                 }
-                ForEach([-1, 1], id: \.self) { k in
-                    Button(intent: ShiftMonthIntent(delta: k)) {
-                        Image(systemName: k < 0 ? "chevron.left" : "chevron.right")
-                            .font(.system(size: 9, weight: .semibold)).foregroundStyle(pal.text2.opacity(0.8))
-                            .frame(width: 22, height: MonthView.headH).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
+                .buttonStyle(.plain).accentable()
+            }
+            ForEach([-1, 1], id: \.self) { k in
+                Button(intent: ShiftMonthIntent(delta: k)) {
+                    Image(systemName: k < 0 ? "chevron.left" : "chevron.right")
+                        .font(.system(size: btnFS, weight: .semibold)).foregroundStyle(pal.text2.opacity(0.8))
+                        .frame(width: chevW, height: MonthView.headH).contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
             }
         }
-        .padding(.leading, 10).padding(.trailing, 2)
+        .padding(.leading, MonthView.headPad).padding(.trailing, 2)
         .frame(height: MonthView.headH)
     }
 
+    #if os(iOS)
     /// 本月的事件：完成了几个 / 一共几个（右上角显示）
     private func monthStats(_ ym: YMD) -> (Int, Int) {
         var seen = Set<String>(), done = 0
@@ -116,31 +139,40 @@ struct MonthView: View {
         }
         return (done, seen.count)
     }
-    #else
-    private func header(_ ym: YMD, _ pal: Pal) -> some View {
-        HStack(spacing: 0) {
-            Text(I18n.mon(ym.m)).font(.system(size: 14, weight: .bold)).foregroundStyle(pal.text).accentable()
-            Text(String(ym.y)).font(.system(size: 10.5)).foregroundStyle(pal.text2).padding(.leading, 5)
-            Spacer(minLength: 0)
-            if entry.moff != 0 {
-                Button(intent: ShiftMonthIntent(delta: 0)) {
-                    Text(I18n.t("本月")).font(.system(size: 11, weight: .bold)).foregroundStyle(pal.text)
-                        .padding(.leading, 8).padding(.trailing, 6).frame(height: MonthView.headH).contentShape(Rectangle())
-                }
-                .buttonStyle(.plain).accentable()
+    #endif
+
+    /// 月份交界线：和 App 一样，只在本月和上 / 下个月交界处画一根 Cadence logo 渐变（#9E9AC8 → #C7B3CF → #EBC7A6）的细实线，
+    /// 阶梯形（calendar.js 的 drawFrame / seam）；只有一行里两个月都有时才画，最后一行贴着小组件底边的那一段不画。小组件里不流动
+    private func seams(_ days: [YMD], ym: YMD, rows: Int, cw: CGFloat, rowH: CGFloat, pal: Pal) -> some View {
+        let sp = MonthView.sp
+        let a = days.firstIndex { $0.m == ym.m } ?? 0
+        let b = (days.lastIndex { $0.m == ym.m } ?? 0) + 1
+        return Canvas { ctx, size in
+            let X = { (c: Int) -> CGFloat in CGFloat(c) * (cw + sp) - sp / 2 }
+            let Y = { (r: Int) -> CGFloat in CGFloat(r) * (rowH + sp) + sp / 2 }
+            var p = Path()
+            if a % 7 != 0 {   // 第一行左边是上个月：沿上个月那几格的底边 → 交界处上到这一行的顶 → 沿本月的顶边到最右
+                p.move(to: CGPoint(x: 0, y: Y(1))); p.addLine(to: CGPoint(x: X(a), y: Y(1)))
+                p.addLine(to: CGPoint(x: X(a), y: Y(0))); p.addLine(to: CGPoint(x: size.width, y: Y(0)))
             }
-            ForEach([-1, 1], id: \.self) { k in
-                Button(intent: ShiftMonthIntent(delta: k)) {
-                    Image(systemName: k < 0 ? "chevron.left" : "chevron.right")
-                        .font(.system(size: 11, weight: .semibold)).foregroundStyle(pal.text2)
-                        .frame(width: 34, height: MonthView.headH).contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+            if b % 7 != 0 && b / 7 < rows {   // 最后一行右边是下个月：交界处从底边上到这一行的顶 → 沿下个月的顶边到最右
+                let r = b / 7, c = b % 7
+                p.move(to: CGPoint(x: X(c), y: size.height)); p.addLine(to: CGPoint(x: X(c), y: Y(r)))
+                p.addLine(to: CGPoint(x: size.width, y: Y(r)))
             }
+            let grad = Gradient(stops: [.init(color: Color(argb: 0xFF9E_9AC8), location: 0), .init(color: Color(argb: 0xFFC7_B3CF), location: 0.25),
+                                        .init(color: Color(argb: 0xFFEB_C7A6), location: 0.5), .init(color: Color(argb: 0xFFC7_B3CF), location: 0.75),
+                                        .init(color: Color(argb: 0xFF9E_9AC8), location: 1)])
+            ctx.opacity = 0.95
+            ctx.stroke(p, with: pal.glass ? .color(pal.text.opacity(0.6)) : .linearGradient(grad, startPoint: .zero, endPoint: CGPoint(x: 320, y: 0)),
+                       style: StrokeStyle(lineWidth: MonthView.seamW, lineCap: .round, lineJoin: .round))
         }
-        .padding(.leading, 11).padding(.trailing, 2)
-        .frame(height: MonthView.headH)
+        .allowsHitTesting(false)
     }
+    #if os(macOS)
+    private static let seamW: CGFloat = 1.5
+    #else
+    private static let seamW: CGFloat = 1.2
     #endif
 
     @ViewBuilder
@@ -155,7 +187,7 @@ struct MonthView: View {
                     cell(wk[k], occ: lay.occ[k], lim: lim[k], ym: ym, today: today, cap: cap, cw: cw, rowH: rowH, pal: pal)
                         .frame(width: cw, height: rowH, alignment: .topLeading)
                         // 底色铺满整格（只盖住日期那一行时，下面会露出分隔线的灰色）
-                        .background { if wk[k] == today { RoundedRectangle(cornerRadius: 7, style: .continuous).fill(pal.todayTint).padding(1.5) } } // 今天：圆角的品牌渐变淡底（和 App 一样）
+                        .background { if wk[k] == today { RoundedRectangle(cornerRadius: 10, style: .continuous).fill(pal.todayTint).padding(1.5) } } // 今天：圆角的品牌渐变淡底（和 App 一样）
                         .clipped()
                 }
             }
@@ -197,25 +229,25 @@ struct MonthView: View {
             && CGFloat(lim) * MonthView.slot + CGFloat(timedSlots.count) * MonthView.timeH <= room
         let dots = cap == 0 ? Array(d.on(day).filter { !$0.done }.prefix(3)) : []
         return VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 0) {
-                Text("\(day.d)")
-                    .font(.system(size: MonthView.dateFS, weight: MonthView.dateWeight(isToday, glass: pal.glass)))
-                    .foregroundStyle(isToday ? Color.white : inMonth ? pal.text : pal.dim)
-                    .padding(.horizontal, 3)
-                    .frame(minWidth: MonthView.dateH, minHeight: MonthView.dateH, maxHeight: MonthView.dateH)
-                    .background { if isToday { RoundedRectangle(cornerRadius: MonthView.dateH / 2).fill(pal.todayStyle).accentable() } }
-                    .padding(.leading, 2)
-                Spacer(minLength: 0)
-                if hidden > 0 {
-                    // 今天还有放不下的事：用主色小标签，比其他日子的灰色「+n」醒目
-                    Text(isToday ? " +\(hidden) " : "+\(hidden)")
-                        .font(.system(size: MonthView.chipFS - 1, weight: isToday ? .bold : .medium))
-                        .foregroundStyle(isToday ? Color.white : pal.text2)
-                        .background { if isToday { RoundedRectangle(cornerRadius: 5).fill(pal.todayStyle) } }
-                        .padding(.trailing, 2)
-                        .lineLimit(1)
+            // 日期在格子里居中（和 App 的 .num 一样），放不下的「+n」叠在右上角
+            Text("\(day.d)")
+                .font(.system(size: MonthView.dateFS, weight: MonthView.dateWeight(isToday, glass: pal.glass)))
+                .foregroundStyle(isToday ? Color.white : inMonth ? pal.text : pal.dim)
+                .padding(.horizontal, 3)
+                .frame(minWidth: MonthView.dateH, minHeight: MonthView.dateH, maxHeight: MonthView.dateH)
+                .background { if isToday { RoundedRectangle(cornerRadius: MonthView.dateH / 2).fill(pal.todayStyle).accentable() } }
+                .frame(maxWidth: .infinity)
+                .overlay(alignment: .trailing) {
+                    if hidden > 0 {
+                        // 今天还有放不下的事：用主色小标签，比其他日子的灰色「+n」醒目
+                        Text(isToday ? " +\(hidden) " : "+\(hidden)")
+                            .font(.system(size: MonthView.chipFS - 1, weight: isToday ? .bold : .medium))
+                            .foregroundStyle(isToday ? Color.white : pal.text2)
+                            .background { if isToday { RoundedRectangle(cornerRadius: 5).fill(pal.todayStyle) } }
+                            .padding(.trailing, 2)
+                            .lineLimit(1)
+                    }
                 }
-            }
             .frame(height: MonthView.dateH)
             if cap >= 1 {
                 ForEach(0..<lim, id: \.self) { s in

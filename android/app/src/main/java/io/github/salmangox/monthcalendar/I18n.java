@@ -18,6 +18,11 @@ final class I18n {
     private static void ja(String k, String v) { JA.put(k, v); }
 
     static {
+        // ---------- 整月小组件的标题（和 App 月视图的编辑式标题一样）【联动:顶部悬浮】 ----------
+        put("{0}　第 {1} 周", "{0}　第 {1} 週", "{0} · Week {1}", "{0} · Semaine {1}");
+        ja("{0}　第 {1} 周", "{0}　第{1}週");
+        put("本月", "本月", "This month", "Ce mois-ci");
+        ja("本月", "今月");
         // ---------- 原生悬浮控件（DockHost）的无障碍标签 ----------
         put("今日", "今日", "Today", "Aujourd’hui");
         ja("今日", "今日");
@@ -187,6 +192,9 @@ final class I18n {
 
     /** 月份标题：「10月」/ Oct / oct.（m：1–12） */
     static String mon(int m) { return lang.equals("en") ? MON_EN[m - 1] : lang.equals("fr") ? MON_FR[m - 1] : m + "月"; }
+    private static final String[] CN_M = {"一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"};
+    /** 整月小组件的大标题：中文用汉字「十一月」（简繁同），其他语言同 mon()（和网页 calendar.js 的 monthName 一样） */
+    static String monTitle(int m) { return zh() ? CN_M[m - 1] + "月" : mon(m); }
     /** 日期：「10月20日」/ Oct 20 / 20 oct. */
     static String md(int m, int d) { return lang.equals("en") ? MON_EN[m - 1] + " " + d : lang.equals("fr") ? d + " " + MON_FR[m - 1] : m + "月" + d + "日"; }
     /** 星期表头（0 = 周日）：「日」/ S / D */

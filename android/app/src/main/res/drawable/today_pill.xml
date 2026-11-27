@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 整月小组件标题右边的「本月」：浅色胶囊（正文色 6% 透明的底，全圆角），和 App 标题板里的今天胶囊（.cal-today）一样 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="@color/w_pill" /><corners android:radius="999dp" /></shape>
