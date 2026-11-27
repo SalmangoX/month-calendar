@@ -77,11 +77,11 @@ function brandGrad() {
   return g;
 }
 const C = {
-  bg: dyn(hex("#ECF2F5"), hex("#1B1C21")), // 浅色用柔和的灰白，不刺眼（横条的实色按这两个底色算，改这里要一起改 BG_L / BG_D）
+  bg: dyn(hex("#FBFBFC"), hex("#1C1C1E")), // 中性白 / 深灰，和 iPhone 原生小组件 Pal.bg 一样（不要发蓝）（横条的实色按这两个底色算，改这里要一起改 BG_L / BG_D）
   text: dyn(hex("#171B20"), hex("#EEEEF1")),
   text2: dyn(hex("#747B83"), hex("#8C8E97")),
   text3: dyn(hex("#B9BFC3"), hex("#494A50")),
-  line: dyn(hex("#DAE1E5"), hex("#2F3035")),
+  line: dyn(hex("#EAEAED"), hex("#2C2C2F")),
 };
 // 事件色条，和应用里一致：浅色 = 实色底 + 白字；深色 = 专门的深色调 + 带同色的柔白字（不刺眼）
 // 半透明色叠在小组件底色上的实际颜色（不透明）。横条由两段拼成、会有重叠，用不透明色重叠处才不会变亮
@@ -89,7 +89,7 @@ function over(h, a, base) {
   const n = parseInt(h.slice(1), 16), b = parseInt(base.slice(1), 16), mix = (x, y) => Math.round(x * a + y * (1 - a));
   return "#" + [mix(n >> 16, b >> 16), mix((n >> 8) & 255, (b >> 8) & 255), mix(n & 255, b & 255)].map(v => v.toString(16).padStart(2, "0")).join("");
 }
-const BG_L = "#ECF2F5", BG_D = "#1B1C21";
+const BG_L = "#FBFBFC", BG_D = "#1C1C1E";
 // 记录日历的颜色（和应用一致：没设优先级的记录日历事件用日历自己的颜色，深色用同一套算法生成的深色调）
 let CALC = new Map();
 const lin = v => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4), gam = v => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);

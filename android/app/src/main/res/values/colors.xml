@@ -5,8 +5,8 @@
     <!-- 日历选区的蓝（网页里的 cs 变量）：今天、选中的日子；主色 accent 是中性黑白（用户定的：界面里不要蓝色） -->
     <color name="sel">#4F80C4</color>
     <color name="app_bg">#F7FAFC</color>
-    <color name="w_bg">#ECF2F5</color>
-    <color name="w_line">#DAE1E5</color>
+    <color name="w_bg">#FBFBFC</color>
+    <color name="w_line">#EAEAED</color>
     <color name="w_text">#171B20</color>
     <color name="w_text2">#747B83</color>
     <!-- 整月小组件「本月」胶囊的底：正文色 6%（和 App .cal-today 一样） -->
@@ -54,8 +54,9 @@
     <color name="chip_p3_l2_0">#00DF693A</color>
     <color name="chip_p0">#A3A1AD</color>
 
-    <!-- 今天格子的淡主色底（浅色 12%、深色 20%，和应用里选中日期一致） -->
-    <color name="w_today">#1F4F80C4</color>
+    <!-- 今天格子的淡底：一层很淡的品牌渐变（金黄 → 天蓝，w_today → w_today_b），和 iPhone / Mac 小组件的 Pal.todayTint 一样，不用蓝色（用户定的）；小组件底色和分隔线是中性白 / 灰（Pal.bg / line） -->
+    <color name="w_today">#29E2B562</color>
+    <color name="w_today_b">#2474A8E6</color>
 
     <!-- 品牌渐变（今天的日期、今天放不下的小标签）：明亮的金黄 → 天蓝 → 亮蓝，和网页 brand 变量一致 -->
     <color name="brand_a">#E2B562</color>

@@ -10,15 +10,15 @@
     --p3f:#9A2925; --p3i:#FDE2DF; --p2f:#B86624; --p2i:#FCE4D5; --p1f:#0C53A3; --p1i:#DDEBFE; --p0f:#3D3C41; --p0i:#E9E9ED; }
   :root[data-theme="dark"] { --cs:#8DB0EA; --accent:#ECEDF1; --red:#F0625A; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cs:#8DB0EA; --accent:#ECEDF1; --red:#F0625A; } }
-  :root, :root[data-theme="light"] { color-scheme:light; --bg:#ECF2F5; --line:#DAE1E5; --text:#171B20; --text2:#747B83; --text3:#B9BFC3; --mix:20%;
+  :root, :root[data-theme="light"] { color-scheme:light; --bg:#FBFBFC; --line:#EAEAED; --text:#171B20; --text2:#747B83; --text3:#B9BFC3; --mix:20%;
     --chip-weight:600; }
   .chip { --chip-bg:var(--cg, var(--c)); --chip-fg:#fff; }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { color-scheme:dark; --bg:#1B1C21; --line:#292A2F; --text:#EEEEF1; --text2:#8C8E97; --text3:#494A50; --mix:30%;
+    :root:not([data-theme="light"]) { color-scheme:dark; --bg:#1C1C1E; --line:#2C2C2F; --text:#EEEEF1; --text2:#8C8E97; --text3:#494A50; --mix:30%;
       --chip-weight:500; }
     :root:not([data-theme="light"]) .chip:not(.done) { --chip-bg:var(--cgd, var(--cf)); --chip-fg:var(--ci); }
   }
-  :root[data-theme="dark"] { color-scheme:dark; --bg:#1B1C21; --line:#292A2F; --text:#EEEEF1; --text2:#8C8E97; --text3:#494A50; --mix:30%;
+  :root[data-theme="dark"] { color-scheme:dark; --bg:#1C1C1E; --line:#2C2C2F; --text:#EEEEF1; --text2:#8C8E97; --text3:#494A50; --mix:30%;
     --chip-weight:500; }
   :root[data-theme="dark"] .chip:not(.done) { --chip-bg:var(--cgd, var(--cf)); --chip-fg:var(--ci); }
   * { box-sizing:border-box; }
@@ -70,9 +70,9 @@
   /* 今天：整格叠一层淡主色；还有放不下的事件时，「+n」用主色小标签 */
   /* 今天：一块带小圆角的淡主色，四周留一点边 */
   .c { position:relative; }
-  .c.today::before { content:''; position:absolute; inset:1.5px 1.5px 2px; border-radius:10px; background:color-mix(in srgb, var(--cs) 12%, transparent); pointer-events:none; }
-  :root[data-theme="dark"] .c.today::before { background:color-mix(in srgb, var(--cs) 20%, transparent); }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .c.today::before { background:color-mix(in srgb, var(--cs) 20%, transparent); } }
+  .c.today::before { content:''; position:absolute; inset:1.5px 1.5px 2px; border-radius:10px; background:linear-gradient(135deg, rgba(226,181,98,.16), rgba(116,168,230,.14)); pointer-events:none; }   /* 今天：很淡的品牌渐变（和 App、iPhone 小组件一样），不用蓝色 */
+  :root[data-theme="dark"] .c.today::before { background:linear-gradient(135deg, rgba(228,185,107,.22), rgba(128,177,236,.18)); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .c.today::before { background:linear-gradient(135deg, rgba(228,185,107,.22), rgba(128,177,236,.18)); } }
   .c > * { position:relative; }
   .nr { position:relative; display:flex; align-items:center; justify-content:center; }   /* 日期在格子里水平居中（和 App 一样） */
   .nr .more { position:absolute; right:1px; top:2px; line-height:11px; padding-left:0; }   /* 「+n」照旧在右上角 */

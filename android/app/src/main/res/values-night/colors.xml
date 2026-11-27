@@ -3,8 +3,8 @@
     <color name="accent">#ECEDF1</color>
     <color name="sel">#8DB0EA</color>
     <color name="app_bg">#141416</color>
-    <color name="w_bg">#1B1C21</color>
-    <color name="w_line">#292A2F</color>
+    <color name="w_bg">#1C1C1E</color>
+    <color name="w_line">#2C2C2F</color>
     <color name="w_text">#EEEEF1</color>
     <color name="w_text2">#8C8E97</color>
     <!-- 整月小组件「本月」胶囊的底：正文色 6%（和 App .cal-today 一样） -->
@@ -46,7 +46,8 @@
     <color name="chip_p0">#3D3C41</color>
 
     <!-- 今天格子的淡主色底（浅色 12%、深色 20%，和应用里选中日期一致） -->
-    <color name="w_today">#338DB0EA</color>
+    <color name="w_today">#38E4B96B</color>
+    <color name="w_today_b">#2E80B1EC</color>
 
     <!-- 品牌渐变（今天的日期、今天放不下的小标签）：明亮的金黄 → 天蓝 → 亮蓝，和网页 brand 变量一致 -->
     <color name="brand_a">#E4B96B</color>

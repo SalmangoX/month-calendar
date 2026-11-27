@@ -45,10 +45,10 @@ String(args.widgetParameter || "").split(/[\s,;，]+/).forEach(p => {
 const dyn = (l, d) => (forcedTheme === "light" ? l : forcedTheme === "dark" ? d : Color.dynamic(l, d));
 const hex = (h, a) => (a == null ? new Color(h) : new Color(h, a));
 const C = {
-  bg: dyn(hex("#ECF2F5"), hex("#1B1C21")),
+  bg: dyn(hex("#FBFBFC"), hex("#1C1C1E")),   // 中性白 / 深灰（不要发蓝）
   text: dyn(hex("#171B20"), hex("#EEEEF1")),
   text2: dyn(hex("#747B83"), hex("#8C8E97")),
-  line: dyn(hex("#DAE1E5"), hex("#2F3035")),
+  line: dyn(hex("#EAEAED"), hex("#2C2C2F")),
   fut: dyn(hex("#4776B4"), hex("#8EB0E6")),
   past: dyn(hex("#B6733B"), hex("#E2A673")),
 };

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 今天的格子：边框同 cell_rb.xml，里面叠一块带小圆角的淡主色（四周留一点边） -->
+<!-- 今天的格子：边框同 cell_rb.xml，里面叠一块带圆角的淡品牌渐变（四周留一点边） -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item><shape><solid android:color="@color/w_line" /></shape></item>
     <item android:right="0dp" android:bottom="0.6dp"><shape><solid android:color="@color/w_bg" /></shape></item>
-    <item android:left="1.5dp" android:top="1.5dp" android:right="2.1dp" android:bottom="2.1dp"><shape><solid android:color="@color/w_today" /><corners android:radius="10dp" /></shape></item>
+    <item android:left="1.5dp" android:top="1.5dp" android:right="2.1dp" android:bottom="2.1dp"><shape><gradient android:angle="315" android:type="linear" android:startColor="@color/w_today" android:endColor="@color/w_today_b" /><corners android:radius="10dp" /></shape></item>
 </layer-list>

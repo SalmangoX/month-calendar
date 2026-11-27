@@ -85,9 +85,16 @@ const setSlots = list => { HUES = courseHues(list.map(c => c.code)); };
 let forced = null;
 String(args.widgetParameter || "").split(/[\s,;，]+/).forEach(p => { if (/^(light|dark)$/i.test(p)) forced = p.toLowerCase(); });
 const dyn = (l, d, a = 1) => forced === "light" ? new Color(l, a) : forced === "dark" ? new Color(d, a) : Color.dynamic(new Color(l, a), new Color(d, a));
+// 今天的日期圆：品牌渐变 金黄 → 天蓝 → 亮蓝（和 App、整月小组件的 brandGrad 一样）【联动:品牌渐变】
+function brandGrad() {
+  const g = new LinearGradient();
+  g.colors = [Color.dynamic(new Color("#E2B562"), new Color("#E4B96B")), Color.dynamic(new Color("#74A8E6"), new Color("#80B1EC")), Color.dynamic(new Color("#5A8DDA"), new Color("#6A99E2"))];
+  g.locations = [0.06, 0.52, 0.96]; g.startPoint = new Point(0, 0); g.endPoint = new Point(1, 1);
+  return g;
+}
 const C = {
-  bg: dyn("#ECF2F5", "#1B1C21"), card: dyn("#FFFFFF", "#2A2B30"),
-  text: dyn("#171B20", "#EEEEF1"), text2: dyn("#6E757E", "#8C8E97"), accent: dyn("#2B2D33", "#ECEDF1"), sel: dyn("#4F80C4", "#8DB0EA"),   // 主色中性黑白；今天用日历选区的蓝
+  bg: dyn("#FBFBFC", "#1C1C1E"), card: dyn("#FFFFFF", "#2A2B30"),
+  text: dyn("#171B20", "#EEEEF1"), text2: dyn("#6E757E", "#8C8E97"), accent: dyn("#2B2D33", "#ECEDF1"), sel: dyn("#2B2D33", "#ECEDF1"),   // 主色中性黑白；今天的字用正文色、日期圆用品牌渐变（小组件里不要蓝色）
 };
 // 【联动:课程颜色】见 CLAUDE.md「联动分组」
 const toneOf = code => { const h = HUES.has(code) ? HUES.get(code) : 240; if (!TONE_CACHE.has(h)) TONE_CACHE.set(h, courseTone(h)); return TONE_CACHE.get(h); };
@@ -265,8 +272,8 @@ function gridLayout(w, courses, now, offline) {
   const key = Object.keys(LARGE).map(Number).sort((a, b) => b - a).find(x => x <= sw) || 320;
   const [W, H] = LARGE[key];
   const dark = forced ? forced === "dark" : Device.isUsingDarkAppearance();
-  const P = dark ? { bg: "#1B1C21", text: "#EEEEF1", text2: "#8C8E97", line: "#2F3035", accent: "#ECEDF1", sel: "#8DB0EA", today: "#1E2735" }
-                 : { bg: "#ECF2F5", text: "#171B20", text2: "#6E757E", line: "#DAE1E5", accent: "#2B2D33", sel: "#4F80C4", today: "#E1E8F6" };
+  const P = dark ? { bg: "#1C1C1E", text: "#EEEEF1", text2: "#8C8E97", line: "#2C2C2F", accent: "#ECEDF1", sel: "#EEEEF1", today: "#3A3936" }
+                 : { bg: "#FBFBFC", text: "#171B20", text2: "#6E757E", line: "#EAEAED", accent: "#2B2D33", sel: "#171B20", today: "#F3EEE4" };
   const mon = mondayOf(now), todayS = ymdL(now);
   const days = [];
   let minH = 8, maxH = 18;
@@ -372,9 +379,9 @@ function monthLayout(w, courses, now, offline) {
     for (let k = 0; k < 7; k++) {
       const date = new Date(y, m, 1 - off + r * 7 + k), ds = ymdL(date), out = date.getMonth() !== m;
       const cell = row.addStack(); cell.layoutVertically(); cell.size = new Size(0, 0); cell.setPadding(1.5, 1, 0, 1);
-      cell.borderColor = dyn("#DAE1E5", "#2F3035"); cell.borderWidth = 0.3;
+      cell.borderColor = dyn("#EAEAED", "#2C2C2F"); cell.borderWidth = 0.3;
       const nr = cell.addStack(); nr.addSpacer(2);
-      if (ds === today) { const b = nr.addStack(); b.backgroundColor = C.sel; b.cornerRadius = 7; b.setPadding(0, 3, 0, 3); addText(b, String(date.getDate()), Font.boldSystemFont(9.5), Color.white()); }
+      if (ds === today) { const b = nr.addStack(); b.backgroundGradient = brandGrad(); b.cornerRadius = 7; b.setPadding(0, 3, 0, 3); addText(b, String(date.getDate()), Font.boldSystemFont(9.5), Color.white()); }
       else addText(nr, String(date.getDate()), Font.mediumSystemFont(10), out ? C.text2 : C.text);
       nr.addSpacer();
       const list = courses.filter(c => onDate(c, date)).sort((a, b) => toMin(a.start) - toMin(b.start));

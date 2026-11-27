@@ -165,6 +165,7 @@ final class Widgets {
         int off0 = (jsDay - ws + 7) % 7;
         int rows = (int) Math.ceil((off0 + ym.lengthOfMonth()) / 7.0);
         for (int r = rows; r < 6; r++) if (ROW != null && ROW[r] != 0) rv.setViewVisibility(ROW[r], android.view.View.GONE);
+        CELL_W = widthDp / 7f;
         seams(c, rv, rows, off0, ym.lengthOfMonth(), widthDp);
 
         for (int i = 0; i < 42; i++) {
@@ -361,6 +362,34 @@ final class Widgets {
     /** 中文小一号：色条上的中文按 0.947 倍（9.5 → 9，和网页 .chip .cj 一样），英文、数字不变【联动:优先级色条】 */
     static final float CJK_K = 0.947f;
     static boolean isCjk(char ch) { return (ch >= 0x2E80 && ch <= 0x9FFF) || (ch >= 0xF900 && ch <= 0xFAFF) || (ch >= 0x3000 && ch <= 0x303F) || (ch >= 0xFF00 && ch <= 0xFFEF); }
+    /** 整月小组件一格的宽度（dp），monthViews 里设；色条截断处的渐隐按它算 */
+    private static float CELL_W = 0;
+    /**
+     * 色条的字：中文小一号；放不下时截断处像 App 一样淡出（calendar.js 的 fadeOverflow）——量出落在色条最后 7dp 里的字，
+     * 按离边多近调透明，最淡留 45%。不用系统渐隐边（它淡到完全透明，只能缩到 3dp，几乎看不出）。
+     * RemoteViews 只能带系统自带的 span，所以淡出的字用 ForegroundColorSpan 写死颜色（ink：更新时深浅色对应的字色）
+     */
+    private static CharSequence chipText(Context c, String title, boolean strike, float availDp, int ink) {
+        SpannableString s = (SpannableString) chipText(title, strike);
+        if (availDp <= 0) return s;
+        android.text.TextPaint tp = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        tp.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, c.getResources().getInteger(R.integer.chip_weight), false));
+        final float FADE = 7f, MIN = .45f;
+        float x = 0;
+        for (int i = 0; i < title.length(); ) {
+            int n = Character.charCount(title.codePointAt(i));
+            tp.setTextSize(9f * (isCjk(title.charAt(i)) ? CJK_K : 1f));
+            float w = tp.measureText(title, i, i + n), mid = x + w / 2;
+            if (x >= availDp) break;
+            if (x + w > availDp - FADE) {
+                float k = Math.max(MIN, Math.min(1f, 1f - (mid - (availDp - FADE)) / FADE * (1f - MIN)));
+                int a = Math.round(android.graphics.Color.alpha(ink) * k);
+                s.setSpan(new android.text.style.ForegroundColorSpan((ink & 0x00FFFFFF) | (a << 24)), i, i + n, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            x += w; i += n;
+        }
+        return s;
+    }
     private static CharSequence chipText(String title, boolean strike) {
         SpannableString s = new SpannableString(title);
         for (int i = 0; i < title.length();) {
@@ -472,11 +501,15 @@ final class Widgets {
         if (tm) rv.setTextViewCompoundDrawables(vid, 0, 0, e.done || !inMonth ? R.drawable.tm_dot_soft : R.drawable.tm_dot, 0);
         String title = e.title.isEmpty() ? I18n.t("（无标题）") : e.title;
         rv.setViewVisibility(vid, android.view.View.VISIBLE);
-        rv.setTextViewText(vid, chipText(title, e.done));   // 中文小一号；放不下时右端渐隐（widget_month.xml 的 requiresFadingEdge）
+        boolean night = (c.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        // 字能用的宽度：一格宽 − 左右外边距 2 − 左内边距（竖条样式 5，其余 1.5）− 右内边距 1 −（有时间的小点 4.5）
         Integer cc = Data.CUR != null ? Data.CUR.calColorOf(e) : null;
-        if (!e.cal.isEmpty()) {   // 分日历的事件在主日历里：左边一根竖条 + 淡底 + 同色字（和网页 .chip.sub 一样，用户定的）
+        boolean sub = !e.cal.isEmpty();
+        float avail = CELL_W > 0 ? CELL_W - 2f - (sub ? 5f : 1.5f) - 1f - (tm ? 4.5f : 0f) : 0;
+        if (sub) {   // 分日历的事件在主日历里：左边一根竖条 + 淡底 + 同色字（和网页 .chip.sub 一样，用户定的）
             int col = cc != null ? cc : c.getColor(PCOL[e.priority]);
             boolean soft = e.done || !inMonth;
+            rv.setTextViewText(vid, chipText(c, title, e.done, avail, subInk(col, night, soft)));
             rv.setInt(vid, "setBackgroundResource", R.drawable.sub_chip);
             rv.setColorStateList(vid, "setBackgroundTintList", ColorStateList.valueOf(soft ? alpha(col, 0x59) : col), ColorStateList.valueOf(soft ? alpha(col, 0x59) : col));
             rv.setColorInt(vid, "setTextColor", subInk(col, false, soft), subInk(col, true, soft));
@@ -488,23 +521,29 @@ final class Widgets {
             int[] dk = CourseColors.darkTone(cc);
             rv.setInt(vid, "setBackgroundResource", R.drawable.cal_chip);
             if (e.done || !inMonth) {
+                rv.setTextViewText(vid, chipText(c, title, e.done, avail, cc));
                 rv.setColorStateList(vid, "setBackgroundTintList", ColorStateList.valueOf(alpha(cc, 0x40)), ColorStateList.valueOf(alpha(cc, 0x4D)));
                 rv.setTextColor(vid, cc);
             } else {
+                rv.setTextViewText(vid, chipText(c, title, e.done, avail, night ? dk[1] : WHITE));
                 rv.setColorStateList(vid, "setBackgroundTintList", ColorStateList.valueOf(cc), ColorStateList.valueOf(dk[0]));
                 rv.setColorInt(vid, "setTextColor", WHITE, dk[1]);
             }
             return;
         }
         if (e.done || !inMonth) {
+            int ink = c.getColor(PCOL[e.priority]);
+            rv.setTextViewText(vid, chipText(c, title, e.done, avail, ink));
             rv.setInt(vid, "setBackgroundResource", SOFT[e.priority]);
-            rv.setTextColor(vid, c.getColor(PCOL[e.priority]));
+            rv.setTextColor(vid, ink);
         } else {
+            rv.setTextViewText(vid, chipText(c, title, e.done, avail, night ? DARK_INK[e.priority] : WHITE));
             rv.setInt(vid, "setBackgroundResource", CHIP[e.priority]); // 底色：深色时是 52% 透明（values-night）
-            // 字色：浅色白字；深色是带 20% 事件色的柔白，和应用一致。桌面切换深浅色时自动跟着变
+            // 字色：浅色白字；深色是带 20% 事件色的柔白，和应用一致。桌面切换深浅色时自动跟着变（淡出的那一两个字按更新时的深浅色）
             rv.setColorInt(vid, "setTextColor", WHITE, DARK_INK[e.priority]);
         }
     }
+
 
     private static PendingIntent action(Context c, int id, String act, int k) {
         Intent i = new Intent(c, MonthWidget.class).setAction(act).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
